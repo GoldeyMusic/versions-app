@@ -2232,6 +2232,8 @@ const FicheScreen = ({ config, analysisResult }) => {
     setGenerating(false);
   }, [analysisResult]);
 
+  const fadrData = analysisResult?.fadrData || null;
+
   // Use generated data if available, fallback to static
   const activeData = generated ? {
     ...data,
@@ -2254,7 +2256,6 @@ const FicheScreen = ({ config, analysisResult }) => {
     }}>{l}</button>
   );
 
-  const fadrData = analysisResult?.fadrData || null;
   const meta = [
     {label:"BPM",    val: fadrData?.bpm  || data.bpm},
     {label:"TONALITÉ",val: fadrData?.key  || data.key},
