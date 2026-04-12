@@ -64,7 +64,7 @@ const STRINGS = {
     // Menu
     username_label:"Nom d'utilisateur", change_photo:"Changer la photo", no_card:"Aucune carte enregistrée", card_required:"Requis pour le plan Pro",
     add_card:"Ajouter une carte",
-    irrev:"{s.irrev}",
+    irrev:"{ls.irrev}",
     menu_account:"Mon compte", menu_premium:"Passer en Premium", menu_settings:"Réglages",
     menu_help:"Aide & support", menu_logout:"Se déconnecter",
     // Confidence
@@ -142,7 +142,7 @@ const LangContext = createContext({ lang:"fr", s: STRINGS.fr, setLang:()=>{} });
 const useLang = () => useContext(LangContext);
 
 const FontLink = () => (
-  <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');`}</style>
+  <style>{`@import url('https://fontls.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');`}</style>
 );
 
 const T = {
@@ -207,7 +207,7 @@ const DecodeLogo = ({ sz = 1 }) => (
 /* ── HEADER ─────────────────────────────────────────────── */
 /* ── LOGIN SCREEN ───────────────────────────────────────── */
 const LoginScreen = ({ onLogin, onLegal }) => {
-  const { s } = useLang();
+  const { s: ls } = useLang();
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -263,7 +263,7 @@ const LoginScreen = ({ onLogin, onLegal }) => {
 
         {/* Toggle login / signup */}
         <div style={{ display:"flex", background:"rgba(255,255,255,0.04)", borderRadius:10, padding:3, marginBottom:24, border:`1px solid ${T.border}` }}>
-          {[["login",s.login_tab],["signup",s.signup_tab]].map(([m,l]) => (
+          {[["login",ls.login_tab],["signup",ls.signup_tab]].map(([m,l]) => (
             <button key={m} onClick={() => setMode(m)} style={{
               flex:1, padding:"8px 0", borderRadius:8, cursor:"pointer",
               background: mode===m ? T.amberGlow : "transparent",
@@ -304,14 +304,14 @@ const LoginScreen = ({ onLogin, onLegal }) => {
         {/* Email / password */}
         <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:16 }}>
           <input value={email} onChange={e => setEmail(e.target.value)}
-            placeholder={s.email} type="email"
+            placeholder={ls.email} type="email"
             style={{ background:T.s2, border:`1px solid ${T.border}`, borderRadius:8, padding:"11px 14px", fontFamily:T.mono, fontSize:11, color:T.text, outline:"none" }}
             onFocus={e => e.target.style.borderColor = T.amber}
             onBlur={e => e.target.style.borderColor = T.border}
           />
           <input value={password} onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key==="Enter" && handleSubmit()}
-            placeholder={s.password} type="password"
+            placeholder={ls.password} type="password"
             style={{ background:T.s2, border:`1px solid ${T.border}`, borderRadius:8, padding:"11px 14px", fontFamily:T.mono, fontSize:11, color:T.text, outline:"none" }}
             onFocus={e => e.target.style.borderColor = T.amber}
             onBlur={e => e.target.style.borderColor = T.border}
@@ -320,7 +320,7 @@ const LoginScreen = ({ onLogin, onLegal }) => {
 
         {mode === "login" && (
           <div style={{ fontFamily:T.mono, fontSize:10, color:T.amberDim, textAlign:"right", marginBottom:14, cursor:"pointer" }}>
-            {s.forgot}
+            {ls.forgot}
           </div>
         )}
 
@@ -333,11 +333,11 @@ const LoginScreen = ({ onLogin, onLegal }) => {
           color: email && password ? T.black : T.muted,
           transition:"all .2s",
           boxShadow: email && password ? `0 4px 20px rgba(245,160,0,.25)` : "none",
-        }}>{loading ? "…" : mode === "login" ? s.login_title : s.signup_title}</button>
+        }}>{loading ? "…" : mode === "login" ? ls.login_title : ls.signup_title}</button>
 
         <div style={{ fontFamily:T.mono, fontSize:9, color:T.muted2, textAlign:"center", marginTop:20, lineHeight:1.7 }}>
-          {s.cgu} <span onClick={() => onLegal("cgu")} style={{ color:T.muted, cursor:"pointer", textDecoration:"underline" }}>{s.cgu2}</span>
-          {" "}{s.cgu3} <span onClick={() => onLegal("privacy")} style={{ color:T.muted, cursor:"pointer", textDecoration:"underline" }}>{s.cgu4}</span>
+          {ls.cgu} <span onClick={() => onLegal("cgu")} style={{ color:T.muted, cursor:"pointer", textDecoration:"underline" }}>{lls.cgu2}</span>
+          {" "}{lls.cgu3} <span onClick={() => onLegal("privacy")} style={{ color:T.muted, cursor:"pointer", textDecoration:"underline" }}>{lls.cgu4}</span>
         </div>
       </div>
     </div>
@@ -345,7 +345,7 @@ const LoginScreen = ({ onLogin, onLegal }) => {
 };
 
 const Header = ({ step, onStep, user, onLogout, avatarPhoto, onSection }) => {
-  const { s } = useLang();
+  const { s: ls } = useLang();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const menuItems = [
@@ -468,16 +468,16 @@ const WaveBg = () => {
 /* ── SCREEN 1 : MODE ────────────────────────────────────── */
 const ModeScreen = ({ onSelect }) => {
   const [hov, setHov] = useState(null);
-  const { s } = useLang();
+  const { s: ls } = useLang();
   const modes = [
-    { id:"perso", label:s.mode_perso_label, sublabel:s.mode_perso_sub, icon:<IconScope/>,  color:T.green,
-      bg:"rgba(87,204,153,0.08)", desc:s.mode_perso_desc,
+    { id:"perso", label:ls.mode_perso_label, sublabel:ls.mode_perso_sub, icon:<IconScope/>,  color:T.green,
+      bg:"rgba(87,204,153,0.08)", desc:ls.mode_perso_desc,
       tags:["Diagnostic","Plan d'action","Mix review"] },
-    { id:"ref",   label:s.mode_ref_label,   sublabel:s.mode_ref_sub,   icon:<IconTarget/>, color:T.cyan,
-      bg:"rgba(72,202,228,0.08)", desc:s.mode_ref_desc,
+    { id:"ref",   label:ls.mode_ref_label,   sublabel:ls.mode_ref_sub,   icon:<IconTarget/>, color:T.cyan,
+      bg:"rgba(72,202,228,0.08)", desc:ls.mode_ref_desc,
       tags:["Inspiration","Reverse engineering","Plugin ID"] },
-    { id:"ask",   label:s.mode_ask_label,   sublabel:s.mode_ask_sub,   icon:<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke={T.amber} strokeWidth="1.4"/><path d="M7.5 8c0-1.4 1-2.2 2.5-2.2S12.5 7 12.5 8.5c0 1-.7 1.8-1.5 2.1-.5.2-.5.7-.5 1" stroke={T.amber} strokeWidth="1.4" strokeLinecap="round"/><circle cx="10" cy="13.5" r=".8" fill={T.amber}/></svg>, color:T.amber,
-      bg:"rgba(245,160,0,0.08)", desc:s.mode_ask_desc,
+    { id:"ask",   label:ls.mode_ask_label,   sublabel:ls.mode_ask_sub,   icon:<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke={T.amber} strokeWidth="1.4"/><path d="M7.5 8c0-1.4 1-2.2 2.5-2.2S12.5 7 12.5 8.5c0 1-.7 1.8-1.5 2.1-.5.2-.5.7-.5 1" stroke={T.amber} strokeWidth="1.4" strokeLinecap="round"/><circle cx="10" cy="13.5" r=".8" fill={T.amber}/></svg>, color:T.amber,
+      bg:"rgba(245,160,0,0.08)", desc:ls.mode_ask_desc,
       tags:["Conseils","Techniques","Plugins"] },
   ];
   return (
@@ -494,7 +494,7 @@ const ModeScreen = ({ onSelect }) => {
           DE<span style={{ color:T.amber }}>CO</span>DE
         </h1>
         <div style={{ fontFamily:T.body, fontWeight:300, fontSize:11, letterSpacing:4, color:T.muted, textTransform:"uppercase" }}>
-          {s.tagline}
+          {ls.tagline}
         </div>
       </div>
 
@@ -548,7 +548,7 @@ const DAWS = [
 ];
 
 const InputScreen = ({ mode, onAnalyze }) => {
-  const { s } = useLang();
+  const { s: ls } = useLang();
   const [tab, setTab] = useState("link");
   const [url, setUrl] = useState("");
   const [daw, setDaw] = useState(null);
@@ -617,12 +617,12 @@ const InputScreen = ({ mode, onAnalyze }) => {
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
           <span style={{ fontFamily:T.mono, fontSize:10, padding:"4px 12px", borderRadius:20, fontWeight:600, letterSpacing:1,
             background:isRef?"rgba(72,202,228,0.12)":"rgba(87,204,153,0.12)", color:accent, border:`1px solid ${accent}44` }}>
-            {isRef ? s.mode_ref_badge : s.mode_perso_badge}
+            {isRef ? ls.mode_ref_badge : ls.mode_perso_badge}
           </span>
         </div>
-        <h2 style={{ fontFamily:T.body, fontWeight:600, fontSize:24, letterSpacing:.3, color:T.text }}>{isRef ? s.source_ref : s.source_perso}</h2>
+        <h2 style={{ fontFamily:T.body, fontWeight:600, fontSize:24, letterSpacing:.3, color:T.text }}>{isRef ? ls.source_ref : ls.source_perso}</h2>
         <p style={{ fontFamily:T.body, fontWeight:300, fontSize:13, color:T.muted, marginTop:6, lineHeight:1.6 }}>
-          {isRef ? s.source_ref_sub : s.source_perso_sub}
+          {isRef ? lls.source_ref_sub : lls.source_perso_sub}
         </p>
       </div>
 
@@ -644,7 +644,7 @@ const InputScreen = ({ mode, onAnalyze }) => {
       {/* Source */}
       <div style={{ background:T.s1, border:`1px solid ${T.border}`, borderRadius:12, padding:22 }}>
         <div style={{ fontFamily:T.mono, fontSize:10, letterSpacing:2, color:T.amber, marginBottom:14, display:"flex", alignItems:"center", gap:10 }}>
-          {s.source_audio} <div style={{ flex:1, height:1, background:T.border }}/>
+          {ls.source_audio} <div style={{ flex:1, height:1, background:T.border }}/>
         </div>
         {tab==="link" ? (
           <div>
@@ -696,7 +696,7 @@ const InputScreen = ({ mode, onAnalyze }) => {
       {/* DAW */}
       <div style={{ background:T.s1, border:`1px solid ${T.border}`, borderRadius:12, padding:22 }}>
         <div style={{ fontFamily:T.mono, fontSize:10, letterSpacing:2, color:T.amber, marginBottom:14, display:"flex", alignItems:"center", gap:10 }}>
-          {s.ton_daw} <div style={{ flex:1, height:1, background:T.border }}/>
+          {ls.ton_daw} <div style={{ flex:1, height:1, background:T.border }}/>
         </div>
         <div style={{ position:"relative" }}>
           <select
@@ -735,7 +735,7 @@ const InputScreen = ({ mode, onAnalyze }) => {
         textTransform:"uppercase",
         color:ok?T.black:T.muted, transition:"all .2s",
         boxShadow:ok?`0 4px 24px rgba(245,160,0,.3)`:"none",
-      }}>{uploading ? "Préparation…" : ok ? (isRef ? s.analyze_btn : s.analyze_btn_perso) : (s.complete_fields || "Compléter les champs")}</button>
+      }}>{uploading ? "Préparation…" : ok ? (isRef ? ls.analyze_btn : lls.analyze_btn_perso) : (ls.complete_fields || "Compléter les champs")}</button>
     </div>
   );
 };
@@ -1832,7 +1832,7 @@ const getKnowledge = (itemLabel) => {
 };
 
 const ElementDrawer = ({ item, onClose, daw, zOverride }) => {
-  const { s } = useLang();
+  const { s: ls } = useLang();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1939,7 +1939,7 @@ INSTRUCTIONS :
 
           {/* Assistant */}
           <div style={{ fontFamily:T.mono, fontSize:9, letterSpacing:2, color:T.amber, marginBottom:14 }}>
-            {item.label === "Assistant Decode" ? s.ask_title : `ASSISTANT — ${daw || "Logic Pro"}`}
+            {item.label === "Assistant Decode" ? ls.ask_title : `ASSISTANT — ${daw || "Logic Pro"}`}
           </div>
 
           <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:16 }}>
@@ -1977,7 +1977,7 @@ INSTRUCTIONS :
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key==="Enter" && !e.shiftKey && send()}
-              placeholder={s.ask_placeholder}
+              placeholder={ls.ask_placeholder}
               style={{
                 flex:1, background:T.s2, border:`1px solid ${T.border}`,
                 borderRadius:10, padding:"10px 14px",
@@ -2158,7 +2158,7 @@ const GeminiEcouteTab = ({ config, zone }) => {
 const FicheScreen = ({ config }) => {
   const isRef = config.mode === "ref";
   const data = isRef ? REF_DATA : PERSO_DATA;
-  const { s } = useLang();
+  const { s: ls } = useLang();
   const [tab, setTab] = useState("elements");
   const [openEl, setOpenEl] = useState(null);
   const [drawer, setDrawer] = useState(null);
@@ -2355,11 +2355,11 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks.`;
 
         {/* Tabs */}
         <div className="fiche-tabs" style={{ display:"flex", borderBottom:`1px solid ${T.border}`, marginBottom:24, overflowX:"auto", alignItems:"center" }}>
-          <Tab id="elements" l={isRef?s.tab_elements:s.tab_elements_perso}/>
-          <Tab id="ecoute" l={isRef?s.tab_ecoute:s.tab_ecoute_perso}/>
-          <Tab id="chain" l={isRef?s.tab_chain:s.tab_chain_perso}/>
-          <Tab id="plugins" l={isRef?s.tab_plugins:s.tab_plugins_perso}/>
-          <Tab id="tips" l={isRef?s.tab_tips:s.tab_tips_perso}/>
+          <Tab id="elements" l={isRef?ls.tab_elements:lls.tab_elements_perso}/>
+          <Tab id="ecoute" l={isRef?ls.tab_ecoute:lls.tab_ecoute_perso}/>
+          <Tab id="chain" l={isRef?ls.tab_chain:lls.tab_chain_perso}/>
+          <Tab id="plugins" l={isRef?ls.tab_plugins:lls.tab_plugins_perso}/>
+          <Tab id="tips" l={isRef?ls.tab_tips:lls.tab_tips_perso}/>
           <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:6, paddingRight:4, paddingBottom:2 }}>
             {generating
               ? <><div style={{ width:5, height:5, borderRadius:"50%", background:T.amber, animation:"apulse 1.5s infinite" }}/><span style={{ fontFamily:T.mono, fontSize:9, color:T.amberDim, whiteSpace:"nowrap" }}>Génération…</span></>
@@ -2379,7 +2379,7 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks.`;
         {tab==="elements" && (
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             <div style={{ fontFamily:T.mono, fontSize:10, color:T.amberDim, marginBottom:2, letterSpacing:.5 }}>
-              {s.click_to_dig}
+              {ls.click_to_dig}
             </div>
             {activeData.elements.map(el => {
               const isHighlighted = zoneInfo.highlight && zoneInfo.highlight.includes(el.id);
@@ -2564,7 +2564,7 @@ const MOCK_HISTORY = [
 const HistoriqueScreen = ({ onOpen }) => {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const { s } = useLang();
+  const { s: ls } = useLang();
 
   const filtered = MOCK_HISTORY.filter(h => {
     const matchMode = filter === "all" || h.mode === filter;
@@ -2576,8 +2576,8 @@ const HistoriqueScreen = ({ onOpen }) => {
   return (
     <div style={{ maxWidth:780, margin:"0 auto", padding:"24px 16px 80px", animation:"fadeup .35s ease" }}>
       <div style={{ marginBottom:20 }}>
-        <h2 style={{ fontFamily:T.body, fontWeight:600, fontSize:22, letterSpacing:.3, color:T.text, marginBottom:4 }}>{s.historique_title}</h2>
-        <p style={{ fontFamily:T.body, fontWeight:300, fontSize:13, color:T.muted }}>{s.historique_sub}</p>
+        <h2 style={{ fontFamily:T.body, fontWeight:600, fontSize:22, letterSpacing:.3, color:T.text, marginBottom:4 }}>{ls.historique_title}</h2>
+        <p style={{ fontFamily:T.body, fontWeight:300, fontSize:13, color:T.muted }}>{ls.historique_sub}</p>
       </div>
 
       {/* Barre de recherche */}
@@ -2589,7 +2589,7 @@ const HistoriqueScreen = ({ onOpen }) => {
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder={s.search_placeholder}
+          placeholder={ls.search_placeholder}
           style={{
             width:"100%", background:T.s1, border:`1px solid ${T.border}`,
             borderRadius:10, padding:"10px 14px 10px 34px",
@@ -2610,7 +2610,7 @@ const HistoriqueScreen = ({ onOpen }) => {
 
       {/* Filter tabs */}
       <div style={{ display:"flex", gap:8, marginBottom:20 }}>
-        {[["all",s.filter_all,T.amber],["ref",s.filter_ref,T.cyan],["perso",s.filter_perso,T.green]].map(([id,label,color]) => (
+        {[["all",ls.filter_all,T.amber],["ref",ls.filter_ref,T.cyan],["perso",ls.filter_perso,T.green]].map(([id,label,color]) => (
           <button key={id} onClick={() => setFilter(id)} style={{
             fontFamily:T.mono, fontSize:10, padding:"5px 14px", borderRadius:20,
             border:`1px solid ${filter===id ? color : T.border}`,
@@ -2629,13 +2629,13 @@ const HistoriqueScreen = ({ onOpen }) => {
       {/* Résultats */}
       {filtered.length === 0 ? (
         <div style={{ textAlign:"center", padding:"40px 0" }}>
-          <div style={{ fontFamily:T.body, fontWeight:600, fontSize:13, color:T.muted, marginBottom:6 }}>{s.no_results}</div>
-          <div style={{ fontFamily:T.body, fontWeight:300, fontSize:12, color:T.muted }}>{s.no_results_sub}</div>
+          <div style={{ fontFamily:T.body, fontWeight:600, fontSize:13, color:T.muted, marginBottom:6 }}>{ls.no_results}</div>
+          <div style={{ fontFamily:T.body, fontWeight:300, fontSize:12, color:T.muted }}>{lls.no_results_sub}</div>
           <button onClick={() => { setSearch(""); setFilter("all"); }} style={{
             marginTop:16, fontFamily:T.mono, fontSize:11, color:T.amber,
             background:"transparent", border:`1px solid ${T.amber}44`, borderRadius:8,
             padding:"6px 14px", cursor:"pointer",
-          }}>{s.reset}</button>
+          }}>{ls.reset}</button>
         </div>
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
@@ -2698,7 +2698,7 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
   const [section, setSection] = useState("profil");
   const [defaultDaw, setDefaultDaw] = useState("Logic Pro");
   const [notifNews, setNotifNews] = useState(true);
-  const { lang, setLang: ctxSetLang, s } = useLang();
+  const { lang, setLang: ctxSetLang, s: ls } = useLang();
 
   const handleLangChange = (l) => {
     ctxSetLang(l);
@@ -2706,12 +2706,12 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
   };
 
   const sections = [
-    { id:"profil",      label:s.section_profil,       icon:<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.3"/><path d="M1.5 13c0-3 2.5-4.5 5.5-4.5S12.5 10 12.5 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg> },
-    { id:"abonnement",  label:s.section_abonnement,   icon:<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L8.5 5H13L9.5 7.5L11 12L7 9.5L3 12L4.5 7.5L1 5H5.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/></svg> },
-    { id:"paiement",    label:s.section_paiement,     icon:<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M1 6h12" stroke="currentColor" strokeWidth="1.3"/></svg> },
-    { id:"preferences", label:s.section_preferences,  icon:<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M2 7h7M2 10h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg> },
-    { id:"securite",    label:s.section_securite,    icon:<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L2 3.5V7c0 3 2.5 5 5 6 2.5-1 5-3 5-6V3.5L7 1Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg> },
-    { id:"donnees",     label:s.section_donnees,     icon:<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><ellipse cx="7" cy="4" rx="5" ry="2" stroke="currentColor" strokeWidth="1.3"/><path d="M2 4v6c0 1.1 2.2 2 5 2s5-.9 5-2V4" stroke="currentColor" strokeWidth="1.3"/><path d="M2 7c0 1.1 2.2 2 5 2s5-.9 5-2" stroke="currentColor" strokeWidth="1.3"/></svg> },
+    { id:"profil",      label:ls.section_profil,       icon:<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.3"/><path d="M1.5 13c0-3 2.5-4.5 5.5-4.5S12.5 10 12.5 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg> },
+    { id:"abonnement",  label:ls.section_abonnement,   icon:<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L8.5 5H13L9.5 7.5L11 12L7 9.5L3 12L4.5 7.5L1 5H5.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/></svg> },
+    { id:"paiement",    label:ls.section_paiement,     icon:<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M1 6h12" stroke="currentColor" strokeWidth="1.3"/></svg> },
+    { id:"preferences", label:ls.section_preferences,  icon:<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M2 7h7M2 10h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg> },
+    { id:"securite",    label:ls.section_securite,    icon:<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L2 3.5V7c0 3 2.5 5 5 6 2.5-1 5-3 5-6V3.5L7 1Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg> },
+    { id:"donnees",     label:ls.section_donnees,     icon:<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><ellipse cx="7" cy="4" rx="5" ry="2" stroke="currentColor" strokeWidth="1.3"/><path d="M2 4v6c0 1.1 2.2 2 5 2s5-.9 5-2V4" stroke="currentColor" strokeWidth="1.3"/><path d="M2 7c0 1.1 2.2 2 5 2s5-.9 5-2" stroke="currentColor" strokeWidth="1.3"/></svg> },
   ];
 
   const Input = ({ label, value, type="text" }) => (
@@ -2776,7 +2776,7 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
               <button
                 onClick={() => fileInputRef.current?.click()}
                 style={{ fontFamily:T.mono, fontSize:11, color:T.amber, background:"transparent", border:`1px solid ${T.amber}44`, borderRadius:8, padding:"7px 14px", cursor:"pointer" }}>
-                {s.change_photo}
+                {ls.change_photo}
               </button>
               {avatarPhoto && (
                 <button onClick={() => setAvatarPhoto(null)}
@@ -2793,10 +2793,10 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
               style={{ display:"none" }}
             />
           </div>
-          <Input label={s.username_label} value={user?.name || ""}/>
+          <Input label={ls.username_label} value={user?.name || ""}/>
           <Input label="EMAIL" value={user?.email || ""} type="email"/>
           <button style={{ marginTop:8, width:"100%", padding:"12px", background:`linear-gradient(135deg, ${T.amber}, ${T.orange})`, border:"none", borderRadius:10, fontFamily:T.body, fontWeight:600, fontSize:13, letterSpacing:1.5, textTransform:"uppercase", color:T.black, cursor:"pointer" }}>
-            {s.save_btn}
+            {ls.save_btn}
           </button>
         </div>
       );
@@ -2804,7 +2804,7 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
       case "abonnement": return (
         <div>
           <div style={{ background:T.s2, border:`1px solid ${T.border}`, borderRadius:12, padding:18, marginBottom:20 }}>
-            <div style={{ fontFamily:T.mono, fontSize:10, color:T.muted, marginBottom:6 }}>{s.plan_current}</div>
+            <div style={{ fontFamily:T.mono, fontSize:10, color:T.muted, marginBottom:6 }}>{ls.plan_current}</div>
             <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
               <div style={{ fontFamily:T.body, fontWeight:700, fontSize:20, color:T.text }}>FREE</div>
               <div style={{ fontFamily:T.mono, fontSize:10, color:T.muted }}>· 5 analyses / mois</div>
@@ -2820,7 +2820,7 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
               Analyses illimitées · Export PDF · Assistant enrichi · Historique complet
             </div>
             <button style={{ width:"100%", padding:"12px", background:`linear-gradient(135deg, ${T.amber}, ${T.orange})`, border:"none", borderRadius:10, fontFamily:T.body, fontWeight:600, fontSize:13, letterSpacing:1.5, textTransform:"uppercase", color:T.black, cursor:"pointer" }}>
-              {s.upgrade_btn}
+              {ls.upgrade_btn}
             </button>
           </div>
         </div>
@@ -2831,13 +2831,13 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
           <div style={{ background:T.s2, border:`1px solid ${T.border}`, borderRadius:12, padding:18, marginBottom:20, display:"flex", alignItems:"center", gap:14 }}>
             <svg width="36" height="24" viewBox="0 0 36 24" fill="none"><rect width="36" height="24" rx="4" fill="#1A1F36"/><path d="M7 15h4v2H7zM13 15h10" stroke={T.muted} strokeWidth="1.5" strokeLinecap="round"/></svg>
             <div>
-              <div style={{ fontFamily:T.body, fontWeight:400, fontSize:13, color:T.text }}>{s.no_card}</div>
-              <div style={{ fontFamily:T.body, fontWeight:300, fontSize:12, color:T.muted }}>{s.card_required}</div>
+              <div style={{ fontFamily:T.body, fontWeight:400, fontSize:13, color:T.text }}>{ls.no_card}</div>
+              <div style={{ fontFamily:T.body, fontWeight:300, fontSize:12, color:T.muted }}>{ls.card_required}</div>
             </div>
           </div>
           <button style={{ width:"100%", padding:"12px", background:"transparent", border:`1px solid ${T.border}`, borderRadius:10, fontFamily:T.body, fontWeight:400, fontSize:13, color:T.text, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke={T.amber} strokeWidth="1.5" strokeLinecap="round"/></svg>
-            {s.add_card}
+            {ls.add_card}
           </button>
         </div>
       );
@@ -2845,7 +2845,7 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
       case "preferences": return (
         <div>
           <div style={{ marginBottom:16 }}>
-            <div style={{ fontFamily:T.mono, fontSize:10, color:T.muted, marginBottom:8, letterSpacing:.5 }}>{s.daw_default}</div>
+            <div style={{ fontFamily:T.mono, fontSize:10, color:T.muted, marginBottom:8, letterSpacing:.5 }}>{ls.daw_default}</div>
             <select value={defaultDaw} onChange={e => setDefaultDaw(e.target.value)} style={{
               width:"100%", background:T.s2, border:`1px solid ${T.border}`, borderRadius:8,
               padding:"10px 14px", fontFamily:T.mono, fontSize:11, color:T.text,
@@ -2857,7 +2857,7 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
             </select>
           </div>
           <div style={{ marginBottom:16 }}>
-            <div style={{ fontFamily:T.mono, fontSize:10, color:T.muted, marginBottom:8, letterSpacing:.5 }}>{s.lang_label}</div>
+            <div style={{ fontFamily:T.mono, fontSize:10, color:T.muted, marginBottom:8, letterSpacing:.5 }}>{ls.lang_label}</div>
             <div style={{ display:"flex", gap:8 }}>
               {[["fr","Français"],["en","English"]].map(([id,label]) => (
                 <button key={id} onClick={() => handleLangChange(id)} style={{
@@ -2870,7 +2870,7 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
               ))}
             </div>
           </div>
-          <Toggle label={s.notif_news} value={notifNews} onChange={() => setNotifNews(v => !v)}/>
+          <Toggle label={ls.notif_news} value={notifNews} onChange={() => setNotifNews(v => !v)}/>
         </div>
       );
 
@@ -2880,10 +2880,10 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
           <Input label="NOUVEAU MOT DE PASSE" value="" type="password"/>
           <Input label="CONFIRMER LE MOT DE PASSE" value="" type="password"/>
           <button style={{ marginTop:8, width:"100%", padding:"12px", background:`linear-gradient(135deg, ${T.amber}, ${T.orange})`, border:"none", borderRadius:10, fontFamily:T.body, fontWeight:600, fontSize:13, letterSpacing:1.5, textTransform:"uppercase", color:T.black, cursor:"pointer" }}>
-            {s.modify_btn}
+            {ls.modify_btn}
           </button>
           <div style={{ marginTop:20, padding:"14px 16px", background:"rgba(230,57,70,0.06)", border:`1px solid rgba(230,57,70,0.2)`, borderRadius:10 }}>
-            <div style={{ fontFamily:T.body, fontWeight:600, fontSize:12, color:T.red, marginBottom:6 }}>{s.danger_zone}</div>
+            <div style={{ fontFamily:T.body, fontWeight:600, fontSize:12, color:T.red, marginBottom:6 }}>{ls.danger_zone}</div>
             <button style={{ fontFamily:T.body, fontWeight:400, fontSize:12, color:T.red, background:"transparent", border:`1px solid rgba(230,57,70,0.3)`, borderRadius:8, padding:"8px 14px", cursor:"pointer" }}>
               Supprimer mon compte
             </button>
@@ -2894,8 +2894,8 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
       case "donnees": return (
         <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
           {[
-            { label:s.export_analyses, desc:s.export_analyses_desc, icon:"↓" },
-            { label:s.export_data, desc:s.export_data_desc, icon:"↓" },
+            { label:ls.export_analyses, desc:lls.export_analyses_desc, icon:"↓" },
+            { label:ls.export_data, desc:lls.export_data_desc, icon:"↓" },
           ].map((item, i) => (
             <div key={i} style={{ background:T.s2, border:`1px solid ${T.border}`, borderRadius:12, padding:"14px 16px", display:"flex", alignItems:"center", gap:14, cursor:"pointer" }}>
               <div style={{ width:36, height:36, borderRadius:8, background:T.amberGlow, border:`1px solid ${T.amber}33`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:T.mono, fontSize:16, color:T.amber }}>
@@ -2908,7 +2908,7 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
             </div>
           ))}
           <div style={{ marginTop:8, padding:"14px 16px", background:"rgba(230,57,70,0.06)", border:`1px solid rgba(230,57,70,0.2)`, borderRadius:10 }}>
-            <div style={{ fontFamily:T.body, fontWeight:600, fontSize:12, color:T.red, marginBottom:8 }}>{s.delete_data}</div>
+            <div style={{ fontFamily:T.body, fontWeight:600, fontSize:12, color:T.red, marginBottom:8 }}>{ls.delete_data}</div>
             <div style={{ fontFamily:T.body, fontWeight:300, fontSize:12, color:T.muted, lineHeight:1.6, marginBottom:12 }}>Cette action est irréversible. Toutes tes analyses et préférences seront supprimées.</div>
             <button style={{ fontFamily:T.body, fontWeight:400, fontSize:12, color:T.red, background:"transparent", border:`1px solid rgba(230,57,70,0.3)`, borderRadius:8, padding:"8px 14px", cursor:"pointer" }}>
               Supprimer mes données
@@ -2928,7 +2928,7 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
     return (
       <div style={{ maxWidth:780, margin:"0 auto", padding:"16px 16px 80px", animation:"fadeup .35s ease" }}>
         <div style={{ marginBottom:20 }}>
-          <h2 style={{ fontFamily:T.display, fontSize:24, letterSpacing:3, color:T.text }}>{s.reglages_title}</h2>
+          <h2 style={{ fontFamily:T.display, fontSize:24, letterSpacing:3, color:T.text }}>{ls.reglages_title}</h2>
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
           {sections.map(sec => (
@@ -2971,7 +2971,7 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
   return (
     <div style={{ maxWidth:780, margin:"0 auto", padding:"24px 16px 80px", animation:"fadeup .35s ease" }}>
       <div style={{ marginBottom:24 }}>
-        <h2 style={{ fontFamily:T.body, fontWeight:600, fontSize:22, letterSpacing:.3, color:T.text, marginBottom:4 }}>{s.reglages_title}</h2>
+        <h2 style={{ fontFamily:T.body, fontWeight:600, fontSize:22, letterSpacing:.3, color:T.text, marginBottom:4 }}>{ls.reglages_title}</h2>
       </div>
 
       <div style={{ display:"flex", gap:16, alignItems:"flex-start" }}>
@@ -3106,7 +3106,7 @@ const AskModal = ({ onClose }) => {
   const [msgs, setMsgs] = useState([]);
   const [val, setVal] = useState("");
   const [busy, setBusy] = useState(false);
-  const { s } = useLang();
+  const { s: ls } = useLang();
 
   const ask = async () => {
     const q = val.trim();
@@ -3149,7 +3149,7 @@ const AskModal = ({ onClose }) => {
         <div style={{ padding:"18px 20px 14px", borderBottom:`1px solid ${T.border}`, display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
           <div>
             <div style={{ fontFamily:T.display, fontSize:18, letterSpacing:3, color:T.amber }}>POSER UNE QUESTION</div>
-            <div style={{ fontFamily:T.mono, fontSize:10, color:T.muted }}>{s.ask_sub}</div>
+            <div style={{ fontFamily:T.mono, fontSize:10, color:T.muted }}>{ls.ask_sub}</div>
           </div>
           <button onClick={onClose} style={{ background:T.s2, border:`1px solid ${T.border}`, borderRadius:"50%", width:28, height:28, cursor:"pointer", color:T.muted, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
         </div>
@@ -3224,7 +3224,7 @@ Pour chaque recommandation, tu donnes des valeurs concrètes (attack, release, r
 Réponds en français.`;
 
 const PaywallModal = ({ used, onClose }) => {
-  const { s } = useLang();
+  const { s: ls } = useLang();
   return (
   <div style={{
     position:"fixed", inset:0, zIndex:300, background:"rgba(0,0,0,0.75)",
@@ -3249,7 +3249,7 @@ const PaywallModal = ({ used, onClose }) => {
         border:"none", borderRadius:12, cursor:"pointer",
         fontFamily:T.display, fontSize:20, letterSpacing:4, color:T.black,
         marginBottom:12, boxShadow:`0 4px 20px rgba(245,160,0,.3)`,
-      }}>{s.upgrade_btn}</button>
+      }}>{ls.upgrade_btn}</button>
       <button onClick={onClose} style={{ background:"transparent", border:"none", fontFamily:T.mono, fontSize:11, color:T.muted, cursor:"pointer" }}>
         Revenir demain pour de nouvelles questions gratuites
       </button>
@@ -3442,7 +3442,7 @@ const useMobile = () => {
 /* ── MOBILE BOTTOM NAV ───────────────────────────────────── */
 const MobileNav = ({ step, onStep, appSection, onSection, user, onLogout }) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { s } = useLang();
+  const { s: ls } = useLang();
 
   const menuItems = [
     { label:"Passer en Premium", color:"#F9E04B", icon:<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1 L8 5 L12 5 L9 8 L10 12 L6.5 9.5 L3 12 L4 8 L1 5 L5 5 Z" stroke="#F9E04B" strokeWidth="1.2" strokeLinejoin="round"/></svg> },
@@ -3452,9 +3452,9 @@ const MobileNav = ({ step, onStep, appSection, onSection, user, onLogout }) => {
   ];
 
   const navItems = [
-    { id:"analyse",    label:s.nav_analyse,   action:() => { onSection("analyse"); onStep(0); }, active: appSection==="analyse",    icon:<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5"/><path d="M10 6v4l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg> },
-    { id:"historique", label:s.nav_historique, action:() => onSection("historique"),             active: appSection==="historique", icon:<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h10M3 15h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg> },
-    { id:"reglages",   label:s.nav_reglages,   action:() => onSection("reglages"),               active: appSection==="reglages",   icon:<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.3 4.3l1.4 1.4M14.3 14.3l1.4 1.4M4.3 15.7l1.4-1.4M14.3 5.7l1.4-1.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg> },
+    { id:"analyse",    label:ls.nav_analyse,   action:() => { onSection("analyse"); onStep(0); }, active: appSection==="analyse",    icon:<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5"/><path d="M10 6v4l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg> },
+    { id:"historique", label:ls.nav_historique, action:() => onSection("historique"),             active: appSection==="historique", icon:<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h10M3 15h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg> },
+    { id:"reglages",   label:ls.nav_reglages,   action:() => onSection("reglages"),               active: appSection==="reglages",   icon:<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.3 4.3l1.4 1.4M14.3 14.3l1.4 1.4M4.3 15.7l1.4-1.4M14.3 5.7l1.4-1.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg> },
   ];
 
   return (
