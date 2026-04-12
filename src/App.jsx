@@ -1,6 +1,6 @@
 import { useState, useEffect, createContext, useContext, useRef } from "react";
 
-const API = "https://decode-571nt33pm-goldeymusics-projects.vercel.app";
+const API = "https://decode-api-production.up.railway.app";
 
 /* ── TRANSLATIONS ────────────────────────────────────────── */
 const STRINGS = {
@@ -580,31 +580,17 @@ const InputScreen = ({ mode, onAnalyze }) => {
 
   const handleAnalyze = async () => {
     if (!ok || uploading) return;
-
-    if (tab === "upload" && file && file.size > 4 * 1024 * 1024) {
-      alert(`Fichier trop volumineux (${(file.size/1024/1024).toFixed(1)} MB).\nExporte en MP3 320kbps — max 4 MB pour l'instant.`);
-      return;
-    }
-
     setUploading(true);
     try {
       if (tab === "link") {
         onAnalyze({ mode, url, daw, title: "", artist: "" });
       } else if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const base64 = e.target.result.split(",")[1];
-          onAnalyze({
-            mode, daw,
-            fileData: base64,
-            fileName: file.name,
-            fileMime: file.type || "audio/mpeg",
-            title: file.name.replace(/\.[^/.]+$/, ""),
-            artist: "",
-          });
-        };
-        reader.readAsDataURL(file);
-        return;
+        onAnalyze({
+          mode, daw,
+          file,
+          title: file.name.replace(/\.[^/.]+$/, ""),
+          artist: "",
+        });
       }
     } finally {
       setUploading(false);
@@ -692,7 +678,7 @@ const InputScreen = ({ mode, onAnalyze }) => {
             <IconWaveUpload c={file?accent:T.muted} s={20}/>
             {file
               ? <><div style={{fontFamily:T.body,fontWeight:400,fontSize:13,color:accent,flex:1}}>{fileName}</div><IconCheckCircle c={accent} s={18}/></>
-              : <><div style={{flex:1}}><div style={{fontFamily:T.body,fontWeight:400,fontSize:13,color:T.muted}}>Glisser le fichier ici ou cliquer</div><div style={{fontFamily:T.mono,fontSize:10,color:T.muted2,marginTop:2}}>MP3 recommandé — 4 MB max</div></div></>
+              : <><div style={{flex:1}}><div style={{fontFamily:T.body,fontWeight:400,fontSize:13,color:T.muted}}>Glisser le fichier ici ou cliquer</div><div style={{fontFamily:T.mono,fontSize:10,color:T.muted2,marginTop:2}}>WAV · AIFF · MP3 · FLAC — 200 MB max</div></div></>
             }
           </div>
         )}
@@ -2253,19 +2239,16 @@ Génère une analyse complète en JSON :
 Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks.`;
 
       try {
+        const formData = new FormData();
+        formData.append("mode", config.mode || "ref");
+        formData.append("daw", config.daw || "Logic Pro");
+        formData.append("title", config.title || "Titre inconnu");
+        formData.append("artist", config.artist || "");
+        if (config.file) formData.append("file", config.file);
+
         const res = await fetch(`${API}/api/analyze`, {
           method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({
-            mode: config.mode || "ref",
-            daw: config.daw || "Logic Pro",
-            title: config.title || "Titre inconnu",
-            artist: config.artist || "",
-            fileData: config.fileData || null,
-            fileName: config.fileName || null,
-            fileMime: config.fileMime || null,
-            url: config.url || null,
-          }),
+          body: formData,
         });
         const data = await res.json();
         if (data.fiche) setGenerated(data.fiche);
