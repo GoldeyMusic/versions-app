@@ -732,17 +732,57 @@ const InputScreen = ({ mode, onAnalyze }) => {
 };
 
 /* ── LOADING ─────────────────────────────────────────────── */
-const LoadingScreen = ({ onDone }) => {
+const LoadingScreen = ({ config, onDone }) => {
   const [phase, setPhase] = useState(0);
-  const steps = ["Analyse spectrale…","Identification des éléments…","Reconstruction chaîne de traitement…","Matching des plugins…","Génération de la fiche…"];
-  useEffect(() => {
-    const id = setInterval(() => setPhase(p => {
-      if (p >= steps.length - 1) { clearInterval(id); setTimeout(onDone, 500); return p; }
-      return p + 1;
-    }), 720);
-    return () => clearInterval(id);
-  }, []);
+  const [error, setError] = useState(null);
+  const steps = [
+    "Upload du fichier…",
+    "Analyse Fadr en cours…",
+    "Extraction BPM / tonalité…",
+    "Génération de la fiche IA…",
+    "Finalisation…",
+  ];
   const bars = Array.from({length:32},()=>Math.random());
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        setPhase(0);
+        const formData = new FormData();
+        formData.append("mode", config.mode || "ref");
+        formData.append("daw", config.daw || "Logic Pro");
+        formData.append("title", config.title || "Titre inconnu");
+        formData.append("artist", config.artist || "");
+        if (config.file) formData.append("file", config.file);
+
+        setPhase(1);
+        const res = await fetch(`${API}/api/analyze`, { method:"POST", body: formData });
+        setPhase(3);
+
+        if (!res.ok) throw new Error(`Analyse échouée (${res.status})`);
+        const data = await res.json();
+        setPhase(4);
+
+        await new Promise(r => setTimeout(r, 600));
+        onDone(data);
+      } catch(err) {
+        setError(err.message);
+      }
+    };
+    run();
+  }, []);
+
+  if (error) return (
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"calc(100vh - 58px)", gap:20 }}>
+      <div style={{ fontFamily:T.mono, fontSize:13, color:T.red, textAlign:"center", maxWidth:320 }}>
+        ⚠️ {error}
+      </div>
+      <button onClick={() => window.history.back()} style={{ fontFamily:T.mono, fontSize:11, padding:"8px 20px", borderRadius:8, background:T.s2, border:`1px solid ${T.border}`, color:T.muted, cursor:"pointer" }}>
+        Retour
+      </button>
+    </div>
+  );
+
   return (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"calc(100vh - 58px)", gap:34 }}>
       <div style={{ display:"flex", alignItems:"flex-end", gap:3, height:70, width:180 }}>
@@ -755,6 +795,9 @@ const LoadingScreen = ({ onDone }) => {
       </div>
       <div style={{ display:"flex", gap:7 }}>
         {steps.map((_,i) => <div key={i} style={{ width:i<=phase?20:6, height:6, borderRadius:3, background:i<=phase?T.amber:T.border, transition:"all .3s" }}/>)}
+      </div>
+      <div style={{ fontFamily:T.mono, fontSize:10, color:T.muted2 }}>
+        {phase <= 1 ? "Peut prendre 30-60 secondes…" : phase === 2 ? "Extraction audio en cours…" : "Presque terminé…"}
       </div>
     </div>
   );
@@ -2160,104 +2203,12 @@ const FicheScreen = ({ config }) => {
 
   const zoneInfo = ZONE_OVERRIDES[zone.id] || ZONE_OVERRIDES.full;
 
-  // Generate fiche content via Claude + Puremix knowledge base
+  // Use result from LoadingScreen (already fetched)
   useEffect(() => {
-    const generate = async () => {
-      setGenerating(true);
-      const allKnowledge = Object.values(KNOWLEDGE_BASE).flat();
-      const knowledgeStr = allKnowledge.map(k =>
-        `### ${k.title}\n${k.summary}\nTechniques: ${k.techniques.join(" | ")}`
-      ).join("\n\n");
-
-      const pluginsStr = buildPluginsContext();
-      const instrumentsStr = buildInstrumentsContext();
-      const recipesStr = buildRecipesContext(config.daw);
-
-      const prompt = isRef
-        ? `Tu analyses la production "After Hours" de The Weeknd (BPM: 108, tonalité: La min, LUFS: -8.2).
-           DAW de l'utilisateur : ${config.daw || "Logic Pro"}.
-           MODE : RÉFÉRENCE — ton analytique. L'objectif est de décoder et comprendre, pas de conseiller.
-
-BASE DE CONNAISSANCE AUDIO PROFESSIONNELLE :
-${knowledgeStr}
-
-BASE DE PLUGINS PROFESSIONNELS (utilise ces noms exacts) :
-${pluginsStr}
-
-INSTRUMENTS LOGICIELS DE RÉFÉRENCE :
-${instrumentsStr}
-
-RECETTES PAR DAW (paramètres précis pour les situations courantes) :
-${recipesStr}
-
-Génère une analyse complète en JSON :
-{
-  "elements": [
-    { "cat": "BASSES|DRUMS|SYNTHS|FX & ESPACE", "icon": "bass|drums|synths|fx", "items": [
-      { "conf": "measured|identified|suggested", "label": "Type détecté : ...", "detail": "Analyse technique détaillée de ce qui est entendu.", "tools": ["outil compatible"] }
-    ]}
-  ],
-  "chain": [{ "step": "INPUT|GATE|EQ|COMP|SAT|REV|OUT", "label": "description probable", "c": "#couleur_hex" }],
-  "plugins": [{ "name": "Nom du plugin", "role": "Rôle dans ce contexte précis", "free": true|false, "conf": "identified|suggested" }],
-  "tips": [
-    "Pour reproduire cet élément dans ${config.daw || "Logic Pro"} : étape précise avec paramètres...",
-    "Tip 2 spécifique au DAW avec paramètres",
-    "Tip 3",
-    "Tip 4"
-  ]
-}
-Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks.`
-        : `Tu analyses le mix personnel "Mon Mix V3" (BPM: 95, tonalité: Ré maj, LUFS: -12.1).
-           DAW : ${config.daw || "Logic Pro"}.
-           MODE : PERSONNEL — ton prescriptif et bienveillant. L'objectif est de conseiller et d'aider à progresser.
-
-BASE DE CONNAISSANCE AUDIO :
-${knowledgeStr}
-
-BASE DE PLUGINS PROFESSIONNELS (utilise ces noms exacts) :
-${pluginsStr}
-
-INSTRUMENTS LOGICIELS DE RÉFÉRENCE :
-${instrumentsStr}
-
-RECETTES PAR DAW (paramètres précis pour les situations courantes) :
-${recipesStr}
-
-Génère une analyse complète en JSON :
-{
-  "elements": [
-    { "cat": "NIVEAU GLOBAL|FRÉQUENCES|BASSE & KICK|ESPACE STÉRÉO|DYNAMIQUE", "icon": "lufs|mids|bass|stereo|dynamics", "items": [
-      { "conf": "measured|identified|suggested", "label": "Problème ou point fort détecté", "detail": "Explication claire du problème et de son impact sur le mix.", "tools": ["outil pour corriger"] }
-    ]}
-  ],
-  "chain": [{ "step": "ÉTAPE", "label": "problème ou point fort", "c": "#couleur_hex" }],
-  "plugins": [{ "name": "Nom du plugin", "role": "Ce qu'il va corriger dans ce mix", "free": true|false, "conf": "suggested" }],
-  "plan": [
-    { "p": "HIGH|MED", "task": "Action concrète à faire en priorité", "daw": "Comment faire dans ${config.daw || "Logic Pro"} : chemin précis" }
-  ]
-}
-Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks.`;
-
-      try {
-        const formData = new FormData();
-        formData.append("mode", config.mode || "ref");
-        formData.append("daw", config.daw || "Logic Pro");
-        formData.append("title", config.title || "Titre inconnu");
-        formData.append("artist", config.artist || "");
-        if (config.file) formData.append("file", config.file);
-
-        const res = await fetch(`${API}/api/analyze`, {
-          method:"POST",
-          body: formData,
-        });
-        const data = await res.json();
-        if (data.fiche) setGenerated(data.fiche);
-      } catch(e) {
-        console.error("Generation error:", e);
-      }
-      setGenerating(false);
-    };
-    generate();
+    if (config.result?.fiche) {
+      setGenerated(config.result.fiche);
+    }
+    setGenerating(false);
   }, [config]);
 
   // Use generated data if available, fallback to static
@@ -3655,7 +3606,11 @@ export default function DecodeApp() {
     setMode(m); setStep(1);
   };
   const handleAnalyze = cfg => { setConfig(cfg); setLoading(true); };
-  const handleLoaded = () => { setLoading(false); setStep(2); };
+  const handleLoaded = (result) => { 
+    if (result) setConfig(cfg => ({ ...cfg, result }));
+    setLoading(false); 
+    setStep(2); 
+  };
 
   if (!user) return (
     <LangContext.Provider value={{ lang, s, setLang }}>
@@ -3676,7 +3631,7 @@ export default function DecodeApp() {
     : appSection === "reglages"
       ? <ReglagesScreen user={user} setLang={setLang} onLegal={setLegalDoc} avatarPhoto={avatarPhoto} setAvatarPhoto={setAvatarPhoto}/>
       : loading
-        ? <LoadingScreen onDone={handleLoaded}/>
+        ? <LoadingScreen config={config} onDone={handleLoaded}/>
         : step===0
           ? <ModeScreen onSelect={handleMode}/>
           : step===1
