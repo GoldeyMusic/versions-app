@@ -336,8 +336,8 @@ const LoginScreen = ({ onLogin, onLegal }) => {
         }}>{loading ? "…" : mode === "login" ? ls.login_title : ls.signup_title}</button>
 
         <div style={{ fontFamily:T.mono, fontSize:9, color:T.muted2, textAlign:"center", marginTop:20, lineHeight:1.7 }}>
-          {ls.cgu} <span onClick={() => onLegal("cgu")} style={{ color:T.muted, cursor:"pointer", textDecoration:"underline" }}>{lls.cgu2}</span>
-          {" "}{lls.cgu3} <span onClick={() => onLegal("privacy")} style={{ color:T.muted, cursor:"pointer", textDecoration:"underline" }}>{lls.cgu4}</span>
+          {ls.cgu} <span onClick={() => onLegal("cgu")} style={{ color:T.muted, cursor:"pointer", textDecoration:"underline" }}>{ls.cgu2}</span>
+          {" "}{ls.cgu3} <span onClick={() => onLegal("privacy")} style={{ color:T.muted, cursor:"pointer", textDecoration:"underline" }}>{ls.cgu4}</span>
         </div>
       </div>
     </div>
@@ -622,7 +622,7 @@ const InputScreen = ({ mode, onAnalyze }) => {
         </div>
         <h2 style={{ fontFamily:T.body, fontWeight:600, fontSize:24, letterSpacing:.3, color:T.text }}>{isRef ? ls.source_ref : ls.source_perso}</h2>
         <p style={{ fontFamily:T.body, fontWeight:300, fontSize:13, color:T.muted, marginTop:6, lineHeight:1.6 }}>
-          {isRef ? lls.source_ref_sub : lls.source_perso_sub}
+          {isRef ? ls.source_ref_sub : ls.source_perso_sub}
         </p>
       </div>
 
@@ -735,7 +735,7 @@ const InputScreen = ({ mode, onAnalyze }) => {
         textTransform:"uppercase",
         color:ok?T.black:T.muted, transition:"all .2s",
         boxShadow:ok?`0 4px 24px rgba(245,160,0,.3)`:"none",
-      }}>{uploading ? "Préparation…" : ok ? (isRef ? ls.analyze_btn : lls.analyze_btn_perso) : (ls.complete_fields || "Compléter les champs")}</button>
+      }}>{uploading ? "Préparation…" : ok ? (isRef ? ls.analyze_btn : ls.analyze_btn_perso) : (ls.complete_fields || "Compléter les champs")}</button>
     </div>
   );
 };
@@ -2355,11 +2355,11 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks.`;
 
         {/* Tabs */}
         <div className="fiche-tabs" style={{ display:"flex", borderBottom:`1px solid ${T.border}`, marginBottom:24, overflowX:"auto", alignItems:"center" }}>
-          <Tab id="elements" l={isRef?ls.tab_elements:lls.tab_elements_perso}/>
-          <Tab id="ecoute" l={isRef?ls.tab_ecoute:lls.tab_ecoute_perso}/>
-          <Tab id="chain" l={isRef?ls.tab_chain:lls.tab_chain_perso}/>
-          <Tab id="plugins" l={isRef?ls.tab_plugins:lls.tab_plugins_perso}/>
-          <Tab id="tips" l={isRef?ls.tab_tips:lls.tab_tips_perso}/>
+          <Tab id="elements" l={isRef?ls.tab_elements:ls.tab_elements_perso}/>
+          <Tab id="ecoute" l={isRef?ls.tab_ecoute:ls.tab_ecoute_perso}/>
+          <Tab id="chain" l={isRef?ls.tab_chain:ls.tab_chain_perso}/>
+          <Tab id="plugins" l={isRef?ls.tab_plugins:ls.tab_plugins_perso}/>
+          <Tab id="tips" l={isRef?ls.tab_tips:ls.tab_tips_perso}/>
           <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:6, paddingRight:4, paddingBottom:2 }}>
             {generating
               ? <><div style={{ width:5, height:5, borderRadius:"50%", background:T.amber, animation:"apulse 1.5s infinite" }}/><span style={{ fontFamily:T.mono, fontSize:9, color:T.amberDim, whiteSpace:"nowrap" }}>Génération…</span></>
@@ -2630,7 +2630,7 @@ const HistoriqueScreen = ({ onOpen }) => {
       {filtered.length === 0 ? (
         <div style={{ textAlign:"center", padding:"40px 0" }}>
           <div style={{ fontFamily:T.body, fontWeight:600, fontSize:13, color:T.muted, marginBottom:6 }}>{ls.no_results}</div>
-          <div style={{ fontFamily:T.body, fontWeight:300, fontSize:12, color:T.muted }}>{lls.no_results_sub}</div>
+          <div style={{ fontFamily:T.body, fontWeight:300, fontSize:12, color:T.muted }}>{ls.no_results_sub}</div>
           <button onClick={() => { setSearch(""); setFilter("all"); }} style={{
             marginTop:16, fontFamily:T.mono, fontSize:11, color:T.amber,
             background:"transparent", border:`1px solid ${T.amber}44`, borderRadius:8,
@@ -2894,8 +2894,8 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
       case "donnees": return (
         <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
           {[
-            { label:ls.export_analyses, desc:lls.export_analyses_desc, icon:"↓" },
-            { label:ls.export_data, desc:lls.export_data_desc, icon:"↓" },
+            { label:ls.export_analyses, desc:ls.export_analyses_desc, icon:"↓" },
+            { label:ls.export_data, desc:ls.export_data_desc, icon:"↓" },
           ].map((item, i) => (
             <div key={i} style={{ background:T.s2, border:`1px solid ${T.border}`, borderRadius:12, padding:"14px 16px", display:"flex", alignItems:"center", gap:14, cursor:"pointer" }}>
               <div style={{ width:36, height:36, borderRadius:8, background:T.amberGlow, border:`1px solid ${T.amber}33`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:T.mono, fontSize:16, color:T.amber }}>
