@@ -552,10 +552,12 @@ const InputScreen = ({ mode, onAnalyze }) => {
   const [tab, setTab] = useState("link");
   const [url, setUrl] = useState("");
   const [daw, setDaw] = useState(null);
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState(null);       // File object
+  const [fileName, setFileName] = useState(""); // Display name
   const [drag, setDrag] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
-  // Prevent iOS auto-zoom on input focus
   useEffect(() => {
     const existing = document.querySelector("meta[name=viewport]");
     if (existing) {
@@ -569,6 +571,41 @@ const InputScreen = ({ mode, onAnalyze }) => {
     document.head.appendChild(m);
     return () => document.head.removeChild(m);
   }, []);
+
+  const handleFile = (f) => {
+    if (!f) return;
+    setFile(f);
+    setFileName(f.name);
+  };
+
+  const handleAnalyze = async () => {
+    if (!ok || uploading) return;
+    setUploading(true);
+    try {
+      if (tab === "link") {
+        onAnalyze({ mode, url, daw, title: "", artist: "" });
+      } else if (file) {
+        // Read file as base64
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64 = e.target.result.split(",")[1];
+          onAnalyze({
+            mode, daw,
+            fileData: base64,
+            fileName: file.name,
+            fileMime: file.type || "audio/mpeg",
+            title: file.name.replace(/\.[^/.]+$/, ""),
+            artist: "",
+          });
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const isRef = mode === "ref";
   const accent = isRef ? T.cyan : T.green;
   const ok = (tab==="link" ? url.length > 8 : !!file) && !!daw;
@@ -635,15 +672,22 @@ const InputScreen = ({ mode, onAnalyze }) => {
           <div
             onDragOver={e=>{e.preventDefault();setDrag(true)}}
             onDragLeave={()=>setDrag(false)}
-            onDrop={e=>{e.preventDefault();setDrag(false);if(e.dataTransfer.files[0])setFile(e.dataTransfer.files[0].name)}}
-            onClick={()=>setFile(file?null:"mon_mix_v3.wav")}
+            onDrop={e=>{e.preventDefault();setDrag(false);if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])}}
+            onClick={()=>fileInputRef.current?.click()}
             style={{ border:`1px dashed ${drag?T.amber:file?accent:T.border}`, borderRadius:10, padding:"14px 16px",
               display:"flex", alignItems:"center", gap:12, cursor:"pointer",
               transition:"all .2s", background:drag?T.amberGlow:"transparent" }}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="audio/*,.mp3,.wav,.aiff,.aif,.flac,.m4a,.ogg"
+              style={{ display:"none" }}
+              onChange={e => e.target.files[0] && handleFile(e.target.files[0])}
+            />
             <IconWaveUpload c={file?accent:T.muted} s={20}/>
             {file
-              ? <><div style={{fontFamily:T.body,fontWeight:400,fontSize:13,color:accent,flex:1}}>{file}</div><IconCheckCircle c={accent} s={18}/></>
-              : <><div style={{flex:1}}><div style={{fontFamily:T.body,fontWeight:400,fontSize:13,color:T.muted}}>Glisser le fichier ici ou cliquer</div><div style={{fontFamily:T.mono,fontSize:10,color:T.muted2,marginTop:2}}>WAV · AIFF · MP3 · FLAC — 200 MB max</div></div></>
+              ? <><div style={{fontFamily:T.body,fontWeight:400,fontSize:13,color:accent,flex:1}}>{fileName}</div><IconCheckCircle c={accent} s={18}/></>
+              : <><div style={{flex:1}}><div style={{fontFamily:T.body,fontWeight:400,fontSize:13,color:T.muted}}>Glisser le fichier ici ou cliquer</div><div style={{fontFamily:T.mono,fontSize:10,color:T.muted2,marginTop:2}}>WAV · AIFF · MP3 · FLAC — 50 MB max</div></div></>
             }
           </div>
         )}
@@ -682,7 +726,7 @@ const InputScreen = ({ mode, onAnalyze }) => {
       </div>
 
       {/* CTA */}
-      <button onClick={()=>ok&&onAnalyze({mode,url,file,daw})} style={{
+      <button onClick={handleAnalyze} disabled={!ok || uploading} style={{
         width:"100%", padding:"14px 16px",
         background:ok?`linear-gradient(135deg, ${T.amber}, ${T.orange})`:T.s2,
         border:`1px solid ${ok?T.amber:T.border}`, borderRadius:10,
@@ -691,7 +735,7 @@ const InputScreen = ({ mode, onAnalyze }) => {
         textTransform:"uppercase",
         color:ok?T.black:T.muted, transition:"all .2s",
         boxShadow:ok?`0 4px 24px rgba(245,160,0,.3)`:"none",
-      }}>{ok ? (isRef ? s.analyze_btn : s.analyze_btn_perso) : (s.complete_fields || "Compléter les champs")}</button>
+      }}>{uploading ? "Préparation…" : ok ? (isRef ? s.analyze_btn : s.analyze_btn_perso) : (s.complete_fields || "Compléter les champs")}</button>
     </div>
   );
 };
@@ -2212,6 +2256,10 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks.`;
             daw: config.daw || "Logic Pro",
             title: config.title || "Titre inconnu",
             artist: config.artist || "",
+            fileData: config.fileData || null,
+            fileName: config.fileName || null,
+            fileMime: config.fileMime || null,
+            url: config.url || null,
           }),
         });
         const data = await res.json();
