@@ -194,8 +194,8 @@ const G = () => (
 );
 
 /* ── LOGO ───────────────────────────────────────────────── */
-const DecodeLogo = ({ s = 1 }) => (
-  <svg width={28*s} height={28*s} viewBox="0 0 28 28" fill="none">
+const DecodeLogo = ({ sz = 1 }) => (
+  <svg width={28*sz} height={28*sz} viewBox="0 0 28 28" fill="none">
     <path d="M3 2 L3 26 L12 26 Q25 26 25 14 Q25 2 12 2 Z" stroke={T.amber} strokeWidth="1.8" fill="none"/>
     <rect x="7.5" y="18" width="2.2" height="4.5" fill={T.amber} opacity="0.9"/>
     <rect x="11"  y="14" width="2.2" height="8.5" fill={T.amber} opacity="0.7"/>
@@ -257,7 +257,7 @@ const LoginScreen = ({ onLogin, onLegal }) => {
 
         {/* Logo */}
         <div style={{ display:"flex", alignItems:"center", gap:10, justifyContent:"center", marginBottom:32 }}>
-          <DecodeLogo s={1}/>
+          <DecodeLogo sz={1}/>
           <span style={{ fontFamily:T.display, fontSize:24, letterSpacing:6, color:T.amber }}>DECODE</span>
         </div>
 
@@ -364,7 +364,7 @@ const Header = ({ step, onStep, user, onLogout, avatarPhoto, onSection }) => {
     }}>
       {/* Logo — clic → home */}
       <div onClick={() => onStep(0)} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer" }}>
-        <DecodeLogo s={0.9}/>
+        <DecodeLogo sz={0.9}/>
         <span style={{ fontFamily:T.display, fontSize:22, letterSpacing:5, color:T.amber }}>DECODE</span>
         <div style={{ width:6, height:6, borderRadius:"50%", background:T.amber, animation:"apulse 2.5s infinite", marginLeft:4 }}/>
       </div>
@@ -828,23 +828,23 @@ const IconStereo = () => (
 
 const CAT_ICONS = { bass:<IconBass/>, drums:<IconDrums/>, synths:<IconSynth/>, fx:<IconFX/>, lufs:<IconLevel/>, mids:<IconMids/>, stereo:<IconStereo/> };
 
-const IconLink = ({c=T.muted,s=14}) => (
-  <svg width={s} height={s} viewBox="0 0 14 14" fill="none">
+const IconLink = ({c=T.muted,sz=14}) => (
+  <svg width={sz} height={sz} viewBox="0 0 14 14" fill="none">
     <path d="M5.5 8.5 Q3 8.5 3 6 Q3 3.5 5.5 3.5 L7 3.5" stroke={c} strokeWidth="1.4" strokeLinecap="round"/>
     <path d="M8.5 5.5 Q11 5.5 11 8 Q11 10.5 8.5 10.5 L7 10.5" stroke={c} strokeWidth="1.4" strokeLinecap="round"/>
     <line x1="5" y1="7" x2="9" y2="7" stroke={c} strokeWidth="1.4" strokeLinecap="round"/>
   </svg>
 );
-const IconUpload = ({c=T.muted,s=14}) => (
-  <svg width={s} height={s} viewBox="0 0 14 14" fill="none">
+const IconUpload = ({c=T.muted,sz=14}) => (
+  <svg width={sz} height={sz} viewBox="0 0 14 14" fill="none">
     <path d="M7 9 L7 2 M4.5 4.5 L7 2 L9.5 4.5" stroke={c} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
     <path d="M2 10 L2 12 L12 12 L12 10" stroke={c} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
 /* ── UI ICONS ───────────────────────────────────────────── */
-const IconTarget = ({c=T.cyan,s=20}) => (
-  <svg width={s} height={s} viewBox="0 0 20 20" fill="none">
+const IconTarget = ({c=T.cyan,sz=20}) => (
+  <svg width={sz} height={sz} viewBox="0 0 20 20" fill="none">
     <circle cx="10" cy="10" r="8" stroke={c} strokeWidth="1.4"/>
     <circle cx="10" cy="10" r="4.5" stroke={c} strokeWidth="1.4"/>
     <circle cx="10" cy="10" r="1.5" fill={c}/>
@@ -854,43 +854,43 @@ const IconTarget = ({c=T.cyan,s=20}) => (
     <line x1="16" y1="10" x2="19" y2="10" stroke={c} strokeWidth="1.4" strokeLinecap="round"/>
   </svg>
 );
-const IconScope = ({c=T.green,s=20}) => (
-  <svg width={s} height={s} viewBox="0 0 20 20" fill="none">
+const IconScope = ({c=T.green,sz=20}) => (
+  <svg width={sz} height={sz} viewBox="0 0 20 20" fill="none">
     <circle cx="8.5" cy="8.5" r="5.5" stroke={c} strokeWidth="1.4"/>
     <line x1="12.5" y1="12.5" x2="18" y2="18" stroke={c} strokeWidth="1.8" strokeLinecap="round"/>
     <line x1="6" y1="8.5" x2="11" y2="8.5" stroke={c} strokeWidth="1.2" strokeLinecap="round" opacity="0.7"/>
     <line x1="8.5" y1="6" x2="8.5" y2="11" stroke={c} strokeWidth="1.2" strokeLinecap="round" opacity="0.7"/>
   </svg>
 );
-const IconCheckCircle = ({c=T.green,s=24}) => (
-  <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+const IconCheckCircle = ({c=T.green,sz=24}) => (
+  <svg width={sz} height={sz} viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="10" stroke={c} strokeWidth="1.5"/>
     <polyline points="7,12 10.5,15.5 17,9" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
-const IconWaveUpload = ({c=T.muted,s=28}) => (
-  <svg width={s} height={s} viewBox="0 0 28 28" fill="none">
+const IconWaveUpload = ({c=T.muted,sz=28}) => (
+  <svg width={sz} height={sz} viewBox="0 0 28 28" fill="none">
     <path d="M14 20 L14 10 M10 14 L14 10 L18 14" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     <path d="M4 18 Q6 12 8 16 Q10 20 12 14 Q14 8 16 14 Q18 20 20 16 Q22 12 24 18" stroke={c} strokeWidth="1.3" strokeLinecap="round" fill="none" opacity="0.5"/>
   </svg>
 );
-const IconPlug = ({c=T.amber,s=16}) => (
-  <svg width={s} height={s} viewBox="0 0 16 16" fill="none">
+const IconPlug = ({c=T.amber,sz=16}) => (
+  <svg width={sz} height={sz} viewBox="0 0 16 16" fill="none">
     <rect x="5" y="8" width="6" height="5" rx="1.5" stroke={c} strokeWidth="1.3"/>
     <line x1="7" y1="3" x2="7" y2="8" stroke={c} strokeWidth="1.3" strokeLinecap="round"/>
     <line x1="9" y1="3" x2="9" y2="8" stroke={c} strokeWidth="1.3" strokeLinecap="round"/>
     <line x1="8" y1="13" x2="8" y2="15" stroke={c} strokeWidth="1.3" strokeLinecap="round"/>
   </svg>
 );
-const IconBulb = ({c=T.amber,s=14}) => (
-  <svg width={s} height={s} viewBox="0 0 14 14" fill="none">
+const IconBulb = ({c=T.amber,sz=14}) => (
+  <svg width={sz} height={sz} viewBox="0 0 14 14" fill="none">
     <path d="M7 2 Q10.5 2 10.5 6 Q10.5 8.5 8.5 9.5 L8.5 11 L5.5 11 L5.5 9.5 Q3.5 8.5 3.5 6 Q3.5 2 7 2 Z" stroke={c} strokeWidth="1.2" fill="none"/>
     <line x1="5.5" y1="11" x2="8.5" y2="11" stroke={c} strokeWidth="1.2" strokeLinecap="round"/>
     <line x1="6" y1="12.5" x2="8" y2="12.5" stroke={c} strokeWidth="1.2" strokeLinecap="round"/>
   </svg>
 );
-const IconPin = ({c=T.amber,s=13}) => (
-  <svg width={s} height={s} viewBox="0 0 13 13" fill="none">
+const IconPin = ({c=T.amber,sz=13}) => (
+  <svg width={sz} height={sz} viewBox="0 0 13 13" fill="none">
     <path d="M6.5 1 Q9.5 1 9.5 4.5 Q9.5 7 6.5 12 Q3.5 7 3.5 4.5 Q3.5 1 6.5 1 Z" stroke={c} strokeWidth="1.3" fill={`${c}22`}/>
     <circle cx="6.5" cy="4.5" r="1.5" fill={c}/>
   </svg>
@@ -3579,7 +3579,7 @@ const MobileHeader = ({ step, onStep, user, onLogout, avatarPhoto, onSection }) 
         position:"sticky", top:0, zIndex:100,
       }}>
         <div onClick={() => onStep(0)} style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer" }}>
-          <DecodeLogo s={0.8}/>
+          <DecodeLogo sz={0.8}/>
           <span style={{ fontFamily:T.display, fontSize:18, letterSpacing:5, color:T.amber }}>DECODE</span>
           <div style={{ width:5, height:5, borderRadius:"50%", background:T.amber, animation:"apulse 2.5s infinite" }}/>
         </div>
