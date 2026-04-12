@@ -3628,7 +3628,7 @@ export default function DecodeApp() {
     setMode(m); setStep(1);
   };
   const handleAnalyze = cfg => { setConfig(cfg); setLoading(true); };
-  const handleLoaded = (result) => {
+  const handleLoaded = (result) => { console.log("🏁 handleLoaded", JSON.stringify(result)?.slice(0,100));
     console.log("🏁 handleLoaded called — result:", result ? Object.keys(result) : "NULL", "fiche:", !!result?.fiche);
     setConfig(cfg => {
       const newCfg = { ...cfg, result };
