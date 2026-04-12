@@ -1032,22 +1032,20 @@ const PERSO_DATA = {
 const WAVE_BARS = [.3,.45,.6,.5,.8,.7,.95,.65,.4,.7,.85,.5,.3,.6,.9,.75,.8,.55,.4,.65,.7,.9,.8,.6,.5,.4,.7,.85,.6,.92,.7,.5,.4,.6,.82,.7,.9,.5,.3,.5,.72,.88,.6,.4,.35,.55,.75,.95,.85,.62,.5,.42,.35,.62,.82,.72,.9,.62,.44,.52,.74,.86,.64,.52,.42,.35,.64,.72,.85,.92,.74,.52,.42,.64,.84,.72,.52,.42,.33,.52];
 
 const SECTIONS = [
-  { id:"full",    label:"Tout",     start:0,   end:100, color:T.muted },
-  { id:"intro",   label:"Intro",    start:0,   end:14,  color:"#48CAE4" },
-  { id:"verse1",  label:"Couplet",  start:14,  end:38,  color:"#9B72CF" },
-  { id:"chorus",  label:"Refrain",  start:38,  end:62,  color:T.amber   },
-  { id:"bridge",  label:"Pont",     start:62,  end:76,  color:T.green   },
-  { id:"outro",   label:"Outro",    start:76,  end:100, color:"#E8A0F5" },
+  { id:"full",   label:"Tout", start:0,   end:100, color:T.muted   },
+  { id:"zone_a", label:"A",    start:0,   end:25,  color:"#48CAE4" },
+  { id:"zone_b", label:"B",    start:25,  end:50,  color:"#9B72CF" },
+  { id:"zone_c", label:"C",    start:50,  end:75,  color:T.amber   },
+  { id:"zone_d", label:"D",    start:75,  end:100, color:T.green   },
 ];
 
 // Zone-specific content variations (simulated per section)
 const ZONE_OVERRIDES = {
   full:   { note:null },
-  intro:  { note:"Intro — arrangement épuré : pad seul + basse sub. Drums absents. Reverb très longue pour l'espace.", highlight:["bass","fx"] },
-  verse1: { note:"Couplet — entrée du kick et des hi-hats. Voix sèche au centre, harmonies légères.", highlight:["drums","synths"] },
-  chorus: { note:"Refrain — densité maximale. Tous les éléments actifs, saturation tape poussée, compression plus agressive.", highlight:["bass","drums","synths","fx"] },
-  bridge: { note:"Pont — réduction soudaine. Voix + piano seuls, reverb hall très longue, silence du kick.", highlight:["synths","fx"] },
-  outro:  { note:"Outro — fade out progressif. Éléments qui disparaissent un par un. Sub basse en dernier.", highlight:["bass"] },
+  zone_a: { note:"Zone A (0-25%)", highlight:["bass","fx"] },
+  zone_b: { note:"Zone B (25-50%)", highlight:["drums","synths"] },
+  zone_c: { note:"Zone C (50-75%)", highlight:["bass","drums","synths","fx"] },
+  zone_d: { note:"Zone D (75-100%)", highlight:["synths","fx"] },
 };
 
 const pctToTime = (pct, totalSec=215) => {
@@ -2301,7 +2299,7 @@ const FicheScreen = ({ config, analysisResult }) => {
               </span>
               <span style={{ fontFamily:T.mono, fontSize:10, color:T.green }}>✓ Analyse complète</span>
             </div>
-            <h2 style={{ fontFamily:T.display, fontSize:26, letterSpacing:3, color:T.text, lineHeight:1, marginBottom:8 }}>{data.title}</h2>
+            <h2 style={{ fontFamily:T.display, fontSize:26, letterSpacing:3, color:T.text, lineHeight:1, marginBottom:8 }}>{config.title || analysisResult?.meta?.title || data.title}</h2>
             <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {meta.map(m => (
                 <div key={m.label} style={{ fontFamily:T.mono, fontSize:10, background:T.s2, border:`1px solid ${T.border}`, borderRadius:6, padding:"3px 9px", display:"flex", gap:5 }}>
