@@ -580,42 +580,32 @@ const InputScreen = ({ mode, onAnalyze }) => {
 
   const handleAnalyze = async () => {
     if (!ok || uploading) return;
+
+    if (tab === "upload" && file && file.size > 4 * 1024 * 1024) {
+      alert(`Fichier trop volumineux (${(file.size/1024/1024).toFixed(1)} MB).\nExporte en MP3 320kbps — max 4 MB pour l'instant.`);
+      return;
+    }
+
     setUploading(true);
     try {
       if (tab === "link") {
         onAnalyze({ mode, url, daw, title: "", artist: "" });
       } else if (file) {
-        const ext = file.name.split('.').pop().toLowerCase();
-
-        // 1. Get presigned S3 URL from our backend
-        const uploadRes = await fetch(`${API}/api/upload`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileName: file.name, extension: ext }),
-        });
-        if (!uploadRes.ok) throw new Error("Upload URL failed");
-        const { uploadUrl, s3Path } = await uploadRes.json();
-
-        // 2. Upload file directly to S3 (no size limit)
-        const s3Res = await fetch(uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": file.type || "audio/mpeg" },
-          body: file,
-        });
-        if (!s3Res.ok) throw new Error("S3 upload failed");
-
-        // 3. Trigger analysis with s3Path
-        onAnalyze({
-          mode, daw, s3Path,
-          fileName: file.name,
-          fileMime: file.type || "audio/mpeg",
-          title: file.name.replace(/\.[^/.]+$/, ""),
-          artist: "",
-        });
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64 = e.target.result.split(",")[1];
+          onAnalyze({
+            mode, daw,
+            fileData: base64,
+            fileName: file.name,
+            fileMime: file.type || "audio/mpeg",
+            title: file.name.replace(/\.[^/.]+$/, ""),
+            artist: "",
+          });
+        };
+        reader.readAsDataURL(file);
+        return;
       }
-    } catch (err) {
-      console.error("Upload error:", err);
-      alert("Erreur lors de l'upload : " + err.message);
     } finally {
       setUploading(false);
     }
@@ -702,7 +692,7 @@ const InputScreen = ({ mode, onAnalyze }) => {
             <IconWaveUpload c={file?accent:T.muted} s={20}/>
             {file
               ? <><div style={{fontFamily:T.body,fontWeight:400,fontSize:13,color:accent,flex:1}}>{fileName}</div><IconCheckCircle c={accent} s={18}/></>
-              : <><div style={{flex:1}}><div style={{fontFamily:T.body,fontWeight:400,fontSize:13,color:T.muted}}>Glisser le fichier ici ou cliquer</div><div style={{fontFamily:T.mono,fontSize:10,color:T.muted2,marginTop:2}}>WAV · AIFF · MP3 · FLAC — 50 MB max</div></div></>
+              : <><div style={{flex:1}}><div style={{fontFamily:T.body,fontWeight:400,fontSize:13,color:T.muted}}>Glisser le fichier ici ou cliquer</div><div style={{fontFamily:T.mono,fontSize:10,color:T.muted2,marginTop:2}}>MP3 recommandé — 4 MB max</div></div></>
             }
           </div>
         )}
@@ -2271,8 +2261,9 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks.`;
             daw: config.daw || "Logic Pro",
             title: config.title || "Titre inconnu",
             artist: config.artist || "",
-            s3Path: config.s3Path || null,
+            fileData: config.fileData || null,
             fileName: config.fileName || null,
+            fileMime: config.fileMime || null,
             url: config.url || null,
           }),
         });
