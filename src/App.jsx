@@ -281,7 +281,7 @@ const LoginScreen = ({ onLogin, onLegal }) => {
             <button key={soc.provider} onClick={() => handleSocial(soc.provider)} style={{
               display:"flex", alignItems:"center", justifyContent:"center", gap:10,
               padding:"12px 16px", borderRadius:10, cursor:"pointer",
-              background: s.bg, color: s.color,
+              background: soc.bg, color: soc.color,
               border:`1px solid ${T.border}`,
               fontFamily:T.body, fontSize:13, fontWeight:500,
               transition:"opacity .15s",
@@ -1147,8 +1147,8 @@ const WaveformZone = ({ zone, onZoneChange }) => {
         {/* Section label markers */}
         {SECTIONS.filter(sec=>sec.id!=="full").map(sec => (
           <div key={sec.id} style={{
-            position:"absolute", top:3, left:`${s.start}%`,
-            fontFamily:T.mono, fontSize:7.5, color:`${s.color}77`, letterSpacing:.5,
+            position:"absolute", top:3, left:`${sec.start}%`,
+            fontFamily:T.mono, fontSize:7.5, color:`${sec.color}77`, letterSpacing:.5,
             pointerEvents:"none", paddingLeft:3,
           }}>{sec.label.toUpperCase()}</div>
         ))}
