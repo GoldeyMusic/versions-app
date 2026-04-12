@@ -585,22 +585,37 @@ const InputScreen = ({ mode, onAnalyze }) => {
       if (tab === "link") {
         onAnalyze({ mode, url, daw, title: "", artist: "" });
       } else if (file) {
-        // Read file as base64
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const base64 = e.target.result.split(",")[1];
-          onAnalyze({
-            mode, daw,
-            fileData: base64,
-            fileName: file.name,
-            fileMime: file.type || "audio/mpeg",
-            title: file.name.replace(/\.[^/.]+$/, ""),
-            artist: "",
-          });
-        };
-        reader.readAsDataURL(file);
-        return;
+        const ext = file.name.split('.').pop().toLowerCase();
+
+        // 1. Get presigned S3 URL from our backend
+        const uploadRes = await fetch(`${API}/api/upload`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileName: file.name, extension: ext }),
+        });
+        if (!uploadRes.ok) throw new Error("Upload URL failed");
+        const { uploadUrl, s3Path } = await uploadRes.json();
+
+        // 2. Upload file directly to S3 (no size limit)
+        const s3Res = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type || "audio/mpeg" },
+          body: file,
+        });
+        if (!s3Res.ok) throw new Error("S3 upload failed");
+
+        // 3. Trigger analysis with s3Path
+        onAnalyze({
+          mode, daw, s3Path,
+          fileName: file.name,
+          fileMime: file.type || "audio/mpeg",
+          title: file.name.replace(/\.[^/.]+$/, ""),
+          artist: "",
+        });
       }
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Erreur lors de l'upload : " + err.message);
     } finally {
       setUploading(false);
     }
@@ -2256,9 +2271,8 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks.`;
             daw: config.daw || "Logic Pro",
             title: config.title || "Titre inconnu",
             artist: config.artist || "",
-            fileData: config.fileData || null,
+            s3Path: config.s3Path || null,
             fileName: config.fileName || null,
-            fileMime: config.fileMime || null,
             url: config.url || null,
           }),
         });
