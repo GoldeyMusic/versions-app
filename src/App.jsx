@@ -758,7 +758,14 @@ const LoadingScreen = ({ config, onDone }) => {
         if (config.file) formData.append("file", config.file);
 
         setPhase(1);
-        const res = await fetch(`${API}/api/analyze`, { method:"POST", body: formData });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000);
+        let res;
+        try {
+          res = await fetch(`${API}/api/analyze`, { method:"POST", body: formData, signal: controller.signal });
+        } finally {
+          clearTimeout(timeoutId);
+        }
         setPhase(3);
 
         if (!res.ok) throw new Error(`Analyse échouée (${res.status})`);
