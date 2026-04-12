@@ -2209,7 +2209,7 @@ const GeminiEcouteTab = ({ config, zone }) => {
 };
 
 /* ── SCREEN 3 : FICHE ───────────────────────────────────── */
-const FicheScreen = ({ config }) => {
+const FicheScreen = ({ config, analysisResult }) => {
   const isRef = config.mode === "ref";
   const data = isRef ? REF_DATA : PERSO_DATA;
   const { s: ls } = useLang();
@@ -2225,22 +2225,25 @@ const FicheScreen = ({ config }) => {
 
   // Use result from LoadingScreen (already fetched)
   useEffect(() => {
-    console.log("🎯 FicheScreen config.result:", config.result ? Object.keys(config.result) : "UNDEFINED");
-    if (config.result?.fiche) {
-      console.log("🎯 Setting generated fiche — keys:", Object.keys(config.result.fiche).join(', '));
-      setGenerated(config.result.fiche);
+    console.log("🎯 FicheScreen analysisResult:", analysisResult?.fiche ? Object.keys(analysisResult.fiche).join(',') : "NULL");
+    if (analysisResult?.fiche) {
+      setGenerated(analysisResult.fiche);
     }
     setGenerating(false);
-  }, [config]);
+  }, [analysisResult]);
 
   // Use generated data if available, fallback to static
   const activeData = generated ? {
     ...data,
+    bpm: fadrData?.bpm || data.bpm,
+    key: fadrData?.key || data.key,
+    lufs: fadrData?.lufs || data.lufs,
     elements: generated.elements || data.elements,
     chain: generated.chain || data.chain,
     plugins: generated.plugins || data.plugins,
     tips: generated.tips || data.tips,
     plan: generated.plan || data.plan,
+    summary: generated.summary || null,
   } : data;
 
   const Tab = ({id,l}) => (
@@ -2251,7 +2254,13 @@ const FicheScreen = ({ config }) => {
     }}>{l}</button>
   );
 
-  const meta = [{label:"BPM",val:data.bpm},{label:"TONALITÉ",val:data.key},{label:"LUFS",val:data.lufs},{label:"DAW",val:config.daw||"Logic Pro"}];
+  const fadrData = analysisResult?.fadrData || null;
+  const meta = [
+    {label:"BPM",    val: fadrData?.bpm  || data.bpm},
+    {label:"TONALITÉ",val: fadrData?.key  || data.key},
+    {label:"LUFS",   val: fadrData?.lufs || data.lufs},
+    {label:"DAW",    val: config.daw || "Logic Pro"},
+  ];
   const accent = isRef ? T.cyan : T.green;
 
   return (
@@ -3584,9 +3593,9 @@ const MobileHeader = ({ step, onStep, user, onLogout, avatarPhoto, onSection }) 
 /* ── APP ROOT ────────────────────────────────────────────── */
 export default function DecodeApp() {
   const [user, setUser] = useState(null);
-  const [step, setStep] = useState(0);
-  const [mode, setMode] = useState(null);
+  const [step, setStep] = useState(0);  const [mode, setMode] = useState(null);
   const [config, setConfig] = useState(null);
+  const [analysisResult, setAnalysisResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [appSection, setAppSection] = useState("analyse");
   const [askOpen, setAskOpen] = useState(false);
@@ -3627,14 +3636,10 @@ export default function DecodeApp() {
     if (m === "ask") { setAskOpen(true); return; }
     setMode(m); setStep(1);
   };
-  const handleAnalyze = cfg => { setConfig(cfg); setLoading(true); };
-  const handleLoaded = (result) => { console.log("🏁 handleLoaded", JSON.stringify(result)?.slice(0,100));
-    console.log("🏁 handleLoaded called — result:", result ? Object.keys(result) : "NULL", "fiche:", !!result?.fiche);
-    setConfig(cfg => {
-      const newCfg = { ...cfg, result };
-      console.log("🏁 setConfig — result in newCfg:", !!newCfg.result?.fiche);
-      return newCfg;
-    });
+  const handleAnalyze = cfg => { setConfig(cfg); setAnalysisResult(null); setLoading(true); };
+  const handleLoaded = (result) => {
+    console.log("🏁 handleLoaded — fiche keys:", result?.fiche ? Object.keys(result.fiche).join(',') : "NO FICHE");
+    setAnalysisResult(result || null);
     setLoading(false);
     setStep(2);
   };
@@ -3663,7 +3668,7 @@ export default function DecodeApp() {
           ? <ModeScreen onSelect={handleMode}/>
           : step===1
             ? <InputScreen mode={mode} onAnalyze={handleAnalyze}/>
-            : <FicheScreen config={config||{mode:mode||"ref", daw:"Logic Pro"}}/>;
+            : <FicheScreen config={config||{mode:mode||"ref", daw:"Logic Pro"}} analysisResult={analysisResult}/>;
 
   return (
     <LangContext.Provider value={{ lang, s, setLang }}>
