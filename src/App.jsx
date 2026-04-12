@@ -2225,7 +2225,9 @@ const FicheScreen = ({ config }) => {
 
   // Use result from LoadingScreen (already fetched)
   useEffect(() => {
+    console.log("🎯 FicheScreen config.result:", config.result ? Object.keys(config.result) : "UNDEFINED");
     if (config.result?.fiche) {
+      console.log("🎯 Setting generated fiche — keys:", Object.keys(config.result.fiche).join(', '));
       setGenerated(config.result.fiche);
     }
     setGenerating(false);
