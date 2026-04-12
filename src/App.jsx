@@ -277,8 +277,8 @@ const LoginScreen = ({ onLogin, onLegal }) => {
 
         {/* Social buttons */}
         <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:20 }}>
-          {socials.map(s => (
-            <button key={s.provider} onClick={() => handleSocial(s.provider)} style={{
+          {socials.map(soc => (
+            <button key={soc.provider} onClick={() => handleSocial(soc.provider)} style={{
               display:"flex", alignItems:"center", justifyContent:"center", gap:10,
               padding:"12px 16px", borderRadius:10, cursor:"pointer",
               background: s.bg, color: s.color,
@@ -289,7 +289,7 @@ const LoginScreen = ({ onLogin, onLegal }) => {
               onMouseEnter={e => e.currentTarget.style.opacity = ".85"}
               onMouseLeave={e => e.currentTarget.style.opacity = "1"}
             >
-              {s.icon} {s.label}
+              {soc.icon} {soc.label}
             </button>
           ))}
         </div>
@@ -1029,14 +1029,14 @@ const WaveformZone = ({ zone, onZoneChange }) => {
 
       {/* Section preset chips */}
       <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:12 }}>
-        {SECTIONS.map(s => (
-          <button key={s.id} onClick={() => onZoneChange(s)} style={{
+        {SECTIONS.map(sec => (
+          <button key={sec.id} onClick={() => onZoneChange(sec)} style={{
             fontFamily:T.mono, fontSize:10, padding:"4px 11px", borderRadius:20,
-            border:`1px solid ${zone.id===s.id ? s.color : T.border}`,
-            background: zone.id===s.id ? `${s.color}18` : T.s2,
-            color: zone.id===s.id ? s.color : T.muted,
+            border:`1px solid ${zone.id===sec.id ? sec.color : T.border}`,
+            background: zone.id===sec.id ? `${sec.color}18` : T.s2,
+            color: zone.id===sec.id ? sec.color : T.muted,
             cursor:"pointer", transition:"all .15s",
-          }}>{s.label}</button>
+          }}>{sec.label}</button>
         ))}
       </div>
 
@@ -1101,12 +1101,12 @@ const WaveformZone = ({ zone, onZoneChange }) => {
         />
 
         {/* Section label markers */}
-        {SECTIONS.filter(s=>s.id!=="full").map(s => (
-          <div key={s.id} style={{
+        {SECTIONS.filter(sec=>sec.id!=="full").map(sec => (
+          <div key={sec.id} style={{
             position:"absolute", top:3, left:`${s.start}%`,
             fontFamily:T.mono, fontSize:7.5, color:`${s.color}77`, letterSpacing:.5,
             pointerEvents:"none", paddingLeft:3,
-          }}>{s.label.toUpperCase()}</div>
+          }}>{sec.label.toUpperCase()}</div>
         ))}
       </div>
 
@@ -2883,22 +2883,22 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
           <h2 style={{ fontFamily:T.display, fontSize:24, letterSpacing:3, color:T.text }}>{s.reglages_title}</h2>
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-          {sections.map(s => (
-            <div key={s.id} style={{ background:T.s1, border:`1px solid ${section===s.id ? T.amber+"44" : T.border}`, borderRadius:12, overflow:"hidden", transition:"border-color .2s" }}>
-              <button onClick={() => setSection(section===s.id ? null : s.id)} style={{
+          {sections.map(sec => (
+            <div key={sec.id} style={{ background:T.s1, border:`1px solid ${section===sec.id ? T.amber+"44" : T.border}`, borderRadius:12, overflow:"hidden", transition:"border-color .2s" }}>
+              <button onClick={() => setSection(section===sec.id ? null : sec.id)} style={{
                 display:"flex", alignItems:"center", justifyContent:"space-between",
                 width:"100%", padding:"16px 18px", background:"transparent", border:"none",
                 cursor:"pointer", textAlign:"left",
               }}>
                 <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                  <span style={{ color: section===s.id ? T.amber : T.muted }}>{s.icon}</span>
-                  <span style={{ fontFamily:T.mono, fontSize:13, color: section===s.id ? T.amber : T.text }}>{s.label}</span>
+                  <span style={{ color: section===sec.id ? T.amber : T.muted }}>{sec.icon}</span>
+                  <span style={{ fontFamily:T.mono, fontSize:13, color: section===sec.id ? T.amber : T.text }}>{sec.label}</span>
                 </div>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: section===s.id ? "rotate(180deg)" : "none", transition:"transform .2s" }}>
-                  <path d="M2 4l4 4 4-4" stroke={section===s.id ? T.amber : T.muted} strokeWidth="1.5" strokeLinecap="round"/>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: section===sec.id ? "rotate(180deg)" : "none", transition:"transform .2s" }}>
+                  <path d="M2 4l4 4 4-4" stroke={section===sec.id ? T.amber : T.muted} strokeWidth="1.5" strokeLinecap="round"/>
                 </svg>
               </button>
-              {section===s.id && (
+              {section===sec.id && (
                 <div style={{ padding:"0 18px 18px", borderTop:`1px solid ${T.border}`, paddingTop:16 }}>
                   {renderSection()}
                 </div>
