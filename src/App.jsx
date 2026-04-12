@@ -3629,7 +3629,12 @@ export default function DecodeApp() {
   };
   const handleAnalyze = cfg => { setConfig(cfg); setLoading(true); };
   const handleLoaded = (result) => {
-    if (result?.fiche) setConfig(cfg => ({ ...cfg, result }));
+    console.log("🏁 handleLoaded called — result:", result ? Object.keys(result) : "NULL", "fiche:", !!result?.fiche);
+    setConfig(cfg => {
+      const newCfg = { ...cfg, result };
+      console.log("🏁 setConfig — result in newCfg:", !!newCfg.result?.fiche);
+      return newCfg;
+    });
     setLoading(false);
     setStep(2);
   };
