@@ -737,12 +737,14 @@ const LoadingScreen = ({ config, onDone }) => {
   const [error, setError] = useState(null);
   const steps = [
     "Upload du fichier…",
-    "Analyse Fadr en cours…",
+    "Décodage en cours…",
     "Extraction BPM / tonalité…",
     "Génération de la fiche IA…",
     "Finalisation…",
   ];
   const bars = Array.from({length:32},()=>Math.random());
+
+  console.log("🟡 DECODE LoadingScreen v2 — config:", config?.mode, "file:", config?.file?.name);
 
   useEffect(() => {
     const run = async () => {
