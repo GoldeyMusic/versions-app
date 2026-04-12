@@ -757,26 +757,35 @@ const LoadingScreen = ({ config, onDone }) => {
         formData.append("artist", config.artist || "");
         if (config.file) formData.append("file", config.file);
 
+        // Start job
         setPhase(1);
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 90000);
-        let res;
-        try {
-          res = await fetch(`${API}/api/analyze`, { method:"POST", body: formData, signal: controller.signal });
-        } finally {
-          clearTimeout(timeoutId);
+        const startRes = await fetch(`${API}/api/analyze/start`, { method:"POST", body: formData });
+        if (!startRes.ok) throw new Error(`Démarrage échoué (${startRes.status})`);
+        const { jobId } = await startRes.json();
+        console.log("✅ Job started:", jobId);
+
+        // Poll for result
+        setPhase(2);
+        let attempts = 0;
+        while (attempts < 60) {
+          await new Promise(r => setTimeout(r, 3000));
+          const pollRes = await fetch(`${API}/api/analyze/status/${jobId}`);
+          const job = await pollRes.json();
+          console.log("🔄 Poll", attempts, "— status:", job.status, "progress:", job.progress);
+
+          if (job.status === "complete") {
+            setPhase(4);
+            await new Promise(r => setTimeout(r, 500));
+            onDone({ fiche: job.fiche, fadrData: job.fadrData, meta: job.meta });
+            return;
+          }
+          if (job.status === "error") throw new Error(job.error || "Analyse échouée");
+          if (job.pct > 50) setPhase(3);
+          attempts++;
         }
-        setPhase(3);
-
-        if (!res.ok) throw new Error(`Analyse échouée (${res.status})`);
-        const data = await res.json();
-        console.log("✅ DECODE API response — fiche keys:", data.fiche ? Object.keys(data.fiche).join(', ') : 'NO FICHE', "fadrData:", data.fadrData?.bpm);
-        setPhase(4);
-
-        await new Promise(r => setTimeout(r, 600));
-        onDone(data);
+        throw new Error("Timeout — analyse trop longue");
       } catch(err) {
-        console.error("❌ LoadingScreen error:", err.message, err);
+        console.error("❌ LoadingScreen error:", err.message);
         setError(err.message);
       }
     };
@@ -3617,10 +3626,10 @@ export default function DecodeApp() {
     setMode(m); setStep(1);
   };
   const handleAnalyze = cfg => { setConfig(cfg); setLoading(true); };
-  const handleLoaded = (result) => { 
-    if (result) setConfig(cfg => ({ ...cfg, result }));
-    setLoading(false); 
-    setStep(2); 
+  const handleLoaded = (result) => {
+    if (result?.fiche) setConfig(cfg => ({ ...cfg, result }));
+    setLoading(false);
+    setStep(2);
   };
 
   if (!user) return (
