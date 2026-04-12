@@ -763,11 +763,13 @@ const LoadingScreen = ({ config, onDone }) => {
 
         if (!res.ok) throw new Error(`Analyse échouée (${res.status})`);
         const data = await res.json();
+        console.log("✅ DECODE API response — fiche keys:", data.fiche ? Object.keys(data.fiche).join(', ') : 'NO FICHE', "fadrData:", data.fadrData?.bpm);
         setPhase(4);
 
         await new Promise(r => setTimeout(r, 600));
         onDone(data);
       } catch(err) {
+        console.error("❌ LoadingScreen error:", err.message, err);
         setError(err.message);
       }
     };
