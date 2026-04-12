@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, useRef } from "react";
 
 const API = "https://decode-571nt33pm-goldeymusics-projects.vercel.app";
 
@@ -373,7 +373,7 @@ const Header = ({ step, onStep, user, onLogout, avatarPhoto, onSection }) => {
       <div style={{ display:"flex", alignItems:"center", gap:12 }}>
         <div style={{ display:"flex", alignItems:"center", gap:5 }}>
           {["MODE","SOURCE","FICHE"].map((st,i) => (
-            <div key={s} style={{ display:"flex", alignItems:"center", gap:5 }}>
+            <div key={st} style={{ display:"flex", alignItems:"center", gap:5 }}>
               <div
                 onClick={() => i < step && onStep(i)}
                 style={{
@@ -384,7 +384,7 @@ const Header = ({ step, onStep, user, onLogout, avatarPhoto, onSection }) => {
                   cursor: i < step ? "pointer" : "default",
                   transition:"all .2s", fontWeight: step===i ? 600 : 400,
                 }}
-              >{s}</div>
+              >{st}</div>
               {i < 2 && <div style={{ width:12, height:1, background: step>i ? T.amberDim : T.border }}/>}
             </div>
           ))}
@@ -2698,7 +2698,7 @@ const ReglagesScreen = ({ user, setLang: setAppLang, onLegal, avatarPhoto, setAv
     </div>
   );
 
-  const fileInputRef = React.useRef(null);
+  const fileInputRef = useRef(null);
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -3055,9 +3055,9 @@ const LegalModal = ({ doc, onClose }) => {
   );
 };
 const AskModal = ({ onClose }) => {
-  const [msgs, setMsgs] = React.useState([]);
-  const [val, setVal] = React.useState("");
-  const [busy, setBusy] = React.useState(false);
+  const [msgs, setMsgs] = useState([]);
+  const [val, setVal] = useState("");
+  const [busy, setBusy] = useState(false);
   const { s } = useLang();
 
   const ask = async () => {
@@ -3218,7 +3218,7 @@ const AskScreen = ({ onBack, user }) => {
   const [showPaywall, setShowPaywall] = useState(false);
   const isPro = user?.plan === "pro"; // en prod : vérifié côté serveur
   const remaining = Math.max(0, FREE_LIMIT - used);
-  const messagesEndRef = React.useRef(null);
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
     if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior:"smooth" });
