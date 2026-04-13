@@ -385,14 +385,12 @@ export const IconHistory = ({ c = T.text, s = 20 }) => (
 export const IconQuestion = ({ c = T.text, s = 20 }) => (
   <svg width={s} height={s} viewBox="0 0 20 20" fill="none">
     <path d="M3 15l2-2H16a1 1 0 001-1V4a1 1 0 00-1-1H4a1 1 0 00-1 1v11z" stroke={c} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M8 7c0-1 .7-1.5 2-1.5s2 .5 2 1.5c0 .8-.6 1.2-1.2 1.5-.3.2-.3.4-.3.5" stroke={c} strokeWidth="1.3" strokeLinecap="round" />
-    <circle cx="10" cy="11" r=".6" fill={c} />
   </svg>
 );
 
 export const IconSettings = ({ c = T.text, s = 20 }) => (
   <svg width={s} height={s} viewBox="0 0 20 20" fill="none">
+    <path d="M10 1.5l1.2 2.4a1 1 0 00.9.6l2.7.2a1 1 0 01.7 1.7l-2 1.8a1 1 0 00-.3 1l.5 2.6a1 1 0 01-1.1 1.2l-2.6-.5a1 1 0 00-1 .3L7.2 14.6a1 1 0 01-1.7-.7l.2-2.7a1 1 0 00-.6-.9L2.7 9.1a1 1 0 01-.2-1.8l2.4-1.4a1 1 0 00.5-.9L5.7 2.3a1 1 0 011.5-.8l2.2 1.5a1 1 0 001 0z" stroke={c} strokeWidth="1.3" strokeLinejoin="round" />
     <circle cx="10" cy="10" r="2.5" stroke={c} strokeWidth="1.4" />
-    <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4" stroke={c} strokeWidth="1.4" strokeLinecap="round" />
   </svg>
 );
