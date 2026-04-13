@@ -101,7 +101,14 @@ const InputScreen = ({ onAnalyze, initialTitle = '' }) => {
     if (!f) return;
     setFile(f);
     if (!title) {
-      setTitle(f.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '));
+      // Auto-fill title from filename, but only if the filename looks
+      // meaningful (not a generated ID like "song_1774898818_145").
+      const cleaned = f.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').trim();
+      const letters = (cleaned.match(/[a-zA-ZÀ-ÿ]/g) || []).length;
+      const digits = (cleaned.match(/\d/g) || []).length;
+      const looksMeaningful =
+        letters >= 3 && letters >= digits && !/^song\s+\d{6,}/i.test(cleaned);
+      if (looksMeaningful) setTitle(cleaned);
     }
   };
 
