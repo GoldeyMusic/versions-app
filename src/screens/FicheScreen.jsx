@@ -615,12 +615,14 @@ const FicheScreen = ({ config, analysisResult }) => {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <span style={{
-                fontFamily: T.mono, fontSize: 10, padding: "2px 9px", borderRadius: 20,
-                background: isRef ? "rgba(72,202,228,0.12)" : "rgba(87,204,153,0.12)", color: accent, border: `1px solid ${accent}44`, letterSpacing: 1
-              }}>
-                {isRef ? "RÉFÉRENCE" : "PERSONNEL"}
-              </span>
+              {config?.version && (
+                <span style={{
+                  fontFamily: T.mono, fontSize: 10, padding: "2px 9px", borderRadius: 20,
+                  background: T.amberGlow, color: T.amber, border: `1px solid ${T.amber}44`, letterSpacing: 1
+                }}>
+                  {config.version}
+                </span>
+              )}
               <span style={{ fontFamily: T.mono, fontSize: 10, color: stage === "all_done" ? T.green : T.amber, display: "flex", alignItems: "center", gap: 5 }}>
                 {stage === "all_done" ? "✓ Analyse complète" : stage === "fiche_done" ? "◎ Écoute en cours…" : "◎ Rapport IA en cours…"}
               </span>
