@@ -68,11 +68,6 @@ export async function saveAnalysis(config, analysisResult) {
   const title = (config?.title || analysisResult?.meta?.title || 'Sans titre').trim();
   const versionName = (config?.version || 'v1').trim();
 
-  const fadr = analysisResult?.fadrData || {};
-  const bpm = fadr.bpm ? String(fadr.bpm) : '';
-  const key = fadr.key || '';
-  const lufs = fadr.lufs ? String(fadr.lufs) : '';
-
   // Find existing track (case-insensitive)
   const { data: existingTracks } = await supabase
     .from('tracks')
@@ -111,9 +106,6 @@ export async function saveAnalysis(config, analysisResult) {
       .from('versions')
       .update({
         date: formatDate(),
-        bpm: bpm || undefined,
-        key: key || undefined,
-        lufs: lufs || undefined,
         is_main: true,
         analysis_result: analysisResult,
       })
@@ -127,9 +119,6 @@ export async function saveAnalysis(config, analysisResult) {
         track_id: track.id,
         name: versionName,
         date: formatDate(),
-        bpm,
-        key,
-        lufs,
         is_main: true,
         analysis_result: analysisResult,
       })

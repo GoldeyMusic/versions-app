@@ -548,8 +548,7 @@ const FicheScreen = ({ config, analysisResult }) => {
   const [drawer, setDrawer] = useState(null);
   const [zone, setZone] = useState({ id: "full", label: "Morceau complet", start: 0, end: 100, color: T.amber });
 
-  // Progressive data: fadrData arrives first, then fiche, then listening
-  const fadrData = analysisResult?.fadrData || null;
+  // Progressive data: listening arrives first, then fiche
   const fiche = analysisResult?.fiche || null;
   const listening = analysisResult?.listening || null;
   const stage = analysisResult?._stage || "pending";
@@ -564,17 +563,9 @@ const FicheScreen = ({ config, analysisResult }) => {
   // For display, use fiche if available, otherwise mock
   const data = fiche ? { ...mockData, elements: ficheElements || mockData.elements, plan: fichePlan || mockData.plan } : mockData;
 
-  const activeData = {
-    ...data,
-    bpm: fadrData?.bpm || data.bpm,
-    key: fadrData?.key || data.key,
-    lufs: fadrData?.lufs || data.lufs,
-  };
+  const activeData = data;
 
   const meta = [
-    { label: "BPM", val: activeData.bpm || "—" },
-    { label: "TONALITÉ", val: activeData.key || "—" },
-    { label: "LUFS", val: activeData.lufs || "—" },
     { label: "DAW", val: config?.daw || "Logic Pro" },
   ];
 

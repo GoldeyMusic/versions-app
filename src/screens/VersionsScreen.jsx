@@ -515,9 +515,6 @@ export default function VersionsScreen({ onViewAnalysis, onAddVersion, onPlay, o
                         </div>
                         <div style={{ display: 'flex', gap: 8, marginTop: 3 }}>
                           <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>{v.date}</span>
-                          {v.lufs && <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>LUFS {v.lufs}</span>}
-                          {v.bpm && <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>{v.bpm} BPM</span>}
-                          {v.key && <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>{v.key}</span>}
                         </div>
                       </div>
                     )}
@@ -797,11 +794,6 @@ export default function VersionsScreen({ onViewAnalysis, onAddVersion, onPlay, o
                     <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>
                       · {track.versions.length} version{track.versions.length > 1 ? 's' : ''}
                     </span>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                    {mainVersion.bpm && <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>{mainVersion.bpm} BPM</span>}
-                    {mainVersion.lufs && <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>LUFS {mainVersion.lufs}</span>}
-                    {mainVersion.key && <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>{mainVersion.key}</span>}
                   </div>
                 </div>
 

@@ -26,8 +26,8 @@ const LoadingScreen = ({ config, onDone }) => {
   const hasRef = !!config?.refFile;
 
   const steps = hasRef
-    ? ["Upload des fichiers…", "Analyse audio…", "Séparation des stems…", "Données audio prêtes…"]
-    : ["Upload du fichier…", "Analyse audio…", "Séparation des stems…", "Données audio prêtes…"];
+    ? ["Upload des fichiers…", "Écoute qualitative…", "Rédaction de la fiche…", "Analyse terminée…"]
+    : ["Upload du fichier…", "Écoute qualitative…", "Rédaction de la fiche…", "Analyse terminée…"];
 
   const bars = Array.from({ length: 32 }, () => Math.random());
   const [shuffledTips] = useState(() => {
@@ -83,13 +83,11 @@ const LoadingScreen = ({ config, onDone }) => {
             throw new Error(job.error || "Analyse échouée");
           }
 
-          // Stage: Fadr done → immediately go to FicheScreen with partial data
-          if ((job.stage === "fadr_done" || job.stage === "fiche_done" || job.stage === "all_done") && !sentFadr.current) {
+          // Stage: listening done → immediately go to FicheScreen with partial data
+          if ((job.stage === "listening_done" || job.stage === "all_done") && !sentFadr.current) {
             sentFadr.current = true;
             setPhase(3);
-            // Send partial result — App will switch to FicheScreen
             onDone({
-              fadrData: job.fadrData,
               fiche: job.fiche || null,
               listening: job.listening || null,
               meta: job.meta,
@@ -99,9 +97,7 @@ const LoadingScreen = ({ config, onDone }) => {
           }
 
           if (job.status === "complete") {
-            // Send final complete result
             onDone({
-              fadrData: job.fadrData,
               fiche: job.fiche,
               listening: job.listening || null,
               meta: job.meta,
