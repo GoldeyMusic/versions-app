@@ -102,6 +102,10 @@ export async function saveAnalysis(config, analysisResult) {
 
   const existing = existingVersions?.find(v => v.name.toLowerCase() === versionName.toLowerCase());
 
+  // The newly uploaded version always becomes the main one:
+  // first, unset is_main on every version of this track.
+  await supabase.from('versions').update({ is_main: false }).eq('track_id', track.id);
+
   if (existing) {
     const { error } = await supabase
       .from('versions')
@@ -110,13 +114,13 @@ export async function saveAnalysis(config, analysisResult) {
         bpm: bpm || undefined,
         key: key || undefined,
         lufs: lufs || undefined,
+        is_main: true,
         analysis_result: analysisResult,
       })
       .eq('id', existing.id);
     if (error) console.warn('[storage] version update error:', error.message);
     return { trackId: track.id, versionId: existing.id };
   } else {
-    const isFirst = !existingVersions || existingVersions.length === 0;
     const { data: newVer, error } = await supabase
       .from('versions')
       .insert({
@@ -126,7 +130,7 @@ export async function saveAnalysis(config, analysisResult) {
         bpm,
         key,
         lufs,
-        is_main: isFirst,
+        is_main: true,
         analysis_result: analysisResult,
       })
       .select()

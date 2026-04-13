@@ -19,7 +19,7 @@ import {
   reorderVersions as storageReorder,
 } from '../lib/storage';
 
-export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerState }) {
+export default function VersionsScreen({ onViewAnalysis, onAddVersion, onPlay, onStop, playerState, autoSelectTrackTitle, onAutoSelectConsumed }) {
   const [tracks, setTracks] = useState([]);
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [renaming, setRenaming] = useState(null);
@@ -36,6 +36,16 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
     loadTracks().then(t => { if (alive) setTracks(t); });
     return () => { alive = false; };
   }, []);
+
+  // Auto-select a track if requested (e.g. returning from "new version" flow)
+  useEffect(() => {
+    if (!autoSelectTrackTitle || tracks.length === 0) return;
+    const match = tracks.find(t => t.title.toLowerCase() === autoSelectTrackTitle.toLowerCase());
+    if (match) {
+      setSelectedTrack(match.id);
+      onAutoSelectConsumed?.();
+    }
+  }, [autoSelectTrackTitle, tracks, onAutoSelectConsumed]);
 
   const currentTrack = selectedTrack ? tracks.find((t) => t.id === selectedTrack) : null;
 
@@ -311,6 +321,43 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
             </div>
           </div>
         </div>
+
+        {/* Add new version button */}
+        {onAddVersion && (
+          <button
+            onClick={() => onAddVersion(currentTrack)}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              marginBottom: 14,
+              background: 'transparent',
+              border: `1px dashed ${T.amber}66`,
+              borderRadius: 10,
+              color: T.amber,
+              fontFamily: T.mono,
+              fontSize: 11,
+              letterSpacing: 1,
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              transition: 'background .15s, border-color .15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = T.amberGlow;
+              e.currentTarget.style.borderColor = T.amber;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.borderColor = `${T.amber}66`;
+            }}
+          >
+            <span style={{ fontSize: 16, lineHeight: 1, marginTop: -2 }}>+</span>
+            Ajouter une version
+          </button>
+        )}
 
         {/* Hint */}
         <div style={{ fontFamily: T.mono, fontSize: 9, color: T.muted2, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>

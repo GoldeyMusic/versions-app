@@ -89,9 +89,9 @@ const FileDropZone = ({ file, onFile, accent = T.green, hint, formats, compact =
 /* ═══════════════════════════════════════════════════════════ */
 /* INPUT SCREEN                                               */
 /* ═══════════════════════════════════════════════════════════ */
-const InputScreen = ({ onAnalyze }) => {
+const InputScreen = ({ onAnalyze, initialTitle = '' }) => {
   const [file, setFile] = useState(null);
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(initialTitle);
   const [version, setVersion] = useState('');
   const [daw, setDaw] = useState(null);
   const [showRef, setShowRef] = useState(false);

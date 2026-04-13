@@ -43,6 +43,10 @@ export default function VersionsApp() {
   const [config, setConfig] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [askOpen, setAskOpen] = useState(false);
+  // When adding a new version from an existing track, we prefill the title
+  // and, after analysis completes, auto-open that track's folder in Versions tab
+  const [prefillTitle, setPrefillTitle] = useState("");
+  const [autoSelectTrackTitle, setAutoSelectTrackTitle] = useState("");
   const isMobile = useMobile();
 
   // ── Language ──
@@ -168,13 +172,14 @@ export default function VersionsApp() {
     setScreen("input");
     setConfig(null);
     setAnalysisResult(null);
+    setPrefillTitle("");
   };
 
   // ── Screen routing ──
   const renderContent = () => {
     switch (screen) {
       case "input":
-        return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} />;
+        return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialTitle={prefillTitle} />;
       case "loading":
         return <LoadingScreen config={config} onDone={handleLoaded} />;
       case "fiche":
@@ -188,6 +193,15 @@ export default function VersionsApp() {
               setAnalysisResult(saved || v.analysisResult || null);
               setScreen("fiche");
             }}
+            onAddVersion={(track) => {
+              setPrefillTitle(track.title);
+              setAutoSelectTrackTitle(track.title);
+              setAnalysisResult(null);
+              setConfig(null);
+              setScreen("input");
+            }}
+            autoSelectTrackTitle={autoSelectTrackTitle}
+            onAutoSelectConsumed={() => setAutoSelectTrackTitle("")}
             onPlay={play}
             onStop={stopPlay}
             playerState={playerState}
@@ -279,7 +293,13 @@ export default function VersionsApp() {
         {screen !== "loading" && (
           <BottomNav
             active={askOpen ? "ask" : screen === "input" || screen === "fiche" ? "input" : screen === "versions" ? "historique" : screen}
-            onChange={(id) => { setAskOpen(false); setScreen(id === "historique" ? "versions" : id); }}
+            onChange={(id) => {
+              setAskOpen(false);
+              const target = id === "historique" ? "versions" : id;
+              // Clear prefill when user intentionally navigates to the input tab
+              if (target === "input") setPrefillTitle("");
+              setScreen(target);
+            }}
             onAsk={() => setAskOpen(o => !o)}
           />
         )}
