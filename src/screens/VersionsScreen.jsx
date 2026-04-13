@@ -30,9 +30,11 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
   const [dragOverIdx, setDragOverIdx] = useState(null);
   const [menuOpen, setMenuOpen] = useState(null);
 
-  // Load tracks from localStorage on mount
+  // Load tracks from Supabase on mount
   useEffect(() => {
-    setTracks(loadTracks());
+    let alive = true;
+    loadTracks().then(t => { if (alive) setTracks(t); });
+    return () => { alive = false; };
   }, []);
 
   const currentTrack = selectedTrack ? tracks.find((t) => t.id === selectedTrack) : null;
@@ -97,8 +99,8 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
 
   const isTrackActive = (trackTitle) => playerState && playerState.trackTitle === trackTitle;
 
-  const deleteVersion = (trackId, versionId) => {
-    const updated = storageDeleteVersion(trackId, versionId);
+  const deleteVersion = async (trackId, versionId) => {
+    const updated = await storageDeleteVersion(trackId, versionId);
     setTracks(updated);
     // If current track was deleted entirely, go back
     if (!updated.find(t => t.id === trackId)) {
@@ -113,15 +115,15 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
     setMenuOpen(null);
   };
 
-  const confirmRename = (trackId) => {
+  const confirmRename = async (trackId) => {
     if (!renameVal.trim()) return;
-    const updated = storageRenameVersion(trackId, renaming, renameVal);
+    const updated = await storageRenameVersion(trackId, renaming, renameVal);
     setTracks(updated);
     setRenaming(null);
   };
 
-  const setMainVersion = (trackId, versionId) => {
-    const updated = storageSetMain(trackId, versionId);
+  const setMainVersion = async (trackId, versionId) => {
+    const updated = await storageSetMain(trackId, versionId);
     setTracks(updated);
   };
 
@@ -130,13 +132,13 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
     e.preventDefault();
     setDragOverIdx(idx);
   };
-  const handleDrop = (trackId, idx) => {
+  const handleDrop = async (trackId, idx) => {
     if (dragIdx === null || dragIdx === idx) {
       setDragIdx(null);
       setDragOverIdx(null);
       return;
     }
-    const updated = storageReorder(trackId, dragIdx, idx);
+    const updated = await storageReorder(trackId, dragIdx, idx);
     setTracks(updated);
     setDragIdx(null);
     setDragOverIdx(null);
@@ -210,9 +212,9 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
                 <input
                   value={trackRenameVal}
                   onChange={(e) => setTrackRenameVal(e.target.value)}
-                  onKeyDown={(e) => {
+                  onKeyDown={async (e) => {
                     if (e.key === 'Enter' && trackRenameVal.trim()) {
-                      const updated = storageRenameTrack(selectedTrack, trackRenameVal);
+                      const updated = await storageRenameTrack(selectedTrack, trackRenameVal);
                       setTracks(updated);
                       setRenamingTrack(false);
                     }
@@ -232,9 +234,9 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
                   }}
                 />
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (trackRenameVal.trim()) {
-                      const updated = storageRenameTrack(selectedTrack, trackRenameVal);
+                      const updated = await storageRenameTrack(selectedTrack, trackRenameVal);
                       setTracks(updated);
                       setRenamingTrack(false);
                     }

@@ -1,207 +1,210 @@
 /**
- * Persistence layer for Versions — stores tracks & analysis results in localStorage.
+ * Persistence layer for Versions — stores tracks & analysis results in Supabase.
+ * All functions are async. Row-Level Security ensures users only see their own data.
  *
- * Data model:
- * {
- *   tracks: [
- *     {
- *       id: "t_xxx",
- *       title: "Lacher prise",
- *       createdAt: "2026-04-13T...",
- *       versions: [
- *         {
- *           id: "v_xxx",
- *           name: "Mix v2 LUNA",
- *           date: "13 avr 2026",
- *           bpm: "78",
- *           key: "Dm",
- *           lufs: "-12.1",
- *           main: true,
- *           analysisResult: { fadrData, fiche, listening, _stage }
- *         }
- *       ]
- *     }
- *   ]
- * }
+ * Tables:
+ *  tracks(id uuid pk, user_id uuid, title text, created_at timestamptz)
+ *  versions(id uuid pk, track_id uuid, name text, date text, bpm text, key text,
+ *           lufs text, is_main bool, analysis_result jsonb, created_at timestamptz)
  */
 
-const STORAGE_KEY = 'versions_tracks';
-
-function uid() {
-  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-}
+import { supabase } from './supabase';
 
 function formatDate(d = new Date()) {
   const months = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep', 'oct', 'nov', 'déc'];
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-/** Load all tracks from localStorage */
-export function loadTracks() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw);
-  } catch {
+/** Load all tracks (with their versions) for the current user */
+export async function loadTracks() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: tracks, error } = await supabase
+    .from('tracks')
+    .select('id, title, created_at, versions(id, name, date, bpm, key, lufs, is_main, analysis_result, created_at)')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.warn('[storage] loadTracks error:', error.message);
     return [];
   }
-}
 
-/** Save all tracks to localStorage */
-export function saveTracks(tracks) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tracks));
-  } catch (e) {
-    console.warn('[storage] save failed:', e.message);
-  }
+  // Normalize field name is_main → main for frontend consistency
+  return (tracks || []).map(t => ({
+    id: t.id,
+    title: t.title,
+    createdAt: t.created_at,
+    versions: (t.versions || [])
+      .sort((a, b) => {
+        // Main first, then newest
+        if (a.is_main !== b.is_main) return a.is_main ? -1 : 1;
+        return new Date(b.created_at) - new Date(a.created_at);
+      })
+      .map(v => ({
+        id: v.id,
+        name: v.name,
+        date: v.date,
+        bpm: v.bpm,
+        key: v.key,
+        lufs: v.lufs,
+        main: v.is_main,
+        analysisResult: v.analysis_result,
+      })),
+  }));
 }
 
 /**
- * Save an analysis result. Finds or creates the track by title,
- * then adds/updates the version.
- *
- * @param {object} config - { title, version, daw, mode, artist }
- * @param {object} analysisResult - { fadrData, fiche, listening, _stage, meta }
- * @returns {object} { trackId, versionId }
+ * Save an analysis. Finds or creates track by title (case-insensitive),
+ * then inserts or updates the version.
  */
-export function saveAnalysis(config, analysisResult) {
-  const tracks = loadTracks();
-  const title = (config.title || analysisResult?.meta?.title || 'Sans titre').trim();
-  const versionName = (config.version || 'v1').trim();
+export async function saveAnalysis(config, analysisResult) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    console.warn('[storage] saveAnalysis: no user');
+    return null;
+  }
 
-  // Extract metadata from fadrData
+  const title = (config?.title || analysisResult?.meta?.title || 'Sans titre').trim();
+  const versionName = (config?.version || 'v1').trim();
+
   const fadr = analysisResult?.fadrData || {};
   const bpm = fadr.bpm ? String(fadr.bpm) : '';
   const key = fadr.key || '';
   const lufs = fadr.lufs ? String(fadr.lufs) : '';
 
-  // Find existing track by title (case-insensitive)
-  let track = tracks.find(t => t.title.toLowerCase() === title.toLowerCase());
+  // Find existing track (case-insensitive)
+  const { data: existingTracks } = await supabase
+    .from('tracks')
+    .select('id, title')
+    .ilike('title', title);
+
+  let track = existingTracks?.find(t => t.title.toLowerCase() === title.toLowerCase());
 
   if (!track) {
-    track = {
-      id: 't_' + uid(),
-      title,
-      createdAt: new Date().toISOString(),
-      versions: [],
-    };
-    tracks.unshift(track); // newest first
+    const { data: newTrack, error: insertErr } = await supabase
+      .from('tracks')
+      .insert({ user_id: user.id, title })
+      .select()
+      .single();
+    if (insertErr) {
+      console.warn('[storage] track insert error:', insertErr.message);
+      return null;
+    }
+    track = newTrack;
   }
 
-  // Check if version name already exists for this track → update it
-  let version = track.versions.find(v => v.name.toLowerCase() === versionName.toLowerCase());
+  // Check if version with same name exists for this track
+  const { data: existingVersions } = await supabase
+    .from('versions')
+    .select('id, name, is_main')
+    .eq('track_id', track.id);
 
-  if (version) {
-    // Update existing version
-    version.date = formatDate();
-    version.bpm = bpm || version.bpm;
-    version.key = key || version.key;
-    version.lufs = lufs || version.lufs;
-    version.analysisResult = analysisResult;
+  const existing = existingVersions?.find(v => v.name.toLowerCase() === versionName.toLowerCase());
+
+  if (existing) {
+    const { error } = await supabase
+      .from('versions')
+      .update({
+        date: formatDate(),
+        bpm: bpm || undefined,
+        key: key || undefined,
+        lufs: lufs || undefined,
+        analysis_result: analysisResult,
+      })
+      .eq('id', existing.id);
+    if (error) console.warn('[storage] version update error:', error.message);
+    return { trackId: track.id, versionId: existing.id };
   } else {
-    // New version — add at the top
-    const isFirst = track.versions.length === 0;
-    version = {
-      id: 'v_' + uid(),
-      name: versionName,
-      date: formatDate(),
-      bpm,
-      key,
-      lufs,
-      main: isFirst,
-      analysisResult,
-    };
-    track.versions.unshift(version);
-  }
-
-  saveTracks(tracks);
-  return { trackId: track.id, versionId: version.id };
-}
-
-/**
- * Get a specific version's analysis result
- */
-export function getAnalysis(trackId, versionId) {
-  const tracks = loadTracks();
-  const track = tracks.find(t => t.id === trackId);
-  if (!track) return null;
-  const version = track.versions.find(v => v.id === versionId);
-  return version?.analysisResult || null;
-}
-
-/**
- * Delete a version. If it was the last one, delete the whole track.
- */
-export function deleteVersion(trackId, versionId) {
-  let tracks = loadTracks();
-  tracks = tracks.map(t => {
-    if (t.id !== trackId) return t;
-    const versions = t.versions.filter(v => v.id !== versionId);
-    // If main was deleted, promote first remaining
-    if (versions.length && !versions.some(v => v.main)) {
-      versions[0].main = true;
+    const isFirst = !existingVersions || existingVersions.length === 0;
+    const { data: newVer, error } = await supabase
+      .from('versions')
+      .insert({
+        track_id: track.id,
+        name: versionName,
+        date: formatDate(),
+        bpm,
+        key,
+        lufs,
+        is_main: isFirst,
+        analysis_result: analysisResult,
+      })
+      .select()
+      .single();
+    if (error) {
+      console.warn('[storage] version insert error:', error.message);
+      return null;
     }
-    return { ...t, versions };
-  }).filter(t => t.versions.length > 0);
-  saveTracks(tracks);
-  return tracks;
-}
-
-/**
- * Rename a version
- */
-export function renameVersion(trackId, versionId, newName) {
-  const tracks = loadTracks();
-  const track = tracks.find(t => t.id === trackId);
-  if (track) {
-    const v = track.versions.find(v => v.id === versionId);
-    if (v) v.name = newName.trim();
+    return { trackId: track.id, versionId: newVer.id };
   }
-  saveTracks(tracks);
-  return tracks;
 }
 
-/**
- * Rename a track
- */
-export function renameTrack(trackId, newTitle) {
-  const tracks = loadTracks();
-  const track = tracks.find(t => t.id === trackId);
-  if (track) track.title = newTitle.trim();
-  saveTracks(tracks);
-  return tracks;
-}
-
-/**
- * Set a version as main (and unset others)
- */
-export function setMainVersion(trackId, versionId) {
-  const tracks = loadTracks();
-  const track = tracks.find(t => t.id === trackId);
-  if (track) {
-    track.versions.forEach(v => { v.main = v.id === versionId; });
-    // Move main to top
-    const idx = track.versions.findIndex(v => v.id === versionId);
-    if (idx > 0) {
-      const [moved] = track.versions.splice(idx, 1);
-      track.versions.unshift(moved);
-    }
+/** Get a specific version's analysis result */
+export async function getAnalysis(trackId, versionId) {
+  const { data, error } = await supabase
+    .from('versions')
+    .select('analysis_result')
+    .eq('id', versionId)
+    .single();
+  if (error) {
+    console.warn('[storage] getAnalysis error:', error.message);
+    return null;
   }
-  saveTracks(tracks);
-  return tracks;
+  return data?.analysis_result || null;
+}
+
+/** Delete a version. If last one, delete the track too. */
+export async function deleteVersion(trackId, versionId) {
+  const { error } = await supabase.from('versions').delete().eq('id', versionId);
+  if (error) console.warn('[storage] delete version error:', error.message);
+
+  // Check remaining versions
+  const { data: remaining } = await supabase
+    .from('versions')
+    .select('id, is_main')
+    .eq('track_id', trackId);
+
+  if (!remaining || remaining.length === 0) {
+    await supabase.from('tracks').delete().eq('id', trackId);
+  } else if (!remaining.some(v => v.is_main)) {
+    // Promote first remaining as main
+    await supabase.from('versions').update({ is_main: true }).eq('id', remaining[0].id);
+  }
+
+  return loadTracks();
+}
+
+/** Rename a version */
+export async function renameVersion(trackId, versionId, newName) {
+  await supabase.from('versions').update({ name: newName.trim() }).eq('id', versionId);
+  return loadTracks();
+}
+
+/** Rename a track */
+export async function renameTrack(trackId, newTitle) {
+  await supabase.from('tracks').update({ title: newTitle.trim() }).eq('id', trackId);
+  return loadTracks();
+}
+
+/** Set a version as main, unset others in the same track */
+export async function setMainVersion(trackId, versionId) {
+  await supabase.from('versions').update({ is_main: false }).eq('track_id', trackId);
+  await supabase.from('versions').update({ is_main: true }).eq('id', versionId);
+  return loadTracks();
 }
 
 /**
- * Reorder versions (after drag & drop)
+ * Reorder versions — we don't have a position column, so this is a no-op
+ * at the DB level. Loading uses is_main-first + created_at desc.
+ * For now we just reload to keep UI consistent. If ordering matters beyond
+ * "main first", add a `position int` column later.
  */
-export function reorderVersions(trackId, fromIdx, toIdx) {
-  const tracks = loadTracks();
-  const track = tracks.find(t => t.id === trackId);
-  if (track) {
-    const [moved] = track.versions.splice(fromIdx, 1);
-    track.versions.splice(toIdx, 0, moved);
-    track.versions.forEach((v, i) => { v.main = i === 0; });
-  }
-  saveTracks(tracks);
-  return tracks;
+export async function reorderVersions(trackId, fromIdx, toIdx) {
+  return loadTracks();
+}
+
+/** Placeholder kept for API compatibility */
+export function saveTracks() {
+  // Supabase handles persistence; this export exists only to avoid
+  // breaking imports in older code paths.
 }
