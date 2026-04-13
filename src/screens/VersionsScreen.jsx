@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import T from '../constants/theme';
 import {
   IconStar,
@@ -9,60 +9,18 @@ import {
   IconPlay,
   IconPause,
 } from '../components/Icons';
-
-const MOCK_TRACKS = [
-  {
-    id: 1,
-    title: 'Lacher prise',
-    versions: [
-      { id: 'v4', name: 'Mix v3', date: '19 mar 2026', lufs: '-12.1', bpm: '95', key: 'Fm', main: true },
-      { id: 'v5', name: 'Mix v3 PBO', date: '19 mar 2026', lufs: '-12.0', bpm: '95', key: 'Fm', main: false },
-      { id: 'v3', name: 'Mix v2 LUNA', date: '10 fév 2026', lufs: '-12.8', bpm: '95', key: 'Fm', main: false },
-      { id: 'v2', name: 'Mix v1', date: '2 fév 2026', lufs: '-13.1', bpm: '95', key: 'Fm', main: false },
-      { id: 'v1', name: 'Demo', date: '27 jan 2026', lufs: '-14.2', bpm: '95', key: 'Fm', main: false },
-    ],
-  },
-  {
-    id: 2,
-    title: 'Tout s\'efface',
-    versions: [
-      { id: 'v3', name: 'Mix v1', date: '27 jan 2026', lufs: '-12.4', bpm: '72', key: 'Cm', main: true },
-      { id: 'v2', name: 'Arrangement v1', date: '20 jan 2026', lufs: '-14.5', bpm: '72', key: 'Cm', main: false },
-      { id: 'v1', name: 'Demo piano', date: '15 jan 2026', lufs: '-16.0', bpm: '72', key: 'Cm', main: false },
-    ],
-  },
-  {
-    id: 3,
-    title: 'Your Song',
-    versions: [
-      { id: 'v1', name: 'Master', date: '27 jan 2026', lufs: '-9.2', bpm: '108', key: 'Eb', main: true },
-      { id: 'v2', name: 'Master streaming', date: '3 fév 2026', lufs: '-14.0', bpm: '108', key: 'Eb', main: false },
-    ],
-  },
-  {
-    id: 4,
-    title: 'Comme un rêve',
-    versions: [
-      { id: 'v3', name: 'Mix v2', date: '20 mar 2026', lufs: '-11.8', bpm: '88', key: 'Ab', main: true },
-      { id: 'v2', name: 'Mix v1', date: '12 fév 2026', lufs: '-13.0', bpm: '88', key: 'Ab', main: false },
-      { id: 'v1', name: 'Demo', date: '5 fév 2026', lufs: '-15.1', bpm: '88', key: 'Ab', main: false },
-    ],
-  },
-  {
-    id: 5,
-    title: 'Living my dreams',
-    versions: [
-      { id: 'v5', name: 'v5 LUNA', date: '10 mar 2026', lufs: '-11.2', bpm: '120', key: 'G', main: true },
-      { id: 'v4', name: 'v4 mix', date: '1 mar 2026', lufs: '-11.9', bpm: '120', key: 'G', main: false },
-      { id: 'v3', name: 'v3', date: '15 fév 2026', lufs: '-12.5', bpm: '120', key: 'G', main: false },
-      { id: 'v2', name: 'v2 LUNA', date: '8 fév 2026', lufs: '-14.0', bpm: '120', key: 'G', main: false },
-      { id: 'v1', name: 'Sketch', date: '2 fév 2026', lufs: '-16.5', bpm: '120', key: 'G', main: false },
-    ],
-  },
-];
+import {
+  loadTracks,
+  saveTracks,
+  deleteVersion as storageDeleteVersion,
+  renameVersion as storageRenameVersion,
+  renameTrack as storageRenameTrack,
+  setMainVersion as storageSetMain,
+  reorderVersions as storageReorder,
+} from '../lib/storage';
 
 export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerState }) {
-  const [tracks, setTracks] = useState(MOCK_TRACKS);
+  const [tracks, setTracks] = useState([]);
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [renaming, setRenaming] = useState(null);
   const [renameVal, setRenameVal] = useState('');
@@ -71,6 +29,11 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
   const [dragIdx, setDragIdx] = useState(null);
   const [dragOverIdx, setDragOverIdx] = useState(null);
   const [menuOpen, setMenuOpen] = useState(null);
+
+  // Load tracks from localStorage on mount
+  useEffect(() => {
+    setTracks(loadTracks());
+  }, []);
 
   const currentTrack = selectedTrack ? tracks.find((t) => t.id === selectedTrack) : null;
 
@@ -98,19 +61,14 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
 
   const playVersion = (track, versionId) => {
     const { playlist, idx } = buildVersionPlaylist(track, versionId);
-    // keepProgress=true : switching versions keeps the playhead position (continuous listening)
     onPlay(playlist[idx].trackTitle, playlist[idx].versionName, playlist, idx, true);
   };
 
-  // Navigate into a track's versions: continue playback if same track, stop if different
   const enterTrackVersions = (trackId) => {
     const track = tracks.find((t) => t.id === trackId);
     if (playerState && playerState.trackTitle !== track.title) {
-      // Different track → stop playback
       onStop();
     } else if (playerState && playerState.isPlaying && playerState.trackTitle === track.title) {
-      // Same track playing → rebuild playlist as version-level (prev/next = versions, not tracks)
-      // Find which version is currently playing
       const currentVersion = track.versions.find((v) => v.name === playerState.versionName);
       if (currentVersion) {
         const { playlist, idx } = buildVersionPlaylist(track, currentVersion.id);
@@ -120,7 +78,6 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
     setSelectedTrack(trackId);
   };
 
-  // Navigate back to Level 1: if something is playing, rebuild as track-level playlist
   const exitToTrackList = () => {
     if (playerState && playerState.isPlaying) {
       const playingTrack = tracks.find((t) => t.title === playerState.trackTitle);
@@ -141,11 +98,12 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
   const isTrackActive = (trackTitle) => playerState && playerState.trackTitle === trackTitle;
 
   const deleteVersion = (trackId, versionId) => {
-    setTracks((prev) =>
-      prev.map((t) =>
-        t.id === trackId ? { ...t, versions: t.versions.filter((v) => v.id !== versionId) } : t
-      )
-    );
+    const updated = storageDeleteVersion(trackId, versionId);
+    setTracks(updated);
+    // If current track was deleted entirely, go back
+    if (!updated.find(t => t.id === trackId)) {
+      setSelectedTrack(null);
+    }
     setMenuOpen(null);
   };
 
@@ -157,34 +115,14 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
 
   const confirmRename = (trackId) => {
     if (!renameVal.trim()) return;
-    setTracks((prev) =>
-      prev.map((t) =>
-        t.id === trackId
-          ? {
-              ...t,
-              versions: t.versions.map((v) =>
-                v.id === renaming ? { ...v, name: renameVal.trim() } : v
-              ),
-            }
-          : t
-      )
-    );
+    const updated = storageRenameVersion(trackId, renaming, renameVal);
+    setTracks(updated);
     setRenaming(null);
   };
 
   const setMainVersion = (trackId, versionId) => {
-    setTracks((prev) =>
-      prev.map((t) => {
-        if (t.id !== trackId) return t;
-        const vs = [...t.versions];
-        const idx = vs.findIndex((v) => v.id === versionId);
-        if (idx > 0) {
-          const [moved] = vs.splice(idx, 1);
-          vs.unshift(moved);
-        }
-        return { ...t, versions: vs.map((v, i) => ({ ...v, main: i === 0 })) };
-      })
-    );
+    const updated = storageSetMain(trackId, versionId);
+    setTracks(updated);
   };
 
   const handleDragStart = (idx) => setDragIdx(idx);
@@ -198,19 +136,38 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
       setDragOverIdx(null);
       return;
     }
-    setTracks((prev) =>
-      prev.map((t) => {
-        if (t.id !== trackId) return t;
-        const vs = [...t.versions];
-        const [moved] = vs.splice(dragIdx, 1);
-        vs.splice(idx, 0, moved);
-        const updated = vs.map((v, i) => ({ ...v, main: i === 0 }));
-        return { ...t, versions: updated };
-      })
-    );
+    const updated = storageReorder(trackId, dragIdx, idx);
+    setTracks(updated);
     setDragIdx(null);
     setDragOverIdx(null);
   };
+
+  /* ── EMPTY STATE ── */
+  if (tracks.length === 0) {
+    return (
+      <div style={{
+        width: '100%', minHeight: '100%', display: 'grid', placeItems: 'center',
+        padding: '40px 30px', boxSizing: 'border-box', animation: 'fadeup .3s ease',
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 16, background: T.amberGlow,
+            border: `1px solid ${T.amber}22`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M9 18V5l12-2v13" stroke={T.amber} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="6" cy="18" r="3" stroke={T.amber} strokeWidth="1.5"/>
+              <circle cx="18" cy="16" r="3" stroke={T.amber} strokeWidth="1.5"/>
+            </svg>
+          </div>
+          <div style={{ fontFamily: T.display, fontSize: 28, letterSpacing: 4, color: T.amber }}>MES TITRES</div>
+          <div style={{ fontFamily: T.body, fontWeight: 300, fontSize: 12, color: T.muted, textAlign: 'center', lineHeight: 1.6, maxWidth: 260 }}>
+            Aucune analyse pour le moment. Lance une analyse depuis l'accueil pour retrouver tes titres ici.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   /* ── LEVEL 2: versions of a track ── */
   if (currentTrack) {
@@ -255,11 +212,8 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
                   onChange={(e) => setTrackRenameVal(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && trackRenameVal.trim()) {
-                      setTracks((prev) =>
-                        prev.map((t) =>
-                          t.id === selectedTrack ? { ...t, title: trackRenameVal.trim() } : t
-                        )
-                      );
+                      const updated = storageRenameTrack(selectedTrack, trackRenameVal);
+                      setTracks(updated);
                       setRenamingTrack(false);
                     }
                   }}
@@ -280,11 +234,8 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
                 <button
                   onClick={() => {
                     if (trackRenameVal.trim()) {
-                      setTracks((prev) =>
-                        prev.map((t) =>
-                          t.id === selectedTrack ? { ...t, title: trackRenameVal.trim() } : t
-                        )
-                      );
+                      const updated = storageRenameTrack(selectedTrack, trackRenameVal);
+                      setTracks(updated);
                       setRenamingTrack(false);
                     }
                   }}
@@ -371,6 +322,7 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
             const isPlaying = isVersionPlaying(currentTrack.title, v.name);
             const isActive = playerState && playerState.trackTitle === currentTrack.title && playerState.versionName === v.name;
             const isDragOver = dragOverIdx === idx && dragIdx !== idx;
+            const hasAnalysis = !!v.analysisResult;
             return (
               <div
                 key={v.id}
@@ -514,8 +466,9 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
                         </div>
                         <div style={{ display: 'flex', gap: 8, marginTop: 3 }}>
                           <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>{v.date}</span>
-                          <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>LUFS {v.lufs}</span>
-                          <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>{v.bpm} BPM</span>
+                          {v.lufs && <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>LUFS {v.lufs}</span>}
+                          {v.bpm && <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>{v.bpm} BPM</span>}
+                          {v.key && <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>{v.key}</span>}
                         </div>
                       </div>
                     )}
@@ -526,31 +479,33 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
                     style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, position: 'relative' }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <button
-                      onClick={() => onViewAnalysis && onViewAnalysis(currentTrack, v)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        padding: '5px 10px',
-                        borderRadius: 6,
-                        background: T.amberGlow,
-                        border: `1px solid ${T.amber}33`,
-                        cursor: 'pointer',
-                        fontFamily: T.mono,
-                        fontSize: 9,
-                        color: T.amber,
-                        letterSpacing: 0.3,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = `${T.amber}30`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = T.amberGlow;
-                      }}
-                    >
-                      <IconEye c={T.amber} s={11} /> Analyse
-                    </button>
+                    {hasAnalysis && (
+                      <button
+                        onClick={() => onViewAnalysis && onViewAnalysis(currentTrack, v)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          padding: '5px 10px',
+                          borderRadius: 6,
+                          background: T.amberGlow,
+                          border: `1px solid ${T.amber}33`,
+                          cursor: 'pointer',
+                          fontFamily: T.mono,
+                          fontSize: 9,
+                          color: T.amber,
+                          letterSpacing: 0.3,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = `${T.amber}30`;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = T.amberGlow;
+                        }}
+                      >
+                        <IconEye c={T.amber} s={11} /> Analyse
+                      </button>
+                    )}
                     <button
                       onClick={() => setMenuOpen(menuOpen === v.id ? null : v.id)}
                       style={{
@@ -719,7 +674,7 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
           return (
             <div
               key={track.id}
-              onClick={() => playTrack(track.id)}
+              onClick={() => enterTrackVersions(track.id)}
               style={{
                 background: active ? T.amberGlow : T.s1,
                 border: `1px solid ${active ? T.amber + '44' : T.border}`,
@@ -795,43 +750,30 @@ export default function VersionsScreen({ onViewAnalysis, onPlay, onStop, playerS
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                    <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>{mainVersion.bpm} BPM</span>
-                    <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>LUFS {mainVersion.lufs}</span>
-                    <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>{mainVersion.key}</span>
+                    {mainVersion.bpm && <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>{mainVersion.bpm} BPM</span>}
+                    {mainVersion.lufs && <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>LUFS {mainVersion.lufs}</span>}
+                    {mainVersion.key && <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted }}>{mainVersion.key}</span>}
                   </div>
                 </div>
 
-                {/* Enter versions */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    enterTrackVersions(track.id);
-                  }}
+                {/* Arrow */}
+                <div
                   style={{
                     width: 32,
                     height: 32,
                     borderRadius: 8,
                     background: 'transparent',
-                    border: `1px solid ${T.border}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    cursor: 'pointer',
                     color: T.muted,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = T.amber;
-                    e.currentTarget.style.color = T.amber;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = T.border;
-                    e.currentTarget.style.color = T.muted;
+                    flexShrink: 0,
                   }}
                 >
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                     <path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
-                </button>
+                </div>
               </div>
             </div>
           );

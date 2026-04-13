@@ -14,6 +14,7 @@ import LoadingScreen from "./screens/LoadingScreen";
 import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
 import { IconSettings } from "./components/Icons";
+import { saveAnalysis, getAnalysis, loadTracks } from "./lib/storage";
 
 /* ── Font loader ────────────────────────────────────────── */
 const FontLink = () => (
@@ -102,6 +103,9 @@ export default function VersionsApp() {
   // ── Background polling for progressive results ──
   const pollingRef = useRef(null);
 
+  // Track saved state to avoid double-saving
+  const savedRef = useRef(false);
+
   const startBackgroundPolling = (jobId) => {
     if (pollingRef.current) clearInterval(pollingRef.current);
     pollingRef.current = setInterval(async () => {
@@ -117,6 +121,15 @@ export default function VersionsApp() {
         if (job.status === "complete" || job.status === "error") {
           clearInterval(pollingRef.current);
           pollingRef.current = null;
+          // Save completed analysis to localStorage
+          if (job.status === "complete" && !savedRef.current) {
+            savedRef.current = true;
+            setAnalysisResult(prev => {
+              const full = { ...prev, fiche: job.fiche || prev?.fiche, listening: job.listening || prev?.listening, _stage: "all_done" };
+              saveAnalysis(config, full);
+              return full;
+            });
+          }
         }
       } catch (e) { console.error("bg poll error:", e); }
     }, 3000);
@@ -129,16 +142,22 @@ export default function VersionsApp() {
   const handleAnalyze = (cfg) => {
     setConfig(cfg);
     setAnalysisResult(null);
+    savedRef.current = false;
     setScreen("loading");
   };
   const handleLoaded = (result) => {
     // Called with partial or complete results — always go to fiche
-    setAnalysisResult(prev => ({ ...(prev || {}), ...result }));
+    const merged = { ...(analysisResult || {}), ...result };
+    setAnalysisResult(merged);
     if (screen !== "fiche") {
       setScreen("fiche");
       // Start background polling if not complete yet
       if (result._jobId && result._stage !== "all_done") {
         startBackgroundPolling(result._jobId);
+      } else if (result._stage === "all_done" && !savedRef.current) {
+        // Analysis completed in one shot — save immediately
+        savedRef.current = true;
+        saveAnalysis(config, merged);
       }
     }
   };
@@ -161,7 +180,9 @@ export default function VersionsApp() {
         return (
           <VersionsScreen
             onViewAnalysis={(track, v) => {
-              setConfig({ title: track.title, version: v.name, daw: "Logic Pro" });
+              const saved = getAnalysis(track.id, v.id);
+              setConfig({ title: track.title, version: v.name, daw: config?.daw || "Logic Pro" });
+              setAnalysisResult(saved || null);
               setScreen("fiche");
             }}
             onPlay={play}
@@ -217,8 +238,8 @@ export default function VersionsApp() {
         {/* Bottom Nav */}
         {screen !== "loading" && (
           <BottomNav
-            active={askOpen ? "ask" : screen === "input" || screen === "fiche" ? "input" : screen}
-            onChange={(id) => { setAskOpen(false); setScreen(id === "input" ? "input" : id); }}
+            active={askOpen ? "ask" : screen === "input" || screen === "fiche" ? "input" : screen === "versions" ? "historique" : screen}
+            onChange={(id) => { setAskOpen(false); setScreen(id === "historique" ? "versions" : id); }}
             onAsk={() => setAskOpen(o => !o)}
           />
         )}
