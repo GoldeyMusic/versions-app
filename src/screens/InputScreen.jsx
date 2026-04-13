@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, Fragment } from 'react';
 import T from '../constants/theme';
 import DAWS from '../constants/daws';
 import { IconWave, IconPlus, IconX, IconCheck } from '../components/Icons';
@@ -268,7 +268,7 @@ const InputScreen = ({ onAnalyze }) => {
             ),
           },
         ].map((s, i) => (
-          <React.Fragment key={i}>
+          <Fragment key={i}>
             <div
               style={{
                 flex: 1,
@@ -341,7 +341,7 @@ const InputScreen = ({ onAnalyze }) => {
                 </svg>
               </div>
             )}
-          </React.Fragment>
+          </Fragment>
         ))}
       </div>
 
