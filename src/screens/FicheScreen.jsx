@@ -527,18 +527,42 @@ const GeminiEcouteTab = ({ config, zone }) => {
 
 // ── Main FicheScreen Component ────────────────────────────────────────
 
+// ── Loading shimmer for tabs not yet ready ───────────────────
+const TabLoading = ({ label }) => (
+  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 20px", gap: 16 }}>
+    <div style={{
+      width: 40, height: 40, borderRadius: "50%", border: `2px solid ${T.border}`, borderTopColor: T.amber,
+      animation: "spin 1s linear infinite",
+    }} />
+    <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted }}>{label}</div>
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  </div>
+);
+
 const FicheScreen = ({ config, analysisResult }) => {
-  // Determine if this is a reference or personal analysis
   const isRef = config?.mode === "ref" || !config?.mode;
-  const data = isRef ? REF_DATA : PERSO_DATA;
+  const mockData = isRef ? REF_DATA : PERSO_DATA;
 
   const [tab, setTab] = useState("diagnostic");
   const [openCat, setOpenCat] = useState(null);
   const [drawer, setDrawer] = useState(null);
   const [zone, setZone] = useState({ id: "full", label: "Morceau complet", start: 0, end: 100, color: T.amber });
 
-  // Use result from analysisResult if available, otherwise use mock data
+  // Progressive data: fadrData arrives first, then fiche, then listening
   const fadrData = analysisResult?.fadrData || null;
+  const fiche = analysisResult?.fiche || null;
+  const listening = analysisResult?.listening || null;
+  const stage = analysisResult?._stage || "pending";
+
+  // Use real fiche data when available, fallback to mock
+  const ficheElements = fiche?.elements || null;
+  const fichePlan = fiche?.plan || null;
+  const ficheChain = fiche?.chain || null;
+  const fichePlugins = fiche?.plugins || null;
+  const ficheSummary = fiche?.summary || null;
+
+  // For display, use fiche if available, otherwise mock
+  const data = fiche ? { ...mockData, elements: ficheElements || mockData.elements, plan: fichePlan || mockData.plan } : mockData;
 
   const activeData = {
     ...data,
@@ -548,9 +572,9 @@ const FicheScreen = ({ config, analysisResult }) => {
   };
 
   const meta = [
-    { label: "BPM", val: activeData.bpm },
-    { label: "TONALITÉ", val: activeData.key },
-    { label: "LUFS", val: activeData.lufs },
+    { label: "BPM", val: activeData.bpm || "—" },
+    { label: "TONALITÉ", val: activeData.key || "—" },
+    { label: "LUFS", val: activeData.lufs || "—" },
     { label: "DAW", val: config?.daw || "Logic Pro" },
   ];
 
@@ -558,17 +582,22 @@ const FicheScreen = ({ config, analysisResult }) => {
   const accent = isRef ? T.cyan : T.green;
 
   const tabs = [
-    { id: "diagnostic", label: "Diagnostic" },
-    { id: "plan", label: "Plan d'action" },
+    { id: "diagnostic", label: "Diagnostic", ready: !!fiche },
+    { id: "plan", label: "Plan d'action", ready: !!fiche },
+    { id: "ecoute", label: "Écoute", ready: !!listening },
   ];
-  if (hasRef) tabs.push({ id: "comparaison", label: "Comparaison référence" });
+  if (hasRef) tabs.push({ id: "comparaison", label: "Comparaison référence", ready: !!fiche });
 
-  const Tab = ({ id, l }) => (
+  const Tab = ({ id, l, ready }) => (
     <button onClick={() => setTab(id)} style={{
       fontFamily: T.mono, fontSize: 11, padding: "9px 16px", background: "transparent", border: "none",
       borderBottom: `2px solid ${tab === id ? T.amber : "transparent"}`,
       color: tab === id ? T.text : T.muted, cursor: "pointer", transition: "all .15s", letterSpacing: 1,
-    }}>{l}</button>
+      opacity: ready === false ? 0.5 : 1, display: "flex", alignItems: "center", gap: 6,
+    }}>
+      {l}
+      {ready === false && <span style={{ width: 6, height: 6, borderRadius: "50%", border: `1.5px solid ${T.amber}`, borderTopColor: "transparent", display: "inline-block", animation: "spin 1s linear infinite" }} />}
+    </button>
   );
 
   return (
@@ -592,7 +621,9 @@ const FicheScreen = ({ config, analysisResult }) => {
               }}>
                 {isRef ? "RÉFÉRENCE" : "PERSONNEL"}
               </span>
-              <span style={{ fontFamily: T.mono, fontSize: 10, color: T.green }}>✓ Analyse complète</span>
+              <span style={{ fontFamily: T.mono, fontSize: 10, color: stage === "all_done" ? T.green : T.amber, display: "flex", alignItems: "center", gap: 5 }}>
+                {stage === "all_done" ? "✓ Analyse complète" : stage === "fiche_done" ? "◎ Écoute en cours…" : "◎ Rapport IA en cours…"}
+              </span>
             </div>
             <h2 style={{ fontFamily: T.display, fontSize: 26, letterSpacing: 3, color: T.text, lineHeight: 1, marginBottom: 8 }}>
               {config?.title || analysisResult?.meta?.title || data.title}
@@ -627,35 +658,46 @@ const FicheScreen = ({ config, analysisResult }) => {
         <div className="fiche-tabs" style={{
           display: "flex", borderBottom: `1px solid ${T.border}`, marginBottom: 24, overflowX: "auto", alignItems: "center"
         }}>
-          {tabs.map(t => <Tab key={t.id} id={t.id} l={t.label} />)}
+          {tabs.map(t => <Tab key={t.id} id={t.id} l={t.label} ready={t.ready} />)}
         </div>
 
         {/* ── DIAGNOSTIC ── */}
-        {tab === "diagnostic" && (
+        {tab === "diagnostic" && !fiche && (
+          <TabLoading label="Génération du diagnostic par l'IA…" />
+        )}
+        {tab === "diagnostic" && fiche && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {ficheSummary && (
+              <div style={{ background: `rgba(245,160,0,0.06)`, border: `1px solid rgba(245,160,0,0.2)`, borderLeft: `3px solid ${T.amber}`, borderRadius: 10, padding: "14px 18px", marginBottom: 8 }}>
+                <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.amber, marginBottom: 8 }}>RÉSUMÉ</div>
+                <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8 }}>{ficheSummary}</div>
+              </div>
+            )}
             <div style={{ fontFamily: T.mono, fontSize: 10, color: T.amberDim, marginBottom: 2, letterSpacing: 0.5 }}>
               Voix, instruments, drums, espace, master — clique pour voir le détail
             </div>
-            {data.elements.map(el => (
-              <div key={el.id} style={{
+            {(ficheElements || data.elements).map((el, idx) => {
+              const catId = el.id || el.cat || idx;
+              return (
+              <div key={catId} style={{
                 background: T.s1,
-                border: `1px solid ${openCat === el.id ? T.amber : T.border}`,
+                border: `1px solid ${openCat === catId ? T.amber : T.border}`,
                 borderRadius: 10, overflow: "hidden", transition: "border-color .2s",
               }}>
                 <div
-                  onClick={() => setOpenCat(openCat === el.id ? null : el.id)}
+                  onClick={() => setOpenCat(openCat === catId ? null : catId)}
                   style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", cursor: "pointer" }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: openCat === el.id ? T.amber : T.muted }}>{el.cat}</span>
-                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.muted2 }}>{el.items.length} points</span>
+                    <span style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: openCat === catId ? T.amber : T.muted }}>{el.cat}</span>
+                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.muted2 }}>{el.items?.length || 0} points</span>
                   </div>
                   <span style={{
                     fontFamily: T.mono, fontSize: 14, color: T.muted, transition: "transform .2s", display: "inline-block",
-                    transform: openCat === el.id ? "rotate(90deg)" : "none"
+                    transform: openCat === catId ? "rotate(90deg)" : "none"
                   }}>›</span>
                 </div>
-                {openCat === el.id && (
+                {openCat === catId && (
                   <div style={{ borderTop: `1px solid ${T.border}` }}>
                     {el.items.map((it, i) => (
                       <div
@@ -687,14 +729,75 @@ const FicheScreen = ({ config, analysisResult }) => {
                   </div>
                 )}
               </div>
-            ))}
+            ); })}
+          </div>
+        )}
+
+        {/* ── ÉCOUTE (Gemini) ── */}
+        {tab === "ecoute" && !listening && (
+          <TabLoading label="Analyse qualitative en cours (Gemini)…" />
+        )}
+        {tab === "ecoute" && listening && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, animation: "fadeup .3s ease" }}>
+            {listening.impression && (
+              <div style={{ background: `rgba(87,204,153,0.06)`, border: `1px solid rgba(87,204,153,0.2)`, borderLeft: `3px solid ${T.green}`, borderRadius: 10, padding: "14px 18px" }}>
+                <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.green, marginBottom: 8 }}>IMPRESSION GÉNÉRALE</div>
+                <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8 }}>{listening.impression}</div>
+              </div>
+            )}
+            {listening.espace && (
+              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px 18px" }}>
+                <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.amber, marginBottom: 8 }}>ESPACE</div>
+                <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8 }}>{listening.espace}</div>
+              </div>
+            )}
+            {listening.dynamique && (
+              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px 18px" }}>
+                <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.amber, marginBottom: 8 }}>DYNAMIQUE</div>
+                <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8 }}>{listening.dynamique}</div>
+              </div>
+            )}
+            {listening.couleur && (
+              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px 18px" }}>
+                <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.amber, marginBottom: 8 }}>COULEUR SONORE</div>
+                <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8 }}>{listening.couleur}</div>
+              </div>
+            )}
+            {listening.points_forts && (
+              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px 18px" }}>
+                <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.green, marginBottom: 8 }}>POINTS FORTS</div>
+                {listening.points_forts.map((p, i) => (
+                  <div key={i} style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8, display: "flex", gap: 8 }}>
+                    <span style={{ color: T.green }}>▸</span> {p}
+                  </div>
+                ))}
+              </div>
+            )}
+            {listening.a_travailler && (
+              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px 18px" }}>
+                <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.orange, marginBottom: 8 }}>À TRAVAILLER</div>
+                {listening.a_travailler.map((p, i) => (
+                  <div key={i} style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8, display: "flex", gap: 8 }}>
+                    <span style={{ color: T.orange }}>▸</span> {p}
+                  </div>
+                ))}
+              </div>
+            )}
+            {listening.mood && (
+              <div style={{ fontFamily: T.mono, fontSize: 10, color: T.muted2, textAlign: "center", marginTop: 8 }}>
+                Mood : {listening.mood}
+              </div>
+            )}
           </div>
         )}
 
         {/* ── PLAN D'ACTION ── */}
-        {tab === "plan" && (
+        {tab === "plan" && !fiche && (
+          <TabLoading label="Génération du plan d'action…" />
+        )}
+        {tab === "plan" && fiche && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {data.plan.map((p, i) => (
+            {(fichePlan || data.plan).map((p, i) => (
               <div key={i} style={{
                 background: T.s1, border: `1px solid ${p.p === "HIGH" ? T.red + "33" : T.border}`, borderRadius: 10, padding: "16px 18px"
               }}>

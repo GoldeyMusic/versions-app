@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import STRINGS from "./constants/strings";
 import T from "./constants/theme";
+import API from "./constants/api";
 import { LangContext } from "./hooks/useLang";
 import useMobile from "./hooks/useMobile";
 import GlobalStyles from "./components/GlobalStyles";
@@ -98,6 +99,32 @@ export default function VersionsApp() {
   const hasNext = playerState?.playlist?.length > 0 && playerState.currentIdx < playerState.playlist.length - 1;
   const hasPrev = playerState?.playlist?.length > 0 && playerState.currentIdx > 0;
 
+  // ── Background polling for progressive results ──
+  const pollingRef = useRef(null);
+
+  const startBackgroundPolling = (jobId) => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/api/analyze/status/${jobId}`);
+        const job = await res.json();
+        if (job.fiche) {
+          setAnalysisResult(prev => ({ ...prev, fiche: job.fiche, _stage: job.stage }));
+        }
+        if (job.listening) {
+          setAnalysisResult(prev => ({ ...prev, listening: job.listening, _stage: job.stage }));
+        }
+        if (job.status === "complete" || job.status === "error") {
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+      } catch (e) { console.error("bg poll error:", e); }
+    }, 3000);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => () => { if (pollingRef.current) clearInterval(pollingRef.current); }, []);
+
   // ── Handlers ──
   const handleAnalyze = (cfg) => {
     setConfig(cfg);
@@ -105,8 +132,15 @@ export default function VersionsApp() {
     setScreen("loading");
   };
   const handleLoaded = (result) => {
-    setAnalysisResult(result || null);
-    setScreen("fiche");
+    // Called with partial or complete results — always go to fiche
+    setAnalysisResult(prev => ({ ...(prev || {}), ...result }));
+    if (screen !== "fiche") {
+      setScreen("fiche");
+      // Start background polling if not complete yet
+      if (result._jobId && result._stage !== "all_done") {
+        startBackgroundPolling(result._jobId);
+      }
+    }
   };
   const goHome = () => {
     setScreen("input");
