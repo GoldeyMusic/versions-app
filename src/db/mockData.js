@@ -1,77 +1,82 @@
 import CONF from '../constants/confidence.js';
 
-// Note: T (theme colors) is imported in App.jsx as needed
-// If you need theme colors, import like: import T from '../constants/theme.js'
-
 export const REF_DATA = {
   title:"After Hours — The Weeknd", bpm:108, key:"La min", lufs:-8.2,
   elements:[
-    { id:"bass", cat:"BASSES", icon:"bass",
+    { id:"voice", cat:"VOIX", icon:"voice",
       items:[
-        { conf:"identified", label:"Type détecté : sub basse avec harmoniques basses", detail:"Empreinte spectrale centrée sous 60Hz avec transitoires longs. Cohérent avec une 808 ou sine wave synthétisée. L'attaque est quasi-nulle, le release long (700–900ms). Une légère saturation harmonique est détectée sur le bus.", tools:["Serum","Massive X","ES2"] },
-        { conf:"identified", label:"Basse de liant filtrée — synthèse probable", detail:"Signal entre 60 et 120Hz, filtrage basse passe détecté. Résonance modérée. Pourrait être synthétisée ou samplée — impossible de trancher avec certitude. Compression détectée (ratio modéré).", tools:["Omnisphere","ES2","Analog Lab"] },
-        { conf:"suggested", label:"Compression rythmique sur la basse — side-chain probable", detail:"Une réduction de niveau rythmique synchronisée avec le kick est perceptible. Cohérent avec un side-chain. Les paramètres exacts (ratio, temps) sont une estimation : attack ~5ms, release ~100–150ms.", tools:["FabFilter Pro-C 2","Logic Compressor"] },
+        { conf:"identified", label:"Voix principale doublée avec harmonisation", detail:"Doublure vocale détectée à la tierce, légère désynchronisation (~20ms) pour l'épaisseur. Compression forte sur la voix lead, ratio estimé 6:1.", tools:["Compression parallèle", "EQ boost 3-5kHz pour la présence", "De-esser autour de 7kHz"] },
+        { conf:"suggested", label:"Vocodeur ou pitch shifting en arrière-plan", detail:"Couche vocale traitée en arrière-plan, probablement pitch-shifted ou passée dans un vocodeur. Ajoute une texture synthétique au refrain.", tools:["Pitch shifting -12 semitones", "Vocodeur léger", "Reverb longue sur couche traitée"] },
       ]},
-    { id:"drums", cat:"DRUMS", icon:"drums",
+    { id:"instruments", cat:"INSTRUMENTS", icon:"synths",
       items:[
-        { conf:"measured", label:"Kick transient court, énergie concentrée entre 55–80Hz", detail:"Le kick est mesurable : fréquence fondamentale ~60Hz, transitoire sous 10ms, déclin rapide. Il s'agit vraisemblablement d'un sample — les irrégularités d'harmoniques excluent une synthèse pure.", tools:["Battery 4","Arcade","SP-404"] },
-        { conf:"identified", label:"Hi-hats 16ème avec humanisation détectée", detail:"Vélocités variables mesurées — pas de répétition parfaite. Réverbe courte présente (~0.8s). L'origine exacte (sample, synthèse, live) ne peut pas être déterminée à l'écoute.", tools:["XO","Logic Drum Machine Designer"] },
-        { conf:"suggested", label:"Réverbe courte sur bus drums — room probable", detail:"Un tail de réverbe court est perceptible sur l'ensemble du kit. Decay estimé à 1–1.5s. Une room ou une plate courte produiraient un effet similaire.", tools:["Valhalla Room","Space Designer","Seventh Heaven"] },
+        { conf:"identified", label:"Pad analogique large avec détunage stéréo", detail:"Deux oscillateurs détunés de ±8 cents, panned L/R. Mouvement de chorus lent, filtre LP avec cutoff automatisé. C'est le lit harmonique principal du morceau.", tools:["2 oscillateurs détunés", "Chorus lent", "Filtre LP automatisé"] },
+        { conf:"identified", label:"Lead arpégé — dent de scie filtrée", detail:"Pattern en 16ème, timbre brillant. Delay ping-pong synchronisé au tempo. Occupe la zone 2-8kHz.", tools:["Synthèse soustractive", "Delay ping-pong au tempo", "Sidechain léger au kick"] },
+        { conf:"suggested", label:"Couche de cordes ou pad orchestral", detail:"Présence d'harmoniques riches dans les mids (500Hz-2kHz) qui évoquent des cordes samplées ou un pad orchestral. Filtré pour rester en arrière-plan.", tools:["Strings samplées", "EQ roll-off au-dessus de 3kHz", "Reverb hall longue"] },
       ]},
-    { id:"synths", cat:"SYNTHS", icon:"synths",
+    { id:"bass", cat:"BASSES & KICK", icon:"bass",
       items:[
-        { conf:"identified", label:"Pad large avec détunage stéréo détecté", detail:"Spectre large, mouvement de chorus lent, légère modulation de pitch. Cohérent avec deux oscillateurs détunés de ±5–10 cents, panned L/R. Nombreux synthés peuvent produire cet effet — il s'agit d'une technique, pas d'un preset.", tools:["Omnisphere","Diva","Pigments","Vital"] },
-        { conf:"suggested", label:"Lead arpégé — dent de scie filtrée probable", detail:"Timbre brillant avec harmoniques riches, pattern rythmique en 16ème. Une dent de scie avec filtre LP est une approche cohérente. Chorus + delay ping-pong détectés en FX. La synthèse exacte reste une hypothèse.", tools:["Serum","Pigments","Phase Plant"] },
-        { conf:"suggested", label:"Harmonisation vocale — pitch shifting détecté", detail:"Des doublures vocales à la tierce et la quinte sont perceptibles. Un léger offset temporel (~15–25ms) crée l'épaisseur. Outil de pitch shifting probable — le modèle exact est indéterminable.", tools:["Melodyne","Harmony Engine","Waves Tune"] },
+        { conf:"identified", label:"Sub basse synthétisée avec harmoniques contrôlées", detail:"Fondamentale sous 60Hz, release long (~800ms). Saturation harmonique légère pour la présence sur petites enceintes. Sidechain au kick.", tools:["Sidechain compresseur", "Saturation douce sur les harmoniques", "HPF sur les autres éléments"] },
+        { conf:"measured", label:"Kick court et percussif — transient sous 10ms", detail:"Kick échantillonné, énergie concentrée 55-80Hz. Cohabite bien avec la basse grâce au sidechain.", tools:["Transient shaper", "EQ boost à 60Hz", "Compression rapide"] },
       ]},
-    { id:"fx", cat:"FX & ESPACE", icon:"fx",
+    { id:"drums", cat:"DRUMS & PERCUSSIONS", icon:"drums",
       items:[
-        { conf:"measured", label:"Réverbe longue détectée sur la voix — decay ~4–5s", detail:"Le temps de réverbération est mesurable sur le signal vocal : decay entre 4 et 5 secondes, pre-delay estimé à 25–30ms. Filtrage haute-passe détecté sur le tail (énergie basse absente dans la réverbe).", tools:["Valhalla VintageVerb","Blackhole","Relab LX480"] },
-        { conf:"measured", label:"Delay ping-pong synchronisé — ~139ms (1/8 @ 108 BPM)", detail:"Le delay est mesurable et synchronisé au tempo. Temps calculé : 1/8 note à 108 BPM = 138.9ms. Feedback estimé à 25–35%. Filtrage du signal retardé détecté.", tools:["Echoboy","H-Delay","Valhalla Delay"] },
-        { conf:"suggested", label:"Saturation harmonique sur le bus — tape probable", detail:"Une légère distorsion harmonique paire est perceptible sur l'ensemble du mix. Cohérent avec une saturation tape légère. Cela peut aussi être le résultat d'une conversion analogique ou d'une compression agressive.", tools:["RC-20 Retro Color","Decapitator","Softube Tape"] },
+        { conf:"identified", label:"Hi-hats en 16ème avec vélocité humanisée", detail:"Pas de répétition mécanique — vélocités variables détectées. Reverb courte (~0.8s). Pattern classique trap/pop.", tools:["Variation de vélocité", "Reverb room courte", "Pan légèrement décentré"] },
+        { conf:"suggested", label:"Clap layeré — sample + reverb plate", detail:"Le clap a une épaisseur qui suggère un layering de 2-3 samples. Queue de reverb plate détectée.", tools:["Layer de 2-3 samples", "Reverb plate courte", "Transient shaper pour l'attaque"] },
       ]},
-  ],
-  chain:[
-    {step:"INPUT",  label:"Source audio",          c:"#999999"},
-    {step:"GATE",   label:"Noise Gate probable",    c:"#48CAE4"},
-    {step:"EQ",     label:"HP ~40Hz + dip 400Hz",   c:"#F5A000"},
-    {step:"COMP",   label:"Compression ~4:1",        c:"#FF6B35"},
-    {step:"SAT",    label:"Saturation harmonique",   c:"#E8A0F5"},
-    {step:"REV",    label:"Hall ~4.5s",              c:"#48CAE4"},
-    {step:"OUT",    label:"Bus limiter",             c:"#57CC99"},
-  ],
-  plugins:[
-    {name:"FabFilter Pro-Q 3",   role:"EQ — cohérent avec la courbe détectée", free:false, conf:"suggested"},
-    {name:"Valhalla VintageVerb", role:"Réverbe hall — decay mesuré compatible",free:false, conf:"identified"},
-    {name:"RC-20 Retro Color",   role:"Saturation tape — hypothèse probable",  free:false, conf:"suggested"},
-    {name:"Serum / Vital",       role:"Synthèse lead — une approche possible",  free:false, conf:"suggested"},
-    {name:"Native TDR Nova",     role:"EQ alternatif gratuit",                 free:true,  conf:"suggested"},
+    { id:"fx", cat:"SPATIAL & REVERB", icon:"fx",
+      items:[
+        { conf:"measured", label:"Reverb hall longue sur la voix — decay ~4-5s", detail:"Pre-delay estimé 25-30ms. Filtrage HP sur le tail. Contribue à l'atmosphère cinématique du morceau.", tools:["Reverb hall avec pre-delay 25ms", "HPF sur le return à 200Hz", "Automation du send au refrain"] },
+        { conf:"measured", label:"Delay ping-pong synchronisé — 1/8 @ 108 BPM", detail:"Temps mesuré : 139ms. Feedback ~30%. Filtre LP sur les répétitions.", tools:["Delay sync 1/8", "Feedback 25-35%", "Filtre LP sur les répétitions"] },
+      ]},
+    { id:"master", cat:"MASTER & LOUDNESS", icon:"lufs",
+      items:[
+        { conf:"measured", label:"LUFS intégré : -8.2 — loud pour du streaming", detail:"Au-dessus du target Spotify (-14 LUFS). La normalisation va baisser le volume. Crest factor faible, peu de dynamique.", tools:["Limiter sur master bus", "Vérifier le true peak < -1dBTP", "A/B avec et sans limiter"] },
+      ]},
   ],
   tips:[
-    "Poser le sub basse et le kick en premier — leur relation fréquentielle (side-chain) conditionne tout le groove. Ce point est mesuré, pas interprété.",
-    "Pour approcher le pad : deux instances de synthé détunées de ±8 cents, panned L/R 70%, réverbe plate courte. C'est une direction, pas une recette exacte.",
-    "Delay ping-pong sur le lead : 139ms à 108 BPM (mesure). Feedback ~30%, filtre HP — à ajuster à l'oreille.",
-    "Master bus : limiter à -1dBTP, target LUFS -8 pour le streaming. Ce sont des mesures, pas des suppositions.",
+    "Poser le sub basse et le kick en premier — leur relation fréquentielle conditionne tout le groove.",
+    "Pour le pad : deux oscillateurs détunés ±8 cents, panned L/R 70%, reverb plate courte.",
+    "Delay ping-pong sur le lead : 139ms à 108 BPM. Feedback ~30%, filtre HP.",
   ],
+  summary:"Production très léchée, typique du son pop/R&B moderne. L'espace stéréo est large et bien organisé, chaque élément a sa place. Le loudness est élevé mais maîtrisé.",
 };
 
 export const PERSO_DATA = {
   title:"Mon Mix V3 — Analyse personnelle", bpm:95, key:"Ré maj", lufs:-12.1,
   score:{MIX:68, BALANCE:74, FREQ:61, DYN:55},
   elements:[
-    { id:"lufs", cat:"NIVEAU GLOBAL", icon:"lufs",
-      items:[{ label:"LUFS trop bas — -12.1 mesuré", detail:"Sur Spotify, Apple Music et YouTube, la normalisation va monter ta prod automatiquement et introduire des artefacts. Target idéale : -9 à -10 LUFS intégré.", tools:["Youlean Loudness Meter","Pro-L 2"] }]},
-    { id:"mids", cat:"FRÉQUENCES MIDS", icon:"mids",
-      items:[{ label:"Accumulation 400–800Hz", detail:"Plusieurs éléments se superposent dans cette zone sans être différenciés. Résultat : manque d'air, sensation de boîte ou de voile sur le mix.", tools:["Pro-Q 3","Nova GE"] }]},
-    { id:"bass", cat:"BASSE / KICK", icon:"bass",
-      items:[{ label:"Conflit basse-kick non résolu", detail:"Les deux occupent la même zone fréquentielle sans side-chain ni séparation. Le kick disparaît dans le mix dès que la basse joue.", tools:["FabFilter Pro-C 2","Logic Compressor"] }]},
-    { id:"stereo", cat:"ESPACE STÉRÉO", icon:"stereo",
-      items:[{ label:"✓ Bonne largeur sur les éléments secondaires", detail:"Le champ stéréo est bien exploité — les éléments d'arrangement ont de la présence L/R sans écraser le centre.", tools:[] }]},
+    { id:"voice", cat:"VOIX", icon:"voice",
+      items:[
+        { conf:"identified", label:"Voix bien placée mais manque de présence dans les aigus", detail:"La voix occupe bien le centre mais perd en intelligibilité face aux instruments. Un boost léger entre 3-5kHz et une compression plus agressive aideraient.", tools:["EQ boost shelf 3-5kHz", "Compression ratio 4:1", "De-esser si sibilances"] },
+      ]},
+    { id:"instruments", cat:"INSTRUMENTS", icon:"synths",
+      items:[
+        { conf:"identified", label:"Guitare acoustique : bonne prise mais occupe trop de spectre", detail:"La guitare prend beaucoup de place entre 200-800Hz, empiétant sur la voix et la basse. Un nettoyage soustractif libérerait de l'espace.", tools:["EQ soustractif -3dB @ 400Hz", "HPF à 100Hz sur la guitare", "Compression légère"] },
+        { conf:"identified", label:"Piano / keys en arrière-plan", detail:"Bon placement stéréo, mais les fréquences basses du piano entrent en conflit avec la basse. Un HPF plus agressif serait utile.", tools:["HPF à 200Hz sur le piano", "Pan plus large L/R", "Reverb room pour la profondeur"] },
+      ]},
+    { id:"bass", cat:"BASSES & KICK", icon:"bass",
+      items:[
+        { conf:"identified", label:"Conflit basse-kick non résolu", detail:"Les deux occupent la même zone fréquentielle sans séparation. Le kick disparaît quand la basse joue.", tools:["Sidechain kick → basse", "EQ : kick boost 60Hz, basse boost 90Hz", "Transient shaper sur le kick"] },
+      ]},
+    { id:"drums", cat:"DRUMS & PERCUSSIONS", icon:"drums",
+      items:[
+        { conf:"identified", label:"Kit de batterie bien équilibré", detail:"Bon rapport entre les éléments du kit. Les overheads apportent de l'air. Le snare pourrait être un peu plus présent.", tools:["Boost 200Hz sur le snare", "Compression parallèle sur le bus drums", "Room reverb courte"] },
+      ]},
+    { id:"fx", cat:"SPATIAL & REVERB", icon:"fx",
+      items:[
+        { conf:"suggested", label:"Espace stéréo bien exploité sur les arrangements", detail:"Le champ stéréo est correctement utilisé. Les éléments secondaires ont de la largeur sans écraser le centre.", tools:["Garder cette approche", "Vérifier la compatibilité mono", "Mid/Side EQ si besoin"] },
+      ]},
+    { id:"master", cat:"MASTER & LOUDNESS", icon:"lufs",
+      items:[
+        { conf:"measured", label:"LUFS trop bas — -12.1 mesuré", detail:"Pour le streaming (Spotify, Apple Music), un target de -9 à -10 LUFS intégré est recommandé. Le mix a de la marge.", tools:["Limiter sur master bus", "Gain staging avant le limiter", "Vérifier true peak < -1dBTP"] },
+      ]},
   ],
   plan:[
-    {p:"HIGH", task:"Dip EQ -3dB @500Hz sur tous les éléments mid-range", daw:"Logic : Channel EQ → Bande 4 → Bell -3dB @500Hz"},
-    {p:"HIGH", task:"Side-chain kick → basse : -6dB à chaque frappe", daw:"Logic : Compressor sur basse → External Side-Chain → Bus Kick"},
-    {p:"MED",  task:"Remonter le niveau global — target -9 LUFS pour streaming", daw:"Logic : Limiter sur Master Bus → Output Ceiling -1dBTP"},
-    {p:"MED",  task:"Pre-delay 20ms sur reverb vocale", daw:"Logic : Space Designer → Pre-Delay slider → 20ms"},
+    {p:"HIGH", task:"Sidechain kick → basse : -6dB de réduction à chaque frappe", daw:"Compressor sur basse → External Side-Chain → Bus Kick → Attack 1ms, Release 100ms", metered:"Kick masqué par la basse, perd 4dB de transient", target:"Kick audible à chaque frappe, pompage musical contrôlé"},
+    {p:"HIGH", task:"Nettoyage fréquentiel guitare : dip -3dB @ 400-600Hz", daw:"Channel EQ sur piste guitare → Bande paramétrique → Bell -3dB, Q=1.5 @ 500Hz", metered:"Accumulation +4dB entre 400-600Hz sur le bus instruments", target:"Plat à ±1dB dans la zone 400-600Hz"},
+    {p:"MED",  task:"Remonter le loudness global — target -9 LUFS", daw:"Limiter sur Master Bus → Input gain +2-3dB → Output Ceiling -1dBTP", metered:"-12.1 LUFS intégré", target:"-9 à -10 LUFS intégré"},
+    {p:"MED",  task:"Boost présence voix : shelf +2dB à 4kHz", daw:"Channel EQ sur voix → High Shelf +2dB @ 4kHz, Q=0.7", metered:"Voix perd en intelligibilité dans le refrain", target:"Voix claire et présente même avec tous les instruments"},
   ],
+  summary:"Mix prometteur avec de bonnes idées d'arrangement. Les principaux axes d'amélioration sont la séparation kick/basse et le nettoyage des mids pour donner de l'air au mix.",
 };
