@@ -584,7 +584,7 @@ const FicheScreen = ({ config, analysisResult }) => {
   const tabs = [
     { id: "diagnostic", label: "Diagnostic", ready: !!fiche },
     { id: "plan", label: "Plan d'action", ready: !!fiche },
-    { id: "ecoute", label: "Écoute", ready: !!listening },
+    { id: "ecoute", label: "Écoute", ready: !!listening || stage === "all_done" },
   ];
   if (hasRef) tabs.push({ id: "comparaison", label: "Comparaison référence", ready: !!fiche });
 
@@ -736,8 +736,15 @@ const FicheScreen = ({ config, analysisResult }) => {
         )}
 
         {/* ── ÉCOUTE ── */}
-        {tab === "ecoute" && !listening && (
+        {tab === "ecoute" && !listening && stage !== "all_done" && (
           <TabLoading label="Écoute qualitative en cours…" />
+        )}
+        {tab === "ecoute" && !listening && stage === "all_done" && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 20px", gap: 12 }}>
+            <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, textAlign: "center", maxWidth: 300, lineHeight: 1.7 }}>
+              L'écoute qualitative n'a pas pu être générée pour cette analyse. Relance l'analyse pour réessayer.
+            </div>
+          </div>
         )}
         {tab === "ecoute" && listening && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14, animation: "fadeup .3s ease" }}>
