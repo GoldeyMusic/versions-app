@@ -56,7 +56,7 @@ const LoadingScreen = ({ config, onDone }) => {
         // Poll for completion
         setPhase(2);
         let attempts = 0;
-        while (attempts < 60) {
+        while (attempts < 120) {
           await new Promise((r) => setTimeout(r, 3000));
           const pollRes = await fetch(`${API}/api/analyze/status/${jobId}`);
           const job = await pollRes.json();
@@ -224,7 +224,7 @@ const LoadingScreen = ({ config, onDone }) => {
         {/* Hint text */}
         <div style={{ fontFamily: T.mono, fontSize: 10, color: T.muted2 }}>
           {phase <= 1
-            ? "Peut prendre 30-60 secondes…"
+            ? "Peut prendre 1 à 3 minutes…"
             : phase === 2
               ? "Analyse audio en cours…"
               : "Presque terminé…"}
