@@ -390,7 +390,7 @@ export const IconQuestion = ({ c = T.text, s = 20 }) => (
 
 export const IconSettings = ({ c = T.text, s = 20 }) => (
   <svg width={s} height={s} viewBox="0 0 20 20" fill="none">
-    <path d="M10 1.5l1.2 2.4a1 1 0 00.9.6l2.7.2a1 1 0 01.7 1.7l-2 1.8a1 1 0 00-.3 1l.5 2.6a1 1 0 01-1.1 1.2l-2.6-.5a1 1 0 00-1 .3L7.2 14.6a1 1 0 01-1.7-.7l.2-2.7a1 1 0 00-.6-.9L2.7 9.1a1 1 0 01-.2-1.8l2.4-1.4a1 1 0 00.5-.9L5.7 2.3a1 1 0 011.5-.8l2.2 1.5a1 1 0 001 0z" stroke={c} strokeWidth="1.3" strokeLinejoin="round" />
+    <path d="M8.5 2h3l.4 2.1a5.5 5.5 0 011.5.9l2-.8 1.5 2.6-1.6 1.4a5.5 5.5 0 010 1.7l1.6 1.4-1.5 2.6-2-.8a5.5 5.5 0 01-1.5.9L11.5 18h-3l-.4-2.1a5.5 5.5 0 01-1.5-.9l-2 .8-1.5-2.6 1.6-1.4a5.5 5.5 0 010-1.7L3.1 8.8l1.5-2.6 2 .8a5.5 5.5 0 011.5-.9L8.5 2z" stroke={c} strokeWidth="1.3" strokeLinejoin="round" />
     <circle cx="10" cy="10" r="2.5" stroke={c} strokeWidth="1.4" />
   </svg>
 );
