@@ -24,17 +24,17 @@ const STRINGS = {
     cgu3: "et la",
     cgu4: "Politique de confidentialité",
     // Home
-    tagline: "Décodeur de productions audio",
+    tagline: "Versioning de productions audio",
     mode_ref_label: "TITRE DE RÉFÉRENCE",
     mode_ref_sub: "Upload un titre qui t'inspire",
     mode_ref_desc:
-      "Décode une production existante — éléments sonores, chaîne de traitement, plugins probables.",
+      "Analyse une production existante — éléments sonores, chaîne de traitement, plugins probables.",
     mode_perso_label: "MA PROD MUSICALE",
     mode_perso_sub: "Upload ton propre mix",
     mode_perso_desc:
       "Analyse ta propre prod pour un diagnostic complet — points forts, lacunes, plan d'action.",
     mode_ask_label: "POSER UNE QUESTION",
-    mode_ask_sub: "L'IA Decode te répond",
+    mode_ask_sub: "L'IA Versions te répond",
     mode_ask_desc:
       "Pose directement une question sur la prod, le mixage, un plugin ou une technique.",
     // Input
@@ -149,21 +149,21 @@ const STRINGS = {
     cgu3: "and",
     cgu4: "Privacy Policy",
     // Home
-    tagline: "Audio production decoder",
+    tagline: "Audio production versioning",
     mode_ref_label: "REFERENCE TRACK",
     mode_ref_sub: "Upload a track that inspires you",
     mode_ref_desc:
-      "Decode an existing production — sonic elements, processing chain, probable plugins.",
+      "Analyse an existing production — sonic elements, processing chain, probable plugins.",
     mode_perso_label: "MY PRODUCTION",
     mode_perso_sub: "Upload your own mix",
     mode_perso_desc:
       "Analyse your own track for a full diagnostic — strengths, weaknesses, action plan.",
     mode_ask_label: "ASK A QUESTION",
-    mode_ask_sub: "Decode AI answers you",
+    mode_ask_sub: "Versions AI answers you",
     mode_ask_desc:
       "Ask directly about production, mixing, a plugin or a technique.",
     // Input
-    source_ref: "SOURCE TO DECODE",
+    source_ref: "SOURCE TO ANALYSE",
     source_perso: "YOUR PRODUCTION",
     source_ref_sub: "Paste a link to the track that inspires you, or upload the audio file.",
     source_perso_sub: "Upload your mix or paste a private share link.",
