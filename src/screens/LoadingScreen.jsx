@@ -2,6 +2,21 @@ import { useState, useEffect, useRef } from 'react';
 import T from '../constants/theme';
 import API from '../constants/api';
 
+const TIPS = [
+  "Faire des pauses régulières permet de conserver une écoute attentive et objective.",
+  "Tes oreilles se fatiguent après 45 min — une pause de 10 min te fait gagner 2h de travail.",
+  "Les meilleurs mix se font en sessions courtes. La qualité bat toujours la quantité.",
+  "Écouter ton mix dans un autre contexte (voiture, écouteurs) révèle ce que le studio cache.",
+  "Baisser le volume de monitoring aide à repérer les déséquilibres de balance.",
+  "Prendre du recul sur un mix pendant 24h change complètement ta perception.",
+  "Tes décisions de mix sont meilleures le matin — profite de tes oreilles fraîches.",
+  "Un bon mix se fait en 10 décisions clés, pas en 100 micro-ajustements.",
+  "Comparer régulièrement avec une référence recalibre ton oreille et tes choix.",
+  "Le silence entre les sessions est aussi important que le travail lui-même.",
+  "Écouter à faible volume est le meilleur test : si le mix fonctionne bas, il fonctionnera fort.",
+  "La fatigue auditive est invisible — quand tu doutes d'un choix, c'est souvent le signe qu'il faut pauser.",
+];
+
 const LoadingScreen = ({ config, onDone }) => {
   const [phase, setPhase] = useState(0);
   const [error, setError] = useState(null);
@@ -15,6 +30,12 @@ const LoadingScreen = ({ config, onDone }) => {
     : ["Upload du fichier…", "Analyse audio…", "Séparation des stems…", "Données audio prêtes…"];
 
   const bars = Array.from({ length: 32 }, () => Math.random());
+  const [tipIdx, setTipIdx] = useState(() => Math.floor(Math.random() * TIPS.length));
+
+  useEffect(() => {
+    const id = setInterval(() => setTipIdx(i => (i + 1) % TIPS.length), 6000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const run = async () => {
@@ -154,8 +175,8 @@ const LoadingScreen = ({ config, onDone }) => {
           ))}
         </div>
 
-        <div style={{ fontFamily: T.mono, fontSize: 10, color: T.muted2 }}>
-          {phase <= 1 ? "Peut prendre 1 à 2 minutes…" : "Données audio bientôt prêtes…"}
+        <div style={{ fontFamily: T.body, fontWeight: 300, fontSize: 11, color: T.muted, textAlign: "center", maxWidth: 300, lineHeight: 1.6, fontStyle: "italic", transition: "opacity .4s", minHeight: 36 }}>
+          "{TIPS[tipIdx]}"
         </div>
 
         <div style={{ textAlign: "center", fontFamily: T.mono, fontSize: 10, color: T.muted2 }}>
