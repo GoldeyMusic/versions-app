@@ -30,12 +30,20 @@ const LoadingScreen = ({ config, onDone }) => {
     : ["Upload du fichier…", "Analyse audio…", "Séparation des stems…", "Données audio prêtes…"];
 
   const bars = Array.from({ length: 32 }, () => Math.random());
-  const [tipIdx, setTipIdx] = useState(() => Math.floor(Math.random() * TIPS.length));
+  const [shuffledTips] = useState(() => {
+    const arr = [...TIPS];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  });
+  const [tipIdx, setTipIdx] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setTipIdx(i => (i + 1) % TIPS.length), 6000);
+    const id = setInterval(() => setTipIdx(i => (i + 1) % shuffledTips.length), 12000);
     return () => clearInterval(id);
-  }, []);
+  }, [shuffledTips.length]);
 
   useEffect(() => {
     const run = async () => {
@@ -176,7 +184,7 @@ const LoadingScreen = ({ config, onDone }) => {
         </div>
 
         <div style={{ fontFamily: T.body, fontWeight: 300, fontSize: 11, color: T.muted, textAlign: "center", maxWidth: 300, lineHeight: 1.6, fontStyle: "italic", transition: "opacity .4s", minHeight: 36 }}>
-          "{TIPS[tipIdx]}"
+          "{shuffledTips[tipIdx]}"
         </div>
 
         <div style={{ textAlign: "center", fontFamily: T.mono, fontSize: 10, color: T.muted2 }}>
