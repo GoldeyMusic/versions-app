@@ -733,9 +733,9 @@ const FicheScreen = ({ config, analysisResult }) => {
           </div>
         )}
 
-        {/* ── ÉCOUTE (Gemini) ── */}
+        {/* ── ÉCOUTE ── */}
         {tab === "ecoute" && !listening && (
-          <TabLoading label="Analyse qualitative en cours (Gemini)…" />
+          <TabLoading label="Écoute qualitative en cours…" />
         )}
         {tab === "ecoute" && listening && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14, animation: "fadeup .3s ease" }}>
@@ -906,7 +906,7 @@ const FicheScreen = ({ config, analysisResult }) => {
           </div>
           <div style={{ padding: "0 20px 16px", borderTop: `1px solid rgba(232,93,4,0.15)` }}>
             <div style={{ fontFamily: T.mono, fontSize: 11, color: T.muted, lineHeight: 1.85, marginTop: 12 }}>
-              Cette analyse est basée sur l'empreinte spectrale et dynamique du signal. Elle ne peut pas identifier avec certitude les plugins utilisés, ni déterminer si un son est synthétisé, samplé ou enregistré. Les suggestions de recréation sont des approximations fonctionnelles — une direction, pas une reconstruction exacte. Les plugins récents absents des données d'entraînement ne seront pas identifiés.
+              Analyse basée sur l'empreinte audio du signal. Les conseils sont des directions, pas des vérités absolues — fais confiance à tes oreilles.
             </div>
           </div>
         </div>
