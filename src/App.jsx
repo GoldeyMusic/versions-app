@@ -42,7 +42,13 @@ const SIDEBAR_WIDTH = 260;
 /* ═══════════════════════════════════════════════════════════ */
 export default function VersionsApp() {
   const { user, loading: authLoading, signOut } = useAuth();
-  const [screen, setScreen] = useState("input"); // input | loading | fiche | versions | reglages
+  const isMobile = useMobile();
+  const isDesktop = !isMobile;
+  // On desktop, default = "welcome" (neutral empty state); on mobile, old default = "input"
+  const [screen, setScreen] = useState(() => {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches) return "input";
+    return "welcome";
+  });
   const [config, setConfig] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [askOpen, setAskOpen] = useState(false);
@@ -51,8 +57,6 @@ export default function VersionsApp() {
   const [prefillTitle, setPrefillTitle] = useState("");
   const [autoSelectTrackTitle, setAutoSelectTrackTitle] = useState("");
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
-  const isMobile = useMobile();
-  const isDesktop = !isMobile;
 
   // ── Language ──
   const [lang, setLangState] = useState("fr");
@@ -178,7 +182,7 @@ export default function VersionsApp() {
     }
   };
   const goHome = () => {
-    setScreen("input");
+    setScreen(isDesktop ? "welcome" : "input");
     setConfig(null);
     setAnalysisResult(null);
     setPrefillTitle("");
@@ -209,6 +213,23 @@ export default function VersionsApp() {
   // ── Screen routing ──
   const renderContent = () => {
     switch (screen) {
+      case "welcome":
+        return (
+          <div style={{width:"100%",minHeight:"100%",display:"grid",placeItems:"center",padding:"40px 30px",boxSizing:"border-box",animation:"fadeup .3s ease"}}>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,maxWidth:420,textAlign:"center"}}>
+              <div style={{width:56,height:56,borderRadius:16,background:T.amberGlow,border:`1px solid ${T.amber}22`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 6l9 14L21 6" stroke={T.amber} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div style={{fontFamily:T.display,fontSize:28,letterSpacing:4,color:T.text}}>VER<span style={{color:T.amber}}>SI</span>ONS</div>
+              <div style={{fontFamily:T.body,fontWeight:300,fontSize:13,color:T.muted,lineHeight:1.6}}>
+                Sélectionne une version dans la sidebar pour voir son analyse,<br/>
+                ou crée un nouveau titre pour démarrer.
+              </div>
+            </div>
+          </div>
+        );
       case "input":
         return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialTitle={prefillTitle} />;
       case "loading":
