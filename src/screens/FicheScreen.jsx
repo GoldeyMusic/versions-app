@@ -671,15 +671,6 @@ const FicheScreen = ({ config, analysisResult }) => {
                     <span style={{ fontFamily: T.mono, fontSize: 15, color: T.text }}>{it.label}</span>
                   </div>
                   <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{it.detail}</div>
-                  {it.conf && (
-                    <span style={{
-                      fontFamily: T.mono, fontSize: 9, padding: "1px 7px", borderRadius: 3,
-                      background: `${CONF[it.conf].color}15`,
-                      border: `1px solid ${CONF[it.conf].color}44`,
-                      color: CONF[it.conf].color,
-                      letterSpacing: 0.5, marginRight: 8, display: "inline-block", marginTop: 8,
-                    }}>{CONF[it.conf].label}</span>
-                  )}
                 </div>
                 );
               })}
@@ -944,22 +935,6 @@ const FicheScreen = ({ config, analysisResult }) => {
             </div>
           </div>
         )}
-
-        {/* Confidence legend */}
-        <div style={{ marginTop: 48, background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
-          <div style={{ fontFamily: T.mono, fontSize: 12, letterSpacing: 2, color: T.muted, marginBottom: 18 }}>NIVEAUX DE CONFIANCE</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {Object.values(CONF).map(c => (
-              <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <span style={{
-                  fontFamily: T.mono, fontSize: 11, padding: "3px 10px", borderRadius: 3,
-                  background: `${c.color}15`, border: `1px solid ${c.color}44`, color: c.color, minWidth: 90, textAlign: "center"
-                }}>{c.label}</span>
-                <span style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft }}>{c.desc}</span>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Limites */}
         <div style={{ marginTop: 18, background: "rgba(232,93,4,0.05)", border: `1px solid rgba(232,93,4,0.2)`, borderRadius: 10, overflow: "hidden" }}>
