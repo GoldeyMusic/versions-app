@@ -21,7 +21,7 @@ import AuthScreen from "./screens/AuthScreen";
 
 /* ── Font loader ────────────────────────────────────────── */
 const FontLink = () => (
-  <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');`}</style>
+  <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap');`}</style>
 );
 
 /* ── Placeholder screen for Réglages ───────────────────── */
@@ -231,7 +231,24 @@ export default function VersionsApp() {
       case "loading":
         return <LoadingScreen config={config} onDone={handleLoaded} />;
       case "fiche":
-        return <FicheScreen config={config} analysisResult={analysisResult} />;
+        return (
+          <FicheScreen
+            config={config}
+            analysisResult={analysisResult}
+            onSelectVersion={async (track, v) => {
+              const saved = await getAnalysis(track.id, v.id);
+              setConfig({ title: track.title, version: v.name, daw: config?.daw || "Logic Pro" });
+              setAnalysisResult(saved || v.analysisResult || null);
+            }}
+            onAddVersion={(track) => {
+              setPrefillTitle(track.title);
+              setAutoSelectTrackTitle(track.title);
+              setAnalysisResult(null);
+              setConfig(null);
+              setScreen("input");
+            }}
+          />
+        );
       case "versions":
         return (
           <VersionsScreen
