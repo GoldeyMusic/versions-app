@@ -643,15 +643,6 @@ const FicheScreen = ({ config, analysisResult }) => {
     });
   };
 
-  // Cartes du plan repliées par défaut — on déplie au clic
-  const [expandedTasks, setExpandedTasks] = useState(new Set());
-  const toggleExpandTask = (idx) => {
-    setExpandedTasks(prev => {
-      const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx); else next.add(idx);
-      return next;
-    });
-  };
 
   // Resync tab when layout flips (desktop ↔ mobile): diagnostic/plan ne sont plus
   // des onglets valides sur desktop, et "split" n'existe pas sur mobile.
@@ -799,13 +790,12 @@ const FicheScreen = ({ config, analysisResult }) => {
   const planPanel = !fiche ? (
     <TabLoading label="Génération du plan d'action…" />
   ) : (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {(fichePlan || data.plan).map((p, i) => {
         const isLinkedToHoveredItem = !!(hoverItemId && Array.isArray(p.linkedItemIds) && p.linkedItemIds.includes(hoverItemId));
         const isSelfHover = hoverTaskIdx === i;
         const taskKey = `${i}::${(p.task || '').slice(0, 60)}`;
         const isResolved = resolvedTasks.has(taskKey);
-        const isExpanded = expandedTasks.has(i);
         return (
         <div
           key={i}
@@ -814,84 +804,62 @@ const FicheScreen = ({ config, analysisResult }) => {
           style={{
             background: isResolved ? T.s2 : (isLinkedToHoveredItem ? T.amber + "14" : T.s1),
             border: `1px solid ${isResolved ? (T.green || '#4ade80') + '44' : (isLinkedToHoveredItem || isSelfHover ? T.amber : (p.p === "HIGH" ? T.red + "33" : T.border))}`,
-            borderRadius: 8,
+            borderRadius: 10, padding: "24px 28px",
             opacity: isResolved ? 0.55 : 1,
             transition: "background .15s, border-color .15s, opacity .2s",
-            overflow: "hidden",
+            position: "relative",
           }}>
 
-          {/* Ligne repliée — toujours visible, cliquable pour déplier */}
-          <div
-            onClick={() => toggleExpandTask(i)}
+          {/* Checkbox discrète en haut à droite */}
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleResolved(taskKey); }}
+            title={isResolved ? "Résolu — cliquer pour rouvrir" : "Marquer comme résolu"}
             style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "10px 12px",
-              cursor: "pointer",
+              position: "absolute", top: 14, right: 14,
+              width: 20, height: 20, borderRadius: 4,
+              background: isResolved ? (T.green || '#4ade80') : 'transparent',
+              border: `1.5px solid ${isResolved ? (T.green || '#4ade80') : T.border}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', padding: 0, flexShrink: 0,
+              transition: 'all .15s',
+              zIndex: 2,
             }}
+            onMouseEnter={(e) => { if (!isResolved) e.currentTarget.style.borderColor = (T.green || '#4ade80'); }}
+            onMouseLeave={(e) => { if (!isResolved) e.currentTarget.style.borderColor = T.border; }}
           >
-            {/* Chevron */}
-            <span style={{
-              color: T.muted, display: "flex", alignItems: "center",
-              transform: isExpanded ? "rotate(90deg)" : "rotate(0)",
-              transition: "transform .15s", flexShrink: 0,
-            }}>
-              <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
-                <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            {isResolved && (
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke={T.black} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </span>
+            )}
+          </button>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, paddingRight: 32 }}>
             <PriorityBadge p={p.p} />
             <span style={{
-              flex: 1, fontFamily: T.mono, fontSize: 13,
+              fontFamily: T.mono, fontSize: 15,
               color: isResolved ? T.muted : T.text,
               textDecoration: isResolved ? 'line-through' : 'none',
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>{p.task}</span>
-            {/* Mini checkbox toujours visible */}
-            <button
-              onClick={(e) => { e.stopPropagation(); toggleResolved(taskKey); }}
-              title={isResolved ? "Marquer comme à faire" : "Marquer comme résolu"}
-              style={{
-                width: 18, height: 18, borderRadius: 4,
-                background: isResolved ? (T.green || '#4ade80') : 'transparent',
-                border: `1.5px solid ${isResolved ? (T.green || '#4ade80') : T.border}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', padding: 0, flexShrink: 0,
-                transition: 'all .15s',
-              }}
-              onMouseEnter={(e) => { if (!isResolved) e.currentTarget.style.borderColor = (T.green || '#4ade80'); }}
-              onMouseLeave={(e) => { if (!isResolved) e.currentTarget.style.borderColor = T.border; }}
-            >
-              {isResolved && (
-                <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-                  <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke={T.black} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </button>
           </div>
-
-          {/* Détail déplié */}
-          {isExpanded && (
-            <div style={{ padding: "0 14px 14px", animation: "fadeup .2s ease" }}>
-              <div style={{
-                fontFamily: T.mono, fontSize: 13, color: T.amber, background: T.s2, border: `1px solid ${T.border}`,
-                borderRadius: 6, padding: "10px 14px", borderLeft: `3px solid ${T.amber}`, marginBottom: 8, lineHeight: 1.7
-              }}>
-                {p.daw}
-              </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
-                <div style={{
-                  flex: 1, fontFamily: T.mono, fontSize: 12, color: T.textSoft, background: T.s2, borderRadius: 6, padding: "8px 12px", lineHeight: 1.5
-                }}>
-                  <span style={{ color: T.amber, fontWeight: 600 }}>Mesuré : </span>{p.metered || "N/A"}
-                </div>
-                <div style={{
-                  flex: 1, fontFamily: T.mono, fontSize: 12, color: T.textSoft, background: T.s2, borderRadius: 6, padding: "8px 12px", lineHeight: 1.5
-                }}>
-                  <span style={{ color: T.green, fontWeight: 600 }}>Objectif : </span>{p.target || "N/A"}
-                </div>
-              </div>
+          <div style={{
+            fontFamily: T.mono, fontSize: 15, color: T.amber, background: T.s2, border: `1px solid ${T.border}`,
+            borderRadius: 6, padding: "14px 18px", borderLeft: `3px solid ${T.amber}`, marginBottom: 14, lineHeight: 1.85
+          }}>
+            {p.daw}
+          </div>
+          <div style={{ display: "flex", gap: 12 }}>
+            <div style={{
+              flex: 1, fontFamily: T.mono, fontSize: 15, color: T.textSoft, background: T.s2, borderRadius: 6, padding: "10px 14px"
+            }}>
+              <span style={{ color: T.amber, fontWeight: 600 }}>Mesuré : </span>{p.metered || "N/A"}
             </div>
-          )}
+            <div style={{
+              flex: 1, fontFamily: T.mono, fontSize: 15, color: T.textSoft, background: T.s2, borderRadius: 6, padding: "10px 14px"
+            }}>
+              <span style={{ color: T.green, fontWeight: 600 }}>Objectif : </span>{p.target || "N/A"}
+            </div>
+          </div>
         </div>
         );
       })}
