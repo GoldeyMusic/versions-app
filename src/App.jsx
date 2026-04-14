@@ -9,6 +9,7 @@ import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import BottomPlayer from "./components/BottomPlayer";
 import AskModal from "./components/AskModal";
+import Sidebar from "./components/Sidebar";
 import InputScreen from "./screens/InputScreen";
 import LoadingScreen from "./screens/LoadingScreen";
 import FicheScreen from "./screens/FicheScreen";
@@ -34,6 +35,8 @@ const PlaceholderScreen = ({ title, icon, desc }) => (
   </div>
 );
 
+const SIDEBAR_WIDTH = 260;
+
 /* ═══════════════════════════════════════════════════════════ */
 /* APP                                                        */
 /* ═══════════════════════════════════════════════════════════ */
@@ -47,7 +50,9 @@ export default function VersionsApp() {
   // and, after analysis completes, auto-open that track's folder in Versions tab
   const [prefillTitle, setPrefillTitle] = useState("");
   const [autoSelectTrackTitle, setAutoSelectTrackTitle] = useState("");
+  const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
   const isMobile = useMobile();
+  const isDesktop = !isMobile;
 
   // ── Language ──
   const [lang, setLangState] = useState("fr");
@@ -133,7 +138,9 @@ export default function VersionsApp() {
             savedRef.current = true;
             setAnalysisResult(prev => {
               const full = { ...prev, fiche: job.fiche || prev?.fiche, listening: job.listening || prev?.listening, _stage: "all_done" };
-              saveAnalysis(config, full).catch(e => console.warn("saveAnalysis failed:", e));
+              saveAnalysis(config, full)
+                .then(() => setSidebarRefreshKey(k => k + 1))
+                .catch(e => console.warn("saveAnalysis failed:", e));
               return full;
             });
           }
@@ -164,7 +171,9 @@ export default function VersionsApp() {
       } else if (result._stage === "all_done" && !savedRef.current) {
         // Analysis completed in one shot — save immediately
         savedRef.current = true;
-        saveAnalysis(config, merged).catch(e => console.warn("saveAnalysis failed:", e));
+        saveAnalysis(config, merged)
+          .then(() => setSidebarRefreshKey(k => k + 1))
+          .catch(e => console.warn("saveAnalysis failed:", e));
       }
     }
   };
@@ -173,6 +182,28 @@ export default function VersionsApp() {
     setConfig(null);
     setAnalysisResult(null);
     setPrefillTitle("");
+  };
+
+  // Sidebar handlers
+  const handleSidebarSelectVersion = async (track, v) => {
+    const saved = await getAnalysis(track.id, v.id);
+    setConfig({ title: track.title, version: v.name, daw: config?.daw || "Logic Pro" });
+    setAnalysisResult(saved || v.analysisResult || null);
+    setScreen("fiche");
+  };
+  const handleSidebarAddVersion = (track) => {
+    setPrefillTitle(track.title);
+    setAutoSelectTrackTitle(track.title);
+    setAnalysisResult(null);
+    setConfig(null);
+    setScreen("input");
+  };
+  const handleSidebarNewTrack = () => {
+    setPrefillTitle("");
+    setAutoSelectTrackTitle("");
+    setAnalysisResult(null);
+    setConfig(null);
+    setScreen("input");
   };
 
   // ── Screen routing ──
@@ -257,52 +288,78 @@ export default function VersionsApp() {
     );
   }
 
+  // On desktop, the sidebar shows the tracks list so we don't need the "versions" screen
+  const showSidebar = isDesktop && screen !== "loading";
+  const contentMarginLeft = showSidebar ? SIDEBAR_WIDTH : 0;
+
   return (
     <LangContext.Provider value={{ lang, s, setLang }}>
       <FontLink />
       <GlobalStyles />
       <div className="dapp">
-        {/* Header */}
-        <Header onHome={goHome} />
+        {/* Desktop Sidebar */}
+        {showSidebar && (
+          <Sidebar
+            currentTrackTitle={config?.title}
+            currentVersionName={config?.version}
+            onSelectVersion={handleSidebarSelectVersion}
+            onAddVersion={handleSidebarAddVersion}
+            onNewTrack={handleSidebarNewTrack}
+            onGoReglages={() => setScreen("reglages")}
+            onAskOpen={() => setAskOpen(true)}
+            onPlay={play}
+            onStop={stopPlay}
+            playerState={playerState}
+            user={user}
+            onSignOut={signOut}
+            refreshKey={sidebarRefreshKey}
+          />
+        )}
 
-        {/* Ask Modal */}
-        {askOpen && <AskModal onClose={() => setAskOpen(false)} />}
+        {/* Main column (shifted right on desktop to make room for sidebar) */}
+        <div style={{ marginLeft: contentMarginLeft, display: "flex", flexDirection: "column", minHeight: "100vh", transition: "margin-left .2s" }}>
+          {/* Header */}
+          <Header onHome={goHome} />
 
-        {/* Content */}
-        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0 }}>
-          {renderContent()}
+          {/* Ask Modal */}
+          {askOpen && <AskModal onClose={() => setAskOpen(false)} />}
+
+          {/* Content */}
+          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0 }}>
+            {renderContent()}
+          </div>
+
+          {/* Persistent Bottom Player */}
+          {screen !== "loading" && (playerState || screen === "versions") && (
+            <BottomPlayer
+              trackTitle={playerState?.trackTitle}
+              versionName={playerState?.versionName}
+              isPlaying={!!playerState?.isPlaying}
+              onToggle={togglePlay}
+              onNext={playNext}
+              onPrev={playPrev}
+              hasNext={hasNext}
+              hasPrev={hasPrev}
+              resetKey={playerState?.resetKey || 0}
+              idle={!playerState}
+            />
+          )}
+
+          {/* Bottom Nav — mobile only */}
+          {screen !== "loading" && isMobile && (
+            <BottomNav
+              active={askOpen ? "ask" : screen === "input" || screen === "fiche" ? "input" : screen === "versions" ? "historique" : screen}
+              onChange={(id) => {
+                setAskOpen(false);
+                const target = id === "historique" ? "versions" : id;
+                // Clear prefill when user intentionally navigates to the input tab
+                if (target === "input") setPrefillTitle("");
+                setScreen(target);
+              }}
+              onAsk={() => setAskOpen(o => !o)}
+            />
+          )}
         </div>
-
-        {/* Persistent Bottom Player */}
-        {screen !== "loading" && (playerState || screen === "versions") && (
-          <BottomPlayer
-            trackTitle={playerState?.trackTitle}
-            versionName={playerState?.versionName}
-            isPlaying={!!playerState?.isPlaying}
-            onToggle={togglePlay}
-            onNext={playNext}
-            onPrev={playPrev}
-            hasNext={hasNext}
-            hasPrev={hasPrev}
-            resetKey={playerState?.resetKey || 0}
-            idle={!playerState}
-          />
-        )}
-
-        {/* Bottom Nav */}
-        {screen !== "loading" && (
-          <BottomNav
-            active={askOpen ? "ask" : screen === "input" || screen === "fiche" ? "input" : screen === "versions" ? "historique" : screen}
-            onChange={(id) => {
-              setAskOpen(false);
-              const target = id === "historique" ? "versions" : id;
-              // Clear prefill when user intentionally navigates to the input tab
-              if (target === "input") setPrefillTitle("");
-              setScreen(target);
-            }}
-            onAsk={() => setAskOpen(o => !o)}
-          />
-        )}
       </div>
     </LangContext.Provider>
   );
