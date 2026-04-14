@@ -291,14 +291,19 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
   );
 }
 
-// ── FocusOverlay ──────────────────────────────────────────
+// ── FocusModal (modale centrée, click-outside, flèches latérales) ───
 
-function FocusOverlay({ open, plan, idx, elements, onClose, onPrev, onNext, isResolved, onToggleResolved }) {
+function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isResolved, onToggleResolved }) {
   useEffect(() => {
-    const h = (e) => { if (e.key === 'Escape') onClose?.(); };
+    if (!open) return;
+    const h = (e) => {
+      if (e.key === 'Escape') onClose?.();
+      else if (e.key === 'ArrowLeft') onPrev?.();
+      else if (e.key === 'ArrowRight') onNext?.();
+    };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [onClose]);
+  }, [open, onClose, onPrev, onNext]);
 
   if (!open || idx == null || !plan?.[idx]) return null;
   const p = plan[idx];
@@ -309,44 +314,112 @@ function FocusOverlay({ open, plan, idx, elements, onClose, onPrev, onNext, isRe
       .map((it) => ({ ...it, cat: el.cat }))
   );
 
+  const atFirst = idx === 0;
+  const atLast = idx === plan.length - 1;
+
+  const backdrop = {
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)',
+    backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+    zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: '40px 80px', animation: 'fadein .2s ease',
+  };
+  const panel = {
+    position: 'relative', width: '100%', maxWidth: 640, maxHeight: '88vh',
+    overflowY: 'auto', background: '#141416', border: '1px solid #2a2a2e',
+    borderRadius: 14, padding: '32px 36px',
+    boxShadow: '0 24px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(245,176,86,.08)',
+    animation: 'popin .22s ease',
+  };
+  const arrowBtn = (side, disabled) => ({
+    position: 'absolute', top: '50%', transform: 'translateY(-50%)',
+    [side]: 24, zIndex: 210,
+    width: 52, height: 52, borderRadius: '50%',
+    background: disabled ? 'rgba(255,255,255,.04)' : 'rgba(245,176,86,.12)',
+    border: `1px solid ${disabled ? '#2a2a2e' : '#f5b05666'}`,
+    color: disabled ? '#5a5a5e' : '#f5b056',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: disabled ? 'default' : 'pointer',
+    fontSize: 22, fontFamily: 'Inter, sans-serif',
+    transition: 'all .18s ease',
+    pointerEvents: disabled ? 'none' : 'auto',
+  });
+
   return (
-    <div className="focus open">
-      <div className="focus-bar">
-        <button className="focus-back" onClick={onClose}>← Retour</button>
-        <div className="focus-local">
-          <button className={`nav-btn${idx === 0 ? ' disabled' : ''}`} onClick={onPrev}>←</button>
-          <span className="counter"><b>{idx + 1}</b> / {plan.length}</span>
-          <button className={`nav-btn${idx === plan.length - 1 ? ' disabled' : ''}`} onClick={onNext}>→</button>
+    <div style={backdrop} onClick={onClose}>
+      <style>{`
+        @keyframes popin { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+        @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+      `}</style>
+
+      {/* Flèche gauche */}
+      <button
+        style={arrowBtn('left', atFirst)}
+        onClick={(e) => { e.stopPropagation(); if (!atFirst) onPrev(); }}
+        aria-label="Précédent"
+      >‹</button>
+
+      {/* Flèche droite */}
+      <button
+        style={arrowBtn('right', atLast)}
+        onClick={(e) => { e.stopPropagation(); if (!atLast) onNext(); }}
+        aria-label="Suivant"
+      >›</button>
+
+      <div style={panel} onClick={(e) => e.stopPropagation()}>
+        {/* En-tête : compteur + close */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+          <span style={{
+            fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: 2,
+            color: '#7c7c80', textTransform: 'uppercase',
+          }}>
+            <b style={{ color: '#f5b056' }}>{idx + 1}</b> / {plan.length}
+          </span>
+          <button
+            onClick={onClose}
+            style={{
+              width: 28, height: 28, borderRadius: 8, background: 'transparent',
+              border: '1px solid #2a2a2e', color: '#7c7c80', cursor: 'pointer',
+              fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+            aria-label="Fermer"
+          >✕</button>
         </div>
-      </div>
-      <div className="focus-content">
-        <h2>
+
+        <h2 style={{
+          fontFamily: "'Instrument Serif', serif", fontWeight: 400, fontSize: 26,
+          lineHeight: 1.25, color: '#ededed', margin: '0 0 20px',
+          display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap',
+        }}>
           <span className={`pbadge pbadge-inline ${prio}`}>{(p.p || '').toUpperCase()}</span>
-          {p.task}
+          <span style={{ flex: 1, minWidth: 0 }}>{p.task}</span>
         </h2>
+
         {p.daw && (
-          <div className="daw-box">
+          <div className="daw-box" style={{ marginBottom: 16 }}>
             <span className="daw-label">Action DAW</span>
             {p.daw}
           </div>
         )}
-        <div className="mt-grid">
-          {p.metered && (
-            <div className="mt-box m">
-              <div className="mt-label">Mesuré</div>
-              <div className="mt-val">{p.metered}</div>
-            </div>
-          )}
-          {p.target && (
-            <div className="mt-box t">
-              <div className="mt-label">Objectif</div>
-              <div className="mt-val">{p.target}</div>
-            </div>
-          )}
-        </div>
+
+        {(p.metered || p.target) && (
+          <div className="mt-grid" style={{ marginBottom: 16 }}>
+            {p.metered && (
+              <div className="mt-box m">
+                <div className="mt-label">Mesuré</div>
+                <div className="mt-val">{p.metered}</div>
+              </div>
+            )}
+            {p.target && (
+              <div className="mt-box t">
+                <div className="mt-label">Objectif</div>
+                <div className="mt-val">{p.target}</div>
+              </div>
+            )}
+          </div>
+        )}
 
         {linkedItems.length > 0 && (
-          <div className="linked-elements">
+          <div className="linked-elements" style={{ marginBottom: 20 }}>
             <div className="label">Éléments liés</div>
             <div className="le-list">
               {linkedItems.map((it) => (
@@ -618,8 +691,8 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
         </div>
       </main>
 
-      {/* Focus overlay */}
-      <FocusOverlay
+      {/* Focus modal */}
+      <FocusModal
         open={focusIdx != null}
         plan={plan}
         idx={focusIdx}
