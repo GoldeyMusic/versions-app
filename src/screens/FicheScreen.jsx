@@ -54,11 +54,12 @@ const ScoreRing = ({ value, max = 10, size = 28, strokeWidth = 2.5, showLabel = 
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - normalized);
-  const fontSize = size < 30 ? Math.round(size * 0.42) : Math.round(size * 0.32);
+  // Tailles plus généreuses pour être lisible
+  const fontSize = size <= 34 ? Math.round(size * 0.52) : Math.round(size * 0.38);
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={`${color}22`} strokeWidth={strokeWidth} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={`${color}33`} strokeWidth={strokeWidth} />
         <circle
           cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth}
           strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
@@ -68,7 +69,7 @@ const ScoreRing = ({ value, max = 10, size = 28, strokeWidth = 2.5, showLabel = 
       {showLabel && (
         <div style={{
           position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: T.display, fontSize, color, fontWeight: 600,
+          fontFamily: T.mono, fontSize, color: T.text, fontWeight: 700, lineHeight: 1,
         }}>
           {Math.round(value)}
         </div>
