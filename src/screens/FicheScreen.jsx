@@ -552,10 +552,6 @@ const FicheScreen = ({ config, analysisResult }) => {
   // Liens croisés colonnes <-> plan : on track l'item ou la tâche survolé(e)
   const [hoverItemId, setHoverItemId] = useState(null);
   const [hoverTaskIdx, setHoverTaskIdx] = useState(null);
-  // Auto-scroll : on translate la colonne plan pour aligner la tâche liée avec l'item survolé.
-  const [planOffset, setPlanOffset] = useState(0);
-  const itemRefs = useRef(new Map());
-  const taskRefs = useRef(new Map());
 
   // Resync tab when layout flips (desktop ↔ mobile): diagnostic/plan ne sont plus
   // des onglets valides sur desktop, et "split" n'existe pas sur mobile.
@@ -580,23 +576,6 @@ const FicheScreen = ({ config, analysisResult }) => {
   const data = fiche ? { ...mockData, elements: ficheElements || mockData.elements, plan: fichePlan || mockData.plan } : mockData;
 
   const activeData = data;
-
-  // Quand on survole un item à gauche, on décale la colonne plan pour mettre la tâche liée à hauteur.
-  useEffect(() => {
-    if (!isDesktop || tab !== "split") { setPlanOffset(0); return; }
-    if (!hoverItemId) { setPlanOffset(0); return; }
-    const plan = fichePlan || data.plan;
-    if (!Array.isArray(plan)) return;
-    const linkedTaskIdx = plan.findIndex(p => Array.isArray(p.linkedItemIds) && p.linkedItemIds.includes(hoverItemId));
-    if (linkedTaskIdx < 0) { setPlanOffset(0); return; }
-    const itemEl = itemRefs.current.get(hoverItemId);
-    const taskEl = taskRefs.current.get(linkedTaskIdx);
-    if (!itemEl || !taskEl) return;
-    const itemRect = itemEl.getBoundingClientRect();
-    const taskRect = taskEl.getBoundingClientRect();
-    // taskRect inclut déjà l'offset courant → on ajoute juste le différentiel
-    setPlanOffset(prev => prev + (itemRect.top - taskRect.top));
-  }, [hoverItemId, isDesktop, tab, fichePlan]);
 
   const meta = [
     { label: "DAW", val: config?.daw || "Logic Pro" },
@@ -677,7 +656,6 @@ const FicheScreen = ({ config, analysisResult }) => {
                 return (
                 <div
                   key={it.id || i}
-                  ref={(el) => { if (it.id) { if (el) itemRefs.current.set(it.id, el); else itemRefs.current.delete(it.id); } }}
                   onClick={() => setDrawer(it)}
                   onMouseEnter={() => setHoverItemId(it.id || null)}
                   onMouseLeave={() => setHoverItemId(null)}
@@ -722,7 +700,6 @@ const FicheScreen = ({ config, analysisResult }) => {
         return (
         <div
           key={i}
-          ref={(el) => { if (el) taskRefs.current.set(i, el); else taskRefs.current.delete(i); }}
           onMouseEnter={() => setHoverTaskIdx(i)}
           onMouseLeave={() => setHoverTaskIdx(null)}
           style={{
@@ -833,14 +810,14 @@ const FicheScreen = ({ config, analysisResult }) => {
 
         {/* ── SPLIT 2 COLONNES (desktop seulement) ── */}
         {isDesktop && tab === "split" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48 }}>
             <section>
               <div style={columnHeading}>ÉLÉMENTS</div>
               {diagnosticPanel}
             </section>
             <section>
-              <div style={columnHeading}>PLAN D'ACTION</div>
-              <div style={{ transform: `translateY(${planOffset}px)`, transition: "transform .35s cubic-bezier(.22,.61,.36,1)", willChange: "transform" }}>
+              <div style={{ position: "sticky", top: 24 }}>
+                <div style={columnHeading}>PLAN D'ACTION</div>
                 {planPanel}
               </div>
             </section>
