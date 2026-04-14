@@ -537,7 +537,7 @@ const VersionChat = ({ config, analysisResult, collapsed, onToggleCollapse, expa
               send();
             }
           }}
-          placeholder="Ta question… (Shift+Entrée pour aller à la ligne)"
+          placeholder="Ta question…"
           disabled={loading}
           rows={1}
           style={{
