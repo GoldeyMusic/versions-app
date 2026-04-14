@@ -809,26 +809,6 @@ const FicheScreen = ({ config, analysisResult }) => {
           }}>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-            <button
-              onClick={(e) => { e.stopPropagation(); toggleResolved(taskKey); }}
-              title={isResolved ? "Marquer comme à faire" : "Marquer comme résolu"}
-              style={{
-                width: 20, height: 20, borderRadius: 4,
-                background: isResolved ? (T.green || '#4ade80') : 'transparent',
-                border: `1.5px solid ${isResolved ? (T.green || '#4ade80') : T.border}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', padding: 0, flexShrink: 0,
-                transition: 'all .15s',
-              }}
-              onMouseEnter={(e) => { if (!isResolved) e.currentTarget.style.borderColor = (T.green || '#4ade80'); }}
-              onMouseLeave={(e) => { if (!isResolved) e.currentTarget.style.borderColor = T.border; }}
-            >
-              {isResolved && (
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke={T.black} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </button>
             <PriorityBadge p={p.p} />
             <span style={{
               fontFamily: T.mono, fontSize: 15,
@@ -842,16 +822,38 @@ const FicheScreen = ({ config, analysisResult }) => {
           }}>
             {p.daw}
           </div>
-          <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
             <div style={{
               flex: 1, fontFamily: T.mono, fontSize: 15, color: T.textSoft, background: T.s2, borderRadius: 6, padding: "10px 14px"
             }}>
               <span style={{ color: T.amber, fontWeight: 600 }}>Mesuré : </span>{p.metered || "N/A"}
             </div>
             <div style={{
-              flex: 1, fontFamily: T.mono, fontSize: 15, color: T.textSoft, background: T.s2, borderRadius: 6, padding: "10px 14px"
+              flex: 1, fontFamily: T.mono, fontSize: 15, color: T.textSoft, background: T.s2, borderRadius: 6,
+              padding: "10px 14px", position: "relative", paddingRight: 44,
             }}>
               <span style={{ color: T.green, fontWeight: 600 }}>Objectif : </span>{p.target || "N/A"}
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleResolved(taskKey); }}
+                title={isResolved ? "Marquer comme à faire" : "Marquer comme résolu"}
+                style={{
+                  position: "absolute", right: 8, bottom: 8,
+                  width: 22, height: 22, borderRadius: 4,
+                  background: isResolved ? (T.green || '#4ade80') : 'transparent',
+                  border: `1.5px solid ${isResolved ? (T.green || '#4ade80') : T.border}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', padding: 0,
+                  transition: 'all .15s',
+                }}
+                onMouseEnter={(e) => { if (!isResolved) e.currentTarget.style.borderColor = (T.green || '#4ade80'); }}
+                onMouseLeave={(e) => { if (!isResolved) e.currentTarget.style.borderColor = T.border; }}
+              >
+                {isResolved && (
+                  <svg width="13" height="13" viewBox="0 0 12 12" fill="none">
+                    <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke={T.black} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
         </div>
