@@ -597,7 +597,7 @@ const FicheScreen = ({ config, analysisResult }) => {
 
   const Tab = ({ id, l, ready }) => (
     <button onClick={() => setTab(id)} style={{
-      fontFamily: T.mono, fontSize: 11, padding: "9px 16px", background: "transparent", border: "none",
+      fontFamily: T.mono, fontSize: 13, padding: "13px 22px", background: "transparent", border: "none",
       borderBottom: `2px solid ${tab === id ? T.amber : "transparent"}`,
       color: tab === id ? T.text : T.muted, cursor: "pointer", transition: "all .15s", letterSpacing: 1,
       opacity: ready === false ? 0.5 : 1, display: "flex", alignItems: "center", gap: 6,
@@ -612,14 +612,14 @@ const FicheScreen = ({ config, analysisResult }) => {
   const diagnosticPanel = !fiche ? (
     <TabLoading label="Génération du diagnostic par l'IA…" />
   ) : (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {ficheSummary && (
-        <div style={{ background: `rgba(245,160,0,0.06)`, border: `1px solid rgba(245,160,0,0.2)`, borderLeft: `3px solid ${T.amber}`, borderRadius: 10, padding: "14px 18px", marginBottom: 8 }}>
-          <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.amber, marginBottom: 8 }}>RÉSUMÉ</div>
-          <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8 }}>{ficheSummary}</div>
+        <div style={{ background: T.amberGlow, border: `1px solid ${T.amberLine}`, borderLeft: `3px solid ${T.amber}`, borderRadius: 10, padding: "22px 28px", marginBottom: 16 }}>
+          <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.amber, marginBottom: 12 }}>RÉSUMÉ</div>
+          <div style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85 }}>{ficheSummary}</div>
         </div>
       )}
-      <div style={{ fontFamily: T.mono, fontSize: 10, color: T.amberDim, marginBottom: 2, letterSpacing: 0.5 }}>
+      <div style={{ fontFamily: T.mono, fontSize: 13, color: T.amber, marginBottom: 8, letterSpacing: 0.5 }}>
         Voix, instruments, drums, espace, master — clique pour voir le détail
       </div>
       {(ficheElements || data.elements).map((el, idx) => {
@@ -632,11 +632,11 @@ const FicheScreen = ({ config, analysisResult }) => {
         }}>
           <div
             onClick={() => setOpenCat(openCat === catId ? null : catId)}
-            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", cursor: "pointer" }}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "22px 28px", cursor: "pointer" }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: openCat === catId ? T.amber : T.muted }}>{el.cat}</span>
-              <span style={{ fontFamily: T.mono, fontSize: 10, color: T.muted2 }}>{el.items?.length || 0} points</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontFamily: T.mono, fontSize: 13, letterSpacing: 2, color: openCat === catId ? T.amber : T.text }}>{el.cat}</span>
+              <span style={{ fontFamily: T.mono, fontSize: 13, color: T.muted }}>{el.items?.length || 0} points</span>
             </div>
             <span style={{
               fontFamily: T.mono, fontSize: 14, color: T.muted, transition: "transform .2s", display: "inline-block",
@@ -650,17 +650,17 @@ const FicheScreen = ({ config, analysisResult }) => {
                   key={i}
                   onClick={() => setDrawer(it)}
                   style={{
-                    padding: "14px 20px", borderBottom: i < el.items.length - 1 ? `1px solid ${T.border}` : "none",
+                    padding: "22px 28px", borderBottom: i < el.items.length - 1 ? `1px solid ${T.border}` : "none",
                     cursor: "pointer", transition: "background .15s", background: "transparent",
                   }}
                   onMouseEnter={e => e.currentTarget.style.background = T.s2}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                     {it.priority ? <PriorityBadge p={it.priority} /> : null}
-                    <span style={{ fontFamily: T.mono, fontSize: 12, color: T.text }}>{it.label}</span>
+                    <span style={{ fontFamily: T.mono, fontSize: 14, color: T.text }}>{it.label}</span>
                   </div>
-                  <div style={{ fontFamily: T.body, fontWeight: 300, fontSize: 11, color: T.muted, lineHeight: 1.7 }}>{it.detail}</div>
+                  <div style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft, lineHeight: 1.85 }}>{it.detail}</div>
                   {it.conf && (
                     <span style={{
                       fontFamily: T.mono, fontSize: 9, padding: "1px 7px", borderRadius: 3,
@@ -682,29 +682,29 @@ const FicheScreen = ({ config, analysisResult }) => {
   const planPanel = !fiche ? (
     <TabLoading label="Génération du plan d'action…" />
   ) : (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {(fichePlan || data.plan).map((p, i) => (
         <div key={i} style={{
-          background: T.s1, border: `1px solid ${p.p === "HIGH" ? T.red + "33" : T.border}`, borderRadius: 10, padding: "16px 18px"
+          background: T.s1, border: `1px solid ${p.p === "HIGH" ? T.red + "33" : T.border}`, borderRadius: 10, padding: "24px 28px"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
             <PriorityBadge p={p.p} />
-            <span style={{ fontFamily: T.mono, fontSize: 12, color: T.text }}>{p.task}</span>
+            <span style={{ fontFamily: T.mono, fontSize: 14, color: T.text }}>{p.task}</span>
           </div>
           <div style={{
-            fontFamily: T.mono, fontSize: 10, color: T.amber, background: T.s2, border: `1px solid ${T.border}`,
-            borderRadius: 6, padding: "8px 12px", borderLeft: `3px solid ${T.amber}`, marginBottom: 10, lineHeight: 1.5
+            fontFamily: T.mono, fontSize: 13, color: T.amber, background: T.s2, border: `1px solid ${T.border}`,
+            borderRadius: 6, padding: "14px 18px", borderLeft: `3px solid ${T.amber}`, marginBottom: 14, lineHeight: 1.85
           }}>
             {p.daw}
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 12 }}>
             <div style={{
-              flex: 1, fontFamily: T.mono, fontSize: 10, color: T.muted, background: T.s2, borderRadius: 6, padding: "6px 10px"
+              flex: 1, fontFamily: T.mono, fontSize: 13, color: T.textSoft, background: T.s2, borderRadius: 6, padding: "10px 14px"
             }}>
               <span style={{ color: T.amber, fontWeight: 600 }}>Mesuré : </span>{p.metered || "N/A"}
             </div>
             <div style={{
-              flex: 1, fontFamily: T.mono, fontSize: 10, color: T.muted, background: T.s2, borderRadius: 6, padding: "6px 10px"
+              flex: 1, fontFamily: T.mono, fontSize: 13, color: T.textSoft, background: T.s2, borderRadius: 6, padding: "10px 14px"
             }}>
               <span style={{ color: T.green, fontWeight: 600 }}>Objectif : </span>{p.target || "N/A"}
             </div>
@@ -715,44 +715,44 @@ const FicheScreen = ({ config, analysisResult }) => {
   );
 
   const columnHeading = {
-    fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.amber,
-    marginBottom: 12, paddingBottom: 10, borderBottom: `1px solid ${T.border}`,
+    fontFamily: T.mono, fontSize: 12, letterSpacing: 2, color: T.amber,
+    marginBottom: 24, paddingBottom: 18, borderBottom: `1px solid ${T.border}`,
   };
 
   return (
     <>
       <ElementDrawer item={drawer} onClose={() => setDrawer(null)} daw={config?.daw} />
 
-      <div style={{ maxWidth: isDesktop ? 1200 : 780, margin: "0 auto", padding: isDesktop ? "24px 32px 80px" : "16px 16px 80px", animation: "fadeup .35s ease" }}>
+      <div style={{ maxWidth: isDesktop ? 1380 : 780, margin: "0 auto", padding: isDesktop ? "40px 56px 100px" : "16px 16px 80px", animation: "fadeup .35s ease" }}>
 
         {/* Waveform */}
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 28 }}>
           <WaveformZone zone={zone} onZoneChange={setZone} />
         </div>
 
         {/* Top info */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               {config?.version && (
                 <span style={{
-                  fontFamily: T.mono, fontSize: 10, padding: "2px 9px", borderRadius: 20,
+                  fontFamily: T.mono, fontSize: 12, padding: "3px 11px", borderRadius: 20,
                   background: T.amberGlow, color: T.amber, border: `1px solid ${T.amber}44`, letterSpacing: 1
                 }}>
                   {config.version}
                 </span>
               )}
-              <span style={{ fontFamily: T.mono, fontSize: 10, color: stage === "all_done" ? T.green : T.amber, display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ fontFamily: T.mono, fontSize: 12, color: stage === "all_done" ? T.green : T.amber, display: "flex", alignItems: "center", gap: 6 }}>
                 {stage === "all_done" ? "✓ Analyse complète" : stage === "fiche_done" ? "◎ Écoute en cours…" : "◎ Rapport IA en cours…"}
               </span>
             </div>
-            <h2 style={{ fontFamily: T.display, fontSize: 26, letterSpacing: 3, color: T.text, lineHeight: 1, marginBottom: 8 }}>
+            <h2 style={{ fontFamily: T.display, fontSize: 44, letterSpacing: 3, color: T.text, lineHeight: 1, marginBottom: 16 }}>
               {config?.title || analysisResult?.meta?.title || data.title}
             </h2>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {meta.map(m => (
                 <div key={m.label} style={{
-                  fontFamily: T.mono, fontSize: 10, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 9px", display: "flex", gap: 5
+                  fontFamily: T.mono, fontSize: 12, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 12px", display: "flex", gap: 6
                 }}>
                   <span style={{ color: T.muted }}>{m.label}</span><span style={{ color: T.amber }}>{m.val}</span>
                 </div>
@@ -765,10 +765,10 @@ const FicheScreen = ({ config, analysisResult }) => {
               {Object.entries(data.score).map(([k, v]) => (
                 <div key={k} style={{ textAlign: "center" }}>
                   <div style={{
-                    width: 44, height: 44, borderRadius: "50%", border: `2px solid ${v >= 70 ? T.green : v >= 55 ? T.amber : T.red}`,
-                    display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.display, fontSize: 15, color: T.text, background: T.s1
+                    width: 56, height: 56, borderRadius: "50%", border: `2px solid ${v >= 70 ? T.green : v >= 55 ? T.amber : T.red}`,
+                    display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.display, fontSize: 20, color: T.text, background: T.s1
                   }}>{v}</div>
-                  <div style={{ fontFamily: T.mono, fontSize: 8, color: T.muted, marginTop: 3 }}>{k}</div>
+                  <div style={{ fontFamily: T.mono, fontSize: 10, color: T.muted, marginTop: 5 }}>{k}</div>
                 </div>
               ))}
             </div>
@@ -777,7 +777,7 @@ const FicheScreen = ({ config, analysisResult }) => {
 
         {/* Tabs */}
         <div className="fiche-tabs" style={{
-          display: "flex", borderBottom: `1px solid ${T.border}`, marginBottom: 24, overflowX: "auto", alignItems: "center"
+          display: "flex", borderBottom: `1px solid ${T.border}`, marginBottom: 36, overflowX: "auto", alignItems: "center"
         }}>
           {tabs.map(t => <Tab key={t.id} id={t.id} l={t.label} ready={t.ready} />)}
         </div>
@@ -787,7 +787,7 @@ const FicheScreen = ({ config, analysisResult }) => {
 
         {/* ── SPLIT 2 COLONNES (desktop seulement) ── */}
         {isDesktop && tab === "split" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "start" }}>
             <section>
               <div style={columnHeading}>ÉLÉMENTS</div>
               {diagnosticPanel}
@@ -811,53 +811,53 @@ const FicheScreen = ({ config, analysisResult }) => {
           </div>
         )}
         {tab === "ecoute" && listening && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, animation: "fadeup .3s ease" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 18, animation: "fadeup .3s ease" }}>
             {listening.impression && (
-              <div style={{ background: `rgba(87,204,153,0.06)`, border: `1px solid rgba(87,204,153,0.2)`, borderLeft: `3px solid ${T.green}`, borderRadius: 10, padding: "14px 18px" }}>
-                <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.green, marginBottom: 8 }}>IMPRESSION GÉNÉRALE</div>
-                <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8 }}>{listening.impression}</div>
+              <div style={{ background: `rgba(87,204,153,0.06)`, border: `1px solid rgba(87,204,153,0.2)`, borderLeft: `3px solid ${T.green}`, borderRadius: 10, padding: "22px 28px" }}>
+                <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.green, marginBottom: 12 }}>IMPRESSION GÉNÉRALE</div>
+                <div style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85 }}>{listening.impression}</div>
               </div>
             )}
             {listening.espace && (
-              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px 18px" }}>
-                <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.amber, marginBottom: 8 }}>ESPACE</div>
-                <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8 }}>{listening.espace}</div>
+              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
+                <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.amber, marginBottom: 12 }}>ESPACE</div>
+                <div style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85 }}>{listening.espace}</div>
               </div>
             )}
             {listening.dynamique && (
-              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px 18px" }}>
-                <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.amber, marginBottom: 8 }}>DYNAMIQUE</div>
-                <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8 }}>{listening.dynamique}</div>
+              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
+                <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.amber, marginBottom: 12 }}>DYNAMIQUE</div>
+                <div style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85 }}>{listening.dynamique}</div>
               </div>
             )}
             {listening.couleur && (
-              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px 18px" }}>
-                <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.amber, marginBottom: 8 }}>COULEUR SONORE</div>
-                <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8 }}>{listening.couleur}</div>
+              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
+                <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.amber, marginBottom: 12 }}>COULEUR SONORE</div>
+                <div style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85 }}>{listening.couleur}</div>
               </div>
             )}
             {listening.points_forts && (
-              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px 18px" }}>
-                <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.green, marginBottom: 8 }}>POINTS FORTS</div>
+              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
+                <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.green, marginBottom: 12 }}>POINTS FORTS</div>
                 {listening.points_forts.map((p, i) => (
-                  <div key={i} style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8, display: "flex", gap: 8 }}>
+                  <div key={i} style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85, display: "flex", gap: 10 }}>
                     <span style={{ color: T.green }}>▸</span> {p}
                   </div>
                 ))}
               </div>
             )}
             {listening.a_travailler && (
-              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px 18px" }}>
-                <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.orange, marginBottom: 8 }}>À TRAVAILLER</div>
+              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
+                <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.orange, marginBottom: 12 }}>À TRAVAILLER</div>
                 {listening.a_travailler.map((p, i) => (
-                  <div key={i} style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8, display: "flex", gap: 8 }}>
+                  <div key={i} style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85, display: "flex", gap: 10 }}>
                     <span style={{ color: T.orange }}>▸</span> {p}
                   </div>
                 ))}
               </div>
             )}
             {listening.mood && (
-              <div style={{ fontFamily: T.mono, fontSize: 10, color: T.muted2, textAlign: "center", marginTop: 8 }}>
+              <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, textAlign: "center", marginTop: 12 }}>
                 Mood : {listening.mood}
               </div>
             )}
@@ -869,16 +869,16 @@ const FicheScreen = ({ config, analysisResult }) => {
 
         {/* ── COMPARAISON (only if ref) ── */}
         {tab === "comparaison" && hasRef && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ fontFamily: T.mono, fontSize: 10, color: T.muted, letterSpacing: 0.5 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+            <div style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft, letterSpacing: 0.5 }}>
               Différences et similitudes avec la référence
             </div>
 
             {/* Metrics table */}
             <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
               <div style={{
-                display: "grid", gridTemplateColumns: "1fr 1fr 1fr 2fr", padding: "10px 16px", borderBottom: `1px solid ${T.border}`,
-                fontFamily: T.mono, fontSize: 9, letterSpacing: 1, color: T.muted
+                display: "grid", gridTemplateColumns: "1fr 1fr 1fr 2fr", padding: "14px 22px", borderBottom: `1px solid ${T.border}`,
+                fontFamily: T.mono, fontSize: 11, letterSpacing: 1, color: T.muted
               }}>
                 <span></span><span>TON MIX</span><span>RÉF</span><span>OBSERVATION</span>
               </div>
@@ -889,20 +889,20 @@ const FicheScreen = ({ config, analysisResult }) => {
                 { label: "Crest Factor", mine: "12 dB", ref: "7 dB", note: "Plus de dynamique dans ton mix" },
               ].map((m, i) => (
                 <div key={i} style={{
-                  display: "grid", gridTemplateColumns: "1fr 1fr 1fr 2fr", padding: "10px 16px",
+                  display: "grid", gridTemplateColumns: "1fr 1fr 1fr 2fr", padding: "14px 22px",
                   borderBottom: i < 3 ? `1px solid ${T.border}` : "none", alignItems: "center"
                 }}>
-                  <span style={{ fontFamily: T.mono, fontSize: 10, color: T.muted }}>{m.label}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 11, color: T.amber }}>{m.mine}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 11, color: T.muted }}>{m.ref}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 10, color: T.muted, lineHeight: 1.4 }}>{m.note}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 13, color: T.muted }}>{m.label}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 14, color: T.amber }}>{m.mine}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft }}>{m.ref}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft, lineHeight: 1.6 }}>{m.note}</span>
                 </div>
               ))}
             </div>
 
             {/* Observations */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 1, color: T.amber, marginBottom: 4 }}>OBSERVATIONS</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ fontFamily: T.mono, fontSize: 12, letterSpacing: 1, color: T.amber, marginBottom: 8 }}>OBSERVATIONS</div>
               {[
                 "La référence a plus de densité dans les médiums (800Hz-3kHz), ce qui donne plus de présence vocale.",
                 "Ton mix a plus de headroom et de dynamique — c'est un choix, pas un défaut.",
@@ -910,10 +910,10 @@ const FicheScreen = ({ config, analysisResult }) => {
                 "La stéréo de la ref est plus large au-dessus de 5kHz (corrélation 0.65 vs 0.85).",
               ].map((o, i) => (
                 <div key={i} style={{
-                  display: "flex", gap: 12, alignItems: "flex-start", background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px 16px"
+                  display: "flex", gap: 14, alignItems: "flex-start", background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "20px 24px"
                 }}>
-                  <span style={{ fontFamily: T.mono, fontSize: 11, color: T.amber, flexShrink: 0, marginTop: 1 }}>▸</span>
-                  <span style={{ fontFamily: T.body, fontWeight: 300, fontSize: 12, color: T.muted, lineHeight: 1.6 }}>{o}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 14, color: T.amber, flexShrink: 0, marginTop: 1 }}>▸</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85 }}>{o}</span>
                 </div>
               ))}
             </div>
@@ -921,30 +921,30 @@ const FicheScreen = ({ config, analysisResult }) => {
         )}
 
         {/* Confidence legend */}
-        <div style={{ marginTop: 32, background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "16px 20px" }}>
-          <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.muted, marginBottom: 12 }}>NIVEAUX DE CONFIANCE</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ marginTop: 48, background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
+          <div style={{ fontFamily: T.mono, fontSize: 12, letterSpacing: 2, color: T.muted, marginBottom: 18 }}>NIVEAUX DE CONFIANCE</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {Object.values(CONF).map(c => (
-              <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <span style={{
-                  fontFamily: T.mono, fontSize: 9, padding: "2px 8px", borderRadius: 3,
-                  background: `${c.color}15`, border: `1px solid ${c.color}44`, color: c.color, minWidth: 80, textAlign: "center"
+                  fontFamily: T.mono, fontSize: 11, padding: "3px 10px", borderRadius: 3,
+                  background: `${c.color}15`, border: `1px solid ${c.color}44`, color: c.color, minWidth: 90, textAlign: "center"
                 }}>{c.label}</span>
-                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.muted }}>{c.desc}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft }}>{c.desc}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Limites */}
-        <div style={{ marginTop: 12, background: "rgba(232,93,4,0.05)", border: `1px solid rgba(232,93,4,0.2)`, borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ marginTop: 18, background: "rgba(232,93,4,0.05)", border: `1px solid rgba(232,93,4,0.2)`, borderRadius: 10, overflow: "hidden" }}>
           <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px", cursor: "pointer"
+            display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 28px", cursor: "pointer"
           }}>
-            <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.orange }}>LIMITES DE CETTE ANALYSE</div>
+            <div style={{ fontFamily: T.mono, fontSize: 12, letterSpacing: 2, color: T.orange }}>LIMITES DE CETTE ANALYSE</div>
           </div>
-          <div style={{ padding: "0 20px 16px", borderTop: `1px solid rgba(232,93,4,0.15)` }}>
-            <div style={{ fontFamily: T.mono, fontSize: 11, color: T.muted, lineHeight: 1.85, marginTop: 12 }}>
+          <div style={{ padding: "0 28px 22px", borderTop: `1px solid rgba(232,93,4,0.15)` }}>
+            <div style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft, lineHeight: 1.85, marginTop: 18 }}>
               Analyse basée sur l'empreinte audio du signal. Les conseils sont des directions, pas des vérités absolues — fais confiance à tes oreilles.
             </div>
           </div>
