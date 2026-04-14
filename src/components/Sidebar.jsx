@@ -544,8 +544,6 @@ export default function Sidebar({
                           )}
                         </button>
 
-                        {v.main && <IconStar c={T.amber} s={7} filled />}
-
                         {renaming === v.id ? (
                           <input
                             value={renameVal}
