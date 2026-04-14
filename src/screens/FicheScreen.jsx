@@ -798,6 +798,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
 
   const currentTrack = tracks.find((t) => t.title === config?.title) || null;
   const fiche = analysisResult?.fiche || null;
+  const listening = analysisResult?.listening || null;
   const stage = analysisResult?._stage || 'idle';
   const plan = fiche?.plan || [];
   const elements = fiche?.elements || [];
@@ -895,7 +896,10 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             </div>
           </section>
 
-          {/* 2 · Plan d'action */}
+          {/* 2 · Écoute qualitative (Gemini + Claude) */}
+          {listening && <ListeningSection listening={listening} />}
+
+          {/* 3 · Plan d'action */}
           {plan.length > 0 && (
             <>
               <div className="section-head">
