@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import API from '../constants/api';
-import { loadTracks } from '../lib/storage';
+import { loadTracks, deleteTrack, renameTrack } from '../lib/storage';
 
 /**
  * FicheScreen — rendu fidèle à mockup-v3.html.
@@ -95,6 +95,104 @@ function splitVerdict(text) {
   const m = text.match(/^([^.!?]*[.!?])\s+(.*)$/s);
   if (m) return { headline: m[1].trim(), rest: m[2].trim() };
   return { headline: text.trim(), rest: '' };
+}
+
+// ── ListeningSection (écoute qualitative) ─────────────────
+
+/**
+ * Parse le texte d'écoute Gemini/Claude :
+ * - Lignes en ALL CAPS → titre de section
+ * - Lignes commençant par ▸ → bullet
+ * - Reste → paragraphe
+ * Retourne [{ title, paragraphs, bullets }]
+ */
+function parseListening(text) {
+  if (!text || typeof text !== 'string') return [];
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const sections = [];
+  let current = null;
+  const isHeader = (l) =>
+    l.length >= 3 && l.length <= 60 &&
+    /^[A-ZÀ-Ý][A-ZÀ-Ý\s\-&']+$/.test(l);
+
+  for (const line of lines) {
+    if (isHeader(line)) {
+      if (current) sections.push(current);
+      current = { title: line, blocks: [] };
+    } else if (line.startsWith('▸') || line.startsWith('•') || line.startsWith('-')) {
+      if (!current) current = { title: '', blocks: [] };
+      current.blocks.push({ type: 'bullet', text: line.replace(/^[▸•\-]\s*/, '') });
+    } else {
+      if (!current) current = { title: '', blocks: [] };
+      current.blocks.push({ type: 'para', text: line });
+    }
+  }
+  if (current) sections.push(current);
+  return sections;
+}
+
+function ListeningSection({ listening }) {
+  // Accepte string OU objet { text: "..." } OU { sections: [...] }
+  let text = null;
+  if (typeof listening === 'string') text = listening;
+  else if (listening?.text) text = listening.text;
+  else if (listening?.content) text = listening.content;
+
+  const sections = text ? parseListening(text) : (listening?.sections || []);
+  if (!sections.length) return null;
+
+  return (
+    <section style={{ marginTop: 48, marginBottom: 8 }}>
+      <div className="section-head">
+        <span className="t">Écoute qualitative</span>
+        <span className="line" />
+        <span className="count">{sections.length} section{sections.length > 1 ? 's' : ''}</span>
+      </div>
+
+      <div style={{
+        background: 'rgba(245,176,86,.03)',
+        border: '1px solid #2a2a2e',
+        borderRadius: 12,
+        padding: '28px 32px',
+        display: 'flex', flexDirection: 'column', gap: 24,
+      }}>
+        {sections.map((sec, i) => (
+          <div key={i}>
+            {sec.title && (
+              <h3 style={{
+                fontFamily: 'JetBrains Mono, monospace',
+                fontSize: 10, letterSpacing: 2, fontWeight: 500,
+                color: '#f5b056', textTransform: 'uppercase',
+                margin: '0 0 10px',
+              }}>{sec.title}</h3>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {sec.blocks.map((b, j) => b.type === 'bullet' ? (
+                <div key={j} style={{
+                  display: 'flex', gap: 12, alignItems: 'flex-start',
+                  fontFamily: 'Inter, sans-serif', fontSize: 13,
+                  color: '#c5c5c7', lineHeight: 1.7, fontWeight: 300,
+                }}>
+                  <span style={{
+                    color: '#f5b056', fontSize: 14, lineHeight: 1.5,
+                    flexShrink: 0, marginTop: 1,
+                  }}>▸</span>
+                  <span>{renderWithEmphasis(b.text)}</span>
+                </div>
+              ) : (
+                <p key={j} style={{
+                  margin: 0,
+                  fontFamily: "'Instrument Serif', serif",
+                  fontSize: 17, lineHeight: 1.6, fontWeight: 400,
+                  color: '#ededed',
+                }}>{renderWithEmphasis(b.text)}</p>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 // ── AnalyzingState (page d'attente riche) ─────────────────
@@ -226,14 +324,124 @@ function AnalyzingState({ stage }) {
   );
 }
 
+// ── Menu contextuel du titre (⋯) ───────────────────────────
+
+function TrackMenu({ track, onRename, onDelete, onExport }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e) => {
+      if (menuRef.current?.contains(e.target) || btnRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', h);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', h);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [open]);
+
+  return (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        ref={btnRef}
+        onClick={() => setOpen((o) => !o)}
+        title="Options du titre"
+        style={{
+          width: 28, height: 28, borderRadius: 8,
+          background: open ? 'rgba(245,176,86,.12)' : 'transparent',
+          border: `1px solid ${open ? '#f5b05655' : '#2a2a2e'}`,
+          color: '#7c7c80', cursor: 'pointer', padding: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 16, letterSpacing: 1, lineHeight: 1, marginLeft: 10,
+        }}
+      >⋯</button>
+      {open && (
+        <div
+          ref={menuRef}
+          style={{
+            position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50,
+            minWidth: 200, background: '#141416', border: '1px solid #2a2a2e',
+            borderRadius: 10, padding: 6, boxShadow: '0 12px 40px rgba(0,0,0,.5)',
+            animation: 'popin .12s ease',
+          }}
+        >
+          <MenuItem label="Renommer" onClick={() => { setOpen(false); onRename?.(track); }} />
+          <MenuItem label="Exporter la fiche" onClick={() => { setOpen(false); onExport?.(track); }} />
+          <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
+          <MenuItem label="Supprimer le titre" danger onClick={() => { setOpen(false); onDelete?.(track); }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MenuItem({ label, onClick, danger }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'block', width: '100%', textAlign: 'left',
+        padding: '8px 12px', borderRadius: 6, border: 'none',
+        background: 'transparent', cursor: 'pointer',
+        fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 400,
+        color: danger ? '#ef6b6b' : '#c5c5c7',
+        transition: 'background .1s',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = danger ? 'rgba(239,107,107,.08)' : 'rgba(245,176,86,.06)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+    >{label}</button>
+  );
+}
+
 // ── Timeline (sticky bar avec chips versions) ──────────────
 
-function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion }) {
-  if (!track) return null;
-  const versions = track.versions || [];
+function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onRenameTrack, onDeleteTrack, onExportTrack }) {
+  const scrollRef = useRef(null);
+  const [showFadeRight, setShowFadeRight] = useState(false);
+  const [showFadeLeft, setShowFadeLeft] = useState(false);
+
+  const versions = track?.versions || [];
   const currentIdx = versions.findIndex((v) => v.name === currentVersionName);
   const current = currentIdx >= 0 ? versions[currentIdx] : versions[versions.length - 1];
   const currentVIdx = currentIdx >= 0 ? currentIdx : versions.length - 1;
+
+  // Auto-scroll sur la version courante
+  useEffect(() => {
+    if (!scrollRef.current || currentVIdx < 0) return;
+    const container = scrollRef.current;
+    const activeChip = container.querySelector('.vchip.active');
+    if (activeChip) {
+      const cRect = container.getBoundingClientRect();
+      const aRect = activeChip.getBoundingClientRect();
+      const target = container.scrollLeft + (aRect.left - cRect.left) - (cRect.width - aRect.width) / 2;
+      container.scrollTo({ left: target, behavior: 'smooth' });
+    }
+  }, [currentVIdx, versions.length]);
+
+  // Surveille l'overflow pour afficher les fades
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => {
+      setShowFadeLeft(el.scrollLeft > 4);
+      setShowFadeRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    };
+    update();
+    el.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    return () => {
+      el.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [versions.length]);
+
+  if (!track) return null;
 
   const stageLabel =
     stage === 'all_done' ? 'Version actuelle' :
@@ -242,8 +450,16 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
 
   return (
     <div className="timeline">
-      <div className="track-title">
-        <span><TrackTitleText title={track.title} /></span>
+      <div className="track-title" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <span><TrackTitleText title={track.title} /></span>
+          <TrackMenu
+            track={track}
+            onRename={onRenameTrack}
+            onDelete={onDeleteTrack}
+            onExport={onExportTrack}
+          />
+        </span>
         {current && (
           <span className="vsub">
             <span className="vlabel">{stageLabel}</span>
@@ -252,39 +468,66 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
         )}
       </div>
 
-      <div className="versions-block">
+      <div className="versions-block" style={{ minWidth: 0, flex: 1 }}>
         <span className="versions-label">Versions</span>
-        <div className="versions-row">
-          {versions.map((v, idx) => {
-            const score = v.analysisResult?.fiche?.globalScore;
-            const prev = idx > 0 ? versions[idx - 1]?.analysisResult?.fiche?.globalScore : null;
-            const delta = (typeof score === 'number' && typeof prev === 'number') ? score - prev : null;
-            const isActive = v.name === currentVersionName;
-            return (
-              <span key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {delta != null && (
-                  <span className={`vdelta${delta < 0 ? ' down' : ''}`}>
-                    {delta > 0 ? '↑' : delta < 0 ? '↓' : ''}{Math.abs(delta)}
-                  </span>
-                )}
-                <div
-                  className={`vchip${isActive ? ' active current-badge' : ''}`}
-                  onClick={() => onSelectVersion && onSelectVersion(track, v)}
-                >
-                  <span className="vname">V{idx + 1}</span>
-                  <span className="vscore">
-                    {typeof score === 'number' ? Math.round(score) : '—'}
-                    {typeof score === 'number' && <span className="pct">%</span>}
-                  </span>
-                </div>
-              </span>
-            );
-          })}
-          <button
-            className="new-version-btn"
-            title="Nouvelle version"
-            onClick={() => onAddVersion && onAddVersion(track)}
-          >+</button>
+        <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+          <div
+            ref={scrollRef}
+            className="versions-row"
+            style={{
+              overflowX: 'auto', overflowY: 'hidden',
+              scrollbarWidth: 'none', msOverflowStyle: 'none',
+              flexWrap: 'nowrap', maxWidth: '100%',
+            }}
+          >
+            <style>{`.versions-row::-webkit-scrollbar { display: none; }`}</style>
+            {versions.map((v, idx) => {
+              const score = v.analysisResult?.fiche?.globalScore;
+              const prev = idx > 0 ? versions[idx - 1]?.analysisResult?.fiche?.globalScore : null;
+              const delta = (typeof score === 'number' && typeof prev === 'number') ? score - prev : null;
+              const isActive = v.name === currentVersionName;
+              return (
+                <span key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  {delta != null && (
+                    <span className={`vdelta${delta < 0 ? ' down' : ''}`}>
+                      {delta > 0 ? '↑' : delta < 0 ? '↓' : ''}{Math.abs(delta)}
+                    </span>
+                  )}
+                  <div
+                    className={`vchip${isActive ? ' active current-badge' : ''}`}
+                    onClick={() => onSelectVersion && onSelectVersion(track, v)}
+                  >
+                    <span className="vname">V{idx + 1}</span>
+                    <span className="vscore">
+                      {typeof score === 'number' ? Math.round(score) : '—'}
+                      {typeof score === 'number' && <span className="pct">%</span>}
+                    </span>
+                  </div>
+                </span>
+              );
+            })}
+            <button
+              className="new-version-btn"
+              title="Nouvelle version"
+              onClick={() => onAddVersion && onAddVersion(track)}
+              style={{ flexShrink: 0 }}
+            >+</button>
+          </div>
+          {/* Fades */}
+          {showFadeLeft && (
+            <div style={{
+              position: 'absolute', left: 0, top: 0, bottom: 0, width: 40,
+              pointerEvents: 'none',
+              background: 'linear-gradient(to right, rgba(20,20,22,.9), transparent)',
+            }} />
+          )}
+          {showFadeRight && (
+            <div style={{
+              position: 'absolute', right: 0, top: 0, bottom: 0, width: 40,
+              pointerEvents: 'none',
+              background: 'linear-gradient(to left, rgba(20,20,22,.9), transparent)',
+            }} />
+          )}
         </div>
       </div>
     </div>
@@ -522,7 +765,7 @@ function VersionChat({ config, analysisResult, open, onClose }) {
 
 // ── FicheScreen (principal) ────────────────────────────────
 
-export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion }) {
+export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onTrackDeleted, onTrackRenamed }) {
   const [tracks, setTracks] = useState([]);
   const [openCat, setOpenCat] = useState(0); // un seul accordéon ouvert à la fois
   const [focusIdx, setFocusIdx] = useState(null);
@@ -570,6 +813,39 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     });
   };
 
+  // Handlers ⋯ track
+  const handleRenameTrack = async (track) => {
+    const next = window.prompt('Nouveau nom du titre :', track.title);
+    if (!next || next.trim() === '' || next.trim() === track.title) return;
+    try {
+      await renameTrack(track.id, next.trim());
+      const t = await loadTracks();
+      setTracks(t);
+      onTrackRenamed?.(track.id, next.trim());
+    } catch (e) { console.warn('renameTrack failed', e); }
+  };
+  const handleDeleteTrack = async (track) => {
+    const n = (track.versions || []).length;
+    const msg = `Supprimer "${track.title}" et ses ${n} version${n > 1 ? 's' : ''} ? Cette action est définitive.`;
+    if (!window.confirm(msg)) return;
+    try {
+      await deleteTrack(track.id);
+      const t = await loadTracks();
+      setTracks(t);
+      onTrackDeleted?.(track.id);
+    } catch (e) { console.warn('deleteTrack failed', e); }
+  };
+  const handleExportTrack = (track) => {
+    const data = JSON.stringify(track, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${track.title.replace(/[^a-z0-9]/gi, '_')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       <main className="main">
@@ -580,6 +856,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             stage={stage}
             onSelectVersion={onSelectVersion}
             onAddVersion={onAddVersion}
+            onRenameTrack={handleRenameTrack}
+            onDeleteTrack={handleDeleteTrack}
+            onExportTrack={handleExportTrack}
           />
         )}
 
