@@ -188,9 +188,11 @@ export default function Sidebar({
           }}
           title="Accueil"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M3 6l9 14L21 6" stroke={T.amber} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <img
+            src="/logo-versions.svg"
+            alt=""
+            style={{ height: 24, width: 'auto', display: 'block' }}
+          />
           <span>VER<span style={{ color: T.amber }}>SI</span>ONS</span>
         </button>
 
