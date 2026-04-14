@@ -54,12 +54,12 @@ const ScoreRing = ({ value, max = 10, size = 28, strokeWidth = 2.5, showLabel = 
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - normalized);
-  // Tailles plus généreuses pour être lisible
-  const fontSize = size <= 34 ? Math.round(size * 0.52) : Math.round(size * 0.38);
+  // Chiffre lisible mais discret, homogène avec la typo mono du reste de l'app
+  const fontSize = size <= 34 ? Math.round(size * 0.44) : Math.round(size * 0.34);
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={`${color}33`} strokeWidth={strokeWidth} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={`${color}2a`} strokeWidth={strokeWidth} />
         <circle
           cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth}
           strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
@@ -69,7 +69,7 @@ const ScoreRing = ({ value, max = 10, size = 28, strokeWidth = 2.5, showLabel = 
       {showLabel && (
         <div style={{
           position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: T.mono, fontSize, color: T.text, fontWeight: 700, lineHeight: 1,
+          fontFamily: T.mono, fontSize, color: T.muted, fontWeight: 500, letterSpacing: 0.5, lineHeight: 1,
         }}>
           {Math.round(value)}
         </div>
