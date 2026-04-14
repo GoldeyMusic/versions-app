@@ -201,3 +201,11 @@ export function saveTracks() {
   // Supabase handles persistence; this export exists only to avoid
   // breaking imports in older code paths.
 }
+
+/** Delete a track and all its versions */
+export async function deleteTrack(trackId) {
+  await supabase.from('versions').delete().eq('track_id', trackId);
+  const { error } = await supabase.from('tracks').delete().eq('id', trackId);
+  if (error) console.warn('[storage] deleteTrack error:', error.message);
+  return loadTracks();
+}
