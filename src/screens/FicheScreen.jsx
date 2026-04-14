@@ -3,6 +3,7 @@ import T from '../constants/theme';
 import API from '../constants/api';
 import { REF_DATA, PERSO_DATA } from '../db/mockData';
 import useIsDesktop from '../hooks/useIsDesktop';
+import { loadTracks } from '../lib/storage';
 
 // ── Icon Components ────────────────────────────────────────
 
@@ -391,6 +392,181 @@ const GeminiEcouteTab = ({ config, zone }) => {
 
 // ── Main FicheScreen Component ────────────────────────────────────────
 
+// ── Titre avec une lettre en italique ambre ──────────────────
+// Pour rester déterministe : on italicise le caractère alphabétique le plus proche du centre.
+const TrackTitle = ({ title }) => {
+  if (!title) return null;
+  const s = String(title);
+  let idx = Math.floor(s.length / 2);
+  // trouve le caractère alpha le plus proche du centre (évite espaces / ponctuation)
+  if (!/[A-Za-zÀ-ÿ]/.test(s[idx])) {
+    for (let d = 1; d < s.length; d++) {
+      const a = idx - d, b = idx + d;
+      if (a >= 0 && /[A-Za-zÀ-ÿ]/.test(s[a])) { idx = a; break; }
+      if (b < s.length && /[A-Za-zÀ-ÿ]/.test(s[b])) { idx = b; break; }
+    }
+  }
+  return (
+    <span style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: 28, letterSpacing: 0.5, lineHeight: 1, color: T.text }}>
+      {s.slice(0, idx)}
+      <span style={{ fontStyle: "italic", color: T.amber }}>{s[idx]}</span>
+      {s.slice(idx + 1)}
+    </span>
+  );
+};
+
+// ── Timeline versions (sticky haut de fiche) ─────────────────
+const VersionsTimeline = ({ track, currentVersionName, stage, onSelectVersion, onAddVersion }) => {
+  if (!track) return null;
+  const versions = track.versions || [];
+  const current = versions.find((v) => v.name === currentVersionName) || versions[versions.length - 1] || null;
+  const greenColor = T.green || "#4ade80";
+  return (
+    <div
+      style={{
+        position: "sticky", top: 0, zIndex: 10,
+        background: "rgba(12,12,13,0.92)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        borderBottom: `1px solid ${T.border}`,
+        padding: "16px 40px 14px",
+        display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap",
+        marginBottom: 24,
+      }}
+    >
+      {/* Titre + sous-titre version */}
+      <div style={{ display: "flex", alignItems: "baseline", gap: 12, minWidth: 0 }}>
+        <TrackTitle title={track.title} />
+        {current && (
+          <span style={{
+            fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.muted,
+            textTransform: "uppercase", paddingLeft: 12, borderLeft: `1px solid ${T.border}`,
+            alignSelf: "center", lineHeight: 1.3,
+          }}>
+            <span style={{ display: "block", fontSize: 9, color: T.muted, letterSpacing: 1.5 }}>
+              {stage === "all_done" ? "Version actuelle" : stage === "fiche_done" ? "Écoute en cours" : "Analyse en cours"}
+            </span>
+            <b style={{ color: T.amber, fontWeight: 500 }}>{current.name}</b>
+          </span>
+        )}
+      </div>
+
+      {/* Bloc versions : label + chips + bouton + */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 10,
+        marginLeft: "auto",
+        padding: "6px 10px 6px 14px",
+        border: `1px solid ${T.border}`,
+        borderRadius: 12,
+        background: "rgba(255,255,255,0.02)",
+        flexWrap: "wrap",
+      }}>
+        <span style={{
+          fontFamily: T.mono, fontSize: 9, letterSpacing: 2,
+          color: T.muted, textTransform: "uppercase",
+          paddingRight: 4, borderRight: `1px solid ${T.border}`, marginRight: 2,
+        }}>Versions</span>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {versions.map((v, vIdx) => {
+            const score = v.analysisResult?.fiche?.globalScore;
+            const prevScore = vIdx > 0 ? versions[vIdx - 1]?.analysisResult?.fiche?.globalScore : null;
+            const delta = (typeof score === "number" && typeof prevScore === "number") ? score - prevScore : null;
+            const isActive = v.name === currentVersionName;
+            const deltaColor = delta == null ? T.muted : delta > 0 ? greenColor : delta < 0 ? T.red : T.muted;
+            const hasAnalysis = !!v.analysisResult;
+            return (
+              <span key={v.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {vIdx > 0 && delta != null && (
+                  <span style={{
+                    fontFamily: T.mono, fontSize: 10,
+                    padding: "3px 7px", borderRadius: 4,
+                    background: `${deltaColor}18`, color: deltaColor,
+                    fontWeight: 500, letterSpacing: 0.5,
+                  }}>
+                    {delta > 0 ? "↑" : delta < 0 ? "↓" : "="}{Math.abs(delta)}
+                  </span>
+                )}
+                <button
+                  onClick={() => hasAnalysis && onSelectVersion && onSelectVersion(track, v)}
+                  disabled={!hasAnalysis}
+                  title={hasAnalysis ? `Voir l'analyse ${v.name}` : "Analyse non disponible"}
+                  style={{
+                    position: "relative",
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                    padding: "8px 14px",
+                    borderRadius: 10,
+                    cursor: hasAnalysis ? "pointer" : "default",
+                    minWidth: 66,
+                    transition: "background .15s, border-color .15s, transform .1s",
+                    border: `1px solid ${isActive ? "#f5b05666" : "transparent"}`,
+                    background: isActive ? T.amberGlow : "transparent",
+                    boxShadow: isActive ? "0 0 0 1px #f5b05633, 0 4px 14px rgba(245,176,86,0.08)" : "none",
+                    opacity: hasAnalysis ? 1 : 0.5,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive && hasAnalysis) {
+                      e.currentTarget.style.background = T.s1;
+                      e.currentTarget.style.borderColor = T.border;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.borderColor = "transparent";
+                    }
+                  }}
+                >
+                  {isActive && (
+                    <span style={{
+                      position: "absolute", top: -7, left: "50%", transform: "translateX(-50%)",
+                      fontFamily: T.mono, fontSize: 7, letterSpacing: 1.5,
+                      background: T.amber, color: "#000",
+                      padding: "2px 6px", borderRadius: 3, whiteSpace: "nowrap",
+                    }}>EN COURS</span>
+                  )}
+                  <span style={{
+                    fontFamily: T.mono, fontSize: 11,
+                    color: isActive ? T.amber : T.muted,
+                    letterSpacing: 1, fontWeight: 500,
+                  }}>{v.name}</span>
+                  <span style={{
+                    fontFamily: "'Instrument Serif', Georgia, serif", fontSize: 20,
+                    color: isActive ? T.amber : T.text,
+                    marginTop: 2, lineHeight: 1,
+                  }}>
+                    {typeof score === "number" ? Math.round(score) : "—"}
+                    {typeof score === "number" && (
+                      <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted, marginLeft: 2, fontWeight: 400 }}>%</span>
+                    )}
+                  </span>
+                </button>
+              </span>
+            );
+          })}
+          {onAddVersion && (
+            <button
+              onClick={() => onAddVersion(track)}
+              title="Nouvelle version"
+              style={{
+                marginLeft: 6,
+                width: 34, height: 34, borderRadius: "50%",
+                border: `1px dashed #f5b05666`, color: T.amber,
+                background: "transparent",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", fontSize: 18, lineHeight: 1,
+                transition: "all .15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = T.amberGlow; e.currentTarget.style.borderStyle = "solid"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderStyle = "dashed"; }}
+            >+</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── Loading shimmer for tabs not yet ready ───────────────────
 const TabLoading = ({ label }) => (
   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 20px", gap: 16 }}>
@@ -603,10 +779,19 @@ const VersionChat = ({ config, analysisResult, collapsed, onToggleCollapse, expa
   );
 };
 
-const FicheScreen = ({ config, analysisResult }) => {
+const FicheScreen = ({ config, analysisResult, onSelectVersion, onAddVersion }) => {
   const isRef = config?.mode === "ref" || !config?.mode;
   const mockData = isRef ? REF_DATA : PERSO_DATA;
   const isDesktop = useIsDesktop();
+
+  // ── Chargement des tracks pour la timeline versions ──
+  const [tracks, setTracks] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    loadTracks().then((t) => { if (alive) setTracks(t || []); });
+    return () => { alive = false; };
+  }, [config?.title, config?.version, analysisResult?.id]);
+  const currentTrack = tracks.find((t) => t.title === config?.title) || null;
 
   const [tab, setTab] = useState(isDesktop ? "split" : "diagnostic");
   const [openCat, setOpenCat] = useState(null);
@@ -886,36 +1071,28 @@ const FicheScreen = ({ config, analysisResult }) => {
         />
       )}
       <div style={{ marginRight: chatOffset, transition: "margin-right .25s ease" }}>
-      <div style={{ maxWidth: isDesktop ? 1380 : 780, margin: "0 auto", padding: isDesktop ? "40px 56px 100px" : "16px 16px 80px", animation: "fadeup .35s ease" }}>
 
-        {/* Top info */}
+      {/* Timeline versions (sticky top) — étape 1 de la refonte */}
+      <VersionsTimeline
+        track={currentTrack}
+        currentVersionName={config?.version}
+        stage={stage}
+        onSelectVersion={onSelectVersion}
+        onAddVersion={onAddVersion}
+      />
+
+      <div style={{ maxWidth: isDesktop ? 1380 : 780, margin: "0 auto", padding: isDesktop ? "24px 56px 100px" : "12px 16px 80px", animation: "fadeup .35s ease" }}>
+
+        {/* Meta tags + score global (temporaire — étape 2 déplacera vers la verdict section) */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              {config?.version && (
-                <span style={{
-                  fontFamily: T.mono, fontSize: 12, padding: "3px 11px", borderRadius: 20,
-                  background: T.amberGlow, color: T.amber, border: `1px solid ${T.amber}44`, letterSpacing: 1
-                }}>
-                  {config.version}
-                </span>
-              )}
-              <span style={{ fontFamily: T.mono, fontSize: 12, color: stage === "all_done" ? T.green : T.amber, display: "flex", alignItems: "center", gap: 6 }}>
-                {stage === "all_done" ? "✓ Analyse complète" : stage === "fiche_done" ? "◎ Écoute en cours…" : "◎ Rapport IA en cours…"}
-              </span>
-            </div>
-            <h2 style={{ fontFamily: T.display, fontSize: 44, letterSpacing: 3, color: T.text, lineHeight: 1, marginBottom: 16 }}>
-              {config?.title || analysisResult?.meta?.title || data.title}
-            </h2>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {meta.map(m => (
-                <div key={m.label} style={{
-                  fontFamily: T.mono, fontSize: 12, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 12px", display: "flex", gap: 6
-                }}>
-                  <span style={{ color: T.muted }}>{m.label}</span><span style={{ color: T.amber }}>{m.val}</span>
-                </div>
-              ))}
-            </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {meta.map(m => (
+              <div key={m.label} style={{
+                fontFamily: T.mono, fontSize: 12, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 12px", display: "flex", gap: 6
+              }}>
+                <span style={{ color: T.muted }}>{m.label}</span><span style={{ color: T.amber }}>{m.val}</span>
+              </div>
+            ))}
           </div>
           {/* Score global /100 */}
           {!isRef && typeof data.globalScore === "number" && (
