@@ -3,6 +3,7 @@ import T from '../constants/theme';
 import API from '../constants/api';
 import CONF from '../constants/confidence';
 import { REF_DATA, PERSO_DATA } from '../db/mockData';
+import useIsDesktop from '../hooks/useIsDesktop';
 
 // ── Icon Components ────────────────────────────────────────
 
@@ -542,11 +543,19 @@ const TabLoading = ({ label }) => (
 const FicheScreen = ({ config, analysisResult }) => {
   const isRef = config?.mode === "ref" || !config?.mode;
   const mockData = isRef ? REF_DATA : PERSO_DATA;
+  const isDesktop = useIsDesktop();
 
-  const [tab, setTab] = useState("diagnostic");
+  const [tab, setTab] = useState(isDesktop ? "split" : "diagnostic");
   const [openCat, setOpenCat] = useState(null);
   const [drawer, setDrawer] = useState(null);
   const [zone, setZone] = useState({ id: "full", label: "Morceau complet", start: 0, end: 100, color: T.amber });
+
+  // Resync tab when layout flips (desktop ↔ mobile): diagnostic/plan ne sont plus
+  // des onglets valides sur desktop, et "split" n'existe pas sur mobile.
+  useEffect(() => {
+    if (isDesktop && (tab === "diagnostic" || tab === "plan")) setTab("split");
+    if (!isDesktop && tab === "split") setTab("diagnostic");
+  }, [isDesktop]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Progressive data: listening arrives first, then fiche
   const fiche = analysisResult?.fiche || null;
@@ -572,11 +581,18 @@ const FicheScreen = ({ config, analysisResult }) => {
   const hasRef = !!config?.refFile;
   const accent = isRef ? T.cyan : T.green;
 
-  const tabs = [
-    { id: "diagnostic", label: "Diagnostic", ready: !!fiche },
-    { id: "plan", label: "Plan d'action", ready: !!fiche },
-    { id: "ecoute", label: "Écoute", ready: !!listening || stage === "all_done" },
-  ];
+  // Desktop: Diagnostic + Plan d'action sont permanents côte-à-côte dans la
+  // vue "Fiche" — on ne les expose plus comme onglets cliquables.
+  const tabs = isDesktop
+    ? [
+        { id: "split", label: "Fiche", ready: !!fiche },
+        { id: "ecoute", label: "Écoute", ready: !!listening || stage === "all_done" },
+      ]
+    : [
+        { id: "diagnostic", label: "Diagnostic", ready: !!fiche },
+        { id: "plan", label: "Plan d'action", ready: !!fiche },
+        { id: "ecoute", label: "Écoute", ready: !!listening || stage === "all_done" },
+      ];
   if (hasRef) tabs.push({ id: "comparaison", label: "Comparaison référence", ready: !!fiche });
 
   const Tab = ({ id, l, ready }) => (
@@ -591,11 +607,123 @@ const FicheScreen = ({ config, analysisResult }) => {
     </button>
   );
 
+  // ── Panneaux extraits pour pouvoir les rendre soit dans les onglets mobile,
+  // soit côte-à-côte dans le split desktop ──
+  const diagnosticPanel = !fiche ? (
+    <TabLoading label="Génération du diagnostic par l'IA…" />
+  ) : (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {ficheSummary && (
+        <div style={{ background: `rgba(245,160,0,0.06)`, border: `1px solid rgba(245,160,0,0.2)`, borderLeft: `3px solid ${T.amber}`, borderRadius: 10, padding: "14px 18px", marginBottom: 8 }}>
+          <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.amber, marginBottom: 8 }}>RÉSUMÉ</div>
+          <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8 }}>{ficheSummary}</div>
+        </div>
+      )}
+      <div style={{ fontFamily: T.mono, fontSize: 10, color: T.amberDim, marginBottom: 2, letterSpacing: 0.5 }}>
+        Voix, instruments, drums, espace, master — clique pour voir le détail
+      </div>
+      {(ficheElements || data.elements).map((el, idx) => {
+        const catId = el.id || el.cat || idx;
+        return (
+        <div key={catId} style={{
+          background: T.s1,
+          border: `1px solid ${openCat === catId ? T.amber : T.border}`,
+          borderRadius: 10, overflow: "hidden", transition: "border-color .2s",
+        }}>
+          <div
+            onClick={() => setOpenCat(openCat === catId ? null : catId)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", cursor: "pointer" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: openCat === catId ? T.amber : T.muted }}>{el.cat}</span>
+              <span style={{ fontFamily: T.mono, fontSize: 10, color: T.muted2 }}>{el.items?.length || 0} points</span>
+            </div>
+            <span style={{
+              fontFamily: T.mono, fontSize: 14, color: T.muted, transition: "transform .2s", display: "inline-block",
+              transform: openCat === catId ? "rotate(90deg)" : "none"
+            }}>›</span>
+          </div>
+          {openCat === catId && (
+            <div style={{ borderTop: `1px solid ${T.border}` }}>
+              {el.items.map((it, i) => (
+                <div
+                  key={i}
+                  onClick={() => setDrawer(it)}
+                  style={{
+                    padding: "14px 20px", borderBottom: i < el.items.length - 1 ? `1px solid ${T.border}` : "none",
+                    cursor: "pointer", transition: "background .15s", background: "transparent",
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = T.s2}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    {it.priority ? <PriorityBadge p={it.priority} /> : null}
+                    <span style={{ fontFamily: T.mono, fontSize: 12, color: T.text }}>{it.label}</span>
+                  </div>
+                  <div style={{ fontFamily: T.body, fontWeight: 300, fontSize: 11, color: T.muted, lineHeight: 1.7 }}>{it.detail}</div>
+                  {it.conf && (
+                    <span style={{
+                      fontFamily: T.mono, fontSize: 9, padding: "1px 7px", borderRadius: 3,
+                      background: `${CONF[it.conf].color}15`,
+                      border: `1px solid ${CONF[it.conf].color}44`,
+                      color: CONF[it.conf].color,
+                      letterSpacing: 0.5, marginRight: 8, display: "inline-block", marginTop: 8,
+                    }}>{CONF[it.conf].label}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ); })}
+    </div>
+  );
+
+  const planPanel = !fiche ? (
+    <TabLoading label="Génération du plan d'action…" />
+  ) : (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {(fichePlan || data.plan).map((p, i) => (
+        <div key={i} style={{
+          background: T.s1, border: `1px solid ${p.p === "HIGH" ? T.red + "33" : T.border}`, borderRadius: 10, padding: "16px 18px"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <PriorityBadge p={p.p} />
+            <span style={{ fontFamily: T.mono, fontSize: 12, color: T.text }}>{p.task}</span>
+          </div>
+          <div style={{
+            fontFamily: T.mono, fontSize: 10, color: T.amber, background: T.s2, border: `1px solid ${T.border}`,
+            borderRadius: 6, padding: "8px 12px", borderLeft: `3px solid ${T.amber}`, marginBottom: 10, lineHeight: 1.5
+          }}>
+            {p.daw}
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div style={{
+              flex: 1, fontFamily: T.mono, fontSize: 10, color: T.muted, background: T.s2, borderRadius: 6, padding: "6px 10px"
+            }}>
+              <span style={{ color: T.amber, fontWeight: 600 }}>Mesuré : </span>{p.metered || "N/A"}
+            </div>
+            <div style={{
+              flex: 1, fontFamily: T.mono, fontSize: 10, color: T.muted, background: T.s2, borderRadius: 6, padding: "6px 10px"
+            }}>
+              <span style={{ color: T.green, fontWeight: 600 }}>Objectif : </span>{p.target || "N/A"}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const columnHeading = {
+    fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.amber,
+    marginBottom: 12, paddingBottom: 10, borderBottom: `1px solid ${T.border}`,
+  };
+
   return (
     <>
       <ElementDrawer item={drawer} onClose={() => setDrawer(null)} daw={config?.daw} />
 
-      <div style={{ maxWidth: 780, margin: "0 auto", padding: "16px 16px 80px", animation: "fadeup .35s ease" }}>
+      <div style={{ maxWidth: isDesktop ? 1200 : 780, margin: "0 auto", padding: isDesktop ? "24px 32px 80px" : "16px 16px 80px", animation: "fadeup .35s ease" }}>
 
         {/* Waveform */}
         <div style={{ marginBottom: 16 }}>
@@ -654,75 +782,20 @@ const FicheScreen = ({ config, analysisResult }) => {
           {tabs.map(t => <Tab key={t.id} id={t.id} l={t.label} ready={t.ready} />)}
         </div>
 
-        {/* ── DIAGNOSTIC ── */}
-        {tab === "diagnostic" && !fiche && (
-          <TabLoading label="Génération du diagnostic par l'IA…" />
-        )}
-        {tab === "diagnostic" && fiche && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {ficheSummary && (
-              <div style={{ background: `rgba(245,160,0,0.06)`, border: `1px solid rgba(245,160,0,0.2)`, borderLeft: `3px solid ${T.amber}`, borderRadius: 10, padding: "14px 18px", marginBottom: 8 }}>
-                <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.amber, marginBottom: 8 }}>RÉSUMÉ</div>
-                <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8 }}>{ficheSummary}</div>
-              </div>
-            )}
-            <div style={{ fontFamily: T.mono, fontSize: 10, color: T.amberDim, marginBottom: 2, letterSpacing: 0.5 }}>
-              Voix, instruments, drums, espace, master — clique pour voir le détail
-            </div>
-            {(ficheElements || data.elements).map((el, idx) => {
-              const catId = el.id || el.cat || idx;
-              return (
-              <div key={catId} style={{
-                background: T.s1,
-                border: `1px solid ${openCat === catId ? T.amber : T.border}`,
-                borderRadius: 10, overflow: "hidden", transition: "border-color .2s",
-              }}>
-                <div
-                  onClick={() => setOpenCat(openCat === catId ? null : catId)}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", cursor: "pointer" }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: openCat === catId ? T.amber : T.muted }}>{el.cat}</span>
-                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.muted2 }}>{el.items?.length || 0} points</span>
-                  </div>
-                  <span style={{
-                    fontFamily: T.mono, fontSize: 14, color: T.muted, transition: "transform .2s", display: "inline-block",
-                    transform: openCat === catId ? "rotate(90deg)" : "none"
-                  }}>›</span>
-                </div>
-                {openCat === catId && (
-                  <div style={{ borderTop: `1px solid ${T.border}` }}>
-                    {el.items.map((it, i) => (
-                      <div
-                        key={i}
-                        onClick={() => setDrawer(it)}
-                        style={{
-                          padding: "14px 20px", borderBottom: i < el.items.length - 1 ? `1px solid ${T.border}` : "none",
-                          cursor: "pointer", transition: "background .15s", background: "transparent",
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = T.s2}
-                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                          {it.priority ? <PriorityBadge p={it.priority} /> : null}
-                          <span style={{ fontFamily: T.mono, fontSize: 12, color: T.text }}>{it.label}</span>
-                        </div>
-                        <div style={{ fontFamily: T.body, fontWeight: 300, fontSize: 11, color: T.muted, lineHeight: 1.7 }}>{it.detail}</div>
-                        {it.conf && (
-                          <span style={{
-                            fontFamily: T.mono, fontSize: 9, padding: "1px 7px", borderRadius: 3,
-                            background: `${CONF[it.conf].color}15`,
-                            border: `1px solid ${CONF[it.conf].color}44`,
-                            color: CONF[it.conf].color,
-                            letterSpacing: 0.5, marginRight: 8, display: "inline-block", marginTop: 8,
-                          }}>{CONF[it.conf].label}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ); })}
+        {/* ── DIAGNOSTIC (mobile seulement) ── */}
+        {!isDesktop && tab === "diagnostic" && diagnosticPanel}
+
+        {/* ── SPLIT 2 COLONNES (desktop seulement) ── */}
+        {isDesktop && tab === "split" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, alignItems: "start" }}>
+            <section>
+              <div style={columnHeading}>ÉLÉMENTS</div>
+              {diagnosticPanel}
+            </section>
+            <section>
+              <div style={columnHeading}>PLAN D'ACTION</div>
+              {planPanel}
+            </section>
           </div>
         )}
 
@@ -791,42 +864,8 @@ const FicheScreen = ({ config, analysisResult }) => {
           </div>
         )}
 
-        {/* ── PLAN D'ACTION ── */}
-        {tab === "plan" && !fiche && (
-          <TabLoading label="Génération du plan d'action…" />
-        )}
-        {tab === "plan" && fiche && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {(fichePlan || data.plan).map((p, i) => (
-              <div key={i} style={{
-                background: T.s1, border: `1px solid ${p.p === "HIGH" ? T.red + "33" : T.border}`, borderRadius: 10, padding: "16px 18px"
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                  <PriorityBadge p={p.p} />
-                  <span style={{ fontFamily: T.mono, fontSize: 12, color: T.text }}>{p.task}</span>
-                </div>
-                <div style={{
-                  fontFamily: T.mono, fontSize: 10, color: T.amber, background: T.s2, border: `1px solid ${T.border}`,
-                  borderRadius: 6, padding: "8px 12px", borderLeft: `3px solid ${T.amber}`, marginBottom: 10, lineHeight: 1.5
-                }}>
-                  {p.daw}
-                </div>
-                <div style={{ display: "flex", gap: 10 }}>
-                  <div style={{
-                    flex: 1, fontFamily: T.mono, fontSize: 10, color: T.muted, background: T.s2, borderRadius: 6, padding: "6px 10px"
-                  }}>
-                    <span style={{ color: T.amber, fontWeight: 600 }}>Mesuré : </span>{p.metered || "N/A"}
-                  </div>
-                  <div style={{
-                    flex: 1, fontFamily: T.mono, fontSize: 10, color: T.muted, background: T.s2, borderRadius: 6, padding: "6px 10px"
-                  }}>
-                    <span style={{ color: T.green, fontWeight: 600 }}>Objectif : </span>{p.target || "N/A"}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* ── PLAN D'ACTION (mobile seulement) ── */}
+        {!isDesktop && tab === "plan" && planPanel}
 
         {/* ── COMPARAISON (only if ref) ── */}
         {tab === "comparaison" && hasRef && (
