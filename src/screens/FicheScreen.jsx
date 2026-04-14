@@ -330,11 +330,13 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
     borderRadius: 14, padding: '32px 36px',
     boxShadow: '0 24px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(245,176,86,.08)',
     animation: 'popin .22s ease', boxSizing: 'border-box',
-    flexShrink: 1, flexGrow: 0,
+    overflow: 'visible',
   };
-  const arrowBtn = (disabled) => ({
-    width: 48, height: 48, borderRadius: '50%',
-    background: disabled ? 'rgba(20,20,22,.9)' : '#f5b056',
+  const arrowBtn = (disabled, side) => ({
+    position: 'absolute', top: '50%', transform: 'translateY(-50%)',
+    [side]: -18,
+    width: 44, height: 44, borderRadius: '50%',
+    background: disabled ? 'rgba(20,20,22,.95)' : '#f5b056',
     border: `1px solid ${disabled ? '#2a2a2e' : '#f5b056'}`,
     color: disabled ? '#5a5a5e' : '#0c0c0d',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -343,7 +345,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
     boxShadow: disabled ? 'none' : '0 6px 20px rgba(245,176,86,.35)',
     transition: 'all .18s ease',
     pointerEvents: disabled ? 'none' : 'auto',
-    flexShrink: 0,
+    zIndex: 5,
   });
 
   return (
@@ -353,14 +355,22 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
         @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
       `}</style>
 
-      {/* Flèche gauche — collée à la modale */}
-      <button
-        style={{ ...arrowBtn(atFirst), marginRight: 14 }}
-        onClick={(e) => { e.stopPropagation(); if (!atFirst) onPrev(); }}
-        aria-label="Précédent"
-      >‹</button>
+      <div style={{ position: 'relative', flexShrink: 1 }} onClick={(e) => e.stopPropagation()}>
+        {/* Flèche gauche — collée au bord du panneau */}
+        <button
+          style={arrowBtn(atFirst, 'left')}
+          onClick={(e) => { e.stopPropagation(); if (!atFirst) onPrev(); }}
+          aria-label="Précédent"
+        >‹</button>
 
-      <div style={panel} onClick={(e) => e.stopPropagation()}>
+        {/* Flèche droite — collée au bord du panneau */}
+        <button
+          style={arrowBtn(atLast, 'right')}
+          onClick={(e) => { e.stopPropagation(); if (!atLast) onNext(); }}
+          aria-label="Suivant"
+        >›</button>
+
+      <div style={panel}>
         {/* En-tête : compteur + close */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <span style={{
@@ -440,13 +450,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
           {isResolved ? 'Résolu' : 'Marquer comme résolu'}
         </button>
       </div>
-
-      {/* Flèche droite — collée à la modale */}
-      <button
-        style={{ ...arrowBtn(atLast), marginLeft: 14 }}
-        onClick={(e) => { e.stopPropagation(); if (!atLast) onNext(); }}
-        aria-label="Suivant"
-      >›</button>
+      </div>
     </div>
   );
 }
