@@ -486,7 +486,7 @@ export default function Sidebar({
               {/* Versions */}
               {isOpen && (
                 <div style={{ paddingLeft: 22, marginTop: 2 }}>
-                  {track.versions.map((v) => {
+                  {track.versions.map((v, vIdx) => {
                     const isCurrent = isCurrentVersion(track, v);
                     const isPlaying = isVersionPlaying(track, v);
                     const isActivePlayer =
@@ -494,6 +494,11 @@ export default function Sidebar({
                       playerState.trackTitle === track.title &&
                       playerState.versionName === v.name;
                     const hasAnalysis = !!v.analysisResult;
+                    // Score actuel + delta vs version précédente dans la liste
+                    const score = v.analysisResult?.fiche?.globalScore;
+                    const prevScore = vIdx > 0 ? track.versions[vIdx - 1]?.analysisResult?.fiche?.globalScore : null;
+                    const delta = (typeof score === 'number' && typeof prevScore === 'number') ? score - prevScore : null;
+                    const deltaColor = delta == null ? T.muted : delta > 0 ? (T.green || '#4ade80') : delta < 0 ? T.red : T.muted;
                     return (
                       <div
                         key={v.id}
@@ -602,6 +607,32 @@ export default function Sidebar({
                           >
                             {v.name}
                           </span>
+                        )}
+
+                        {/* Score + delta vs version précédente */}
+                        {typeof score === 'number' && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'baseline',
+                              gap: 3,
+                              flexShrink: 0,
+                              fontFamily: T.mono,
+                              lineHeight: 1,
+                            }}
+                            title={
+                              delta != null
+                                ? `${score}/100 (${delta > 0 ? '+' : ''}${delta} vs version précédente)`
+                                : `${score}/100`
+                            }
+                          >
+                            <span style={{ fontSize: 10, color: T.muted, fontWeight: 500 }}>{score}</span>
+                            {delta != null && delta !== 0 && (
+                              <span style={{ fontSize: 8, color: deltaColor, fontWeight: 600 }}>
+                                {delta > 0 ? '↑' : '↓'}{Math.abs(delta)}
+                              </span>
+                            )}
+                          </div>
                         )}
 
                         <button
