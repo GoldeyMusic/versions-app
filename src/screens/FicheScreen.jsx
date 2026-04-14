@@ -45,6 +45,38 @@ const IconChevronRight = ({ s = 14 }) => (
 
 // ── PriorityBadge ────────────────────────────────────────
 
+// Anneau coloré pour score /10 (petit, à côté du label d'item) ou /100 (gros, dans le header)
+const ScoreRing = ({ value, max = 10, size = 28, strokeWidth = 2.5, showLabel = true }) => {
+  if (value == null || typeof value !== "number" || Number.isNaN(value)) return null;
+  const normalized = max === 100 ? value / 100 : value / 10;
+  // Seuils : rouge < 0.5, amber 0.5-0.75, vert > 0.75
+  const color = normalized < 0.5 ? T.red : normalized <= 0.75 ? T.amber : (T.green || "#4ade80");
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - normalized);
+  const fontSize = size < 30 ? Math.round(size * 0.42) : Math.round(size * 0.32);
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={`${color}22`} strokeWidth={strokeWidth} />
+        <circle
+          cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth}
+          strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset .6s ease" }}
+        />
+      </svg>
+      {showLabel && (
+        <div style={{
+          position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: T.display, fontSize, color, fontWeight: 600,
+        }}>
+          {Math.round(value)}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const PriorityBadge = ({ p }) => {
   if (!p) return null;
   const colors = { HIGH: T.red, MED: T.orange, LOW: T.muted };
@@ -606,7 +638,9 @@ const FicheScreen = ({ config, analysisResult }) => {
   const ficheSummary = fiche?.summary || null;
 
   // For display, use fiche if available, otherwise mock
-  const data = fiche ? { ...mockData, elements: ficheElements || mockData.elements, plan: fichePlan || mockData.plan } : mockData;
+  const data = fiche
+    ? { ...mockData, elements: ficheElements || mockData.elements, plan: fichePlan || mockData.plan, globalScore: typeof fiche.globalScore === "number" ? fiche.globalScore : null }
+    : mockData;
 
   const activeData = data;
 
@@ -699,6 +733,7 @@ const FicheScreen = ({ config, analysisResult }) => {
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                    {typeof it.score === "number" && <ScoreRing value={it.score} max={10} size={30} strokeWidth={2.5} />}
                     {it.priority ? <PriorityBadge p={it.priority} /> : null}
                     <span style={{ fontFamily: T.mono, fontSize: 15, color: T.text }}>{it.label}</span>
                   </div>
@@ -824,18 +859,11 @@ const FicheScreen = ({ config, analysisResult }) => {
               ))}
             </div>
           </div>
-          {/* Score orbs — personal only */}
-          {!isRef && data.score && (
-            <div style={{ display: "flex", gap: 8 }}>
-              {Object.entries(data.score).map(([k, v]) => (
-                <div key={k} style={{ textAlign: "center" }}>
-                  <div style={{
-                    width: 56, height: 56, borderRadius: "50%", border: `2px solid ${v >= 70 ? T.green : v >= 55 ? T.amber : T.red}`,
-                    display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.display, fontSize: 20, color: T.text, background: T.s1
-                  }}>{v}</div>
-                  <div style={{ fontFamily: T.mono, fontSize: 10, color: T.muted, marginTop: 5 }}>{k}</div>
-                </div>
-              ))}
+          {/* Score global /100 */}
+          {!isRef && typeof data.globalScore === "number" && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <ScoreRing value={data.globalScore} max={100} size={80} strokeWidth={5} />
+              <div style={{ fontFamily: T.mono, fontSize: 10, color: T.muted, letterSpacing: 1, textTransform: "uppercase" }}>Score global</div>
             </div>
           )}
         </div>
