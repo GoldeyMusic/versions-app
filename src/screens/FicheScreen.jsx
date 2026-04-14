@@ -521,19 +521,33 @@ const VersionChat = ({ config, analysisResult, collapsed, onToggleCollapse, expa
       {/* Input */}
       <div style={{
         padding: "14px 16px", borderTop: `1px solid ${T.border}`,
-        display: "flex", gap: 10, alignItems: "center",
+        display: "flex", gap: 10, alignItems: "flex-end",
       }}>
-        <input
+        <textarea
           value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
-          placeholder="Ta question…"
+          onChange={e => {
+            setInput(e.target.value);
+            // auto-grow up to ~6 lines
+            e.target.style.height = "auto";
+            e.target.style.height = Math.min(e.target.scrollHeight, 140) + "px";
+          }}
+          onKeyDown={e => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
+          placeholder="Ta question… (Shift+Entrée pour aller à la ligne)"
           disabled={loading}
+          rows={1}
           style={{
             flex: 1, background: T.s2, border: `1px solid ${T.border}`,
             borderRadius: 10, padding: "10px 14px",
             fontFamily: T.mono, fontSize: 14, color: T.text, outline: "none",
             transition: "border-color .2s",
+            resize: "none", overflow: "auto", lineHeight: 1.4,
+            minHeight: 40, maxHeight: 140,
+            whiteSpace: "pre-wrap", wordBreak: "break-word",
           }}
           onFocus={e => e.target.style.borderColor = T.amber}
           onBlur={e => e.target.style.borderColor = T.border}
