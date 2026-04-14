@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import T from '../constants/theme';
 import API from '../constants/api';
-import CONF from '../constants/confidence';
 import { REF_DATA, PERSO_DATA } from '../db/mockData';
 import useIsDesktop from '../hooks/useIsDesktop';
 
@@ -48,174 +47,6 @@ const PriorityBadge = ({ p }) => {
   );
 };
 
-// ── ElementDrawer (Modal for deep-dive chat) ────────────────────────────────────────
-
-const ElementDrawer = ({ item, onClose, daw, zOverride }) => {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  if (!item) return null;
-
-  const systemPrompt = `Tu es l'assistant intégré de Versions, expert en production musicale et mixage avec 20 ans d'expérience.
-
-DAW : ${daw || "Logic Pro"}
-Élément analysé : ${item.label} — ${item.detail}
-
-INSTRUCTIONS :
-- Réponds avec des paramètres précis (attack, release, fréquence, ratio, valeurs concrètes)
-- Pour chaque plugin payant, cite l'alternative gratuite
-- Connais tous les plugins standards : FabFilter (Pro-Q, Pro-C, Pro-L, Saturn), Waves (SSL, CLA-76, CLA-2A, API 2500, H-Reverb), Valhalla (Room, VintageVerb, Delay, Supermassive), iZotope (Ozone, Neutron, RX), SoundToys (Decapitator, EchoBoy), UAD (1176, LA-2A, SSL G-Bus), TDR Nova/Kotelnikov (gratuits), Klanghelm IVGI (gratuit)
-- Connais les instruments : Serum, Vital (gratuit), Sylenth1, u-he Diva, Arturia V Collection, Kontakt, Omnisphere, Superior Drummer 3, Keyscape, Pianoteq, Spitfire LABS (gratuit)
-- Adapte tes réponses au DAW de l'utilisateur avec les chemins précis dans ce DAW
-- Réponses courtes, directes, actionnables
-- Réponds en français`;
-
-  const send = async () => {
-    if (!input.trim() || loading) return;
-    const userMsg = input.trim();
-    setInput("");
-    const newMessages = [...messages, { role: "user", content: userMsg }];
-    setMessages(newMessages);
-    setLoading(true);
-    try {
-      const res = await fetch(`${API}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, item: { label: item.label, detail: item.detail }, daw }),
-      });
-      const data = await res.json();
-      const reply = data.reply || data.error || "Erreur de connexion.";
-      setMessages([...newMessages, { role: "assistant", content: reply }]);
-    } catch (e) {
-      setMessages([...newMessages, { role: "assistant", content: "Erreur : " + e.message }]);
-    }
-    setLoading(false);
-  };
-
-  return (
-    <div style={{
-      position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-      background: "rgba(0,0,0,0.65)", zIndex: zOverride || 200,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      backdropFilter: "blur(6px)", padding: 24,
-    }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{
-        background: T.s1, border: `1px solid ${T.border}`, borderRadius: 20,
-        width: "100%", maxWidth: 520,
-        animation: "fadeup .22s ease", position: "relative",
-        display: "flex", flexDirection: "column",
-        maxHeight: "80vh", overflow: "hidden",
-      }}>
-        {/* Scrollable content */}
-        <div style={{ overflowY: "auto", padding: "28px 28px 0" }}>
-
-          {/* Close */}
-          <button onClick={onClose} style={{
-            position: "absolute", top: 16, right: 16,
-            width: 30, height: 30, borderRadius: "50%",
-            background: T.s2, border: `1px solid ${T.border}`,
-            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <IconClose />
-          </button>
-
-          {/* Title + detail */}
-          <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.amberDim, marginBottom: 5 }}>DÉTAIL</div>
-          <div style={{ fontFamily: T.display, fontSize: 20, letterSpacing: 2, color: T.text, marginBottom: 12, lineHeight: 1.2 }}>{item.label}</div>
-          <p style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.8, marginBottom: 16 }}>{item.detail}</p>
-
-          {/* Tools */}
-          {item.tools?.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.amberDim, marginBottom: 8 }}>APPROCHES COMPATIBLES</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {item.tools.map(t => (
-                  <span key={t} style={{
-                    fontFamily: T.mono, fontSize: 11, padding: "5px 11px", borderRadius: 6,
-                    background: T.s2, border: `1px solid ${T.border}`, color: T.text,
-                    display: "flex", alignItems: "center", gap: 6
-                  }}>
-                    <IconPlug c={T.amberDim} s={12} /> {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Divider */}
-          <div style={{ height: 1, background: T.border, marginBottom: 20 }} />
-
-          {/* Assistant */}
-          <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.amber, marginBottom: 14 }}>
-            ASSISTANT — {daw || "Logic Pro"}
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
-            {messages.length === 0 && (
-              <div style={{ fontFamily: T.mono, fontSize: 11, color: T.muted2, lineHeight: 1.7, fontStyle: "italic" }}>
-                Pose ta question sur cet élément.
-              </div>
-            )}
-            {messages.map((m, i) => (
-              <div key={i} style={{
-                padding: "10px 14px", borderRadius: 10,
-                background: m.role === "user" ? T.amberGlow : T.s2,
-                border: `1px solid ${m.role === "user" ? T.amber + "33" : T.border}`,
-                alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                maxWidth: "90%",
-              }}>
-                <div style={{
-                  fontFamily: T.mono, fontSize: 11, color: m.role === "user" ? T.amber : T.text,
-                  lineHeight: 1.7, whiteSpace: "pre-wrap"
-                }}>
-                  {m.content}
-                </div>
-              </div>
-            ))}
-            {loading && (
-              <div style={{ padding: "10px 14px", borderRadius: 10, background: T.s2, border: `1px solid ${T.border}`, alignSelf: "flex-start" }}>
-                <div style={{ fontFamily: T.mono, fontSize: 11, color: T.muted }}>
-                  <span style={{ animation: "blink 1s infinite" }}>▍</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Input bar */}
-        <div style={{ padding: "14px 20px", borderTop: `1px solid ${T.border}`, display: "flex", gap: 10, alignItems: "center" }}>
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
-            placeholder="Ta question…"
-            style={{
-              flex: 1, background: T.s2, border: `1px solid ${T.border}`,
-              borderRadius: 10, padding: "10px 14px",
-              fontFamily: T.mono, fontSize: 16, color: T.text,
-              outline: "none", transition: "border-color .2s",
-            }}
-            onFocus={e => e.target.style.borderColor = T.amber}
-            onBlur={e => e.target.style.borderColor = T.border}
-          />
-          <button onClick={send} disabled={!input.trim() || loading} style={{
-            width: 38, height: 38, borderRadius: "50%", flexShrink: 0,
-            background: input.trim() && !loading ? `linear-gradient(135deg, ${T.amber}, ${T.orange})` : T.s2,
-            border: `1px solid ${input.trim() && !loading ? T.amber : T.border}`,
-            cursor: input.trim() && !loading ? "pointer" : "not-allowed",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            transition: "all .2s",
-          }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M1 7 L13 7 M8 2 L13 7 L8 12" stroke={input.trim() && !loading ? T.black : T.muted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // ── WaveformZone Component ────────────────────────────────────────
 
@@ -534,7 +365,6 @@ const FicheScreen = ({ config, analysisResult }) => {
 
   const [tab, setTab] = useState(isDesktop ? "split" : "diagnostic");
   const [openCat, setOpenCat] = useState(null);
-  const [drawer, setDrawer] = useState(null);
   const [zone, setZone] = useState({ id: "full", label: "Morceau complet", start: 0, end: 100, color: T.amber });
   // Liens croisés colonnes <-> plan : on track l'item ou la tâche survolé(e)
   const [hoverItemId, setHoverItemId] = useState(null);
@@ -643,12 +473,11 @@ const FicheScreen = ({ config, analysisResult }) => {
                 return (
                 <div
                   key={it.id || i}
-                  onClick={() => setDrawer(it)}
                   onMouseEnter={() => setHoverItemId(it.id || null)}
                   onMouseLeave={() => setHoverItemId(null)}
                   style={{
                     padding: "22px 28px", borderBottom: i < el.items.length - 1 ? `1px solid ${T.border}` : "none",
-                    cursor: "pointer", transition: "background .15s, box-shadow .15s",
+                    transition: "background .15s, box-shadow .15s",
                     background: isSelfHover ? T.s2 : (isLinkedToHoveredTask ? T.amber + "14" : "transparent"),
                     boxShadow: isLinkedToHoveredTask ? `inset 3px 0 0 ${T.amber}` : "none",
                   }}
@@ -658,6 +487,19 @@ const FicheScreen = ({ config, analysisResult }) => {
                     <span style={{ fontFamily: T.mono, fontSize: 15, color: T.text }}>{it.label}</span>
                   </div>
                   <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{it.detail}</div>
+                  {Array.isArray(it.tools) && it.tools.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
+                      {it.tools.map(t => (
+                        <span key={t} style={{
+                          fontFamily: T.mono, fontSize: 11, padding: "4px 10px", borderRadius: 6,
+                          background: T.s2, border: `1px solid ${T.border}`, color: T.textSoft,
+                          display: "inline-flex", alignItems: "center", gap: 6,
+                        }}>
+                          <IconPlug c={T.amberDim} s={11} /> {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 );
               })}
@@ -722,8 +564,6 @@ const FicheScreen = ({ config, analysisResult }) => {
 
   return (
     <>
-      <ElementDrawer item={drawer} onClose={() => setDrawer(null)} daw={config?.daw} />
-
       <div style={{ maxWidth: isDesktop ? 1380 : 780, margin: "0 auto", padding: isDesktop ? "40px 56px 100px" : "16px 16px 80px", animation: "fadeup .35s ease" }}>
 
         {/* Waveform */}
