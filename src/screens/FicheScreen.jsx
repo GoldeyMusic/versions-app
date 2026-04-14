@@ -557,23 +557,6 @@ const FicheScreen = ({ config, analysisResult }) => {
   const itemRefs = useRef(new Map());
   const taskRefs = useRef(new Map());
 
-  // Quand on survole un item à gauche, on décale la colonne plan pour mettre la tâche liée à hauteur.
-  useEffect(() => {
-    if (!isDesktop || tab !== "split") { setPlanOffset(0); return; }
-    if (!hoverItemId) { setPlanOffset(0); return; }
-    const plan = fichePlan || data.plan;
-    if (!Array.isArray(plan)) return;
-    const linkedTaskIdx = plan.findIndex(p => Array.isArray(p.linkedItemIds) && p.linkedItemIds.includes(hoverItemId));
-    if (linkedTaskIdx < 0) { setPlanOffset(0); return; }
-    const itemEl = itemRefs.current.get(hoverItemId);
-    const taskEl = taskRefs.current.get(linkedTaskIdx);
-    if (!itemEl || !taskEl) return;
-    const itemRect = itemEl.getBoundingClientRect();
-    const taskRect = taskEl.getBoundingClientRect();
-    // taskRect inclut déjà l'offset courant → on ajoute juste le différentiel
-    setPlanOffset(prev => prev + (itemRect.top - taskRect.top));
-  }, [hoverItemId, isDesktop, tab, fichePlan]);
-
   // Resync tab when layout flips (desktop ↔ mobile): diagnostic/plan ne sont plus
   // des onglets valides sur desktop, et "split" n'existe pas sur mobile.
   useEffect(() => {
@@ -597,6 +580,23 @@ const FicheScreen = ({ config, analysisResult }) => {
   const data = fiche ? { ...mockData, elements: ficheElements || mockData.elements, plan: fichePlan || mockData.plan } : mockData;
 
   const activeData = data;
+
+  // Quand on survole un item à gauche, on décale la colonne plan pour mettre la tâche liée à hauteur.
+  useEffect(() => {
+    if (!isDesktop || tab !== "split") { setPlanOffset(0); return; }
+    if (!hoverItemId) { setPlanOffset(0); return; }
+    const plan = fichePlan || data.plan;
+    if (!Array.isArray(plan)) return;
+    const linkedTaskIdx = plan.findIndex(p => Array.isArray(p.linkedItemIds) && p.linkedItemIds.includes(hoverItemId));
+    if (linkedTaskIdx < 0) { setPlanOffset(0); return; }
+    const itemEl = itemRefs.current.get(hoverItemId);
+    const taskEl = taskRefs.current.get(linkedTaskIdx);
+    if (!itemEl || !taskEl) return;
+    const itemRect = itemEl.getBoundingClientRect();
+    const taskRect = taskEl.getBoundingClientRect();
+    // taskRect inclut déjà l'offset courant → on ajoute juste le différentiel
+    setPlanOffset(prev => prev + (itemRect.top - taskRect.top));
+  }, [hoverItemId, isDesktop, tab, fichePlan]);
 
   const meta = [
     { label: "DAW", val: config?.daw || "Logic Pro" },
