@@ -549,6 +549,9 @@ const FicheScreen = ({ config, analysisResult }) => {
   const [openCat, setOpenCat] = useState(null);
   const [drawer, setDrawer] = useState(null);
   const [zone, setZone] = useState({ id: "full", label: "Morceau complet", start: 0, end: 100, color: T.amber });
+  // Liens croisés colonnes <-> plan : on track l'item ou la tâche survolé(e)
+  const [hoverItemId, setHoverItemId] = useState(null);
+  const [hoverTaskIdx, setHoverTaskIdx] = useState(null);
 
   // Resync tab when layout flips (desktop ↔ mobile): diagnostic/plan ne sont plus
   // des onglets valides sur desktop, et "split" n'existe pas sur mobile.
@@ -645,16 +648,23 @@ const FicheScreen = ({ config, analysisResult }) => {
           </div>
           {openCat === catId && (
             <div style={{ borderTop: `1px solid ${T.border}` }}>
-              {el.items.map((it, i) => (
+              {el.items.map((it, i) => {
+                const plan = fichePlan || data.plan;
+                const hoveredTask = hoverTaskIdx != null ? plan?.[hoverTaskIdx] : null;
+                const isLinkedToHoveredTask = !!(it.id && hoveredTask && Array.isArray(hoveredTask.linkedItemIds) && hoveredTask.linkedItemIds.includes(it.id));
+                const isSelfHover = hoverItemId && it.id === hoverItemId;
+                return (
                 <div
-                  key={i}
+                  key={it.id || i}
                   onClick={() => setDrawer(it)}
+                  onMouseEnter={() => setHoverItemId(it.id || null)}
+                  onMouseLeave={() => setHoverItemId(null)}
                   style={{
                     padding: "22px 28px", borderBottom: i < el.items.length - 1 ? `1px solid ${T.border}` : "none",
-                    cursor: "pointer", transition: "background .15s", background: "transparent",
+                    cursor: "pointer", transition: "background .15s, box-shadow .15s",
+                    background: isSelfHover ? T.s2 : (isLinkedToHoveredTask ? T.amber + "14" : "transparent"),
+                    boxShadow: isLinkedToHoveredTask ? `inset 3px 0 0 ${T.amber}` : "none",
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = T.s2}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                     {it.priority ? <PriorityBadge p={it.priority} /> : null}
@@ -671,7 +681,8 @@ const FicheScreen = ({ config, analysisResult }) => {
                     }}>{CONF[it.conf].label}</span>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -683,10 +694,21 @@ const FicheScreen = ({ config, analysisResult }) => {
     <TabLoading label="Génération du plan d'action…" />
   ) : (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {(fichePlan || data.plan).map((p, i) => (
-        <div key={i} style={{
-          background: T.s1, border: `1px solid ${p.p === "HIGH" ? T.red + "33" : T.border}`, borderRadius: 10, padding: "24px 28px"
-        }}>
+      {(fichePlan || data.plan).map((p, i) => {
+        const isLinkedToHoveredItem = !!(hoverItemId && Array.isArray(p.linkedItemIds) && p.linkedItemIds.includes(hoverItemId));
+        const isSelfHover = hoverTaskIdx === i;
+        return (
+        <div
+          key={i}
+          onMouseEnter={() => setHoverTaskIdx(i)}
+          onMouseLeave={() => setHoverTaskIdx(null)}
+          style={{
+            background: isLinkedToHoveredItem ? T.amber + "14" : T.s1,
+            border: `1px solid ${isLinkedToHoveredItem || isSelfHover ? T.amber : (p.p === "HIGH" ? T.red + "33" : T.border)}`,
+            borderRadius: 10, padding: "24px 28px",
+            transition: "background .15s, border-color .15s",
+          }}>
+
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
             <PriorityBadge p={p.p} />
             <span style={{ fontFamily: T.mono, fontSize: 15, color: T.text }}>{p.task}</span>
@@ -710,7 +732,8 @@ const FicheScreen = ({ config, analysisResult }) => {
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 
