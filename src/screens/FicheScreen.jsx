@@ -582,7 +582,7 @@ const TabLoading = ({ label }) => (
 // ── VersionChat : panneau de chat ancré à droite, contextualisé sur la version affichée ────
 // Historique conservé par versionKey pendant la session (persistance Supabase : à venir).
 
-const VersionChat = ({ config, analysisResult, collapsed, onToggleCollapse, expandedWidth, railWidth }) => {
+const VersionChat = ({ config, analysisResult, collapsed, onToggleCollapse, expandedWidth }) => {
   const versionKey = analysisResult?.id || config?.version || analysisResult?.meta?.title || 'current';
   const [messagesByVersion, setMessagesByVersion] = useState(() => new Map());
   const [input, setInput] = useState("");
@@ -638,32 +638,51 @@ const VersionChat = ({ config, analysisResult, collapsed, onToggleCollapse, expa
   const titleLine = config?.title || analysisResult?.meta?.title || "Version actuelle";
   const versionLine = config?.version ? ` — ${config.version}` : "";
 
-  if (collapsed) {
-    return (
-      <button onClick={onToggleCollapse} title="Ouvrir l'assistant" style={{
-        position: "fixed", right: 0, top: 0, bottom: 48, width: railWidth,
-        background: T.s1, border: "none", borderLeft: `1px solid ${T.border}`,
-        cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center",
-        paddingTop: 20, gap: 16, zIndex: 100, color: T.muted,
-        transition: "color .15s",
+  // Bulle flottante toujours présente (étape 4)
+  const bubble = (
+    <button
+      onClick={onToggleCollapse}
+      title={collapsed ? "Ouvrir l'assistant" : "Fermer l'assistant"}
+      style={{
+        position: "fixed", right: 24, bottom: 96, zIndex: 101,
+        width: 56, height: 56, borderRadius: "50%",
+        background: `linear-gradient(135deg, ${T.amber}, ${T.orange})`,
+        border: "none", cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: "0 8px 24px rgba(245,176,86,0.35), 0 2px 8px rgba(0,0,0,0.3)",
+        transition: "transform .2s, box-shadow .2s",
+        color: "#000",
       }}
-      onMouseEnter={e => e.currentTarget.style.color = T.amber}
-      onMouseLeave={e => e.currentTarget.style.color = T.muted}>
-        <IconChat s={18} />
-        <span style={{
-          writingMode: "vertical-rl", transform: "rotate(180deg)",
-          fontFamily: T.mono, fontSize: 11, letterSpacing: 2,
-        }}>ASSISTANT</span>
-      </button>
-    );
-  }
+      onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.06)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+    >
+      {collapsed ? <IconChat c="#000" s={22} /> : <IconClose />}
+    </button>
+  );
 
   return (
-    <div style={{
-      position: "fixed", right: 0, top: 0, bottom: 48, width: expandedWidth,
-      background: T.s1, borderLeft: `1px solid ${T.border}`,
-      display: "flex", flexDirection: "column", zIndex: 100,
-    }}>
+    <>
+      {bubble}
+      {/* Backdrop */}
+      <div
+        onClick={onToggleCollapse}
+        style={{
+          position: "fixed", inset: 0, zIndex: 99,
+          background: "rgba(0,0,0,0.45)",
+          opacity: collapsed ? 0 : 1,
+          pointerEvents: collapsed ? "none" : "auto",
+          transition: "opacity .25s ease",
+        }}
+      />
+      {/* Panneau glissant */}
+      <div style={{
+        position: "fixed", right: 0, top: 0, bottom: 0, width: expandedWidth,
+        background: T.s1, borderLeft: `1px solid ${T.border}`,
+        display: "flex", flexDirection: "column", zIndex: 100,
+        transform: collapsed ? `translateX(${expandedWidth + 40}px)` : "translateX(0)",
+        transition: "transform .28s cubic-bezier(0.22, 0.61, 0.36, 1)",
+        boxShadow: collapsed ? "none" : "-12px 0 40px rgba(0,0,0,0.45)",
+      }}>
       {/* Header */}
       <div style={{
         padding: "18px 20px", borderBottom: `1px solid ${T.border}`,
@@ -776,6 +795,168 @@ const VersionChat = ({ config, analysisResult, collapsed, onToggleCollapse, expa
       </div>
       <style>{`@keyframes blink { 50% { opacity: 0; } }`}</style>
     </div>
+    </>
+  );
+};
+
+// ── FocusOverlay : un ajustement en plein écran, avec nav prev/next et ESC ────
+const FocusOverlay = ({ plan, idx, onClose, onPrev, onNext, onToggleResolved, isResolved, elements }) => {
+  const p = plan?.[idx];
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "ArrowLeft" && idx > 0) onPrev();
+      if (e.key === "ArrowRight" && idx < (plan?.length || 0) - 1) onNext();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [idx, plan, onPrev, onNext]);
+
+  if (!p) return null;
+  const prio = (p.p || "").toUpperCase();
+  const prioColors = { HIGH: T.red, MED: T.amber, LOW: T.muted };
+  const prioColor = prioColors[prio] || T.muted;
+  // Items liés (pour contextualiser)
+  const linkedItems = [];
+  if (Array.isArray(p.linkedItemIds) && Array.isArray(elements)) {
+    for (const el of elements) {
+      for (const it of (el.items || [])) {
+        if (it.id && p.linkedItemIds.includes(it.id)) {
+          linkedItems.push({ cat: el.cat, ...it });
+        }
+      }
+    }
+  }
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 200,
+        background: "rgba(8,8,10,0.94)",
+        backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+        display: "flex", flexDirection: "column",
+        animation: "fadeup .25s ease",
+      }}
+    >
+      {/* Top bar */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 32px", borderBottom: `1px solid ${T.border}` }}>
+        <button onClick={onClose} style={{
+          fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.muted,
+          background: "transparent", border: "none", cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 8, textTransform: "uppercase",
+        }}>← Retour</button>
+        <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.muted }}>
+          {idx + 1} / {plan.length} · ajustement
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={onPrev} disabled={idx <= 0} style={{
+            fontFamily: T.mono, fontSize: 11, padding: "6px 12px", borderRadius: 8,
+            background: "transparent", border: `1px solid ${T.border}`,
+            color: idx <= 0 ? T.muted2 : T.muted, cursor: idx <= 0 ? "not-allowed" : "pointer",
+          }}>← Préc.</button>
+          <button onClick={onNext} disabled={idx >= plan.length - 1} style={{
+            fontFamily: T.mono, fontSize: 11, padding: "6px 12px", borderRadius: 8,
+            background: "transparent", border: `1px solid ${T.border}`,
+            color: idx >= plan.length - 1 ? T.muted2 : T.muted, cursor: idx >= plan.length - 1 ? "not-allowed" : "pointer",
+          }}>Suiv. →</button>
+        </div>
+      </div>
+
+      {/* Contenu */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "60px 32px 80px" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 32 }}>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{
+              fontFamily: T.mono, fontSize: 10, letterSpacing: 1.5,
+              padding: "4px 9px", borderRadius: 4,
+              background: `${prioColor}22`, color: prioColor,
+            }}>{prio}</span>
+            <span style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.muted, textTransform: "uppercase" }}>
+              {isResolved ? "Résolu" : "À traiter"}
+            </span>
+          </div>
+
+          <h1 style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontSize: 44, fontWeight: 400, lineHeight: 1.2, letterSpacing: 0.3,
+            margin: 0, color: T.text,
+          }}>{p.task}</h1>
+
+          {p.daw && (
+            <div style={{
+              fontFamily: T.mono, fontSize: 14, color: T.amber,
+              background: T.s1, border: `1px solid ${T.amberLine || T.border}`,
+              borderLeft: `3px solid ${T.amber}`,
+              borderRadius: 8, padding: "18px 22px", lineHeight: 1.85,
+              whiteSpace: "pre-wrap",
+            }}>
+              {p.daw}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            {p.metered && (
+              <div style={{
+                flex: 1, minWidth: 220,
+                fontFamily: T.mono, fontSize: 13, color: T.textSoft,
+                background: T.s1, borderRadius: 8, padding: "14px 18px",
+                border: `1px solid ${T.border}`,
+              }}>
+                <div style={{ fontSize: 10, letterSpacing: 1.5, color: T.muted, marginBottom: 4, textTransform: "uppercase" }}>Mesuré</div>
+                {p.metered}
+              </div>
+            )}
+            {p.target && (
+              <div style={{
+                flex: 1, minWidth: 220,
+                fontFamily: T.mono, fontSize: 13, color: T.textSoft,
+                background: T.s1, borderRadius: 8, padding: "14px 18px",
+                border: `1px solid ${T.border}`,
+              }}>
+                <div style={{ fontSize: 10, letterSpacing: 1.5, color: (T.green || "#4ade80"), marginBottom: 4, textTransform: "uppercase" }}>Objectif</div>
+                {p.target}
+              </div>
+            )}
+          </div>
+
+          {linkedItems.length > 0 && (
+            <div>
+              <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.muted, textTransform: "uppercase", marginBottom: 12 }}>
+                Éléments concernés
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {linkedItems.map((it) => (
+                  <div key={it.id} style={{
+                    background: T.s1, border: `1px solid ${T.border}`, borderRadius: 8,
+                    padding: "14px 18px",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                      <span style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 1.5, color: T.muted, textTransform: "uppercase" }}>{it.cat}</span>
+                      <span style={{ fontFamily: T.mono, fontSize: 14, color: T.text }}>{it.label}</span>
+                    </div>
+                    {it.detail && (
+                      <div style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft, lineHeight: 1.75 }}>{it.detail}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "center", paddingTop: 16 }}>
+            <button onClick={onToggleResolved} style={{
+              fontFamily: T.mono, fontSize: 11, letterSpacing: 1.5,
+              padding: "10px 18px", borderRadius: 8,
+              background: isResolved ? T.s2 : (T.green || "#4ade80"),
+              color: isResolved ? T.muted : "#000",
+              border: `1px solid ${isResolved ? T.border : (T.green || "#4ade80")}`,
+              cursor: "pointer", textTransform: "uppercase",
+            }}>
+              {isResolved ? "Rouvrir" : "✓ Marquer comme résolu"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -793,16 +974,18 @@ const FicheScreen = ({ config, analysisResult, onSelectVersion, onAddVersion }) 
   }, [config?.title, config?.version, analysisResult?.id]);
   const currentTrack = tracks.find((t) => t.title === config?.title) || null;
 
-  const [tab, setTab] = useState(isDesktop ? "split" : "diagnostic");
   const [openCat, setOpenCat] = useState(null);
   const [zone, setZone] = useState({ id: "full", label: "Morceau complet", start: 0, end: 100, color: T.amber });
   // Liens croisés colonnes <-> plan : on track l'item ou la tâche survolé(e)
   const [hoverItemId, setHoverItemId] = useState(null);
   const [hoverTaskIdx, setHoverTaskIdx] = useState(null);
-  // Chat ancré à droite : état d'ouverture persistant au niveau de l'écran
-  const [chatCollapsed, setChatCollapsed] = useState(false);
-  const CHAT_WIDTH = 380;
-  const CHAT_RAIL = 48;
+  // Chat en panneau glissant overlay : fermé par défaut (étape 4)
+  const [chatCollapsed, setChatCollapsed] = useState(true);
+  const CHAT_WIDTH = 420;
+  // FocusOverlay : index de l'ajustement en focus plein écran (null = fermé)
+  const [focusIdx, setFocusIdx] = useState(null);
+  // Sections Écoute / Comparaison en bas — accordéons
+  const [openExtra, setOpenExtra] = useState(null);
 
   // Tâches du plan marquées comme "résolu" — persisté en localStorage par version
   const resolvedStorageKey = `resolved::${config?.title || ""}::${config?.version || ""}`;
@@ -829,12 +1012,16 @@ const FicheScreen = ({ config, analysisResult, onSelectVersion, onAddVersion }) 
   };
 
 
-  // Resync tab when layout flips (desktop ↔ mobile): diagnostic/plan ne sont plus
-  // des onglets valides sur desktop, et "split" n'existe pas sur mobile.
+  // ESC ferme FocusOverlay / ChatPanel
   useEffect(() => {
-    if (isDesktop && (tab === "diagnostic" || tab === "plan")) setTab("split");
-    if (!isDesktop && tab === "split") setTab("diagnostic");
-  }, [isDesktop]); // eslint-disable-line react-hooks/exhaustive-deps
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      if (focusIdx !== null) { setFocusIdx(null); return; }
+      if (!chatCollapsed) setChatCollapsed(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusIdx, chatCollapsed]);
 
   // Progressive data: listening arrives first, then fiche
   const fiche = analysisResult?.fiche || null;
@@ -862,34 +1049,8 @@ const FicheScreen = ({ config, analysisResult, onSelectVersion, onAddVersion }) 
   const hasRef = !!config?.refFile;
   const accent = isRef ? T.cyan : T.green;
 
-  // Desktop: Diagnostic + Plan d'action sont permanents côte-à-côte dans la
-  // vue "Fiche" — on ne les expose plus comme onglets cliquables.
-  const tabs = isDesktop
-    ? [
-        { id: "split", label: "Fiche", ready: !!fiche },
-        { id: "ecoute", label: "Écoute", ready: !!listening || stage === "all_done" },
-      ]
-    : [
-        { id: "diagnostic", label: "Diagnostic", ready: !!fiche },
-        { id: "plan", label: "Plan d'action", ready: !!fiche },
-        { id: "ecoute", label: "Écoute", ready: !!listening || stage === "all_done" },
-      ];
-  if (hasRef) tabs.push({ id: "comparaison", label: "Comparaison référence", ready: !!fiche });
-
-  const Tab = ({ id, l, ready }) => (
-    <button onClick={() => setTab(id)} style={{
-      fontFamily: T.mono, fontSize: 13, padding: "13px 22px", background: "transparent", border: "none",
-      borderBottom: `2px solid ${tab === id ? T.amber : "transparent"}`,
-      color: tab === id ? T.text : T.muted, cursor: "pointer", transition: "all .15s", letterSpacing: 1,
-      opacity: ready === false ? 0.5 : 1, display: "flex", alignItems: "center", gap: 6,
-    }}>
-      {l}
-      {ready === false && <span style={{ width: 6, height: 6, borderRadius: "50%", border: `1.5px solid ${T.amber}`, borderTopColor: "transparent", display: "inline-block", animation: "spin 1s linear infinite" }} />}
-    </button>
-  );
-
-  // ── Panneaux extraits pour pouvoir les rendre soit dans les onglets mobile,
-  // soit côte-à-côte dans le split desktop ──
+  // Étape 2 : plus d'onglets — page unique scroll.
+  // Les panels sont définis ci-dessous et assemblés dans le return.
   const diagnosticPanel = !fiche ? (
     <TabLoading label="Génération du diagnostic par l'IA…" />
   ) : (
@@ -972,80 +1133,66 @@ const FicheScreen = ({ config, analysisResult, onSelectVersion, onAddVersion }) 
     </div>
   );
 
+  // Plan d'action : liste simple cliquable (détails dans FocusOverlay)
+  const planList = fichePlan || data.plan || [];
   const planPanel = !fiche ? (
     <TabLoading label="Génération du plan d'action…" />
   ) : (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {(fichePlan || data.plan).map((p, i) => {
-        const isLinkedToHoveredItem = !!(hoverItemId && Array.isArray(p.linkedItemIds) && p.linkedItemIds.includes(hoverItemId));
-        const isSelfHover = hoverTaskIdx === i;
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {planList.map((p, i) => {
         const taskKey = `${i}::${(p.task || '').slice(0, 60)}`;
         const isResolved = resolvedTasks.has(taskKey);
+        const prio = (p.p || "").toUpperCase();
+        const prioColors = { HIGH: T.red, MED: T.amber, LOW: T.muted };
+        const prioColor = prioColors[prio] || T.muted;
         return (
-        <div
-          key={i}
-          onMouseEnter={() => setHoverTaskIdx(i)}
-          onMouseLeave={() => setHoverTaskIdx(null)}
-          style={{
-            background: isResolved ? T.s2 : (isLinkedToHoveredItem ? T.amber + "14" : T.s1),
-            border: `1px solid ${isResolved ? (T.green || '#4ade80') + '44' : (isLinkedToHoveredItem || isSelfHover ? T.amber : (p.p === "HIGH" ? T.red + "33" : T.border))}`,
-            borderRadius: 10, padding: "24px 28px",
-            opacity: isResolved ? 0.55 : 1,
-            transition: "background .15s, border-color .15s, opacity .2s",
-            position: "relative",
-          }}>
-
-          {/* Checkbox discrète en haut à droite */}
-          <button
-            onClick={(e) => { e.stopPropagation(); toggleResolved(taskKey); }}
-            title={isResolved ? "Résolu — cliquer pour rouvrir" : "Marquer comme résolu"}
+          <div
+            key={i}
+            onClick={() => setFocusIdx(i)}
             style={{
-              position: "absolute", top: 14, right: 14,
-              width: 20, height: 20, borderRadius: 4,
-              background: isResolved ? (T.green || '#4ade80') : 'transparent',
-              border: `1.5px solid ${isResolved ? (T.green || '#4ade80') : T.border}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', padding: 0, flexShrink: 0,
-              transition: 'all .15s',
-              zIndex: 2,
+              display: "flex", alignItems: "center", gap: 18,
+              padding: "20px 22px",
+              border: `1px solid ${T.border}`,
+              borderRadius: 12,
+              background: T.s1,
+              cursor: "pointer",
+              opacity: isResolved ? 0.5 : 1,
+              transition: "border-color .15s, background .15s, transform .1s",
             }}
-            onMouseEnter={(e) => { if (!isResolved) e.currentTarget.style.borderColor = (T.green || '#4ade80'); }}
-            onMouseLeave={(e) => { if (!isResolved) e.currentTarget.style.borderColor = T.border; }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#f5b05655"; e.currentTarget.style.background = T.s2; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = T.s1; }}
           >
-            {isResolved && (
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke={T.black} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </button>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, paddingRight: 32 }}>
-            <PriorityBadge p={p.p} />
             <span style={{
-              fontFamily: T.mono, fontSize: 15,
+              fontFamily: T.mono, fontSize: 9, letterSpacing: 1,
+              padding: "3px 7px", borderRadius: 4, flexShrink: 0,
+              background: `${prioColor}22`, color: prioColor,
+            }}>{prio}</span>
+            <span style={{
+              flex: 1,
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontSize: 20, fontWeight: 400, lineHeight: 1.3, letterSpacing: 0.2,
               color: isResolved ? T.muted : T.text,
-              textDecoration: isResolved ? 'line-through' : 'none',
+              textDecoration: isResolved ? "line-through" : "none",
             }}>{p.task}</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleResolved(taskKey); }}
+              title={isResolved ? "Résolu — cliquer pour rouvrir" : "Marquer comme résolu"}
+              style={{
+                width: 24, height: 24, borderRadius: 6,
+                background: isResolved ? (T.green || '#4ade80') : 'transparent',
+                border: `1.5px solid ${isResolved ? (T.green || '#4ade80') : T.border}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', padding: 0, flexShrink: 0,
+              }}
+            >
+              {isResolved && (
+                <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+                  <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </button>
+            <span style={{ color: T.muted, fontFamily: T.mono, fontSize: 18, flexShrink: 0 }}>→</span>
           </div>
-          <div style={{
-            fontFamily: T.mono, fontSize: 15, color: T.amber, background: T.s2, border: `1px solid ${T.border}`,
-            borderRadius: 6, padding: "14px 18px", borderLeft: `3px solid ${T.amber}`, marginBottom: 14, lineHeight: 1.85
-          }}>
-            {p.daw}
-          </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <div style={{
-              flex: 1, fontFamily: T.mono, fontSize: 15, color: T.textSoft, background: T.s2, borderRadius: 6, padding: "10px 14px"
-            }}>
-              <span style={{ color: T.amber, fontWeight: 600 }}>Mesuré : </span>{p.metered || "N/A"}
-            </div>
-            <div style={{
-              flex: 1, fontFamily: T.mono, fontSize: 15, color: T.textSoft, background: T.s2, borderRadius: 6, padding: "10px 14px"
-            }}>
-              <span style={{ color: T.green, fontWeight: 600 }}>Objectif : </span>{p.target || "N/A"}
-            </div>
-          </div>
-        </div>
         );
       })}
     </div>
@@ -1056,23 +1203,54 @@ const FicheScreen = ({ config, analysisResult, onSelectVersion, onAddVersion }) 
     marginBottom: 24, paddingBottom: 18, borderBottom: `1px solid ${T.border}`,
   };
 
-  const chatOffset = isDesktop ? (chatCollapsed ? CHAT_RAIL : CHAT_WIDTH) : 0;
+  // Section head utilitaire
+  const SectionHead = ({ label, count }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "0 0 24px" }}>
+      <span style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.muted, textTransform: "uppercase", whiteSpace: "nowrap" }}>{label}</span>
+      <span style={{ flex: 1, height: 1, background: T.border }} />
+      {count != null && (
+        <span style={{ fontFamily: T.mono, fontSize: 10, color: T.muted2 }}>{count}</span>
+      )}
+    </div>
+  );
+
+  // Verdict — on prend fiche.verdict si présent, sinon première phrase de fiche.summary, sinon mock
+  const verdictText = fiche?.verdict || (fiche?.summary ? fiche.summary.split(/[.!?]\s/)[0] + "." : data.verdict);
+  const scoreVal = typeof data.globalScore === "number" ? data.globalScore : null;
+  const verdictSubtext = fiche?.summary && fiche?.verdict ? fiche.summary : null;
 
   return (
     <>
-      {isDesktop && (
-        <VersionChat
-          config={config}
-          analysisResult={analysisResult}
-          collapsed={chatCollapsed}
-          onToggleCollapse={() => setChatCollapsed(c => !c)}
-          expandedWidth={CHAT_WIDTH}
-          railWidth={CHAT_RAIL}
+      {/* Chat overlay glissant (étape 4) — bulle + panneau */}
+      <VersionChat
+        config={config}
+        analysisResult={analysisResult}
+        collapsed={chatCollapsed}
+        onToggleCollapse={() => setChatCollapsed(c => !c)}
+        expandedWidth={CHAT_WIDTH}
+      />
+
+      {/* FocusOverlay plein écran (étape 3) */}
+      {focusIdx !== null && fichePlan && (
+        <FocusOverlay
+          plan={planList}
+          idx={focusIdx}
+          elements={ficheElements || data.elements}
+          onClose={() => setFocusIdx(null)}
+          onPrev={() => setFocusIdx(i => Math.max(0, i - 1))}
+          onNext={() => setFocusIdx(i => Math.min(planList.length - 1, i + 1))}
+          onToggleResolved={() => {
+            const taskKey = `${focusIdx}::${(planList[focusIdx]?.task || '').slice(0, 60)}`;
+            toggleResolved(taskKey);
+          }}
+          isResolved={(() => {
+            const taskKey = `${focusIdx}::${(planList[focusIdx]?.task || '').slice(0, 60)}`;
+            return resolvedTasks.has(taskKey);
+          })()}
         />
       )}
-      <div style={{ marginRight: chatOffset, transition: "margin-right .25s ease" }}>
 
-      {/* Timeline versions (sticky top) — étape 1 de la refonte */}
+      {/* Timeline versions (sticky top) — étape 1 */}
       <VersionsTimeline
         track={currentTrack}
         currentVersionName={config?.version}
@@ -1081,190 +1259,151 @@ const FicheScreen = ({ config, analysisResult, onSelectVersion, onAddVersion }) 
         onAddVersion={onAddVersion}
       />
 
-      <div style={{ maxWidth: isDesktop ? 1380 : 780, margin: "0 auto", padding: isDesktop ? "24px 56px 100px" : "12px 16px 80px", animation: "fadeup .35s ease" }}>
+      {/* Page unique scroll (étape 2) */}
+      <div style={{ maxWidth: 880, margin: "0 auto", width: "100%", padding: isDesktop ? "40px 60px 140px" : "16px 16px 140px", animation: "fadeup .35s ease" }}>
 
-        {/* Meta tags + score global (temporaire — étape 2 déplacera vers la verdict section) */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {meta.map(m => (
-              <div key={m.label} style={{
-                fontFamily: T.mono, fontSize: 12, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 12px", display: "flex", gap: 6
-              }}>
-                <span style={{ color: T.muted }}>{m.label}</span><span style={{ color: T.amber }}>{m.val}</span>
+        {/* 1 · Verdict : score + grande phrase serif */}
+        <section style={{ display: "flex", alignItems: "center", gap: 42, padding: "30px 0 56px", flexWrap: "wrap" }}>
+          {scoreVal != null && (
+            <div style={{ flexShrink: 0 }}>
+              <ScoreRing value={scoreVal} max={100} size={140} strokeWidth={5} showLabel={false} />
+              <div style={{ position: "relative", marginTop: -140, height: 140, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                <div style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: 58, lineHeight: 1, color: T.text }}>{Math.round(scoreVal)}</div>
+                <div style={{ fontFamily: T.mono, fontSize: 10, color: T.muted, letterSpacing: 1, marginTop: 4 }}>SCORE / 100</div>
               </div>
-            ))}
-          </div>
-          {/* Score global /100 */}
-          {!isRef && typeof data.globalScore === "number" && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-              <ScoreRing value={data.globalScore} max={100} size={80} strokeWidth={5} />
-              <div style={{ fontFamily: T.mono, fontSize: 10, color: T.muted, letterSpacing: 1, textTransform: "uppercase" }}>Score global</div>
             </div>
           )}
-        </div>
-
-        {/* Tabs */}
-        <div className="fiche-tabs" style={{
-          display: "flex", borderBottom: `1px solid ${T.border}`, marginBottom: 36, overflowX: "auto", alignItems: "center"
-        }}>
-          {tabs.map(t => <Tab key={t.id} id={t.id} l={t.label} ready={t.ready} />)}
-        </div>
-
-        {/* ── DIAGNOSTIC (mobile seulement) ── */}
-        {!isDesktop && tab === "diagnostic" && diagnosticPanel}
-
-        {/* ── SPLIT 2 COLONNES (desktop seulement) ── */}
-        {isDesktop && tab === "split" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48 }}>
-            <section>
-              <div style={columnHeading}>ÉLÉMENTS</div>
-              {diagnosticPanel}
-            </section>
-            <section>
-              <div style={{ position: "sticky", top: 24 }}>
-                <div style={columnHeading}>PLAN D'ACTION</div>
-                {planPanel}
-              </div>
-            </section>
-          </div>
-        )}
-
-        {/* ── ÉCOUTE ── */}
-        {tab === "ecoute" && !listening && stage !== "all_done" && (
-          <TabLoading label="Écoute qualitative en cours…" />
-        )}
-        {tab === "ecoute" && !listening && stage === "all_done" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 20px", gap: 12 }}>
-            <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, textAlign: "center", maxWidth: 300, lineHeight: 1.7 }}>
-              L'écoute qualitative n'a pas pu être générée pour cette analyse. Relance l'analyse pour réessayer.
-            </div>
-          </div>
-        )}
-        {tab === "ecoute" && listening && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 18, animation: "fadeup .3s ease" }}>
-            {listening.impression && (
-              <div style={{ background: `rgba(87,204,153,0.06)`, border: `1px solid rgba(87,204,153,0.2)`, borderLeft: `3px solid ${T.green}`, borderRadius: 10, padding: "22px 28px" }}>
-                <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.green, marginBottom: 12 }}>IMPRESSION GÉNÉRALE</div>
-                <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{listening.impression}</div>
-              </div>
+          <div style={{ flex: 1, minWidth: 280 }}>
+            <h1 style={{
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontSize: 38, fontWeight: 400, lineHeight: 1.15, letterSpacing: 0.3,
+              margin: "0 0 14px", color: T.text, maxWidth: 540,
+            }}>
+              {verdictText}
+            </h1>
+            {verdictSubtext && (
+              <p style={{ fontFamily: T.body, fontSize: 15, lineHeight: 1.7, color: T.textSoft, fontWeight: 300, margin: 0, maxWidth: 540 }}>
+                {verdictSubtext}
+              </p>
             )}
-            {listening.espace && (
-              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
-                <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.amber, marginBottom: 12 }}>ESPACE</div>
-                <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{listening.espace}</div>
-              </div>
-            )}
-            {listening.dynamique && (
-              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
-                <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.amber, marginBottom: 12 }}>DYNAMIQUE</div>
-                <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{listening.dynamique}</div>
-              </div>
-            )}
-            {listening.couleur && (
-              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
-                <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.amber, marginBottom: 12 }}>COULEUR SONORE</div>
-                <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{listening.couleur}</div>
-              </div>
-            )}
-            {listening.points_forts && (
-              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
-                <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.green, marginBottom: 12 }}>POINTS FORTS</div>
-                {listening.points_forts.map((p, i) => (
-                  <div key={i} style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85, display: "flex", gap: 10 }}>
-                    <span style={{ color: T.green }}>▸</span> {p}
+            {meta.length > 0 && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 18 }}>
+                {meta.map(m => (
+                  <div key={m.label} style={{
+                    fontFamily: T.mono, fontSize: 11, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 10px", display: "flex", gap: 6
+                  }}>
+                    <span style={{ color: T.muted }}>{m.label}</span><span style={{ color: T.amber }}>{m.val}</span>
                   </div>
                 ))}
               </div>
             )}
-            {listening.a_travailler && (
-              <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
-                <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.orange, marginBottom: 12 }}>À TRAVAILLER</div>
-                {listening.a_travailler.map((p, i) => (
-                  <div key={i} style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85, display: "flex", gap: 10 }}>
-                    <span style={{ color: T.orange }}>▸</span> {p}
+          </div>
+        </section>
+
+        {/* 2 · Plan d'action (liste cliquable) */}
+        <SectionHead label="Plan d'action" count={planList.length ? `${planList.length} ajustement${planList.length > 1 ? "s" : ""}` : null} />
+        <div style={{ marginBottom: 72 }}>
+          {planPanel}
+        </div>
+
+        {/* 3 · Diagnostic (accordéons) */}
+        <SectionHead label="Diagnostic détaillé" />
+        <div style={{ marginBottom: 48 }}>
+          {diagnosticPanel}
+        </div>
+
+        {/* 4 · Écoute qualitative (section pliable) */}
+        {(listening || stage !== "all_done") && (
+          <div style={{ marginBottom: 24 }}>
+            <button
+              onClick={() => setOpenExtra(openExtra === "ecoute" ? null : "ecoute")}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "16px 0", background: "transparent", border: "none", borderTop: `1px solid ${T.border}`,
+                cursor: "pointer", color: T.muted,
+              }}
+            >
+              <span style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 2, textTransform: "uppercase" }}>Écoute qualitative</span>
+              <span style={{ fontFamily: T.mono, fontSize: 14, transform: openExtra === "ecoute" ? "rotate(90deg)" : "none", transition: "transform .2s" }}>›</span>
+            </button>
+            {openExtra === "ecoute" && (
+              <div style={{ paddingTop: 16 }}>
+                {!listening && stage !== "all_done" && <TabLoading label="Écoute qualitative en cours…" />}
+                {!listening && stage === "all_done" && (
+                  <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, lineHeight: 1.7, padding: "20px 0" }}>
+                    L'écoute qualitative n'a pas pu être générée pour cette analyse.
                   </div>
-                ))}
-              </div>
-            )}
-            {listening.mood && (
-              <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, textAlign: "center", marginTop: 12 }}>
-                Mood : {listening.mood}
+                )}
+                {listening && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {listening.impression && (
+                      <div style={{ background: `rgba(87,204,153,0.06)`, border: `1px solid rgba(87,204,153,0.2)`, borderLeft: `3px solid ${T.green}`, borderRadius: 8, padding: "18px 22px" }}>
+                        <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.green, marginBottom: 10 }}>IMPRESSION</div>
+                        <div style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft, lineHeight: 1.85 }}>{listening.impression}</div>
+                      </div>
+                    )}
+                    {["espace", "dynamique", "couleur"].map((k) => listening[k] && (
+                      <div key={k} style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 8, padding: "18px 22px" }}>
+                        <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.amber, marginBottom: 10, textTransform: "uppercase" }}>{k}</div>
+                        <div style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft, lineHeight: 1.85 }}>{listening[k]}</div>
+                      </div>
+                    ))}
+                    {listening.points_forts && (
+                      <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 8, padding: "18px 22px" }}>
+                        <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.green, marginBottom: 10 }}>POINTS FORTS</div>
+                        {listening.points_forts.map((p, i) => (
+                          <div key={i} style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft, lineHeight: 1.85, display: "flex", gap: 10 }}>
+                            <span style={{ color: T.green }}>▸</span> {p}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {listening.a_travailler && (
+                      <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 8, padding: "18px 22px" }}>
+                        <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.orange, marginBottom: 10 }}>À TRAVAILLER</div>
+                        {listening.a_travailler.map((p, i) => (
+                          <div key={i} style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft, lineHeight: 1.85, display: "flex", gap: 10 }}>
+                            <span style={{ color: T.orange }}>▸</span> {p}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {/* ── PLAN D'ACTION (mobile seulement) ── */}
-        {!isDesktop && tab === "plan" && planPanel}
-
-        {/* ── COMPARAISON (only if ref) ── */}
-        {tab === "comparaison" && hasRef && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-            <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, letterSpacing: 0.5 }}>
-              Différences et similitudes avec la référence
-            </div>
-
-            {/* Metrics table */}
-            <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
-              <div style={{
-                display: "grid", gridTemplateColumns: "1fr 1fr 1fr 2fr", padding: "14px 22px", borderBottom: `1px solid ${T.border}`,
-                fontFamily: T.mono, fontSize: 11, letterSpacing: 1, color: T.muted
-              }}>
-                <span></span><span>TON MIX</span><span>RÉF</span><span>OBSERVATION</span>
+        {/* 5 · Comparaison référence (section pliable) */}
+        {hasRef && (
+          <div style={{ marginBottom: 24 }}>
+            <button
+              onClick={() => setOpenExtra(openExtra === "comparaison" ? null : "comparaison")}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "16px 0", background: "transparent", border: "none", borderTop: `1px solid ${T.border}`,
+                cursor: "pointer", color: T.muted,
+              }}
+            >
+              <span style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 2, textTransform: "uppercase" }}>Comparaison référence</span>
+              <span style={{ fontFamily: T.mono, fontSize: 14, transform: openExtra === "comparaison" ? "rotate(90deg)" : "none", transition: "transform .2s" }}>›</span>
+            </button>
+            {openExtra === "comparaison" && (
+              <div style={{ paddingTop: 16, fontFamily: T.mono, fontSize: 13, color: T.textSoft, lineHeight: 1.85 }}>
+                Comparaison détaillée à venir — données encore mockées à cette étape.
               </div>
-              {[
-                { label: "BPM", mine: "95", ref: "92", note: "Très proche — même énergie" },
-                { label: "LUFS", mine: "-12.1", ref: "-8.2", note: "4 dB d'écart — la ref est plus compressée" },
-                { label: "Tonalité", mine: "Ré maj", ref: "La min", note: "Même univers tonal" },
-                { label: "Crest Factor", mine: "12 dB", ref: "7 dB", note: "Plus de dynamique dans ton mix" },
-              ].map((m, i) => (
-                <div key={i} style={{
-                  display: "grid", gridTemplateColumns: "1fr 1fr 1fr 2fr", padding: "14px 22px",
-                  borderBottom: i < 3 ? `1px solid ${T.border}` : "none", alignItems: "center"
-                }}>
-                  <span style={{ fontFamily: T.mono, fontSize: 15, color: T.muted }}>{m.label}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 15, color: T.amber }}>{m.mine}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft }}>{m.ref}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.6 }}>{m.note}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Observations */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ fontFamily: T.mono, fontSize: 12, letterSpacing: 1, color: T.amber, marginBottom: 8 }}>OBSERVATIONS</div>
-              {[
-                "La référence a plus de densité dans les médiums (800Hz-3kHz), ce qui donne plus de présence vocale.",
-                "Ton mix a plus de headroom et de dynamique — c'est un choix, pas un défaut.",
-                "Les basses fréquences (40-100Hz) sont similaires en niveau mais la ref utilise plus de saturation harmonique.",
-                "La stéréo de la ref est plus large au-dessus de 5kHz (corrélation 0.65 vs 0.85).",
-              ].map((o, i) => (
-                <div key={i} style={{
-                  display: "flex", gap: 14, alignItems: "flex-start", background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "20px 24px"
-                }}>
-                  <span style={{ fontFamily: T.mono, fontSize: 15, color: T.amber, flexShrink: 0, marginTop: 1 }}>▸</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{o}</span>
-                </div>
-              ))}
-            </div>
+            )}
           </div>
         )}
 
         {/* Limites */}
-        <div style={{ marginTop: 18, background: "rgba(232,93,4,0.05)", border: `1px solid rgba(232,93,4,0.2)`, borderRadius: 10, overflow: "hidden" }}>
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 28px", cursor: "pointer"
-          }}>
-            <div style={{ fontFamily: T.mono, fontSize: 12, letterSpacing: 2, color: T.orange }}>LIMITES DE CETTE ANALYSE</div>
-          </div>
-          <div style={{ padding: "0 28px 22px", borderTop: `1px solid rgba(232,93,4,0.15)` }}>
-            <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85, marginTop: 18 }}>
-              Analyse basée sur l'empreinte audio du signal. Les conseils sont des directions, pas des vérités absolues — fais confiance à tes oreilles.
-            </div>
+        <div style={{ marginTop: 32, background: "rgba(232,93,4,0.04)", border: `1px solid rgba(232,93,4,0.15)`, borderRadius: 8, padding: "14px 20px" }}>
+          <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.orange, marginBottom: 8, textTransform: "uppercase" }}>Limites de cette analyse</div>
+          <div style={{ fontFamily: T.mono, fontSize: 12, color: T.textSoft, lineHeight: 1.75 }}>
+            Analyse basée sur l'empreinte audio. Les conseils sont des directions, pas des vérités — fais confiance à tes oreilles.
           </div>
         </div>
-
-      </div>
       </div>
     </>
   );
