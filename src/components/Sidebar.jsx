@@ -162,7 +162,7 @@ export default function Sidebar({
         overflow: 'hidden',
       }}
     >
-      {/* Header */}
+      {/* Header — logo VERSIONS */}
       <div
         style={{
           padding: '18px 16px 14px',
@@ -172,13 +172,19 @@ export default function Sidebar({
         <div
           style={{
             fontFamily: T.display,
-            fontSize: 18,
-            letterSpacing: 3,
-            color: T.amber,
-            marginBottom: 10,
+            fontSize: 22,
+            letterSpacing: 4,
+            color: T.text,
+            marginBottom: 14,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
           }}
         >
-          MES TITRES
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M3 6l9 14L21 6" stroke={T.amber} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span>VER<span style={{ color: T.amber }}>SI</span>ONS</span>
         </div>
         <button
           onClick={onNewTrack}
@@ -454,7 +460,7 @@ export default function Sidebar({
                           )}
                         </button>
 
-                        {v.main && <IconStar c={T.amber} s={9} filled />}
+                        {v.main && <IconStar c={T.amber} s={7} filled />}
 
                         {renaming === v.id ? (
                           <input
@@ -483,8 +489,9 @@ export default function Sidebar({
                           <span
                             style={{
                               flex: 1,
-                              fontFamily: T.mono,
-                              fontSize: 10,
+                              fontFamily: T.body,
+                              fontSize: 12,
+                              fontWeight: v.main ? 500 : 400,
                               color: isCurrent ? T.amber : v.main ? T.amber : T.text,
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
