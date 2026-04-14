@@ -14,10 +14,10 @@ const GlobalStyles = () => (
     input::placeholder,textarea::placeholder{font-family:'IBM Plex Mono',monospace;font-size:11px;color:${T.muted};opacity:1;}
     ::-webkit-input-placeholder{font-family:'IBM Plex Mono',monospace;font-size:11px;color:${T.muted};}
     :-ms-input-placeholder{font-family:'IBM Plex Mono',monospace;font-size:11px;color:${T.muted};}
-    .dapp{background:#070707;color:#F0EDE8;width:100%;height:100vh;height:100dvh;overflow:hidden;position:relative;display:flex;flex-direction:column;font-family:'IBM Plex Sans',sans-serif;}
+    .dapp{background:${T.black};color:${T.text};width:100%;height:100vh;height:100dvh;overflow:hidden;position:relative;display:flex;flex-direction:column;font-family:'IBM Plex Mono',ui-monospace,monospace;}
     .dapp::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:0.6}
     ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:${T.s1}}::-webkit-scrollbar-thumb{background:${T.border};border-radius:2px}
-    @keyframes apulse{0%,100%{box-shadow:0 0 0 0 rgba(245,160,0,.3)}50%{box-shadow:0 0 0 8px rgba(245,160,0,0)}}
+    @keyframes apulse{0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,.3)}50%{box-shadow:0 0 0 8px rgba(245,166,35,0)}}
     @keyframes fadeup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
     @keyframes barrise{from{transform:scaleY(0.1)}to{transform:scaleY(1)}}
     @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
