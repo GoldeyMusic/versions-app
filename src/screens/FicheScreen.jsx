@@ -31,6 +31,18 @@ const IconPin = () => (
   </svg>
 );
 
+const IconChat = ({ c = "currentColor", s = 16 }) => (
+  <svg width={s} height={s} viewBox="0 0 16 16" fill="none">
+    <path d="M2 3h12v8H7l-3 3v-3H2V3z" stroke={c} strokeWidth="1.3" strokeLinejoin="round"/>
+  </svg>
+);
+
+const IconChevronRight = ({ s = 14 }) => (
+  <svg width={s} height={s} viewBox="0 0 14 14" fill="none">
+    <path d="M5 2 L10 7 L5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 // ── PriorityBadge ────────────────────────────────────────
 
 const PriorityBadge = ({ p }) => {
@@ -358,6 +370,192 @@ const TabLoading = ({ label }) => (
   </div>
 );
 
+// ── VersionChat : panneau de chat ancré à droite, contextualisé sur la version affichée ────
+// Historique conservé par versionKey pendant la session (persistance Supabase : à venir).
+
+const VersionChat = ({ config, analysisResult, collapsed, onToggleCollapse, expandedWidth, railWidth }) => {
+  const versionKey = analysisResult?.id || config?.version || analysisResult?.meta?.title || 'current';
+  const [messagesByVersion, setMessagesByVersion] = useState(() => new Map());
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef(null);
+
+  const messages = messagesByVersion.get(versionKey) || [];
+  const setMessages = (next) => {
+    setMessagesByVersion(prev => {
+      const m = new Map(prev);
+      const prevMsgs = m.get(versionKey) || [];
+      m.set(versionKey, typeof next === 'function' ? next(prevMsgs) : next);
+      return m;
+    });
+  };
+
+  // Auto-scroll en bas quand un nouveau message arrive
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages, loading]);
+
+  const send = async () => {
+    if (!input.trim() || loading) return;
+    const userMsg = { role: 'user', content: input.trim() };
+    const next = [...messages, userMsg];
+    setMessages(next);
+    setInput("");
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: next,
+          daw: config?.daw,
+          title: config?.title || analysisResult?.meta?.title,
+          artist: analysisResult?.meta?.artist || config?.artist,
+          version: config?.version,
+          listening: analysisResult?.listening,
+          fiche: analysisResult?.fiche,
+        }),
+      });
+      const data = await res.json();
+      const reply = data.reply || data.error || "Erreur de connexion.";
+      setMessages(m => [...m, { role: 'assistant', content: reply }]);
+    } catch (e) {
+      setMessages(m => [...m, { role: 'assistant', content: "Erreur : " + e.message }]);
+    }
+    setLoading(false);
+  };
+
+  const titleLine = config?.title || analysisResult?.meta?.title || "Version actuelle";
+  const versionLine = config?.version ? ` — ${config.version}` : "";
+
+  if (collapsed) {
+    return (
+      <button onClick={onToggleCollapse} title="Ouvrir l'assistant" style={{
+        position: "fixed", right: 0, top: 0, bottom: 0, width: railWidth,
+        background: T.s1, border: "none", borderLeft: `1px solid ${T.border}`,
+        cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center",
+        paddingTop: 20, gap: 16, zIndex: 100, color: T.muted,
+        transition: "color .15s",
+      }}
+      onMouseEnter={e => e.currentTarget.style.color = T.amber}
+      onMouseLeave={e => e.currentTarget.style.color = T.muted}>
+        <IconChat s={18} />
+        <span style={{
+          writingMode: "vertical-rl", transform: "rotate(180deg)",
+          fontFamily: T.mono, fontSize: 11, letterSpacing: 2,
+        }}>ASSISTANT</span>
+      </button>
+    );
+  }
+
+  return (
+    <div style={{
+      position: "fixed", right: 0, top: 0, bottom: 0, width: expandedWidth,
+      background: T.s1, borderLeft: `1px solid ${T.border}`,
+      display: "flex", flexDirection: "column", zIndex: 100,
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: "18px 20px", borderBottom: `1px solid ${T.border}`,
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+      }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontFamily: T.mono, fontSize: 10, letterSpacing: 2, color: T.amberDim }}>ASSISTANT</div>
+          <div style={{
+            fontFamily: T.mono, fontSize: 13, color: T.text, marginTop: 3,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {titleLine}{versionLine}
+          </div>
+        </div>
+        <button onClick={onToggleCollapse} title="Replier" style={{
+          width: 28, height: 28, borderRadius: "50%",
+          background: T.s2, border: `1px solid ${T.border}`,
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          color: T.muted, flexShrink: 0,
+        }}>
+          <IconChevronRight s={12} />
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div ref={scrollRef} style={{
+        flex: 1, overflowY: "auto", padding: "18px 20px",
+        display: "flex", flexDirection: "column", gap: 12,
+      }}>
+        {messages.length === 0 && (
+          <div style={{
+            fontFamily: T.mono, fontSize: 12, color: T.muted2,
+            lineHeight: 1.75, fontStyle: "italic", padding: "8px 0",
+          }}>
+            Pose n'importe quelle question sur cette analyse — théorique, technique ou pratique. Je réponds en connaissant l'écoute et le diagnostic de la version affichée.
+          </div>
+        )}
+        {messages.map((m, i) => (
+          <div key={i} style={{
+            padding: "10px 14px", borderRadius: 10,
+            background: m.role === "user" ? T.amberGlow : T.s2,
+            border: `1px solid ${m.role === "user" ? T.amber + "33" : T.border}`,
+            alignSelf: m.role === "user" ? "flex-end" : "flex-start",
+            maxWidth: "92%",
+          }}>
+            <div style={{
+              fontFamily: T.mono, fontSize: 12, color: m.role === "user" ? T.amber : T.text,
+              lineHeight: 1.7, whiteSpace: "pre-wrap", wordBreak: "break-word",
+            }}>{m.content}</div>
+          </div>
+        ))}
+        {loading && (
+          <div style={{
+            padding: "10px 14px", borderRadius: 10, background: T.s2,
+            border: `1px solid ${T.border}`, alignSelf: "flex-start",
+          }}>
+            <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted }}>
+              <span style={{ animation: "blink 1s infinite" }}>▍</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div style={{
+        padding: "14px 16px", borderTop: `1px solid ${T.border}`,
+        display: "flex", gap: 10, alignItems: "center",
+      }}>
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
+          placeholder="Ta question…"
+          disabled={loading}
+          style={{
+            flex: 1, background: T.s2, border: `1px solid ${T.border}`,
+            borderRadius: 10, padding: "10px 14px",
+            fontFamily: T.mono, fontSize: 14, color: T.text, outline: "none",
+            transition: "border-color .2s",
+          }}
+          onFocus={e => e.target.style.borderColor = T.amber}
+          onBlur={e => e.target.style.borderColor = T.border}
+        />
+        <button onClick={send} disabled={!input.trim() || loading} style={{
+          width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+          background: input.trim() && !loading ? `linear-gradient(135deg, ${T.amber}, ${T.orange})` : T.s2,
+          border: `1px solid ${input.trim() && !loading ? T.amber : T.border}`,
+          cursor: input.trim() && !loading ? "pointer" : "not-allowed",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all .2s",
+        }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M1 7 L13 7 M8 2 L13 7 L8 12" stroke={input.trim() && !loading ? T.black : T.muted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <style>{`@keyframes blink { 50% { opacity: 0; } }`}</style>
+    </div>
+  );
+};
+
 const FicheScreen = ({ config, analysisResult }) => {
   const isRef = config?.mode === "ref" || !config?.mode;
   const mockData = isRef ? REF_DATA : PERSO_DATA;
@@ -369,6 +567,10 @@ const FicheScreen = ({ config, analysisResult }) => {
   // Liens croisés colonnes <-> plan : on track l'item ou la tâche survolé(e)
   const [hoverItemId, setHoverItemId] = useState(null);
   const [hoverTaskIdx, setHoverTaskIdx] = useState(null);
+  // Chat ancré à droite : état d'ouverture persistant au niveau de l'écran
+  const [chatCollapsed, setChatCollapsed] = useState(false);
+  const CHAT_WIDTH = 380;
+  const CHAT_RAIL = 48;
 
   // Resync tab when layout flips (desktop ↔ mobile): diagnostic/plan ne sont plus
   // des onglets valides sur desktop, et "split" n'existe pas sur mobile.
@@ -562,8 +764,21 @@ const FicheScreen = ({ config, analysisResult }) => {
     marginBottom: 24, paddingBottom: 18, borderBottom: `1px solid ${T.border}`,
   };
 
+  const chatOffset = isDesktop ? (chatCollapsed ? CHAT_RAIL : CHAT_WIDTH) : 0;
+
   return (
     <>
+      {isDesktop && (
+        <VersionChat
+          config={config}
+          analysisResult={analysisResult}
+          collapsed={chatCollapsed}
+          onToggleCollapse={() => setChatCollapsed(c => !c)}
+          expandedWidth={CHAT_WIDTH}
+          railWidth={CHAT_RAIL}
+        />
+      )}
+      <div style={{ marginRight: chatOffset, transition: "margin-right .25s ease" }}>
       <div style={{ maxWidth: isDesktop ? 1380 : 780, margin: "0 auto", padding: isDesktop ? "40px 56px 100px" : "16px 16px 80px", animation: "fadeup .35s ease" }}>
 
         {/* Waveform */}
@@ -777,6 +992,7 @@ const FicheScreen = ({ config, analysisResult }) => {
           </div>
         </div>
 
+      </div>
       </div>
     </>
   );
