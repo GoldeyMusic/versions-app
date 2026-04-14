@@ -321,32 +321,29 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
     position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)',
     backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
     zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
-    padding: '40px 80px', animation: 'fadein .2s ease',
-  };
-  const wrapper = {
-    position: 'relative', width: '100%', maxWidth: 640,
+    padding: 40, animation: 'fadein .2s ease',
   };
   const panel = {
-    width: '100%', maxHeight: '88vh',
+    position: 'relative',
+    width: '100%', maxWidth: 640, maxHeight: '88vh',
     overflowY: 'auto', background: '#141416', border: '1px solid #2a2a2e',
     borderRadius: 14, padding: '32px 36px',
     boxShadow: '0 24px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(245,176,86,.08)',
     animation: 'popin .22s ease', boxSizing: 'border-box',
+    flexShrink: 0,
   };
-  const arrowBtn = (side, disabled) => ({
-    position: 'absolute', top: '50%',
-    transform: 'translateY(-50%)',
-    [side]: -26, zIndex: 210,
-    width: 52, height: 52, borderRadius: '50%',
+  const arrowBtn = (disabled) => ({
+    width: 48, height: 48, borderRadius: '50%',
     background: disabled ? 'rgba(20,20,22,.9)' : '#f5b056',
     border: `1px solid ${disabled ? '#2a2a2e' : '#f5b056'}`,
     color: disabled ? '#5a5a5e' : '#0c0c0d',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: disabled ? 'default' : 'pointer',
-    fontSize: 24, fontFamily: 'Inter, sans-serif', lineHeight: 1,
+    fontSize: 22, fontFamily: 'Inter, sans-serif', lineHeight: 1,
     boxShadow: disabled ? 'none' : '0 6px 20px rgba(245,176,86,.35)',
     transition: 'all .18s ease',
     pointerEvents: disabled ? 'none' : 'auto',
+    flexShrink: 0,
   });
 
   return (
@@ -356,22 +353,14 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
         @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
       `}</style>
 
-      <div style={wrapper} onClick={(e) => e.stopPropagation()}>
-        {/* Flèche gauche — sur la bordure */}
-        <button
-          style={arrowBtn('left', atFirst)}
-          onClick={(e) => { e.stopPropagation(); if (!atFirst) onPrev(); }}
-          aria-label="Précédent"
-        >‹</button>
+      {/* Flèche gauche — collée à la modale */}
+      <button
+        style={{ ...arrowBtn(atFirst), marginRight: 14 }}
+        onClick={(e) => { e.stopPropagation(); if (!atFirst) onPrev(); }}
+        aria-label="Précédent"
+      >‹</button>
 
-        {/* Flèche droite — sur la bordure */}
-        <button
-          style={arrowBtn('right', atLast)}
-          onClick={(e) => { e.stopPropagation(); if (!atLast) onNext(); }}
-          aria-label="Suivant"
-        >›</button>
-
-        <div style={panel}>
+      <div style={panel} onClick={(e) => e.stopPropagation()}>
         {/* En-tête : compteur + close */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <span style={{
@@ -450,8 +439,14 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
           </span>
           {isResolved ? 'Résolu' : 'Marquer comme résolu'}
         </button>
-        </div>
       </div>
+
+      {/* Flèche droite — collée à la modale */}
+      <button
+        style={{ ...arrowBtn(atLast), marginLeft: 14 }}
+        onClick={(e) => { e.stopPropagation(); if (!atLast) onNext(); }}
+        aria-label="Suivant"
+      >›</button>
     </div>
   );
 }
