@@ -348,7 +348,7 @@ export default function VersionsApp() {
           </div>
 
           {/* Persistent Bottom Player */}
-          {screen !== "loading" && (playerState || screen === "versions") && (
+          {screen !== "loading" && (playerState || screen === "versions" || screen === "fiche") && (
             <BottomPlayer
               trackTitle={playerState?.trackTitle}
               versionName={playerState?.versionName}
