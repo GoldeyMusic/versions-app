@@ -47,6 +47,7 @@ export default function Sidebar({
   playerState,
   user,
   onSignOut,
+  onGoHome,
   refreshKey,
 }) {
   const [tracks, setTracks] = useState([]);
@@ -162,30 +163,106 @@ export default function Sidebar({
         overflow: 'hidden',
       }}
     >
-      {/* Header — logo VERSIONS */}
+      {/* Header — logo VERSIONS (clic = home) + user pill */}
       <div
         style={{
           padding: '18px 16px 14px',
           borderBottom: `1px solid ${T.border}`,
         }}
       >
-        <div
+        <button
+          onClick={onGoHome}
           style={{
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
             fontFamily: T.display,
             fontSize: 22,
             letterSpacing: 4,
             color: T.text,
-            marginBottom: 14,
+            marginBottom: 12,
             display: 'flex',
             alignItems: 'center',
             gap: 8,
           }}
+          title="Accueil"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path d="M3 6l9 14L21 6" stroke={T.amber} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <span>VER<span style={{ color: T.amber }}>SI</span>ONS</span>
-        </div>
+        </button>
+
+        {/* User pill */}
+        {user?.email && (
+          <div
+            onClick={onGoReglages}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '8px 10px',
+              marginBottom: 12,
+              borderRadius: 10,
+              cursor: 'pointer',
+              background: 'transparent',
+              border: `1px solid ${T.border}`,
+              transition: 'background .15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = T.s2)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            title="Réglages"
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: `linear-gradient(135deg, ${T.amber}, ${T.orange || T.amber})`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: T.mono,
+                fontSize: 12,
+                fontWeight: 600,
+                color: T.black,
+                flexShrink: 0,
+              }}
+            >
+              {user.email[0].toUpperCase()}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontFamily: T.body,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: T.text,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {user.email.split('@')[0]}
+              </div>
+              <div
+                style={{
+                  fontFamily: T.mono,
+                  fontSize: 9,
+                  color: T.muted,
+                  marginTop: 1,
+                }}
+              >
+                Premier
+              </div>
+            </div>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ color: T.muted }}>
+              <path d="M2 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+        )}
+
         <button
           onClick={onNewTrack}
           style={{
@@ -739,23 +816,6 @@ export default function Sidebar({
           <IconSettings c="currentColor" s={12} />
           Réglages
         </button>
-        {user?.email && (
-          <div
-            style={{
-              fontFamily: T.mono,
-              fontSize: 9,
-              color: T.muted2,
-              textAlign: 'center',
-              marginTop: 4,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-            title={user.email}
-          >
-            {user.email}
-          </div>
-        )}
       </div>
     </aside>
   );
