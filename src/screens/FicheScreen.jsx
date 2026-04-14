@@ -120,19 +120,6 @@ INSTRUCTIONS :
             <IconClose />
           </button>
 
-          {/* Confidence badge */}
-          {item.conf && (
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              fontFamily: T.mono, fontSize: 9, padding: "3px 10px", borderRadius: 4,
-              background: `${CONF[item.conf].color}12`, border: `1px solid ${CONF[item.conf].color}33`,
-              color: CONF[item.conf].color, letterSpacing: 0.5, marginBottom: 14,
-            }}>
-              <div style={{ width: 5, height: 5, borderRadius: "50%", background: CONF[item.conf].color }} />
-              {CONF[item.conf].label} — {CONF[item.conf].desc}
-            </div>
-          )}
-
           {/* Title + detail */}
           <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 2, color: T.amberDim, marginBottom: 5 }}>DÉTAIL</div>
           <div style={{ fontFamily: T.display, fontSize: 20, letterSpacing: 2, color: T.text, marginBottom: 12, lineHeight: 1.2 }}>{item.label}</div>
