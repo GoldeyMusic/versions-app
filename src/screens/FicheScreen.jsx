@@ -616,10 +616,10 @@ const FicheScreen = ({ config, analysisResult }) => {
       {ficheSummary && (
         <div style={{ background: T.amberGlow, border: `1px solid ${T.amberLine}`, borderLeft: `3px solid ${T.amber}`, borderRadius: 10, padding: "22px 28px", marginBottom: 16 }}>
           <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.amber, marginBottom: 12 }}>RÉSUMÉ</div>
-          <div style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85 }}>{ficheSummary}</div>
+          <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{ficheSummary}</div>
         </div>
       )}
-      <div style={{ fontFamily: T.mono, fontSize: 13, color: T.amber, marginBottom: 8, letterSpacing: 0.5 }}>
+      <div style={{ fontFamily: T.mono, fontSize: 15, color: T.amber, marginBottom: 8, letterSpacing: 0.5 }}>
         Voix, instruments, drums, espace, master — clique pour voir le détail
       </div>
       {(ficheElements || data.elements).map((el, idx) => {
@@ -635,8 +635,8 @@ const FicheScreen = ({ config, analysisResult }) => {
             style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "22px 28px", cursor: "pointer" }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontFamily: T.mono, fontSize: 13, letterSpacing: 2, color: openCat === catId ? T.amber : T.text }}>{el.cat}</span>
-              <span style={{ fontFamily: T.mono, fontSize: 13, color: T.muted }}>{el.items?.length || 0} points</span>
+              <span style={{ fontFamily: T.mono, fontSize: 15, letterSpacing: 2, color: openCat === catId ? T.amber : T.text }}>{el.cat}</span>
+              <span style={{ fontFamily: T.mono, fontSize: 15, color: T.muted }}>{el.items?.length || 0} points</span>
             </div>
             <span style={{
               fontFamily: T.mono, fontSize: 14, color: T.muted, transition: "transform .2s", display: "inline-block",
@@ -658,9 +658,9 @@ const FicheScreen = ({ config, analysisResult }) => {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                     {it.priority ? <PriorityBadge p={it.priority} /> : null}
-                    <span style={{ fontFamily: T.mono, fontSize: 14, color: T.text }}>{it.label}</span>
+                    <span style={{ fontFamily: T.mono, fontSize: 15, color: T.text }}>{it.label}</span>
                   </div>
-                  <div style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft, lineHeight: 1.85 }}>{it.detail}</div>
+                  <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{it.detail}</div>
                   {it.conf && (
                     <span style={{
                       fontFamily: T.mono, fontSize: 9, padding: "1px 7px", borderRadius: 3,
@@ -689,22 +689,22 @@ const FicheScreen = ({ config, analysisResult }) => {
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
             <PriorityBadge p={p.p} />
-            <span style={{ fontFamily: T.mono, fontSize: 14, color: T.text }}>{p.task}</span>
+            <span style={{ fontFamily: T.mono, fontSize: 15, color: T.text }}>{p.task}</span>
           </div>
           <div style={{
-            fontFamily: T.mono, fontSize: 13, color: T.amber, background: T.s2, border: `1px solid ${T.border}`,
+            fontFamily: T.mono, fontSize: 15, color: T.amber, background: T.s2, border: `1px solid ${T.border}`,
             borderRadius: 6, padding: "14px 18px", borderLeft: `3px solid ${T.amber}`, marginBottom: 14, lineHeight: 1.85
           }}>
             {p.daw}
           </div>
           <div style={{ display: "flex", gap: 12 }}>
             <div style={{
-              flex: 1, fontFamily: T.mono, fontSize: 13, color: T.textSoft, background: T.s2, borderRadius: 6, padding: "10px 14px"
+              flex: 1, fontFamily: T.mono, fontSize: 15, color: T.textSoft, background: T.s2, borderRadius: 6, padding: "10px 14px"
             }}>
               <span style={{ color: T.amber, fontWeight: 600 }}>Mesuré : </span>{p.metered || "N/A"}
             </div>
             <div style={{
-              flex: 1, fontFamily: T.mono, fontSize: 13, color: T.textSoft, background: T.s2, borderRadius: 6, padding: "10px 14px"
+              flex: 1, fontFamily: T.mono, fontSize: 15, color: T.textSoft, background: T.s2, borderRadius: 6, padding: "10px 14px"
             }}>
               <span style={{ color: T.green, fontWeight: 600 }}>Objectif : </span>{p.target || "N/A"}
             </div>
@@ -815,32 +815,32 @@ const FicheScreen = ({ config, analysisResult }) => {
             {listening.impression && (
               <div style={{ background: `rgba(87,204,153,0.06)`, border: `1px solid rgba(87,204,153,0.2)`, borderLeft: `3px solid ${T.green}`, borderRadius: 10, padding: "22px 28px" }}>
                 <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.green, marginBottom: 12 }}>IMPRESSION GÉNÉRALE</div>
-                <div style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85 }}>{listening.impression}</div>
+                <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{listening.impression}</div>
               </div>
             )}
             {listening.espace && (
               <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
                 <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.amber, marginBottom: 12 }}>ESPACE</div>
-                <div style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85 }}>{listening.espace}</div>
+                <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{listening.espace}</div>
               </div>
             )}
             {listening.dynamique && (
               <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
                 <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.amber, marginBottom: 12 }}>DYNAMIQUE</div>
-                <div style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85 }}>{listening.dynamique}</div>
+                <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{listening.dynamique}</div>
               </div>
             )}
             {listening.couleur && (
               <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
                 <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.amber, marginBottom: 12 }}>COULEUR SONORE</div>
-                <div style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85 }}>{listening.couleur}</div>
+                <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{listening.couleur}</div>
               </div>
             )}
             {listening.points_forts && (
               <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
                 <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.green, marginBottom: 12 }}>POINTS FORTS</div>
                 {listening.points_forts.map((p, i) => (
-                  <div key={i} style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85, display: "flex", gap: 10 }}>
+                  <div key={i} style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85, display: "flex", gap: 10 }}>
                     <span style={{ color: T.green }}>▸</span> {p}
                   </div>
                 ))}
@@ -850,7 +850,7 @@ const FicheScreen = ({ config, analysisResult }) => {
               <div style={{ background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "22px 28px" }}>
                 <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.orange, marginBottom: 12 }}>À TRAVAILLER</div>
                 {listening.a_travailler.map((p, i) => (
-                  <div key={i} style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85, display: "flex", gap: 10 }}>
+                  <div key={i} style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85, display: "flex", gap: 10 }}>
                     <span style={{ color: T.orange }}>▸</span> {p}
                   </div>
                 ))}
@@ -870,7 +870,7 @@ const FicheScreen = ({ config, analysisResult }) => {
         {/* ── COMPARAISON (only if ref) ── */}
         {tab === "comparaison" && hasRef && (
           <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-            <div style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft, letterSpacing: 0.5 }}>
+            <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, letterSpacing: 0.5 }}>
               Différences et similitudes avec la référence
             </div>
 
@@ -892,10 +892,10 @@ const FicheScreen = ({ config, analysisResult }) => {
                   display: "grid", gridTemplateColumns: "1fr 1fr 1fr 2fr", padding: "14px 22px",
                   borderBottom: i < 3 ? `1px solid ${T.border}` : "none", alignItems: "center"
                 }}>
-                  <span style={{ fontFamily: T.mono, fontSize: 13, color: T.muted }}>{m.label}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 14, color: T.amber }}>{m.mine}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft }}>{m.ref}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft, lineHeight: 1.6 }}>{m.note}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 15, color: T.muted }}>{m.label}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 15, color: T.amber }}>{m.mine}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft }}>{m.ref}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.6 }}>{m.note}</span>
                 </div>
               ))}
             </div>
@@ -912,8 +912,8 @@ const FicheScreen = ({ config, analysisResult }) => {
                 <div key={i} style={{
                   display: "flex", gap: 14, alignItems: "flex-start", background: T.s1, border: `1px solid ${T.border}`, borderRadius: 10, padding: "20px 24px"
                 }}>
-                  <span style={{ fontFamily: T.mono, fontSize: 14, color: T.amber, flexShrink: 0, marginTop: 1 }}>▸</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 14, color: T.textSoft, lineHeight: 1.85 }}>{o}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 15, color: T.amber, flexShrink: 0, marginTop: 1 }}>▸</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{o}</span>
                 </div>
               ))}
             </div>
@@ -930,7 +930,7 @@ const FicheScreen = ({ config, analysisResult }) => {
                   fontFamily: T.mono, fontSize: 11, padding: "3px 10px", borderRadius: 3,
                   background: `${c.color}15`, border: `1px solid ${c.color}44`, color: c.color, minWidth: 90, textAlign: "center"
                 }}>{c.label}</span>
-                <span style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft }}>{c.desc}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft }}>{c.desc}</span>
               </div>
             ))}
           </div>
@@ -944,7 +944,7 @@ const FicheScreen = ({ config, analysisResult }) => {
             <div style={{ fontFamily: T.mono, fontSize: 12, letterSpacing: 2, color: T.orange }}>LIMITES DE CETTE ANALYSE</div>
           </div>
           <div style={{ padding: "0 28px 22px", borderTop: `1px solid rgba(232,93,4,0.15)` }}>
-            <div style={{ fontFamily: T.mono, fontSize: 13, color: T.textSoft, lineHeight: 1.85, marginTop: 18 }}>
+            <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85, marginTop: 18 }}>
               Analyse basée sur l'empreinte audio du signal. Les conseils sont des directions, pas des vérités absolues — fais confiance à tes oreilles.
             </div>
           </div>
