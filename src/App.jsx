@@ -5,6 +5,7 @@ import API from "./constants/api";
 import { LangContext } from "./hooks/useLang";
 import useMobile from "./hooks/useMobile";
 import GlobalStyles from "./components/GlobalStyles";
+import MockupStyles from "./components/MockupStyles";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import BottomPlayer from "./components/BottomPlayer";
@@ -330,7 +331,8 @@ export default function VersionsApp() {
     <LangContext.Provider value={{ lang, s, setLang }}>
       <FontLink />
       <GlobalStyles />
-      <div className="dapp">
+      <MockupStyles />
+      <div className={showSidebar ? "app" : "dapp"}>
         {/* Desktop Sidebar */}
         {showSidebar && (
           <Sidebar
@@ -351,8 +353,8 @@ export default function VersionsApp() {
           />
         )}
 
-        {/* Main column (shifted right on desktop to make room for sidebar) */}
-        <div style={{ marginLeft: contentMarginLeft, display: "flex", flexDirection: "column", minHeight: "100vh", transition: "margin-left .2s" }}>
+        {/* Main column */}
+        <div style={showSidebar ? { display: "flex", flexDirection: "column", minWidth: 0 } : { marginLeft: contentMarginLeft, display: "flex", flexDirection: "column", minHeight: "100vh", transition: "margin-left .2s" }}>
           {/* Header — mobile only (desktop logo is in the sidebar) */}
           {isMobile && <Header onHome={goHome} />}
 
