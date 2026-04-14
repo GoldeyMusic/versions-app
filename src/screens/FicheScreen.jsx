@@ -325,12 +325,11 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
   };
   const panel = {
     position: 'relative',
-    width: 640, maxWidth: 'calc(100vw - 160px)', maxHeight: '88vh',
+    width: '100%', maxHeight: '88vh',
     overflowY: 'auto', background: '#141416', border: '1px solid #2a2a2e',
     borderRadius: 14, padding: '32px 36px',
     boxShadow: '0 24px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(245,176,86,.08)',
     animation: 'popin .22s ease', boxSizing: 'border-box',
-    overflow: 'visible',
   };
   const arrowBtn = (disabled, side) => ({
     position: 'absolute', top: '50%', transform: 'translateY(-50%)',
@@ -355,7 +354,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
         @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
       `}</style>
 
-      <div style={{ position: 'relative', flexShrink: 1 }} onClick={(e) => e.stopPropagation()}>
+      <div style={{ position: 'relative', width: 640, maxWidth: 'calc(100vw - 160px)', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
         {/* Flèche gauche — collée au bord du panneau */}
         <button
           style={arrowBtn(atFirst, 'left')}
