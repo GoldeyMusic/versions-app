@@ -103,14 +103,16 @@ export default function Sidebar({
       playerState.trackTitle === track.title &&
       playerState.versionName === v.name;
     if (isActive) {
-      // pause/resume current
+      // pause/resume current — ne touche pas à l'analyse affichée
       if (playerState.isPlaying) {
         onStop();
       } else {
         playVersion(track, v);
       }
     } else {
+      // Nouvelle version : lance la lecture ET affiche son analyse (si dispo)
       playVersion(track, v);
+      if (v.analysisResult) onSelectVersion(track, v);
     }
   };
 
