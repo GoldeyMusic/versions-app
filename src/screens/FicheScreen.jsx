@@ -432,7 +432,7 @@ const VersionChat = ({ config, analysisResult, collapsed, onToggleCollapse, expa
   if (collapsed) {
     return (
       <button onClick={onToggleCollapse} title="Ouvrir l'assistant" style={{
-        position: "fixed", right: 0, top: 0, bottom: 72, width: railWidth,
+        position: "fixed", right: 0, top: 0, bottom: 48, width: railWidth,
         background: T.s1, border: "none", borderLeft: `1px solid ${T.border}`,
         cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center",
         paddingTop: 20, gap: 16, zIndex: 100, color: T.muted,
@@ -451,7 +451,7 @@ const VersionChat = ({ config, analysisResult, collapsed, onToggleCollapse, expa
 
   return (
     <div style={{
-      position: "fixed", right: 0, top: 0, bottom: 72, width: expandedWidth,
+      position: "fixed", right: 0, top: 0, bottom: 48, width: expandedWidth,
       background: T.s1, borderLeft: `1px solid ${T.border}`,
       display: "flex", flexDirection: "column", zIndex: 100,
     }}>
