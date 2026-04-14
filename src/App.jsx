@@ -333,14 +333,15 @@ export default function VersionsApp() {
             playerState={playerState}
             user={user}
             onSignOut={signOut}
+            onGoHome={goHome}
             refreshKey={sidebarRefreshKey}
           />
         )}
 
         {/* Main column (shifted right on desktop to make room for sidebar) */}
         <div style={{ marginLeft: contentMarginLeft, display: "flex", flexDirection: "column", minHeight: "100vh", transition: "margin-left .2s" }}>
-          {/* Header */}
-          <Header onHome={goHome} />
+          {/* Header — mobile only (desktop logo is in the sidebar) */}
+          {isMobile && <Header onHome={goHome} />}
 
           {/* Ask Modal */}
           {askOpen && <AskModal onClose={() => setAskOpen(false)} />}
