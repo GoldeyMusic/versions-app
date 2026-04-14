@@ -51,7 +51,7 @@ export default function Sidebar({
   refreshKey,
 }) {
   const [tracks, setTracks] = useState([]);
-  const [expanded, setExpanded] = useState({}); // trackId → bool
+  const [expandedId, setExpandedId] = useState(null); // un seul titre ouvert à la fois
   const [menuOpen, setMenuOpen] = useState(null); // versionId
   const [trackMenuOpen, setTrackMenuOpen] = useState(null); // trackId
   const [renaming, setRenaming] = useState(null); // versionId
@@ -68,7 +68,7 @@ export default function Sidebar({
       // auto-expand the current track
       if (currentTrackTitle) {
         const cur = t.find((x) => x.title === currentTrackTitle);
-        if (cur) setExpanded((prev) => ({ ...prev, [cur.id]: true }));
+        if (cur) setExpandedId(cur.id);
       }
     });
     return () => {
@@ -77,7 +77,7 @@ export default function Sidebar({
   }, [refreshKey, currentTrackTitle]);
 
   const toggleExpand = (trackId) =>
-    setExpanded((prev) => ({ ...prev, [trackId]: !prev[trackId] }));
+    setExpandedId((prev) => (prev === trackId ? null : trackId));
 
   const isCurrentVersion = (track, v) =>
     currentTrackTitle === track.title && currentVersionName === v.name;
@@ -320,7 +320,7 @@ export default function Sidebar({
         )}
 
         {tracks.map((track) => {
-          const isOpen = !!expanded[track.id];
+          const isOpen = expandedId === track.id;
           const isCurrentTrack = currentTrackTitle === track.title;
           return (
             <div key={track.id} style={{ marginBottom: 2 }}>
