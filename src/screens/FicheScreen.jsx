@@ -419,7 +419,9 @@ const TrackTitle = ({ title }) => {
 const VersionsTimeline = ({ track, currentVersionName, stage, onSelectVersion, onAddVersion }) => {
   if (!track) return null;
   const versions = track.versions || [];
-  const current = versions.find((v) => v.name === currentVersionName) || versions[versions.length - 1] || null;
+  const currentIdx = versions.findIndex((v) => v.name === currentVersionName);
+  const current = currentIdx >= 0 ? versions[currentIdx] : versions[versions.length - 1] || null;
+  const currentVIdx = currentIdx >= 0 ? currentIdx : versions.length - 1;
   const greenColor = T.green || "#4ade80";
   return (
     <div
@@ -446,7 +448,9 @@ const VersionsTimeline = ({ track, currentVersionName, stage, onSelectVersion, o
             <span style={{ display: "block", fontSize: 9, color: T.muted, letterSpacing: 1.5 }}>
               {stage === "all_done" ? "Version actuelle" : stage === "fiche_done" ? "Écoute en cours" : "Analyse en cours"}
             </span>
-            <b style={{ color: T.amber, fontWeight: 500 }}>{current.name}</b>
+            <b style={{ color: T.amber, fontWeight: 500 }}>V{currentVIdx + 1}</b>
+            <span style={{ color: T.muted, margin: "0 6px" }}>·</span>
+            <b style={{ color: T.text, fontWeight: 500, textTransform: "uppercase" }}>{current.name}</b>
           </span>
         )}
       </div>
@@ -1054,18 +1058,12 @@ const FicheScreen = ({ config, analysisResult, onSelectVersion, onAddVersion }) 
   const diagnosticPanel = !fiche ? (
     <TabLoading label="Génération du diagnostic par l'IA…" />
   ) : (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {ficheSummary && (
-        <div style={{ background: T.amberGlow, border: `1px solid ${T.amberLine}`, borderLeft: `3px solid ${T.amber}`, borderRadius: 10, padding: "22px 28px", marginBottom: 16 }}>
-          <div style={{ fontFamily: T.mono, fontSize: 11, letterSpacing: 2, color: T.amber, marginBottom: 12 }}>RÉSUMÉ</div>
-          <div style={{ fontFamily: T.mono, fontSize: 15, color: T.textSoft, lineHeight: 1.85 }}>{ficheSummary}</div>
-        </div>
-      )}
-      <div style={{ fontFamily: T.mono, fontSize: 15, color: T.amber, marginBottom: 8, letterSpacing: 0.5 }}>
-        Voix, instruments, drums, espace, master — clique pour voir le détail
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {(ficheElements || data.elements).map((el, idx) => {
         const catId = el.id || el.cat || idx;
+        const scores = (el.items || []).map(it => it.score).filter(s => typeof s === "number");
+        const avg = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+        const count = el.items?.length || 0;
         return (
         <div key={catId} style={{
           background: T.s1,
@@ -1074,16 +1072,18 @@ const FicheScreen = ({ config, analysisResult, onSelectVersion, onAddVersion }) 
         }}>
           <div
             onClick={() => setOpenCat(openCat === catId ? null : catId)}
-            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "22px 28px", cursor: "pointer" }}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", cursor: "pointer" }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontFamily: T.mono, fontSize: 15, letterSpacing: 2, color: openCat === catId ? T.amber : T.text }}>{el.cat}</span>
-              <span style={{ fontFamily: T.mono, fontSize: 15, color: T.muted }}>{el.items?.length || 0} points</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{
+                fontFamily: T.mono, fontSize: 12, transition: "transform .2s", display: "inline-block",
+                color: T.muted, transform: openCat === catId ? "rotate(90deg)" : "none"
+              }}>›</span>
+              <span style={{ fontFamily: T.mono, fontSize: 12, letterSpacing: 2.5, color: openCat === catId ? T.amber : T.text, textTransform: "uppercase" }}>{el.cat}</span>
             </div>
-            <span style={{
-              fontFamily: T.mono, fontSize: 14, color: T.muted, transition: "transform .2s", display: "inline-block",
-              transform: openCat === catId ? "rotate(90deg)" : "none"
-            }}>›</span>
+            <span style={{ fontFamily: T.mono, fontSize: 11, color: T.muted, letterSpacing: 0.5 }}>
+              {count} élément{count > 1 ? "s" : ""}{avg != null ? ` · moy. ${avg.toFixed(1).replace(/\.0$/, "")}` : ""}
+            </span>
           </div>
           {openCat === catId && (
             <div style={{ borderTop: `1px solid ${T.border}` }}>
