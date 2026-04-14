@@ -93,7 +93,10 @@ export default function Sidebar({
       versionName: x.name,
     }));
     const idx = track.versions.findIndex((x) => x.id === v.id);
-    onPlay(track.title, v.name, playlist, idx >= 0 ? idx : 0, true);
+    // Garder la progression UNIQUEMENT si on reste sur le même titre.
+    // Changer de titre = redémarrer à 0.
+    const sameTrack = playerState && playerState.trackTitle === track.title;
+    onPlay(track.title, v.name, playlist, idx >= 0 ? idx : 0, !!sameTrack);
   };
 
   const togglePlayVersion = (track, v, e) => {
