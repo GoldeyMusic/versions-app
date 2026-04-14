@@ -97,6 +97,135 @@ function splitVerdict(text) {
   return { headline: text.trim(), rest: '' };
 }
 
+// ── AnalyzingState (page d'attente riche) ─────────────────
+
+const ANALYSIS_TIPS = [
+  "Une caisse claire qui manque d'air : essaie une reverb courte en send, pas en insert.",
+  "Mix qui manque de punch : compression parallèle sur la bus drums, ratio 4:1 avec beaucoup de blend.",
+  "Voix qui perce trop : un de-esser après le compresseur, pas avant.",
+  "Kick et basse qui se battent : sidechain léger sur la basse, attack rapide, release ~120ms.",
+  "Mix qui sonne plat : checke la phase entre overhead et close mics sur la batterie.",
+  "Graves brouillons : EQ soustractive entre 200 et 400 Hz sur les instruments du bas.",
+  "Manque de profondeur : varie les temps de reverb — courte devant, longue derrière.",
+  "Voix qui chante en avant : automation du volume note par note plutôt que compression forte.",
+  "Trop d'aigus agressifs : un shelf très doux à partir de 10 kHz, -1 à -2 dB suffit souvent.",
+  "Stéréo qui s'effondre en mono : checke le bus mix en mono dès le début, pas à la fin.",
+];
+
+function AnalyzingState({ stage }) {
+  const [tipIdx, setTipIdx] = useState(() => Math.floor(Math.random() * ANALYSIS_TIPS.length));
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTipIdx((i) => (i + 1) % ANALYSIS_TIPS.length);
+    }, 10000);
+    return () => clearInterval(id);
+  }, []);
+
+  const steps = [
+    { id: 'upload', label: 'Upload audio' },
+    { id: 'listening', label: 'Écoute qualitative' },
+    { id: 'fiche', label: 'Génération de la fiche' },
+  ];
+  // Derive progress from stage
+  const currentIdx =
+    stage === 'all_done' ? 3 :
+    stage === 'fiche_done' ? 2 :
+    stage === 'listening_done' ? 2 :
+    stage === 'listening_started' ? 1 :
+    1;
+
+  return (
+    <div style={{
+      maxWidth: 560, margin: '80px auto 0', padding: '0 60px',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 40,
+    }}>
+      {/* Titre + indicateur rotatif */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: '50%',
+          border: '2px solid #f5b05622',
+          borderTopColor: '#f5b056',
+          animation: 'spin 1s linear infinite',
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <h1 style={{
+          fontFamily: "'Instrument Serif', serif", fontSize: 32, fontWeight: 400,
+          color: '#ededed', margin: 0, textAlign: 'center', lineHeight: 1.2,
+        }}>Analyse en cours</h1>
+        <p style={{
+          fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#7c7c80',
+          margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6,
+        }}>
+          L'écoute qualitative et la fiche se génèrent en parallèle.<br/>
+          Compte 30 à 90 secondes selon la longueur du titre.
+        </p>
+      </div>
+
+      {/* Étapes */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+        {steps.map((s, i) => {
+          const done = i < currentIdx;
+          const active = i === currentIdx - 1 && currentIdx < 3;
+          const color = done ? '#7bd88f' : active ? '#f5b056' : '#5a5a5e';
+          return (
+            <div key={s.id} style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              padding: '10px 14px',
+              border: `1px solid ${active ? '#f5b05655' : '#2a2a2e'}`,
+              borderRadius: 8,
+              background: active ? '#f5b05611' : 'transparent',
+              transition: 'all .3s',
+            }}>
+              <span style={{
+                width: 18, height: 18, borderRadius: '50%',
+                background: done ? color : 'transparent',
+                border: `1.5px solid ${color}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                {done && (
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                    <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+                {active && (
+                  <span style={{
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: color, animation: 'pulse 1.2s ease-in-out infinite',
+                  }} />
+                )}
+              </span>
+              <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+              <span style={{
+                fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: 1,
+                textTransform: 'uppercase',
+                color: done ? '#c5c5c7' : active ? '#f5b056' : '#7c7c80',
+              }}>{s.label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Tip qui défile */}
+      <div style={{
+        width: '100%', padding: '20px 24px',
+        background: '#f5b05608', border: '1px solid #f5b05622', borderLeft: '3px solid #f5b056',
+        borderRadius: 10, minHeight: 80, display: 'flex', flexDirection: 'column', gap: 10,
+      }}>
+        <div style={{
+          fontFamily: 'JetBrains Mono, monospace', fontSize: 9, letterSpacing: 2,
+          color: '#f5b056', textTransform: 'uppercase',
+        }}>Le saviez-vous</div>
+        <div key={tipIdx} style={{
+          fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#c5c5c7',
+          lineHeight: 1.7, fontWeight: 300,
+          animation: 'fadein .4s ease',
+        }}>{ANALYSIS_TIPS[tipIdx]}</div>
+      </div>
+    </div>
+  );
+}
+
 // ── Timeline (sticky bar avec chips versions) ──────────────
 
 function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion }) {
@@ -372,6 +501,10 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
         )}
 
         <div className="page">
+          {!fiche ? (
+            <AnalyzingState stage={stage} />
+          ) : (
+          <>
           {/* 1 · Verdict */}
           <section className="verdict">
             {score != null && <ScoreRingBig value={score} />}
@@ -479,6 +612,8 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 );
               })}
             </>
+          )}
+          </>
           )}
         </div>
       </main>
