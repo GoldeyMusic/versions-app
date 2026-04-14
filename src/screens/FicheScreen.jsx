@@ -795,11 +795,6 @@ const FicheScreen = ({ config, analysisResult }) => {
       <div style={{ marginRight: chatOffset, transition: "margin-right .25s ease" }}>
       <div style={{ maxWidth: isDesktop ? 1380 : 780, margin: "0 auto", padding: isDesktop ? "40px 56px 100px" : "16px 16px 80px", animation: "fadeup .35s ease" }}>
 
-        {/* Waveform */}
-        <div style={{ marginBottom: 28 }}>
-          <WaveformZone zone={zone} onZoneChange={setZone} />
-        </div>
-
         {/* Top info */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
           <div>
