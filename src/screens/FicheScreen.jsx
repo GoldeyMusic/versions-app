@@ -619,6 +619,30 @@ const FicheScreen = ({ config, analysisResult }) => {
   const CHAT_WIDTH = 380;
   const CHAT_RAIL = 48;
 
+  // Tâches du plan marquées comme "résolu" — persisté en localStorage par version
+  const resolvedStorageKey = `resolved::${config?.title || ""}::${config?.version || ""}`;
+  const [resolvedTasks, setResolvedTasks] = useState(() => {
+    try {
+      const raw = localStorage.getItem(resolvedStorageKey);
+      return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch { return new Set(); }
+  });
+  // Recharge si on change de version
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(resolvedStorageKey);
+      setResolvedTasks(raw ? new Set(JSON.parse(raw)) : new Set());
+    } catch { setResolvedTasks(new Set()); }
+  }, [resolvedStorageKey]);
+  const toggleResolved = (taskKey) => {
+    setResolvedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(taskKey)) next.delete(taskKey); else next.add(taskKey);
+      try { localStorage.setItem(resolvedStorageKey, JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
+
   // Resync tab when layout flips (desktop ↔ mobile): diagnostic/plan ne sont plus
   // des onglets valides sur desktop, et "split" n'existe pas sur mobile.
   useEffect(() => {
@@ -769,21 +793,48 @@ const FicheScreen = ({ config, analysisResult }) => {
       {(fichePlan || data.plan).map((p, i) => {
         const isLinkedToHoveredItem = !!(hoverItemId && Array.isArray(p.linkedItemIds) && p.linkedItemIds.includes(hoverItemId));
         const isSelfHover = hoverTaskIdx === i;
+        const taskKey = `${i}::${(p.task || '').slice(0, 60)}`;
+        const isResolved = resolvedTasks.has(taskKey);
         return (
         <div
           key={i}
           onMouseEnter={() => setHoverTaskIdx(i)}
           onMouseLeave={() => setHoverTaskIdx(null)}
           style={{
-            background: isLinkedToHoveredItem ? T.amber + "14" : T.s1,
-            border: `1px solid ${isLinkedToHoveredItem || isSelfHover ? T.amber : (p.p === "HIGH" ? T.red + "33" : T.border)}`,
+            background: isResolved ? T.s2 : (isLinkedToHoveredItem ? T.amber + "14" : T.s1),
+            border: `1px solid ${isResolved ? (T.green || '#4ade80') + '44' : (isLinkedToHoveredItem || isSelfHover ? T.amber : (p.p === "HIGH" ? T.red + "33" : T.border))}`,
             borderRadius: 10, padding: "24px 28px",
-            transition: "background .15s, border-color .15s",
+            opacity: isResolved ? 0.55 : 1,
+            transition: "background .15s, border-color .15s, opacity .2s",
           }}>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleResolved(taskKey); }}
+              title={isResolved ? "Marquer comme à faire" : "Marquer comme résolu"}
+              style={{
+                width: 20, height: 20, borderRadius: 4,
+                background: isResolved ? (T.green || '#4ade80') : 'transparent',
+                border: `1.5px solid ${isResolved ? (T.green || '#4ade80') : T.border}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', padding: 0, flexShrink: 0,
+                transition: 'all .15s',
+              }}
+              onMouseEnter={(e) => { if (!isResolved) e.currentTarget.style.borderColor = (T.green || '#4ade80'); }}
+              onMouseLeave={(e) => { if (!isResolved) e.currentTarget.style.borderColor = T.border; }}
+            >
+              {isResolved && (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke={T.black} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </button>
             <PriorityBadge p={p.p} />
-            <span style={{ fontFamily: T.mono, fontSize: 15, color: T.text }}>{p.task}</span>
+            <span style={{
+              fontFamily: T.mono, fontSize: 15,
+              color: isResolved ? T.muted : T.text,
+              textDecoration: isResolved ? 'line-through' : 'none',
+            }}>{p.task}</span>
           </div>
           <div style={{
             fontFamily: T.mono, fontSize: 15, color: T.amber, background: T.s2, border: `1px solid ${T.border}`,
