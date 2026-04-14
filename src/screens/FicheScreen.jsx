@@ -830,29 +830,49 @@ const FicheScreen = ({ config, analysisResult }) => {
             </div>
             <div style={{
               flex: 1, fontFamily: T.mono, fontSize: 15, color: T.textSoft, background: T.s2, borderRadius: 6,
-              padding: "10px 14px", position: "relative", paddingRight: 44,
+              padding: "10px 14px", position: "relative", paddingBottom: 38,
             }}>
               <span style={{ color: T.green, fontWeight: 600 }}>Objectif : </span>{p.target || "N/A"}
               <button
                 onClick={(e) => { e.stopPropagation(); toggleResolved(taskKey); }}
-                title={isResolved ? "Marquer comme à faire" : "Marquer comme résolu"}
+                title={isResolved ? "Cliquer pour rouvrir cet objectif" : "Cliquer pour marquer cet objectif comme atteint"}
                 style={{
                   position: "absolute", right: 8, bottom: 8,
-                  width: 22, height: 22, borderRadius: 4,
-                  background: isResolved ? (T.green || '#4ade80') : 'transparent',
-                  border: `1.5px solid ${isResolved ? (T.green || '#4ade80') : T.border}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', padding: 0,
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  padding: '4px 8px 4px 6px', borderRadius: 5,
+                  background: isResolved ? (T.green || '#4ade80') + '1a' : 'transparent',
+                  border: `1px solid ${isResolved ? (T.green || '#4ade80') + '66' : T.border}`,
+                  cursor: 'pointer',
+                  fontFamily: T.mono, fontSize: 9, letterSpacing: 0.5, textTransform: 'uppercase',
+                  color: isResolved ? (T.green || '#4ade80') : T.muted,
                   transition: 'all .15s',
                 }}
-                onMouseEnter={(e) => { if (!isResolved) e.currentTarget.style.borderColor = (T.green || '#4ade80'); }}
-                onMouseLeave={(e) => { if (!isResolved) e.currentTarget.style.borderColor = T.border; }}
+                onMouseEnter={(e) => {
+                  if (!isResolved) {
+                    e.currentTarget.style.borderColor = (T.green || '#4ade80') + '88';
+                    e.currentTarget.style.color = (T.green || '#4ade80');
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isResolved) {
+                    e.currentTarget.style.borderColor = T.border;
+                    e.currentTarget.style.color = T.muted;
+                  }
+                }}
               >
-                {isResolved && (
-                  <svg width="13" height="13" viewBox="0 0 12 12" fill="none">
-                    <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke={T.black} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
+                <span style={{
+                  width: 14, height: 14, borderRadius: 3,
+                  background: isResolved ? (T.green || '#4ade80') : 'transparent',
+                  border: `1.5px solid ${isResolved ? (T.green || '#4ade80') : 'currentColor'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  {isResolved && (
+                    <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
+                      <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke={T.black} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </span>
+                {isResolved ? "Résolu" : "Marquer comme résolu"}
               </button>
             </div>
           </div>
