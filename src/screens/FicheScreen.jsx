@@ -331,21 +331,26 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
     boxShadow: '0 24px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(245,176,86,.08)',
     animation: 'popin .22s ease', boxSizing: 'border-box',
   };
-  const arrowBtn = (disabled, side) => ({
-    position: 'absolute', top: '50%', transform: 'translateY(-50%)',
-    [side]: -18,
-    width: 44, height: 44, borderRadius: '50%',
-    background: disabled ? 'rgba(20,20,22,.95)' : '#f5b056',
-    border: `1px solid ${disabled ? '#2a2a2e' : '#f5b056'}`,
-    color: disabled ? '#5a5a5e' : '#0c0c0d',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: disabled ? 'default' : 'pointer',
-    fontSize: 22, fontFamily: 'Inter, sans-serif', lineHeight: 1,
-    boxShadow: disabled ? 'none' : '0 6px 20px rgba(245,176,86,.35)',
-    transition: 'all .18s ease',
-    pointerEvents: disabled ? 'none' : 'auto',
-    zIndex: 5,
-  });
+  // Flèches positionnées en fixed par rapport au viewport :
+  // horizontalement à ±(320 + 4)px du centre (320 = moitié de 640, 4 = overlap sur bordure).
+  const arrowBtn = (disabled, side) => {
+    const offset = `calc(50% - 320px - 4px)`; // distance depuis le bord opposé du viewport
+    const base = {
+      position: 'fixed', top: '50%', transform: 'translateY(-50%)',
+      width: 44, height: 44, borderRadius: '50%',
+      background: disabled ? 'rgba(20,20,22,.95)' : '#f5b056',
+      border: `1px solid ${disabled ? '#2a2a2e' : '#f5b056'}`,
+      color: disabled ? '#5a5a5e' : '#0c0c0d',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      cursor: disabled ? 'default' : 'pointer',
+      fontSize: 22, fontFamily: 'Inter, sans-serif', lineHeight: 1,
+      boxShadow: disabled ? 'none' : '0 6px 20px rgba(245,176,86,.35)',
+      transition: 'all .18s ease',
+      pointerEvents: disabled ? 'none' : 'auto',
+      zIndex: 210,
+    };
+    return { ...base, [side]: offset };
+  };
 
   return (
     <div style={backdrop} onClick={onClose}>
@@ -354,21 +359,21 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
         @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
       `}</style>
 
-      <div style={{ position: 'relative', width: 640, maxWidth: 'calc(100vw - 160px)', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-        {/* Flèche gauche — collée au bord du panneau */}
-        <button
-          style={arrowBtn(atFirst, 'left')}
-          onClick={(e) => { e.stopPropagation(); if (!atFirst) onPrev(); }}
-          aria-label="Précédent"
-        >‹</button>
+      {/* Flèche gauche — fixed à gauche du panneau */}
+      <button
+        style={arrowBtn(atFirst, 'left')}
+        onClick={(e) => { e.stopPropagation(); if (!atFirst) onPrev(); }}
+        aria-label="Précédent"
+      >‹</button>
 
-        {/* Flèche droite — collée au bord du panneau */}
-        <button
-          style={arrowBtn(atLast, 'right')}
-          onClick={(e) => { e.stopPropagation(); if (!atLast) onNext(); }}
-          aria-label="Suivant"
-        >›</button>
+      {/* Flèche droite — fixed à droite du panneau */}
+      <button
+        style={arrowBtn(atLast, 'right')}
+        onClick={(e) => { e.stopPropagation(); if (!atLast) onNext(); }}
+        aria-label="Suivant"
+      >›</button>
 
+      <div style={{ width: 640, maxWidth: 'calc(100vw - 160px)', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
       <div style={panel}>
         {/* En-tête : compteur + close */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
