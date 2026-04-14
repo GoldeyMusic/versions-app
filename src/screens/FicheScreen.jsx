@@ -325,12 +325,12 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
   };
   const panel = {
     position: 'relative',
-    width: '100%', maxWidth: 640, maxHeight: '88vh',
+    width: 640, maxWidth: 'calc(100vw - 160px)', maxHeight: '88vh',
     overflowY: 'auto', background: '#141416', border: '1px solid #2a2a2e',
     borderRadius: 14, padding: '32px 36px',
     boxShadow: '0 24px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(245,176,86,.08)',
     animation: 'popin .22s ease', boxSizing: 'border-box',
-    flexShrink: 0,
+    flexShrink: 1, flexGrow: 0,
   };
   const arrowBtn = (disabled) => ({
     width: 48, height: 48, borderRadius: '50%',
