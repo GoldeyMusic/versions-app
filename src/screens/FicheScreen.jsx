@@ -75,14 +75,26 @@ function ScoreRingSmall({ value }) {
   );
 }
 
-// Met en italique ambre un segment de la phrase verdict si un "emphasis" est fourni.
-function renderVerdictHeadline(text, emphasis) {
+// Parse un texte avec des marqueurs *...* et retourne du JSX avec <em>
+// pour les passages italiques (mis en ambre via la règle CSS .verdict-text h1 em).
+function renderWithEmphasis(text) {
   if (!text) return null;
-  if (emphasis && text.includes(emphasis)) {
-    const [before, ...rest] = text.split(emphasis);
-    return <>{before}<em>{emphasis}</em>{rest.join(emphasis)}</>;
-  }
-  return text;
+  const parts = text.split(/(\*[^*]+\*)/g);
+  return parts.map((p, i) =>
+    p.startsWith('*') && p.endsWith('*') && p.length > 2
+      ? <em key={i}>{p.slice(1, -1)}</em>
+      : <span key={i}>{p}</span>
+  );
+}
+
+// Sépare un texte en (1ʳᵉ phrase → titre) + (reste → paragraphe).
+// Retourne { headline, rest } ; rest peut être vide.
+function splitVerdict(text) {
+  if (!text) return { headline: '', rest: '' };
+  // Découpe à la première ponctuation forte suivie d'espace (ou fin de texte).
+  const m = text.match(/^([^.!?]*[.!?])\s+(.*)$/s);
+  if (m) return { headline: m[1].trim(), rest: m[2].trim() };
+  return { headline: text.trim(), rest: '' };
 }
 
 // ── Timeline (sticky bar avec chips versions) ──────────────
@@ -370,14 +382,27 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           <section className="verdict">
             {score != null && <ScoreRingBig value={score} />}
             <div className="verdict-text">
-              {fiche?.verdict ? (
-                <h1>{renderVerdictHeadline(fiche.verdict, fiche.verdictEmphasis)}</h1>
-              ) : fiche?.summary ? (
-                <h1>{fiche.summary.split(/[.!?]\s/)[0] + '.'}</h1>
-              ) : (
-                <h1>Analyse en cours…</h1>
-              )}
-              {fiche?.summary && fiche?.verdict && <p>{fiche.summary}</p>}
+              {(() => {
+                // Priorité : verdict (phrase accrocheuse) pour le titre, summary pour le paragraphe.
+                // Si un seul des deux existe → on découpe en 1ʳᵉ phrase (titre) + reste (paragraphe).
+                const vText = fiche?.verdict || fiche?.summary || '';
+                if (!vText) return <h1>Analyse en cours…</h1>;
+                if (fiche?.verdict && fiche?.summary && fiche.verdict !== fiche.summary) {
+                  return (
+                    <>
+                      <h1>{renderWithEmphasis(fiche.verdict)}</h1>
+                      <p>{fiche.summary}</p>
+                    </>
+                  );
+                }
+                const { headline, rest } = splitVerdict(vText);
+                return (
+                  <>
+                    <h1>{renderWithEmphasis(headline)}</h1>
+                    {rest && <p>{rest}</p>}
+                  </>
+                );
+              })()}
             </div>
           </section>
 
