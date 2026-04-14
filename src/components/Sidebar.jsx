@@ -524,11 +524,11 @@ export default function Sidebar({
                         <button
                           onClick={(e) => togglePlayVersion(track, v, e)}
                           style={{
-                            width: 16,
-                            height: 16,
+                            width: 18,
+                            height: 18,
                             borderRadius: '50%',
-                            background: 'transparent',
-                            border: 'none',
+                            background: isActivePlayer ? `${T.amber}22` : 'transparent',
+                            border: `1px solid ${isActivePlayer ? `${T.amber}66` : T.border}`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -536,20 +536,29 @@ export default function Sidebar({
                             flexShrink: 0,
                             padding: 0,
                             color: isActivePlayer ? T.amber : T.muted,
-                            opacity: isActivePlayer ? 1 : 0.6,
-                            transition: 'opacity .15s, color .15s',
+                            transition: 'all .15s',
                           }}
-                          onMouseEnter={(e) => { e.currentTarget.style.opacity = 1; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.opacity = isActivePlayer ? 1 : 0.6; }}
+                          onMouseEnter={(e) => {
+                            if (!isActivePlayer) {
+                              e.currentTarget.style.borderColor = `${T.amber}66`;
+                              e.currentTarget.style.color = T.amber;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isActivePlayer) {
+                              e.currentTarget.style.borderColor = T.border;
+                              e.currentTarget.style.color = T.muted;
+                            }
+                          }}
                         >
                           {isPlaying ? (
-                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
-                              <rect x="1" y="1" width="2" height="6" rx="0.5" />
-                              <rect x="5" y="1" width="2" height="6" rx="0.5" />
+                            <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor">
+                              <rect x="1.5" y="1" width="2" height="7" rx="0.5" />
+                              <rect x="5.5" y="1" width="2" height="7" rx="0.5" />
                             </svg>
                           ) : (
-                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
-                              <polygon points="1,1 7,4 1,7" />
+                            <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor">
+                              <polygon points="2,1.5 7.5,4.5 2,7.5" />
                             </svg>
                           )}
                         </button>
