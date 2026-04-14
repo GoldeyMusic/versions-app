@@ -312,7 +312,7 @@ function VersionChat({ config, analysisResult, open, onClose }) {
 
 export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion }) {
   const [tracks, setTracks] = useState([]);
-  const [openCats, setOpenCats] = useState(new Set([0])); // 1ʳᵉ catégorie ouverte par défaut
+  const [openCat, setOpenCat] = useState(0); // un seul accordéon ouvert à la fois
   const [focusIdx, setFocusIdx] = useState(null);
   const [resolved, setResolved] = useState(new Set());
   const [chatOpen, setChatOpen] = useState(false);
@@ -348,13 +348,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   const elements = fiche?.elements || [];
   const score = typeof fiche?.globalScore === 'number' ? fiche.globalScore : null;
 
-  const toggleCat = (i) => {
-    setOpenCats((prev) => {
-      const next = new Set(prev);
-      if (next.has(i)) next.delete(i); else next.add(i);
-      return next;
-    });
-  };
+  const toggleCat = (i) => setOpenCat((prev) => (prev === i ? null : i));
 
   const toggleResolved = (key) => {
     setResolved((prev) => {
@@ -448,7 +442,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 <span className="count">{elements.length} catégorie{elements.length > 1 ? 's' : ''}</span>
               </div>
               {elements.map((el, idx) => {
-                const open = openCats.has(idx);
+                const open = openCat === idx;
                 const count = el.items?.length || 0;
                 const scores = (el.items || []).map((it) => it.score).filter((s) => typeof s === 'number');
                 const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
