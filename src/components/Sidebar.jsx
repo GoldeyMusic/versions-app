@@ -760,38 +760,6 @@ export default function Sidebar({
         }}
       >
         <button
-          onClick={onAskOpen}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            width: '100%',
-            padding: '8px 10px',
-            background: 'transparent',
-            border: `1px solid ${T.border}`,
-            borderRadius: 8,
-            color: T.text,
-            fontFamily: T.mono,
-            fontSize: 10,
-            letterSpacing: 0.5,
-            cursor: 'pointer',
-            textTransform: 'uppercase',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = T.amber;
-            e.currentTarget.style.color = T.amber;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = T.border;
-            e.currentTarget.style.color = T.text;
-          }}
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M2 3h8v5H4L2 10V3z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-          </svg>
-          Demander à Versions
-        </button>
-        <button
           onClick={onGoReglages}
           style={{
             display: 'flex',
