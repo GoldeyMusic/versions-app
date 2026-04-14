@@ -524,23 +524,33 @@ export default function Sidebar({
                         <button
                           onClick={(e) => togglePlayVersion(track, v, e)}
                           style={{
-                            width: 20,
-                            height: 20,
+                            width: 16,
+                            height: 16,
                             borderRadius: '50%',
-                            background: isActivePlayer ? T.amber : T.s2,
-                            border: `1px solid ${isActivePlayer ? T.amber : T.border}`,
+                            background: 'transparent',
+                            border: 'none',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             cursor: 'pointer',
                             flexShrink: 0,
                             padding: 0,
+                            color: isActivePlayer ? T.amber : T.muted,
+                            opacity: isActivePlayer ? 1 : 0.6,
+                            transition: 'opacity .15s, color .15s',
                           }}
+                          onMouseEnter={(e) => { e.currentTarget.style.opacity = 1; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.opacity = isActivePlayer ? 1 : 0.6; }}
                         >
                           {isPlaying ? (
-                            <IconPause c={T.black} s={9} />
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+                              <rect x="1" y="1" width="2" height="6" rx="0.5" />
+                              <rect x="5" y="1" width="2" height="6" rx="0.5" />
+                            </svg>
                           ) : (
-                            <IconPlay c={isActivePlayer ? T.black : T.muted} s={9} />
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+                              <polygon points="1,1 7,4 1,7" />
+                            </svg>
                           )}
                         </button>
 
