@@ -54,8 +54,9 @@ export default function Sidebar({
 
   return (
     <aside className="sidebar">
-      <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
-        VER<span className="accent">si</span>ONS
+      <div className="brand" onClick={onGoHome} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+        <img src="/logo-versions.svg" alt="" style={{ height: 22, width: "auto", display: "block" }} />
+        <span>VER<span className="accent">si</span>ONS</span>
       </div>
 
       <div className="user-pill">
