@@ -59,7 +59,6 @@ export async function loadTracks() {
  * then inserts or updates the version.
  */
 export async function saveAnalysis(config, analysisResult) {
-  console.error('💾 SAVE:', { cfgHash: config?.audioHash, arHash: analysisResult?.audioHash });
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     console.warn('[storage] saveAnalysis: no user');

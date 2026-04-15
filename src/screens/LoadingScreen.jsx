@@ -51,13 +51,10 @@ const LoadingScreen = ({ config, onDone }) => {
       try {
         setPhase(0);
         sentFadr.current = false;
-        alert('RUN: hasFile=' + !!config?.file + ' title=' + config?.title);
-
         // Hash + check doublon (évite une analyse Gemini inutile)
         if (config.file) {
           const audioHash = await hashAudioFile(config.file);
           config.audioHash = audioHash;
-          console.error('🔑 HASH CALCULÉ:', audioHash);
           const dup = await findDuplicateAudio(config.title || '', audioHash);
           if (dup) {
             throw new Error(`Fichier identique à la version "${dup.name}" déjà uploadée pour ce titre. Importe un rendu différent.`);
