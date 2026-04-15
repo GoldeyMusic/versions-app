@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { renameVersion, deleteVersion, setMainVersion } from '../lib/storage';
 
 export default function VChip({ track, version, idx, isActive, score, onSelect, onRefresh, onDeleted }) {
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const menuRef = useRef(null);
   const btnRef = useRef(null);
 
@@ -22,6 +24,15 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
     };
   }, [menuOpen]);
 
+  const openMenu = (e) => {
+    e.stopPropagation();
+    if (!menuOpen && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 6, left: Math.max(8, r.right - 200) });
+    }
+    setMenuOpen((o) => !o);
+  };
+
   const handleRename = async (e) => {
     e.stopPropagation();
     setMenuOpen(false);
@@ -34,7 +45,7 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
   const handleDelete = async (e) => {
     e.stopPropagation();
     setMenuOpen(false);
-    if (!window.confirm(`Supprimer la version "${version.name}" ? Cette action est définitive.`)) return;
+    if (!window.confirm(`Supprimer la version "${version.name}" ? Cette action est definitive.`)) return;
     try {
       await deleteVersion(track.id, version.id);
       onDeleted?.(version);
@@ -65,34 +76,36 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
         {typeof score === 'number' && <span className="pct">%</span>}
       </span>
       {showDots && (
-        <span ref={btnRef} role="button" tabIndex={0} onClick={(e) => { alert("CLICK!"); e.stopPropagation(); setMenuOpen((o) => !o); }}
+        <span ref={btnRef} role="button" tabIndex={0}
+          onClick={openMenu}
           onMouseDown={(e) => e.stopPropagation()}
           title="Options de la version"
           style={{
             position: 'absolute', top: 2, right: 2, zIndex: 30,
             width: 22, height: 22, borderRadius: 4,
             background: menuOpen ? 'rgba(245,176,86,.18)' : 'rgba(20,20,22,.85)',
-            border: 'none', color: '#c5c5c7', cursor: 'pointer',
-            padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, lineHeight: 1,
+            color: '#c5c5c7', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, lineHeight: 1, userSelect: 'none',
           }}
         >⋯</span>
       )}
-      {menuOpen && (
+      {menuOpen && createPortal(
         <div
           ref={menuRef}
           onClick={(e) => e.stopPropagation()}
           style={{
-            position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 60,
+            position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999,
             minWidth: 200, background: '#141416', border: '1px solid #2a2a2e',
             borderRadius: 10, padding: 6, boxShadow: '0 12px 32px rgba(0,0,0,.55)',
           }}
         >
           <Item label="Renommer" onClick={handleRename} />
-          {!version.main && <Item label="Définir comme principale" onClick={handleSetMain} />}
+          {!version.main && <Item label="Definir comme principale" onClick={handleSetMain} />}
           <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
           <Item label="Supprimer la version" danger onClick={handleDelete} />
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
