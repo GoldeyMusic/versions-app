@@ -141,7 +141,7 @@ export default function MockupStyles() {
   .versions-block {
     display: flex; align-items: center; gap: 10px;
     margin-left: auto;
-    padding: 6px 10px 6px 14px;
+    padding: 14px 10px 8px 14px;
     border: 1px solid var(--border);
     border-radius: 12px;
     background: rgba(255,255,255,0.02);
