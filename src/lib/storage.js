@@ -108,7 +108,7 @@ export async function saveAnalysis(config, analysisResult) {
         date: formatDate(),
         is_main: true,
         analysis_result: analysisResult,
-        audio_hash: config?.audioHash || null,
+        audio_hash: config?.audioHash || analysisResult?.audioHash || null,
       })
       .eq('id', existing.id);
     if (error) console.warn('[storage] version update error:', error.message);
@@ -122,7 +122,7 @@ export async function saveAnalysis(config, analysisResult) {
         date: formatDate(),
         is_main: true,
         analysis_result: analysisResult,
-        audio_hash: config?.audioHash || null,
+        audio_hash: config?.audioHash || analysisResult?.audioHash || null,
       })
       .select()
       .single();

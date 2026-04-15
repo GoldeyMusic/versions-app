@@ -168,6 +168,8 @@ export default function VersionsApp() {
     // Called with partial or complete results — always go to fiche
     const merged = { ...(analysisResult || {}), ...result };
     setAnalysisResult(merged);
+    const cfgWithHash = result.audioHash ? { ...config, audioHash: result.audioHash } : config;
+    if (result.audioHash) setConfig(cfgWithHash);
     if (screen !== "fiche") {
       setScreen("fiche");
       // Start background polling if not complete yet
@@ -176,7 +178,7 @@ export default function VersionsApp() {
       } else if (result._stage === "all_done" && !savedRef.current) {
         // Analysis completed in one shot — save immediately
         savedRef.current = true;
-        saveAnalysis(config, merged)
+        saveAnalysis(cfgWithHash, merged)
           .then(() => setSidebarRefreshKey(k => k + 1))
           .catch(e => console.warn("saveAnalysis failed:", e));
       }

@@ -102,6 +102,7 @@ const LoadingScreen = ({ config, onDone }) => {
               fiche: job.fiche || null,
               listening: job.listening || null,
               meta: job.meta,
+              audioHash: config.audioHash,
               _jobId: jobId,
               _stage: job.stage,
             });
@@ -112,6 +113,7 @@ const LoadingScreen = ({ config, onDone }) => {
               fiche: job.fiche,
               listening: job.listening || null,
               meta: job.meta,
+              audioHash: config.audioHash,
               _jobId: jobId,
               _stage: "all_done",
             });
