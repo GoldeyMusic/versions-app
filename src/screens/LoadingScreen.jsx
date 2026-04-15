@@ -56,6 +56,7 @@ const LoadingScreen = ({ config, onDone }) => {
         if (config.file) {
           const audioHash = await hashAudioFile(config.file);
           config.audioHash = audioHash;
+          console.error('🔑 HASH CALCULÉ:', audioHash);
           const dup = await findDuplicateAudio(config.title || '', audioHash);
           if (dup) {
             throw new Error(`Fichier identique à la version "${dup.name}" déjà uploadée pour ce titre. Importe un rendu différent.`);
