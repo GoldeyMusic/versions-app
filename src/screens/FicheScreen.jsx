@@ -475,7 +475,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
             ref={scrollRef}
             className="versions-row"
             style={{
-              overflowX: 'auto', overflowY: 'hidden',
+              overflowX: 'auto', overflowY: 'visible',
               scrollbarWidth: 'none', msOverflowStyle: 'none',
               flexWrap: 'nowrap', maxWidth: '100%',
             }}
