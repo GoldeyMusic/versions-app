@@ -19,7 +19,7 @@ const TIPS = [
   "La fatigue auditive est invisible — quand tu doutes d'un choix, c'est souvent le signe qu'il faut pauser.",
 ];
 
-const LoadingScreen = ({ config, onDone }) => {
+const LoadingScreen = ({ config, onDone, onBackToInput }) => {
   const [phase, setPhase] = useState(0);
   const [error, setError] = useState(null);
   const jobIdRef = useRef(null);
