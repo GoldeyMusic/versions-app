@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { getOrCreateComparison } from '../lib/storage';
 
 export default function CompareButton({ track, currentVersion }) {
@@ -106,7 +107,7 @@ export default function CompareButton({ track, currentVersion }) {
         )}
       </div>
 
-      {(loading || result || error) && (
+      {(loading || result || error) && createPortal((
         <div
           onClick={(e) => { if (e.target === e.currentTarget) close(); }}
           style={{
@@ -156,7 +157,7 @@ export default function CompareButton({ track, currentVersion }) {
             )}
           </div>
         </div>
-      )}
+      ), document.body)}
     </>
   );
 }
