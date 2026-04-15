@@ -168,8 +168,8 @@ function ListeningSection({ listening }) {
   );
   const P = ({ children }) => (
     <p style={{
-      margin: 0, fontFamily: 'Inter, sans-serif',
-      fontSize: 17, lineHeight: 1.6, fontWeight: 400, color: '#ededed',
+      margin: 0, fontFamily: 'var(--body)',
+      fontSize: 15, lineHeight: 1.7, fontWeight: 300, color: 'var(--soft)',
     }}>{renderWithEmphasis(children)}</p>
   );
   const Bullet = ({ children }) => (
