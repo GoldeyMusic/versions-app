@@ -358,7 +358,7 @@ function TrackMenu({ track, onRename, onDelete, onExport }) {
           border: `1px solid ${open ? '#f5b05655' : '#2a2a2e'}`,
           color: '#7c7c80', cursor: 'pointer', padding: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 16, letterSpacing: 1, lineHeight: 1, marginLeft: 10,
+          fontSize: 16, letterSpacing: 1, lineHeight: 1,
         }}
       >⋯</button>
       {open && (
@@ -463,12 +463,12 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
         {current && (
           <span className="vsub">
             <span className="vlabel">{stageLabel}</span>
-            <b>V{currentVIdx + 1}</b> · {current.name}
+            <b>{current.name}</b>
           </span>
         )}
       </div>
 
-      <div className="versions-block" style={{ minWidth: 0, flex: 1 }}>
+      <div className="versions-block" style={{ minWidth: 0, maxWidth: "55%" }}>
         <span className="versions-label">Versions</span>
         <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
           <div
@@ -796,7 +796,16 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     return () => window.removeEventListener('keydown', h);
   }, [focusIdx, chatOpen]);
 
-  const currentTrack = tracks.find((t) => t.title === config?.title) || null;
+  const dbTrack = tracks.find((t) => t.title === config?.title) || null;
+  const currentTrack = dbTrack || (config?.title ? {
+    id: "__pending__",
+    title: config.title,
+    versions: [{
+      id: "__pending_v__",
+      name: config.version || "V1",
+      analysisResult: analysisResult || null,
+    }],
+  } : null);
   const fiche = analysisResult?.fiche || null;
   const listening = analysisResult?.listening || null;
   const stage = analysisResult?._stage || 'idle';
