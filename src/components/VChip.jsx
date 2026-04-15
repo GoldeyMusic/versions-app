@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { confirmDialog } from '../lib/confirm';
+import { confirmDialog } from '../lib/confirm.jsx';
 import { renameVersion, deleteVersion } from '../lib/storage';
 
 export default function VChip({ track, version, idx, isActive, score, onSelect, onRefresh, onDeleted }) {

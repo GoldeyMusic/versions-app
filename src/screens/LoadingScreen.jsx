@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import T from '../constants/theme';
 import API from '../constants/api';
-import { confirmDialog } from '../lib/confirm';
+import { confirmDialog } from '../lib/confirm.jsx';
 import { hashAudioFile, findDuplicateAudio, loadTracks } from "../lib/storage";
 
 const TIPS = [
