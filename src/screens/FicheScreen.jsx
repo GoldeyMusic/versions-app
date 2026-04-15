@@ -134,6 +134,7 @@ function parseListening(text) {
 }
 
 function ListeningSection({ listening }) {
+  const [expanded, setExpanded] = useState(false);
   if (!listening) return null;
 
   let text = null;
@@ -151,6 +152,8 @@ function ListeningSection({ listening }) {
 
   const hasStructured = impression || points.length || aTravailler.length || espace || dynamique || potentiel;
   if (!hasStructured && !(legacySections && legacySections.length)) return null;
+
+  const hasMore = points.length || aTravailler.length || espace || dynamique || potentiel;
 
   const Block = ({ title, children }) => (
     <div>
@@ -196,11 +199,30 @@ function ListeningSection({ listening }) {
         {hasStructured ? (
           <>
             {impression && <Block title="Impression"><P>{impression}</P></Block>}
-            {points.length > 0 && <Block title="Points forts">{points.map((p, i) => <Bullet key={i}>{p}</Bullet>)}</Block>}
-            {aTravailler.length > 0 && <Block title="À travailler">{aTravailler.map((p, i) => <Bullet key={i}>{p}</Bullet>)}</Block>}
-            {espace && <Block title="Espace"><P>{espace}</P></Block>}
-            {dynamique && <Block title="Dynamique"><P>{dynamique}</P></Block>}
-            {potentiel && <Block title="Potentiel"><P>{potentiel}</P></Block>}
+            {expanded && (
+              <>
+                {points.length > 0 && <Block title="Points forts">{points.map((p, i) => <Bullet key={i}>{p}</Bullet>)}</Block>}
+                {aTravailler.length > 0 && <Block title="À travailler">{aTravailler.map((p, i) => <Bullet key={i}>{p}</Bullet>)}</Block>}
+                {espace && <Block title="Espace"><P>{espace}</P></Block>}
+                {dynamique && <Block title="Dynamique"><P>{dynamique}</P></Block>}
+                {potentiel && <Block title="Potentiel"><P>{potentiel}</P></Block>}
+              </>
+            )}
+            {hasMore && (
+              <button
+                onClick={() => setExpanded((v) => !v)}
+                style={{
+                  alignSelf: 'flex-start', marginTop: -6,
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  color: '#f5b056', fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: 10, letterSpacing: 2, fontWeight: 500,
+                  textTransform: 'uppercase', padding: '6px 0',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                {expanded ? '— Réduire' : '+ Voir l\u2019écoute complète'}
+              </button>
+            )}
           </>
         ) : (
           legacySections.map((sec, i) => (
