@@ -65,7 +65,7 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
         {typeof score === 'number' && <span className="pct">%</span>}
       </span>
       {showDots && (
-        <span ref={btnRef} role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
+        <span ref={btnRef} role="button" tabIndex={0} onClick={(e) => { alert("CLICK!"); e.stopPropagation(); setMenuOpen((o) => !o); }}
           onMouseDown={(e) => e.stopPropagation()}
           title="Options de la version"
           style={{
