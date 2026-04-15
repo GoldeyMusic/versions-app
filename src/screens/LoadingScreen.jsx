@@ -84,6 +84,18 @@ const LoadingScreen = ({ config, onDone }) => {
           }
         } catch {}
 
+        // Check durée vs précédente — alerte si autre titre probable
+        console.log("[DBG-DUR] dur=", durationSeconds, "prev.duration_seconds=", previousFiche?.duration_seconds);
+        if (durationSeconds && previousFiche?.duration_seconds) {
+          const prev = previousFiche.duration_seconds;
+          const diff = Math.abs(durationSeconds - prev) / prev;
+          if (diff > 0.10) {
+            const fmt = (s) => Math.floor(s/60) + ":" + String(Math.round(s%60)).padStart(2,"0");
+            const ok = window.confirm("Cette version dure " + fmt(durationSeconds) + " alors que la version precedente dure " + fmt(prev) + " (ecart " + Math.round(diff*100) + "%). Es-tu sur que c est une version du meme titre et pas un autre titre ?");
+            if (!ok) throw new Error("Upload annule : titre different suspecte");
+          }
+        }
+
         // Build FormData
         const formData = new FormData();
         if (config.file) formData.append("file", config.file);
