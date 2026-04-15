@@ -458,7 +458,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
         {current && (
           <span className="vsub">
             <span className="vlabel">{stageLabel}</span>
-            <b>{current.name}</b>
+            <b>{currentVersionName || current.name}</b>
           </span>
         )}
       </div>
