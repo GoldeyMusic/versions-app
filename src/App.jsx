@@ -232,7 +232,7 @@ export default function VersionsApp() {
       case "input":
         return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialTitle={prefillTitle} />;
       case "loading":
-        return <LoadingScreen config={config} onDone={handleLoaded} onBackToInput={() => setScreen("input")} />;
+        return <LoadingScreen config={config} onDone={handleLoaded} onBackToInput={handleSidebarNewTrack} />;
       case "fiche":
         return (
           <FicheScreen
