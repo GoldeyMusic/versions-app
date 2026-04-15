@@ -54,9 +54,9 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
   return (
     <div
       className={`vchip${isActive ? ' active current-badge' : ''}`}
-      onClick={showDots && () => onSelect?.(track, version)}
-      onMouseEnter={showDots && () => setHover(true)}
-      onMouseLeave={showDots && () => setHover(false)}
+      onClick={() => onSelect?.(track, version)}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{ position: 'relative' }}
     >
       <span className="vname">V{idx + 1}</span>
@@ -67,22 +67,23 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
       {showDots && (
         <button
           ref={btnRef}
-          onClick={showDots && (e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
+          onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
+          onMouseDown={(e) => e.stopPropagation()}
           title="Options de la version"
           style={{
-            position: 'absolute', top: 2, right: 2,
-            width: 22, height: 22, borderRadius: 4, zIndex: 20,
-            background: menuOpen ? 'rgba(245,176,86,.18)' : 'rgba(20,20,22,.7)',
+            position: 'absolute', top: 2, right: 2, zIndex: 30,
+            width: 22, height: 22, borderRadius: 4,
+            background: menuOpen ? 'rgba(245,176,86,.18)' : 'rgba(20,20,22,.85)',
             border: 'none', color: '#c5c5c7', cursor: 'pointer',
             padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 11, lineHeight: 1,
+            fontSize: 13, lineHeight: 1,
           }}
         >⋯</button>
       )}
       {menuOpen && (
         <div
           ref={menuRef}
-          onClick={showDots && (e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
           style={{
             position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 60,
             minWidth: 200, background: '#141416', border: '1px solid #2a2a2e',
@@ -110,8 +111,8 @@ function Item({ label, onClick, danger }) {
         fontFamily: 'Inter, sans-serif', fontSize: 12,
         color: danger ? '#ef6b6b' : '#c5c5c7',
       }}
-      onMouseEnter={showDots && (e) => { e.currentTarget.style.background = danger ? 'rgba(239,107,107,.08)' : 'rgba(245,176,86,.06)'; }}
-      onMouseLeave={showDots && (e) => { e.currentTarget.style.background = 'transparent'; }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = danger ? 'rgba(239,107,107,.08)' : 'rgba(245,176,86,.06)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
     >{label}</button>
   );
 }
