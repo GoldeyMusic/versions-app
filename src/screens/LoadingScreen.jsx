@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import T from '../constants/theme';
 import API from '../constants/api';
-import { hashAudioFile, findDuplicateAudio } from '../lib/storage';
+import { hashAudioFile, findDuplicateAudio, loadTracks } from "../lib/storage";
 
 const TIPS = [
   "Faire des pauses régulières permet de conserver une écoute attentive et objective.",
@@ -61,6 +61,17 @@ const LoadingScreen = ({ config, onDone }) => {
           }
         }
 
+        // Récupérer la fiche de la version précédente du même titre (calibrage)
+        let previousFiche = null;
+        try {
+          const allTracks = await loadTracks();
+          const sameTitle = allTracks.find((t) => t.title === config.title);
+          if (sameTitle?.versions?.length) {
+            const last = sameTitle.versions[sameTitle.versions.length - 1];
+            previousFiche = last?.analysisResult?.fiche || null;
+          }
+        } catch {}
+
         // Build FormData
         const formData = new FormData();
         if (config.file) formData.append("file", config.file);
@@ -68,6 +79,7 @@ const LoadingScreen = ({ config, onDone }) => {
         formData.append("daw", config.daw || "Logic Pro");
         formData.append("title", config.title || "Titre inconnu");
         formData.append("version", config.version || "v1");
+        if (previousFiche) formData.append("previousFiche", JSON.stringify(previousFiche));
 
         // Start the analysis job
         setPhase(1);
