@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import T from '../constants/theme';
 import API from '../constants/api';
+import { hashAudioFile, findDuplicateAudio } from '../lib/storage';
 
 const TIPS = [
   "Faire des pauses régulières permet de conserver une écoute attentive et objective.",
@@ -50,6 +51,16 @@ const LoadingScreen = ({ config, onDone }) => {
       try {
         setPhase(0);
         sentFadr.current = false;
+
+        // Hash + check doublon (évite une analyse Gemini inutile)
+        if (config.file) {
+          const audioHash = await hashAudioFile(config.file);
+          config.audioHash = audioHash;
+          const dup = await findDuplicateAudio(config.title || '', audioHash);
+          if (dup) {
+            throw new Error(`Fichier identique à la version "${dup.name}" déjà uploadée pour ce titre. Importe un rendu différent.`);
+          }
+        }
 
         // Build FormData
         const formData = new FormData();

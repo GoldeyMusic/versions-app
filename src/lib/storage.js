@@ -108,6 +108,7 @@ export async function saveAnalysis(config, analysisResult) {
         date: formatDate(),
         is_main: true,
         analysis_result: analysisResult,
+        audio_hash: config?.audioHash || null,
       })
       .eq('id', existing.id);
     if (error) console.warn('[storage] version update error:', error.message);
@@ -121,6 +122,7 @@ export async function saveAnalysis(config, analysisResult) {
         date: formatDate(),
         is_main: true,
         analysis_result: analysisResult,
+        audio_hash: config?.audioHash || null,
       })
       .select()
       .single();
@@ -208,4 +210,31 @@ export async function deleteTrack(trackId) {
   const { error } = await supabase.from('tracks').delete().eq('id', trackId);
   if (error) console.warn('[storage] deleteTrack error:', error.message);
   return loadTracks();
+}
+
+/** SHA-256 du fichier audio (Web Crypto), en hex minuscule. */
+export async function hashAudioFile(file) {
+  const buf = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Cherche un fichier audio identique déjà uploadé pour ce titre. */
+export async function findDuplicateAudio(title, audioHash) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: tracks } = await supabase
+    .from('tracks')
+    .select('id, title')
+    .eq('user_id', user.id)
+    .ilike('title', title);
+  const track = tracks?.find(t => t.title.toLowerCase() === title.toLowerCase());
+  if (!track) return null;
+  const { data: versions } = await supabase
+    .from('versions')
+    .select('id, name')
+    .eq('track_id', track.id)
+    .eq('audio_hash', audioHash)
+    .limit(1);
+  return versions?.[0] || null;
 }
