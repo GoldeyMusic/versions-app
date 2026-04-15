@@ -184,7 +184,7 @@ export default function MockupStyles() {
     font-weight: 400;
   }
   .vchip.current-badge::after {
-    content: 'EN COURS';
+    content: "EN COURS"; pointer-events: none;
     position: absolute;
     top: -7px; left: 50%; transform: translateX(-50%);
     font-family: var(--mono); font-size: 7px; letter-spacing: 1.5px;
