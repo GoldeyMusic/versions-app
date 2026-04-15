@@ -134,23 +134,58 @@ function parseListening(text) {
 }
 
 function ListeningSection({ listening }) {
-  // Accepte string OU objet { text: "..." } OU { sections: [...] }
+  if (!listening) return null;
+
   let text = null;
   if (typeof listening === 'string') text = listening;
   else if (listening?.text) text = listening.text;
   else if (listening?.content) text = listening.content;
+  const legacySections = text ? parseListening(text) : null;
 
-  const sections = text ? parseListening(text) : (listening?.sections || []);
-  if (!sections.length) return null;
+  const impression = listening?.impression;
+  const points = Array.isArray(listening?.points_forts) ? listening.points_forts : [];
+  const aTravailler = Array.isArray(listening?.a_travailler) ? listening.a_travailler : [];
+  const espace = listening?.espace;
+  const dynamique = listening?.dynamique;
+  const potentiel = listening?.potentiel;
+
+  const hasStructured = impression || points.length || aTravailler.length || espace || dynamique || potentiel;
+  if (!hasStructured && !(legacySections && legacySections.length)) return null;
+
+  const Block = ({ title, children }) => (
+    <div>
+      <h3 style={{
+        fontFamily: 'JetBrains Mono, monospace',
+        fontSize: 10, letterSpacing: 2, fontWeight: 500,
+        color: '#f5b056', textTransform: 'uppercase',
+        margin: '0 0 10px',
+      }}>{title}</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>
+    </div>
+  );
+  const P = ({ children }) => (
+    <p style={{
+      margin: 0, fontFamily: "'Instrument Serif', serif",
+      fontSize: 17, lineHeight: 1.6, fontWeight: 400, color: '#ededed',
+    }}>{renderWithEmphasis(children)}</p>
+  );
+  const Bullet = ({ children }) => (
+    <div style={{
+      display: 'flex', gap: 12, alignItems: 'flex-start',
+      fontFamily: 'Inter, sans-serif', fontSize: 13,
+      color: '#c5c5c7', lineHeight: 1.7, fontWeight: 300,
+    }}>
+      <span style={{ color: '#f5b056', fontSize: 14, lineHeight: 1.5, flexShrink: 0, marginTop: 1 }}>▸</span>
+      <span>{renderWithEmphasis(children)}</span>
+    </div>
+  );
 
   return (
     <section style={{ marginTop: 48, marginBottom: 8 }}>
       <div className="section-head">
         <span className="t">Écoute qualitative</span>
         <span className="line" />
-        <span className="count">{sections.length} section{sections.length > 1 ? 's' : ''}</span>
       </div>
-
       <div style={{
         background: 'rgba(245,176,86,.03)',
         border: '1px solid #2a2a2e',
@@ -158,40 +193,25 @@ function ListeningSection({ listening }) {
         padding: '28px 32px',
         display: 'flex', flexDirection: 'column', gap: 24,
       }}>
-        {sections.map((sec, i) => (
-          <div key={i}>
-            {sec.title && (
-              <h3 style={{
-                fontFamily: 'JetBrains Mono, monospace',
-                fontSize: 10, letterSpacing: 2, fontWeight: 500,
-                color: '#f5b056', textTransform: 'uppercase',
-                margin: '0 0 10px',
-              }}>{sec.title}</h3>
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {sec.blocks.map((b, j) => b.type === 'bullet' ? (
-                <div key={j} style={{
-                  display: 'flex', gap: 12, alignItems: 'flex-start',
-                  fontFamily: 'Inter, sans-serif', fontSize: 13,
-                  color: '#c5c5c7', lineHeight: 1.7, fontWeight: 300,
-                }}>
-                  <span style={{
-                    color: '#f5b056', fontSize: 14, lineHeight: 1.5,
-                    flexShrink: 0, marginTop: 1,
-                  }}>▸</span>
-                  <span>{renderWithEmphasis(b.text)}</span>
-                </div>
-              ) : (
-                <p key={j} style={{
-                  margin: 0,
-                  fontFamily: "'Instrument Serif', serif",
-                  fontSize: 17, lineHeight: 1.6, fontWeight: 400,
-                  color: '#ededed',
-                }}>{renderWithEmphasis(b.text)}</p>
-              ))}
+        {hasStructured ? (
+          <>
+            {impression && <Block title="Impression"><P>{impression}</P></Block>}
+            {points.length > 0 && <Block title="Points forts">{points.map((p, i) => <Bullet key={i}>{p}</Bullet>)}</Block>}
+            {aTravailler.length > 0 && <Block title="À travailler">{aTravailler.map((p, i) => <Bullet key={i}>{p}</Bullet>)}</Block>}
+            {espace && <Block title="Espace"><P>{espace}</P></Block>}
+            {dynamique && <Block title="Dynamique"><P>{dynamique}</P></Block>}
+            {potentiel && <Block title="Potentiel"><P>{potentiel}</P></Block>}
+          </>
+        ) : (
+          legacySections.map((sec, i) => (
+            <div key={i}>
+              {sec.title && <h3 style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: 2, fontWeight: 500, color: '#f5b056', textTransform: 'uppercase', margin: '0 0 10px' }}>{sec.title}</h3>}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {sec.blocks.map((b, j) => b.type === 'bullet' ? <Bullet key={j}>{b.text}</Bullet> : <P key={j}>{b.text}</P>)}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </section>
   );
