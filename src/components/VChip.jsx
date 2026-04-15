@@ -64,7 +64,7 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
         {typeof score === 'number' ? Math.round(score) : '—'}
         {typeof score === 'number' && <span className="pct">%</span>}
       </span>
-      {showDots && (
+      {(
         <button
           ref={btnRef}
           onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
