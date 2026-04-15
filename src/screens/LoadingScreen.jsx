@@ -61,6 +61,18 @@ const LoadingScreen = ({ config, onDone }) => {
           }
         }
 
+        // Durée du fichier (pour détecter "autre titre" vs "version")
+        let durationSeconds = null;
+        if (config.file) {
+          durationSeconds = await new Promise((resolve) => {
+            const audio = new Audio();
+            audio.preload = "metadata";
+            audio.onloadedmetadata = () => resolve(audio.duration);
+            audio.onerror = () => resolve(null);
+            audio.src = URL.createObjectURL(config.file);
+          });
+        }
+
         // Récupérer la fiche de la version précédente du même titre (calibrage)
         let previousFiche = null;
         try {
@@ -80,6 +92,7 @@ const LoadingScreen = ({ config, onDone }) => {
         formData.append("title", config.title || "Titre inconnu");
         formData.append("version", config.version || "v1");
         if (previousFiche) formData.append("previousFiche", JSON.stringify(previousFiche));
+        if (durationSeconds) formData.append("durationSeconds", String(durationSeconds));
 
         // Start the analysis job
         setPhase(1);
