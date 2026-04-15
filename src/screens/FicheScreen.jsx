@@ -452,13 +452,8 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
     <div className="timeline">
       <div className="track-title" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <TrackMenu track={track} onRename={onRenameTrack} onDelete={onDeleteTrack} onExport={onExportTrack} />
           <span><TrackTitleText title={track.title} /></span>
-          <TrackMenu
-            track={track}
-            onRename={onRenameTrack}
-            onDelete={onDeleteTrack}
-            onExport={onExportTrack}
-          />
         </span>
         {current && (
           <span className="vsub">
