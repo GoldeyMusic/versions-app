@@ -51,7 +51,7 @@ const LoadingScreen = ({ config, onDone }) => {
       try {
         setPhase(0);
         sentFadr.current = false;
-        console.error('🎬 RUN:', { hasFile: !!config?.file, fileName: config?.file?.name, title: config?.title });
+        alert('RUN: hasFile=' + !!config?.file + ' title=' + config?.title);
 
         // Hash + check doublon (évite une analyse Gemini inutile)
         if (config.file) {
