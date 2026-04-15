@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import ConfirmModal from '../components/ConfirmModal';
 
+// Retourne 'confirm' | 'cancel' | 'tertiary'
 export function confirmDialog(opts) {
   return new Promise((resolve) => {
     const div = document.createElement('div');
@@ -14,8 +15,9 @@ export function confirmDialog(opts) {
     root.render(
       <ConfirmModal
         {...opts}
-        onConfirm={() => cleanup(true)}
-        onCancel={() => cleanup(false)}
+        onConfirm={() => cleanup('confirm')}
+        onCancel={() => cleanup('cancel')}
+        onTertiary={() => cleanup('tertiary')}
       />
     );
   });

@@ -5,9 +5,11 @@ export default function ConfirmModal({
   message = '',
   confirmLabel = 'Confirmer',
   cancelLabel = 'Annuler',
+  tertiaryLabel = null,
   danger = false,
   onConfirm,
   onCancel,
+  onTertiary,
 }) {
   const okRef = useRef(null);
 
@@ -45,7 +47,7 @@ export default function ConfirmModal({
         <div style={{ fontSize: 13, color: '#c5c5c7', lineHeight: 1.6, marginBottom: 20 }}>
           {message}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
           <button
             onClick={onCancel}
             style={{
@@ -56,6 +58,18 @@ export default function ConfirmModal({
           >
             {cancelLabel}
           </button>
+          {tertiaryLabel && (
+            <button
+              onClick={onTertiary}
+              style={{
+                padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                background: 'transparent', border: '1px solid #f5b05666',
+                color: '#f5b056', cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {tertiaryLabel}
+            </button>
+          )}
           <button
             ref={okRef}
             onClick={onConfirm}

@@ -92,13 +92,15 @@ const LoadingScreen = ({ config, onDone }) => {
           const diff = Math.abs(durationSeconds - prev) / prev;
           if (diff > 0.10) {
             const fmt = (s) => Math.floor(s/60) + ":" + String(Math.round(s%60)).padStart(2,"0");
-            const ok = await confirmDialog({
+            const action = await confirmDialog({
               title: "Est-ce bien une version du même titre ?",
-              message: "Cette version dure " + fmt(durationSeconds) + " alors que la version précédente dure " + fmt(prev) + " (écart " + Math.round(diff*100) + "%). Si c'est un autre titre, annule et crée un nouveau titre à la place.",
+              message: "Cette version dure " + fmt(durationSeconds) + " alors que la version précédente dure " + fmt(prev) + " (écart " + Math.round(diff*100) + "%).",
               confirmLabel: "Continuer l'analyse",
               cancelLabel: "Annuler",
+              tertiaryLabel: "Créer un nouveau titre",
             });
-            if (!ok) throw new Error("Upload annulé : titre différent suspecté");
+            if (action === "tertiary") { onBackToInput?.(); return; }
+            if (action !== "confirm") throw new Error("Upload annulé");
           }
         }
 
