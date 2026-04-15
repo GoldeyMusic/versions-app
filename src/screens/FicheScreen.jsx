@@ -785,7 +785,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   }, [focusIdx, chatOpen]);
 
   const dbTrack = tracks.find((t) => t.title === config?.title) || null;
-  console.log("[DBG] tracks=", tracks, "dbTrack=", dbTrack, "config=", config, "stage=", analysisResult?._stage); const currentTrack = dbTrack || (config?.title ? {
+  const currentTrack = dbTrack || (config?.title ? {
     id: "__pending__",
     title: config.title,
     versions: [{
