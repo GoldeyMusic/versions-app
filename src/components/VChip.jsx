@@ -1,13 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { renameVersion, deleteVersion, setMainVersion } from '../lib/storage';
+import { renameVersion, deleteVersion } from '../lib/storage';
 
 export default function VChip({ track, version, idx, isActive, score, onSelect, onRefresh, onDeleted }) {
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [busy, setBusy] = useState(false);
   const menuRef = useRef(null);
   const btnRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -24,6 +28,13 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (renameOpen) {
+      setRenameValue(version.name || '');
+      setTimeout(() => inputRef.current?.select(), 50);
+    }
+  }, [renameOpen, version.name]);
+
   const openMenu = (e) => {
     e.stopPropagation();
     if (!menuOpen && btnRef.current) {
@@ -33,13 +44,20 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
     setMenuOpen((o) => !o);
   };
 
-  const handleRename = async (e) => {
+  const openRename = (e) => {
     e.stopPropagation();
     setMenuOpen(false);
-    const next = window.prompt('Nouveau nom pour cette version :', version.name);
-    if (!next || next.trim() === '' || next.trim() === version.name) return;
-    try { await renameVersion(track.id, version.id, next.trim()); onRefresh?.(); }
+    setRenameOpen(true);
+  };
+
+  const submitRename = async () => {
+    const next = renameValue.trim();
+    if (!next || next === version.name) { setRenameOpen(false); return; }
+    setBusy(true);
+    try { await renameVersion(track.id, version.id, next); onRefresh?.(); }
     catch (err) { console.warn('renameVersion failed', err); }
+    setBusy(false);
+    setRenameOpen(false);
   };
 
   const handleDelete = async (e) => {
@@ -51,13 +69,6 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
       onDeleted?.(version);
       onRefresh?.();
     } catch (err) { console.warn('deleteVersion failed', err); }
-  };
-
-  const handleSetMain = async (e) => {
-    e.stopPropagation();
-    setMenuOpen(false);
-    try { await setMainVersion(track.id, version.id); onRefresh?.(); }
-    catch (err) { console.warn('setMainVersion failed', err); }
   };
 
   const showDots = hover || menuOpen;
@@ -96,14 +107,68 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
           onClick={(e) => e.stopPropagation()}
           style={{
             position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999,
-            minWidth: 200, background: '#141416', border: '1px solid #2a2a2e',
+            minWidth: 180, background: '#141416', border: '1px solid #2a2a2e',
             borderRadius: 10, padding: 6, boxShadow: '0 12px 32px rgba(0,0,0,.55)',
           }}
         >
-          <Item label="Renommer" onClick={handleRename} />
-          {!version.main && <Item label="Definir comme principale" onClick={handleSetMain} />}
+          <Item label="Renommer" onClick={openRename} />
           <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
-          <Item label="Supprimer la version" danger onClick={handleDelete} />
+          <Item label="Supprimer" danger onClick={handleDelete} />
+        </div>,
+        document.body
+      )}
+      {renameOpen && createPortal(
+        <div
+          onClick={() => setRenameOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10000,
+            background: 'rgba(0,0,0,.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'Inter, sans-serif',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 380, background: '#141416', border: '1px solid #2a2a2e',
+              borderRadius: 14, padding: 22, boxShadow: '0 20px 60px rgba(0,0,0,.6)',
+            }}
+          >
+            <div style={{ fontSize: 14, color: '#e8e8ea', marginBottom: 14, fontWeight: 500 }}>
+              Renommer la version
+            </div>
+            <input
+              ref={inputRef}
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submitRename();
+                if (e.key === 'Escape') setRenameOpen(false);
+              }}
+              placeholder="Nom de la version"
+              style={{
+                width: '100%', padding: '10px 12px', fontSize: 13,
+                background: '#0e0e10', border: '1px solid #2a2a2e',
+                borderRadius: 8, color: '#e8e8ea', outline: 'none',
+                fontFamily: 'inherit', boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+              <button onClick={() => setRenameOpen(false)} disabled={busy}
+                style={{
+                  padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                  background: 'transparent', border: '1px solid #2a2a2e',
+                  color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
+                }}>Annuler</button>
+              <button onClick={submitRename} disabled={busy || !renameValue.trim()}
+                style={{
+                  padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                  background: '#f5b056', border: 'none',
+                  color: '#141416', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit',
+                  opacity: busy || !renameValue.trim() ? 0.5 : 1,
+                }}>{busy ? '...' : 'Renommer'}</button>
+            </div>
+          </div>
         </div>,
         document.body
       )}
