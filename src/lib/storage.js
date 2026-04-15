@@ -54,7 +54,7 @@ export async function loadTracks() {
  * Save an analysis. Finds or creates track by title (case-insensitive),
  * then inserts or updates the version.
  */
-export async function saveAnalysis(config, analysisResult) {
+export async function saveAnalysis(config, analysisResult, storagePath = null) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     console.warn('[storage] saveAnalysis: no user');
@@ -97,15 +97,19 @@ export async function saveAnalysis(config, analysisResult) {
   // first, unset is_main on every version of this track.
   await supabase.from('versions').update({ is_main: false }).eq('track_id', track.id);
 
+  const finalStoragePath = storagePath || analysisResult?.storagePath || null;
+
   if (existing) {
+    const updatePayload = {
+      date: formatDate(),
+      is_main: true,
+      analysis_result: analysisResult,
+      audio_hash: config?.audioHash || analysisResult?.audioHash || null,
+    };
+    if (finalStoragePath) updatePayload.storage_path = finalStoragePath;
     const { error } = await supabase
       .from('versions')
-      .update({
-        date: formatDate(),
-        is_main: true,
-        analysis_result: analysisResult,
-        audio_hash: config?.audioHash || analysisResult?.audioHash || null,
-      })
+      .update(updatePayload)
       .eq('id', existing.id);
     if (error) console.warn('[storage] version update error:', error.message);
     return { trackId: track.id, versionId: existing.id };
@@ -119,6 +123,7 @@ export async function saveAnalysis(config, analysisResult) {
         is_main: true,
         analysis_result: analysisResult,
         audio_hash: config?.audioHash || analysisResult?.audioHash || null,
+        storage_path: finalStoragePath,
       })
       .select()
       .single();
