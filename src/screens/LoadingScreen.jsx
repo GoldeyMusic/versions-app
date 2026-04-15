@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import T from '../constants/theme';
 import API from '../constants/api';
+import { confirmDialog } from '../lib/confirm';
 import { hashAudioFile, findDuplicateAudio, loadTracks } from "../lib/storage";
 
 const TIPS = [
@@ -91,8 +92,13 @@ const LoadingScreen = ({ config, onDone }) => {
           const diff = Math.abs(durationSeconds - prev) / prev;
           if (diff > 0.10) {
             const fmt = (s) => Math.floor(s/60) + ":" + String(Math.round(s%60)).padStart(2,"0");
-            const ok = window.confirm("Cette version dure " + fmt(durationSeconds) + " alors que la version precedente dure " + fmt(prev) + " (ecart " + Math.round(diff*100) + "%). Es-tu sur que c est une version du meme titre et pas un autre titre ?");
-            if (!ok) throw new Error("Upload annule : titre different suspecte");
+            const ok = await confirmDialog({
+              title: "Est-ce bien une version du même titre ?",
+              message: "Cette version dure " + fmt(durationSeconds) + " alors que la version précédente dure " + fmt(prev) + " (écart " + Math.round(diff*100) + "%). Si c'est un autre titre, annule et crée un nouveau titre à la place.",
+              confirmLabel: "Continuer l'analyse",
+              cancelLabel: "Annuler",
+            });
+            if (!ok) throw new Error("Upload annulé : titre différent suspecté");
           }
         }
 

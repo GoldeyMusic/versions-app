@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { confirmDialog } from '../lib/confirm';
 import { renameVersion, deleteVersion } from '../lib/storage';
 
 export default function VChip({ track, version, idx, isActive, score, onSelect, onRefresh, onDeleted }) {
@@ -63,7 +64,14 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
   const handleDelete = async (e) => {
     e.stopPropagation();
     setMenuOpen(false);
-    if (!window.confirm(`Supprimer la version "${version.name}" ? Cette action est definitive.`)) return;
+    const ok = await confirmDialog({
+      title: "Supprimer la version ?",
+      message: `Voulez-vous supprimer la version "${version.name}" ? Cette action est définitive.`,
+      confirmLabel: "Supprimer",
+      cancelLabel: "Annuler",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteVersion(track.id, version.id);
       onDeleted?.(version);
