@@ -234,3 +234,45 @@ export async function findDuplicateAudio(title, audioHash) {
     .limit(1);
   return versions?.[0] || null;
 }
+
+/** Compare two versions (A = older, B = newer). Returns {resume, progres, regressions, inchanges}.
+ * Caches results in the `comparisons` table keyed by (trackId, vA, vB). */
+export async function getOrCreateComparison(trackId, versionA, versionB) {
+  if (!trackId || !versionA?.id || !versionB?.id) throw new Error('trackId + 2 versions requis');
+
+  // Lookup cache (try both orderings)
+  const { data: cached } = await supabase
+    .from('comparisons')
+    .select('result')
+    .eq('track_id', trackId)
+    .eq('version_a_id', versionA.id)
+    .eq('version_b_id', versionB.id)
+    .maybeSingle();
+  if (cached?.result) return cached.result;
+
+  const ficheA = versionA.analysisResult?.fiche || versionA.analysisResult || null;
+  const ficheB = versionB.analysisResult?.fiche || versionB.analysisResult || null;
+  if (!ficheA || !ficheB) throw new Error('Les deux versions doivent avoir une fiche analysée');
+
+  const API = (await import('../constants/api')).default;
+  const resp = await fetch(`${API}/api/compare`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ficheA, ficheB, nameA: versionA.name, nameB: versionB.name }),
+  });
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`Compare API error: ${err}`);
+  }
+  const result = await resp.json();
+
+  // Save cache (fire and forget — not critical)
+  supabase.from('comparisons').insert({
+    track_id: trackId,
+    version_a_id: versionA.id,
+    version_b_id: versionB.id,
+    result,
+  }).then(({ error }) => { if (error) console.warn('[compare] cache save failed:', error.message); });
+
+  return result;
+}

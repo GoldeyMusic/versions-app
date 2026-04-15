@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import API from '../constants/api';
+import CompareButton from '../components/CompareButton';
 import { loadTracks, deleteTrack, renameTrack } from '../lib/storage';
 
 /**
@@ -464,7 +465,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
       </div>
 
       <div className="versions-block" style={{ minWidth: 0, maxWidth: "55%" }}>
-        <span className="versions-label">Versions</span>
+        <CompareButton track={track} currentVersion={current} /><span className="versions-label" style={{ marginLeft: 8 }}>Versions</span>
         <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
           <div
             ref={scrollRef}
