@@ -36,11 +36,7 @@ export async function loadTracks() {
     title: t.title,
     createdAt: t.created_at,
     versions: (t.versions || [])
-      .sort((a, b) => {
-        // Main first, then newest
-        if (a.is_main !== b.is_main) return a.is_main ? -1 : 1;
-        return new Date(b.created_at) - new Date(a.created_at);
-      })
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
       .map(v => ({
         id: v.id,
         name: v.name,
