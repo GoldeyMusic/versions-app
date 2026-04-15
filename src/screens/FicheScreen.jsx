@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import API from '../constants/api';
 import CompareButton from '../components/CompareButton';
+import VChip from '../components/VChip';
 import { loadTracks, deleteTrack, renameTrack } from '../lib/storage';
 
 /**
@@ -402,7 +403,7 @@ function MenuItem({ label, onClick, danger }) {
 
 // ── Timeline (sticky bar avec chips versions) ──────────────
 
-function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onRenameTrack, onDeleteTrack, onExportTrack }) {
+function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onRenameTrack, onDeleteTrack, onExportTrack, onTracksRefresh }) {
   const scrollRef = useRef(null);
   const [showFadeRight, setShowFadeRight] = useState(false);
   const [showFadeLeft, setShowFadeLeft] = useState(false);
@@ -489,16 +490,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
                       {delta > 0 ? '↑' : delta < 0 ? '↓' : ''}{Math.abs(delta)}
                     </span>
                   )}
-                  <div
-                    className={`vchip${isActive ? ' active current-badge' : ''}`}
-                    onClick={() => onSelectVersion && onSelectVersion(track, v)}
-                  >
-                    <span className="vname">V{idx + 1}</span>
-                    <span className="vscore">
-                      {typeof score === 'number' ? Math.round(score) : '—'}
-                      {typeof score === 'number' && <span className="pct">%</span>}
-                    </span>
-                  </div>
+                  <VChip track={track} version={v} idx={idx} isActive={isActive} score={score} onSelect={onSelectVersion} onRefresh={onTracksRefresh} onDeleted={(deleted) => { if (deleted.name === currentVersionName && versions.length > 1) { const next = versions.find(x => x.id !== deleted.id); if (next) onSelectVersion?.(track, next); } }} />
                 </span>
               );
             })}
@@ -865,6 +857,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             onRenameTrack={handleRenameTrack}
             onDeleteTrack={handleDeleteTrack}
             onExportTrack={handleExportTrack}
+            onTracksRefresh={() => loadTracks().then(setTracks)}
           />
         )}
 
