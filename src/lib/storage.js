@@ -36,11 +36,7 @@ export async function loadTracks() {
     title: t.title,
     createdAt: t.created_at,
     versions: (t.versions || [])
-      .sort((a, b) => {
-        // Main first, then newest
-        if (a.is_main !== b.is_main) return a.is_main ? -1 : 1;
-        return new Date(b.created_at) - new Date(a.created_at);
-      })
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
       .map(v => ({
         id: v.id,
         name: v.name,
@@ -108,6 +104,7 @@ export async function saveAnalysis(config, analysisResult) {
         date: formatDate(),
         is_main: true,
         analysis_result: analysisResult,
+        audio_hash: config?.audioHash || analysisResult?.audioHash || null,
       })
       .eq('id', existing.id);
     if (error) console.warn('[storage] version update error:', error.message);
@@ -121,6 +118,7 @@ export async function saveAnalysis(config, analysisResult) {
         date: formatDate(),
         is_main: true,
         analysis_result: analysisResult,
+        audio_hash: config?.audioHash || analysisResult?.audioHash || null,
       })
       .select()
       .single();
@@ -200,4 +198,81 @@ export async function reorderVersions(trackId, fromIdx, toIdx) {
 export function saveTracks() {
   // Supabase handles persistence; this export exists only to avoid
   // breaking imports in older code paths.
+}
+
+/** Delete a track and all its versions */
+export async function deleteTrack(trackId) {
+  await supabase.from('versions').delete().eq('track_id', trackId);
+  const { error } = await supabase.from('tracks').delete().eq('id', trackId);
+  if (error) console.warn('[storage] deleteTrack error:', error.message);
+  return loadTracks();
+}
+
+/** SHA-256 du fichier audio (Web Crypto), en hex minuscule. */
+export async function hashAudioFile(file) {
+  const buf = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Cherche un fichier audio identique déjà uploadé pour ce titre. */
+export async function findDuplicateAudio(title, audioHash) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: tracks } = await supabase
+    .from('tracks')
+    .select('id, title')
+    .eq('user_id', user.id)
+    .ilike('title', title);
+  const track = tracks?.find(t => t.title.toLowerCase() === title.toLowerCase());
+  if (!track) return null;
+  const { data: versions } = await supabase
+    .from('versions')
+    .select('id, name')
+    .eq('track_id', track.id)
+    .eq('audio_hash', audioHash)
+    .limit(1);
+  return versions?.[0] || null;
+}
+
+/** Compare two versions (A = older, B = newer). Returns {resume, progres, regressions, inchanges}.
+ * Caches results in the `comparisons` table keyed by (trackId, vA, vB). */
+export async function getOrCreateComparison(trackId, versionA, versionB) {
+  if (!trackId || !versionA?.id || !versionB?.id) throw new Error('trackId + 2 versions requis');
+
+  // Lookup cache (try both orderings)
+  const { data: cached } = await supabase
+    .from('comparisons')
+    .select('result')
+    .eq('track_id', trackId)
+    .eq('version_a_id', versionA.id)
+    .eq('version_b_id', versionB.id)
+    .maybeSingle();
+  if (cached?.result) return cached.result;
+
+  const ficheA = versionA.analysisResult?.fiche || versionA.analysisResult || null;
+  const ficheB = versionB.analysisResult?.fiche || versionB.analysisResult || null;
+  if (!ficheA || !ficheB) throw new Error('Les deux versions doivent avoir une fiche analysée');
+
+  const API = (await import('../constants/api')).default;
+  const resp = await fetch(`${API}/api/compare`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ficheA, ficheB, nameA: versionA.name, nameB: versionB.name }),
+  });
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`Compare API error: ${err}`);
+  }
+  const result = await resp.json();
+
+  // Save cache (fire and forget — not critical)
+  supabase.from('comparisons').insert({
+    track_id: trackId,
+    version_a_id: versionA.id,
+    version_b_id: versionB.id,
+    result,
+  }).then(({ error }) => { if (error) console.warn('[compare] cache save failed:', error.message); });
+
+  return result;
 }

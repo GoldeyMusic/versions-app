@@ -5,6 +5,7 @@ import API from "./constants/api";
 import { LangContext } from "./hooks/useLang";
 import useMobile from "./hooks/useMobile";
 import GlobalStyles from "./components/GlobalStyles";
+import MockupStyles from "./components/MockupStyles";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import BottomPlayer from "./components/BottomPlayer";
@@ -167,6 +168,8 @@ export default function VersionsApp() {
     // Called with partial or complete results — always go to fiche
     const merged = { ...(analysisResult || {}), ...result };
     setAnalysisResult(merged);
+    const cfgWithHash = result.audioHash ? { ...config, audioHash: result.audioHash } : config;
+    if (result.audioHash) setConfig(cfgWithHash);
     if (screen !== "fiche") {
       setScreen("fiche");
       // Start background polling if not complete yet
@@ -175,7 +178,7 @@ export default function VersionsApp() {
       } else if (result._stage === "all_done" && !savedRef.current) {
         // Analysis completed in one shot — save immediately
         savedRef.current = true;
-        saveAnalysis(config, merged)
+        saveAnalysis(cfgWithHash, merged)
           .then(() => setSidebarRefreshKey(k => k + 1))
           .catch(e => console.warn("saveAnalysis failed:", e));
       }
@@ -229,7 +232,7 @@ export default function VersionsApp() {
       case "input":
         return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialTitle={prefillTitle} />;
       case "loading":
-        return <LoadingScreen config={config} onDone={handleLoaded} />;
+        return <LoadingScreen config={config} onDone={handleLoaded} onBackToInput={handleSidebarNewTrack} />;
       case "fiche":
         return (
           <FicheScreen
@@ -330,7 +333,8 @@ export default function VersionsApp() {
     <LangContext.Provider value={{ lang, s, setLang }}>
       <FontLink />
       <GlobalStyles />
-      <div className="dapp">
+      <MockupStyles />
+      <div className={showSidebar ? "app" : "dapp"}>
         {/* Desktop Sidebar */}
         {showSidebar && (
           <Sidebar
@@ -351,8 +355,8 @@ export default function VersionsApp() {
           />
         )}
 
-        {/* Main column (shifted right on desktop to make room for sidebar) */}
-        <div style={{ marginLeft: contentMarginLeft, display: "flex", flexDirection: "column", minHeight: "100vh", transition: "margin-left .2s" }}>
+        {/* Main column */}
+        <div style={showSidebar ? { display: "flex", flexDirection: "column", minWidth: 0 } : { marginLeft: contentMarginLeft, display: "flex", flexDirection: "column", minHeight: "100vh", transition: "margin-left .2s" }}>
           {/* Header — mobile only (desktop logo is in the sidebar) */}
           {isMobile && <Header onHome={goHome} />}
 

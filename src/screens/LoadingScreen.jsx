@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import T from '../constants/theme';
 import API from '../constants/api';
+import { confirmDialog } from '../lib/confirm.jsx';
+import { hashAudioFile, findDuplicateAudio, loadTracks } from "../lib/storage";
 
 const TIPS = [
   "Faire des pauses régulières permet de conserver une écoute attentive et objective.",
@@ -17,7 +19,7 @@ const TIPS = [
   "La fatigue auditive est invisible — quand tu doutes d'un choix, c'est souvent le signe qu'il faut pauser.",
 ];
 
-const LoadingScreen = ({ config, onDone }) => {
+const LoadingScreen = ({ config, onDone, onBackToInput }) => {
   const [phase, setPhase] = useState(0);
   const [error, setError] = useState(null);
   const jobIdRef = useRef(null);
@@ -50,6 +52,57 @@ const LoadingScreen = ({ config, onDone }) => {
       try {
         setPhase(0);
         sentFadr.current = false;
+        // Hash + check doublon (évite une analyse Gemini inutile)
+        if (config.file) {
+          const audioHash = await hashAudioFile(config.file);
+          config.audioHash = audioHash;
+          const dup = await findDuplicateAudio(config.title || '', audioHash);
+          if (dup) {
+            throw new Error(`Fichier identique à la version "${dup.name}" déjà uploadée pour ce titre. Importe un rendu différent.`);
+          }
+        }
+
+        // Durée du fichier (pour détecter "autre titre" vs "version")
+        let durationSeconds = null;
+        if (config.file) {
+          durationSeconds = await new Promise((resolve) => {
+            const audio = new Audio();
+            audio.preload = "metadata";
+            audio.onloadedmetadata = () => resolve(audio.duration);
+            audio.onerror = () => resolve(null);
+            audio.src = URL.createObjectURL(config.file);
+          });
+        }
+
+        // Récupérer la fiche de la version précédente du même titre (calibrage)
+        let previousFiche = null;
+        try {
+          const allTracks = await loadTracks();
+          const sameTitle = allTracks.find((t) => t.title === config.title);
+          if (sameTitle?.versions?.length) {
+            const last = sameTitle.versions[sameTitle.versions.length - 1];
+            previousFiche = last?.analysisResult?.fiche || null;
+          }
+        } catch {}
+
+        // Check durée vs précédente — alerte si autre titre probable
+        console.log("[DBG-DUR] dur=", durationSeconds, "prev.duration_seconds=", previousFiche?.duration_seconds);
+        if (durationSeconds && previousFiche?.duration_seconds) {
+          const prev = previousFiche.duration_seconds;
+          const diff = Math.abs(durationSeconds - prev) / prev;
+          if (diff > 0.10) {
+            const fmt = (s) => Math.floor(s/60) + ":" + String(Math.round(s%60)).padStart(2,"0");
+            const action = await confirmDialog({
+              title: "Est-ce bien une version du même titre ?",
+              message: "Cette version dure " + fmt(durationSeconds) + " alors que la version précédente dure " + fmt(prev) + " (écart " + Math.round(diff*100) + "%).",
+              confirmLabel: "Continuer l'analyse",
+              cancelLabel: "Annuler",
+              tertiaryLabel: "Créer un nouveau titre",
+            });
+            if (action === "tertiary") { onBackToInput?.(); return; }
+            if (action !== "confirm") throw new Error("Upload annulé");
+          }
+        }
 
         // Build FormData
         const formData = new FormData();
@@ -58,6 +111,8 @@ const LoadingScreen = ({ config, onDone }) => {
         formData.append("daw", config.daw || "Logic Pro");
         formData.append("title", config.title || "Titre inconnu");
         formData.append("version", config.version || "v1");
+        if (previousFiche) formData.append("previousFiche", JSON.stringify(previousFiche));
+        if (durationSeconds) formData.append("durationSeconds", String(durationSeconds));
 
         // Start the analysis job
         setPhase(1);
@@ -91,6 +146,7 @@ const LoadingScreen = ({ config, onDone }) => {
               fiche: job.fiche || null,
               listening: job.listening || null,
               meta: job.meta,
+              audioHash: config.audioHash,
               _jobId: jobId,
               _stage: job.stage,
             });
@@ -101,6 +157,7 @@ const LoadingScreen = ({ config, onDone }) => {
               fiche: job.fiche,
               listening: job.listening || null,
               meta: job.meta,
+              audioHash: config.audioHash,
               _jobId: jobId,
               _stage: "all_done",
             });

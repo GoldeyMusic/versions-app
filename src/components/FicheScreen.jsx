@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import API from '../constants/api';
-import CompareButton from '../components/CompareButton';
-import VChip from '../components/VChip';
 import { loadTracks, deleteTrack, renameTrack } from '../lib/storage';
 
 /**
@@ -134,61 +132,23 @@ function parseListening(text) {
 }
 
 function ListeningSection({ listening }) {
-  const [expanded, setExpanded] = useState(false);
-  if (!listening) return null;
-
+  // Accepte string OU objet { text: "..." } OU { sections: [...] }
   let text = null;
   if (typeof listening === 'string') text = listening;
   else if (listening?.text) text = listening.text;
   else if (listening?.content) text = listening.content;
-  const legacySections = text ? parseListening(text) : null;
 
-  const impression = listening?.impression;
-  const points = Array.isArray(listening?.points_forts) ? listening.points_forts : [];
-  const aTravailler = Array.isArray(listening?.a_travailler) ? listening.a_travailler : [];
-  const espace = listening?.espace;
-  const dynamique = listening?.dynamique;
-  const potentiel = listening?.potentiel;
-
-  const hasStructured = impression || points.length || aTravailler.length || espace || dynamique || potentiel;
-  if (!hasStructured && !(legacySections && legacySections.length)) return null;
-
-  const hasMore = points.length || aTravailler.length || espace || dynamique || potentiel;
-
-  const Block = ({ title, children }) => (
-    <div>
-      <h3 style={{
-        fontFamily: 'JetBrains Mono, monospace',
-        fontSize: 10, letterSpacing: 2, fontWeight: 500,
-        color: '#f5b056', textTransform: 'uppercase',
-        margin: '0 0 10px',
-      }}>{title}</h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>
-    </div>
-  );
-  const P = ({ children }) => (
-    <p style={{
-      margin: 0, fontFamily: 'var(--body)',
-      fontSize: 15, lineHeight: 1.7, fontWeight: 300, color: 'var(--soft)',
-    }}>{renderWithEmphasis(children)}</p>
-  );
-  const Bullet = ({ children }) => (
-    <div style={{
-      display: 'flex', gap: 12, alignItems: 'flex-start',
-      fontFamily: 'Inter, sans-serif', fontSize: 13,
-      color: '#c5c5c7', lineHeight: 1.7, fontWeight: 300,
-    }}>
-      <span style={{ color: '#f5b056', fontSize: 14, lineHeight: 1.5, flexShrink: 0, marginTop: 1 }}>▸</span>
-      <span>{renderWithEmphasis(children)}</span>
-    </div>
-  );
+  const sections = text ? parseListening(text) : (listening?.sections || []);
+  if (!sections.length) return null;
 
   return (
     <section style={{ marginTop: 48, marginBottom: 8 }}>
       <div className="section-head">
         <span className="t">Écoute qualitative</span>
         <span className="line" />
+        <span className="count">{sections.length} section{sections.length > 1 ? 's' : ''}</span>
       </div>
+
       <div style={{
         background: 'rgba(245,176,86,.03)',
         border: '1px solid #2a2a2e',
@@ -196,44 +156,40 @@ function ListeningSection({ listening }) {
         padding: '28px 32px',
         display: 'flex', flexDirection: 'column', gap: 24,
       }}>
-        {hasStructured ? (
-          <>
-            {impression && <Block title="Impression"><P>{impression}</P></Block>}
-            {expanded && (
-              <>
-                {points.length > 0 && <Block title="Points forts">{points.map((p, i) => <Bullet key={i}>{p}</Bullet>)}</Block>}
-                {aTravailler.length > 0 && <Block title="À travailler">{aTravailler.map((p, i) => <Bullet key={i}>{p}</Bullet>)}</Block>}
-                {espace && <Block title="Espace"><P>{espace}</P></Block>}
-                {dynamique && <Block title="Dynamique"><P>{dynamique}</P></Block>}
-                {potentiel && <Block title="Potentiel"><P>{potentiel}</P></Block>}
-              </>
+        {sections.map((sec, i) => (
+          <div key={i}>
+            {sec.title && (
+              <h3 style={{
+                fontFamily: 'JetBrains Mono, monospace',
+                fontSize: 10, letterSpacing: 2, fontWeight: 500,
+                color: '#f5b056', textTransform: 'uppercase',
+                margin: '0 0 10px',
+              }}>{sec.title}</h3>
             )}
-            {hasMore && (
-              <button
-                onClick={() => setExpanded((v) => !v)}
-                style={{
-                  alignSelf: 'flex-start', marginTop: -6,
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  color: '#f5b056', fontFamily: 'JetBrains Mono, monospace',
-                  fontSize: 10, letterSpacing: 2, fontWeight: 500,
-                  textTransform: 'uppercase', padding: '6px 0',
-                  display: 'flex', alignItems: 'center', gap: 6,
-                }}
-              >
-                {expanded ? '— Réduire' : '+ Voir l\u2019écoute complète'}
-              </button>
-            )}
-          </>
-        ) : (
-          legacySections.map((sec, i) => (
-            <div key={i}>
-              {sec.title && <h3 style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: 2, fontWeight: 500, color: '#f5b056', textTransform: 'uppercase', margin: '0 0 10px' }}>{sec.title}</h3>}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {sec.blocks.map((b, j) => b.type === 'bullet' ? <Bullet key={j}>{b.text}</Bullet> : <P key={j}>{b.text}</P>)}
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {sec.blocks.map((b, j) => b.type === 'bullet' ? (
+                <div key={j} style={{
+                  display: 'flex', gap: 12, alignItems: 'flex-start',
+                  fontFamily: 'Inter, sans-serif', fontSize: 13,
+                  color: '#c5c5c7', lineHeight: 1.7, fontWeight: 300,
+                }}>
+                  <span style={{
+                    color: '#f5b056', fontSize: 14, lineHeight: 1.5,
+                    flexShrink: 0, marginTop: 1,
+                  }}>▸</span>
+                  <span>{renderWithEmphasis(b.text)}</span>
+                </div>
+              ) : (
+                <p key={j} style={{
+                  margin: 0,
+                  fontFamily: "'Instrument Serif', serif",
+                  fontSize: 17, lineHeight: 1.6, fontWeight: 400,
+                  color: '#ededed',
+                }}>{renderWithEmphasis(b.text)}</p>
+              ))}
             </div>
-          ))
-        )}
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -291,7 +247,7 @@ function AnalyzingState({ stage }) {
         }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         <h1 style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 32, fontWeight: 400,
+          fontFamily: "'Instrument Serif', serif", fontSize: 32, fontWeight: 400,
           color: '#ededed', margin: 0, textAlign: 'center', lineHeight: 1.2,
         }}>Analyse en cours</h1>
         <p style={{
@@ -445,7 +401,7 @@ function MenuItem({ label, onClick, danger }) {
 
 // ── Timeline (sticky bar avec chips versions) ──────────────
 
-function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onRenameTrack, onDeleteTrack, onExportTrack, onTracksRefresh }) {
+function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onRenameTrack, onDeleteTrack, onExportTrack }) {
   const scrollRef = useRef(null);
   const [showFadeRight, setShowFadeRight] = useState(false);
   const [showFadeLeft, setShowFadeLeft] = useState(false);
@@ -496,25 +452,30 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
     <div className="timeline">
       <div className="track-title" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <TrackMenu track={track} onRename={onRenameTrack} onDelete={onDeleteTrack} onExport={onExportTrack} />
+          <TrackMenu
+            track={track}
+            onRename={onRenameTrack}
+            onDelete={onDeleteTrack}
+            onExport={onExportTrack}
+          />
           <span><TrackTitleText title={track.title} /></span>
         </span>
         {current && (
           <span className="vsub">
             <span className="vlabel">{stageLabel}</span>
-            <b>{currentVersionName || current.name}</b>
+            <b>{current.name}</b>
           </span>
         )}
       </div>
 
       <div className="versions-block" style={{ minWidth: 0, maxWidth: "55%" }}>
-        <CompareButton track={track} currentVersion={current} /><span className="versions-label" style={{ marginLeft: 8 }}>Versions</span>
+        <span className="versions-label">Versions</span>
         <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
           <div
             ref={scrollRef}
             className="versions-row"
             style={{
-              overflowX: 'auto', overflowY: 'visible', paddingTop: 7, marginTop: -3,
+              overflowX: 'auto', overflowY: 'hidden',
               scrollbarWidth: 'none', msOverflowStyle: 'none',
               flexWrap: 'nowrap', maxWidth: '100%',
             }}
@@ -532,7 +493,16 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
                       {delta > 0 ? '↑' : delta < 0 ? '↓' : ''}{Math.abs(delta)}
                     </span>
                   )}
-                  <VChip track={track} version={v} idx={idx} isActive={isActive} score={score} onSelect={onSelectVersion} onRefresh={onTracksRefresh} onDeleted={(deleted) => { if (deleted.name === currentVersionName && versions.length > 1) { const next = versions.find(x => x.id !== deleted.id); if (next) onSelectVersion?.(track, next); } }} />
+                  <div
+                    className={`vchip${isActive ? ' active current-badge' : ''}`}
+                    onClick={() => onSelectVersion && onSelectVersion(track, v)}
+                  >
+                    <span className="vname">V{idx + 1}</span>
+                    <span className="vscore">
+                      {typeof score === 'number' ? Math.round(score) : '—'}
+                      {typeof score === 'number' && <span className="pct">%</span>}
+                    </span>
+                  </div>
                 </span>
               );
             })}
@@ -668,7 +638,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
         </div>
 
         <h2 style={{
-          fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 26,
+          fontFamily: "'Instrument Serif', serif", fontWeight: 400, fontSize: 26,
           lineHeight: 1.25, color: '#ededed', margin: '0 0 20px',
           display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap',
         }}>
@@ -899,7 +869,6 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             onRenameTrack={handleRenameTrack}
             onDeleteTrack={handleDeleteTrack}
             onExportTrack={handleExportTrack}
-            onTracksRefresh={() => loadTracks().then(setTracks)}
           />
         )}
 

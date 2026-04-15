@@ -1,15 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
-import T from '../constants/theme';
-import { IconPlay, IconPause, IconSkipNext, IconSkipPrev } from './Icons';
 
-const WAVE_BARS = 80;
+/**
+ * BottomPlayer — rendu fidèle à mockup-v3.html (.player).
+ * Barre fixe de 68px en bas d'écran, avec prev / play-pause / next,
+ * meta (titre serif + version mono), waveform cliquable et temps.
+ *
+ * TODO (pending): brancher un vrai audio Supabase + WaveSurfer.
+ * Pour l'instant, on simule la progression.
+ */
+
+const WAVE_BARS = 120;
 
 const generateWaveform = () => {
   const bars = [];
   for (let i = 0; i < WAVE_BARS; i++) {
     const pos = i / WAVE_BARS;
-    const envelope = Math.sin(pos * Math.PI) * 0.6 + 0.4;
-    const rand = 0.3 + Math.random() * 0.7;
+    const envelope = Math.sin(pos * Math.PI) * 0.55 + 0.45;
+    const rand = 0.35 + Math.random() * 0.65;
     bars.push(Math.min(1, rand * envelope));
   }
   return bars;
@@ -35,14 +42,10 @@ export default function BottomPlayer({
   useEffect(() => {
     if (!isPlaying) return;
     const iv = setInterval(
-      () =>
-        setProgress((p) => {
-          if (p >= 100) {
-            onNext && onNext();
-            return 0;
-          }
-          return p + 0.15;
-        }),
+      () => setProgress((p) => {
+        if (p >= 100) { onNext && onNext(); return 0; }
+        return p + 0.15;
+      }),
       100
     );
     return () => clearInterval(iv);
@@ -66,164 +69,95 @@ export default function BottomPlayer({
   const currentSec = Math.floor((progress / 100) * totalSec);
   const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
+  const headIdx = Math.round((progress / 100) * WAVE_BARS);
+
   return (
-    <div
-      style={{
-        background: 'rgba(16,16,16,0.98)',
-        backdropFilter: 'blur(20px)',
-        borderTop: `1px solid ${T.border}`,
-        padding: '6px 14px',
-        flexShrink: 0,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        height: 48,
-        boxSizing: 'border-box',
-      }}
-    >
-      {/* Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-        <button
-          onClick={onPrev}
-          disabled={!hasPrev || idle}
-          style={{
-            width: 24, height: 24, borderRadius: '50%',
-            background: 'transparent', border: 'none',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: hasPrev && !idle ? 'pointer' : 'default',
-            opacity: hasPrev && !idle ? 0.7 : 0.2,
-            transition: 'opacity .2s',
-          }}
-          onMouseEnter={(e) => { if (hasPrev && !idle) e.currentTarget.style.opacity = 1; }}
-          onMouseLeave={(e) => { if (hasPrev && !idle) e.currentTarget.style.opacity = 0.7; }}
-        >
-          <IconSkipPrev c={T.text} s={12} />
-        </button>
-        <button
-          onClick={idle ? undefined : onToggle}
-          style={{
-            width: 30, height: 30, borderRadius: '50%',
-            background: idle ? T.s3 : T.amber,
-            border: `1px solid ${idle ? T.border : T.amber}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: idle ? 'default' : 'pointer',
-            boxShadow: idle ? 'none' : `0 0 14px ${T.amber}33`,
-            transition: 'transform .1s',
-            padding: 0,
-          }}
-          onMouseDown={(e) => { if (!idle) e.currentTarget.style.transform = 'scale(0.93)'; }}
-          onMouseUp={(e) => { if (!idle) e.currentTarget.style.transform = 'scale(1)'; }}
-        >
-          {isPlaying ? (
-            <IconPause c={T.black} s={12} />
-          ) : (
-            <IconPlay c={idle ? T.muted : T.black} s={12} />
-          )}
-        </button>
-        <button
-          onClick={onNext}
-          disabled={!hasNext || idle}
-          style={{
-            width: 24, height: 24, borderRadius: '50%',
-            background: 'transparent', border: 'none',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: hasNext && !idle ? 'pointer' : 'default',
-            opacity: hasNext && !idle ? 0.7 : 0.2,
-            transition: 'opacity .2s',
-          }}
-          onMouseEnter={(e) => { if (hasNext && !idle) e.currentTarget.style.opacity = 1; }}
-          onMouseLeave={(e) => { if (hasNext && !idle) e.currentTarget.style.opacity = 0.7; }}
-        >
-          <IconSkipNext c={T.text} s={12} />
-        </button>
+    <div className="player" style={{ position: 'relative', padding: '0 24px', flexShrink: 0 }}>
+      {/* Prev */}
+      <div
+        className="pl-ctrl"
+        onClick={hasPrev && !idle ? onPrev : undefined}
+        style={{ opacity: hasPrev && !idle ? 1 : 0.25, cursor: hasPrev && !idle ? 'pointer' : 'default' }}
+        aria-label="Précédent"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 3v10M13 3l-7 5 7 5V3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        </svg>
       </div>
 
-      {/* Info (title + version) */}
-      <div style={{ minWidth: 120, maxWidth: 200, flexShrink: 0 }}>
-        {idle ? (
-          <div style={{ fontFamily: T.mono, fontSize: 10, color: T.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            Aucune lecture
-          </div>
+      {/* Play / pause */}
+      <div
+        className="pl-btn"
+        onClick={idle ? undefined : onToggle}
+        style={{
+          background: idle ? 'rgba(245,176,86,.25)' : '#f5b056',
+          cursor: idle ? 'default' : 'pointer',
+        }}
+        aria-label={isPlaying ? 'Pause' : 'Lecture'}
+      >
+        {isPlaying ? (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <rect x="3" y="2" width="3" height="10" fill="currentColor" />
+            <rect x="8" y="2" width="3" height="10" fill="currentColor" />
+          </svg>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
-            <span
-              style={{
-                fontFamily: T.body, fontSize: 11, fontWeight: 600, color: T.text,
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                flexShrink: 1, minWidth: 0,
-              }}
-            >
-              {trackTitle}
-            </span>
-            <span
-              style={{
-                fontFamily: T.mono, fontSize: 9, color: T.amber,
-                whiteSpace: 'nowrap', flexShrink: 0,
-              }}
-            >
-              {versionName}
-            </span>
-          </div>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M4 2l8 5-8 5V2z" fill="currentColor" />
+          </svg>
         )}
       </div>
 
-      {/* Waveform (fills remaining space) */}
+      {/* Next */}
       <div
-        ref={waveRef}
-        onClick={handleWaveClick}
-        style={{
-          flex: 1,
-          height: 26,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          cursor: idle ? 'default' : 'pointer',
-          position: 'relative',
-          borderRadius: 3,
-          overflow: 'hidden',
-        }}
+        className="pl-ctrl"
+        onClick={hasNext && !idle ? onNext : undefined}
+        style={{ opacity: hasNext && !idle ? 1 : 0.25, cursor: hasNext && !idle ? 'pointer' : 'default' }}
+        aria-label="Suivant"
       >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M12 3v10M3 3l7 5-7 5V3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        </svg>
+      </div>
+
+      {/* Meta */}
+      <div className="pl-meta">
+        {idle ? (
+          <>
+            <div className="pl-title" style={{ color: '#7c7c80' }}>Aucune lecture</div>
+            <div className="pl-sub">—</div>
+          </>
+        ) : (
+          <>
+            <div className="pl-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {trackTitle}
+            </div>
+            <div className="pl-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {versionName}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Waveform */}
+      <div className="pl-wave" ref={waveRef} onClick={handleWaveClick}>
         {waveform.map((h, i) => {
-          const barPct = (i / WAVE_BARS) * 100;
-          const isPast = !idle && barPct < progress;
+          const isPast = !idle && i < headIdx;
+          const isHead = !idle && i === headIdx;
+          const cls = isHead ? 'bar head' : isPast ? 'bar past' : 'bar';
           return (
-            <div
-              key={i}
-              style={{
-                flex: 1,
-                height: `${Math.max(12, h * 100)}%`,
-                minHeight: 2,
-                background: isPast ? T.amber : idle ? `${T.muted2}55` : `${T.muted2}`,
-                borderRadius: 1,
-                transition: 'background .05s',
-              }}
-            />
+            <div key={i} className={cls} style={{ height: `${Math.max(10, h * 100)}%` }} />
           );
         })}
-        {!idle && (
-          <div
-            style={{
-              position: 'absolute',
-              left: `${progress}%`,
-              top: 0,
-              bottom: 0,
-              width: 2,
-              background: T.text,
-              borderRadius: 1,
-              boxShadow: `0 0 4px ${T.amber}88`,
-              transform: 'translateX(-1px)',
-              transition: 'left .1s linear',
-            }}
-          />
-        )}
       </div>
 
       {/* Time */}
-      {!idle && (
-        <div style={{ fontFamily: T.mono, fontSize: 10, color: T.muted, flexShrink: 0, minWidth: 70, textAlign: 'right' }}>
-          {fmt(currentSec)} / {fmt(totalSec)}
-        </div>
-      )}
+      <div className="pl-time">
+        {idle ? (
+          <span>—:— / —:—</span>
+        ) : (
+          <><b>{fmt(currentSec)}</b> / {fmt(totalSec)}</>
+        )}
+      </div>
     </div>
   );
 }
