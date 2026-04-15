@@ -59,7 +59,7 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
       onMouseLeave={() => setHover(false)}
       style={{ position: 'relative' }}
     >
-      <span className="vname">{version.name}</span>
+      <span className="vname">V{idx + 1}</span>
       <span className="vscore">
         {typeof score === 'number' ? Math.round(score) : '—'}
         {typeof score === 'number' && <span className="pct">%</span>}
