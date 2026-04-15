@@ -168,7 +168,7 @@ function ListeningSection({ listening }) {
   );
   const P = ({ children }) => (
     <p style={{
-      margin: 0, fontFamily: "'Instrument Serif', serif",
+      margin: 0, fontFamily: 'Inter, sans-serif',
       fontSize: 17, lineHeight: 1.6, fontWeight: 400, color: '#ededed',
     }}>{renderWithEmphasis(children)}</p>
   );
@@ -291,7 +291,7 @@ function AnalyzingState({ stage }) {
         }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         <h1 style={{
-          fontFamily: "'Instrument Serif', serif", fontSize: 32, fontWeight: 400,
+          fontFamily: 'Inter, sans-serif', fontSize: 32, fontWeight: 400,
           color: '#ededed', margin: 0, textAlign: 'center', lineHeight: 1.2,
         }}>Analyse en cours</h1>
         <p style={{
@@ -668,7 +668,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
         </div>
 
         <h2 style={{
-          fontFamily: "'Instrument Serif', serif", fontWeight: 400, fontSize: 26,
+          fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 26,
           lineHeight: 1.25, color: '#ededed', margin: '0 0 20px',
           display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap',
         }}>
