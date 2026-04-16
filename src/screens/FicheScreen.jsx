@@ -815,7 +815,7 @@ function VersionChat({ config, analysisResult, open, onClose }) {
 
 // ── FicheScreen (principal) ────────────────────────────────
 
-export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onTrackDeleted, onTrackRenamed, refreshKey }) {
+export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onTrackDeleted, onTrackRenamed, onGoHome, refreshKey }) {
   const [tracks, setTracks] = useState([]);
   const [openCat, setOpenCat] = useState(0); // un seul accordéon ouvert à la fois
   const [focusIdx, setFocusIdx] = useState(null);
@@ -925,6 +925,12 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   return (
     <>
       <main className="main">
+        {onGoHome && (
+          <button className="fiche-back" onClick={onGoHome}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13l-5-5 5-5"/></svg>
+            Accueil
+          </button>
+        )}
         {currentTrack && (
           <Timeline
             track={currentTrack}

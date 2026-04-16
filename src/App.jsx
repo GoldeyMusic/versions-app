@@ -585,6 +585,7 @@ export default function VersionsApp() {
             config={config}
             analysisResult={analysisResult}
             onSelectVersion={handleSidebarSelectVersion}
+            onGoHome={goHome}
             refreshKey={sidebarRefreshKey}
             onAddVersion={(track) => {
               setPrefillTitle(track.title);

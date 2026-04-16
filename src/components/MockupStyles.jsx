@@ -137,6 +137,15 @@ export default function MockupStyles() {
   /* ── Main area ──────────────────────────────── */
   .main { display: flex; flex-direction: column; min-width: 0; position: relative; }
 
+  .fiche-back {
+    display: flex; align-items: center; gap: 4px;
+    background: none; border: none; cursor: pointer;
+    font-family: var(--body); font-size: 12px; color: var(--muted);
+    padding: 10px 16px 4px; transition: color .15s;
+  }
+  .fiche-back:hover { color: var(--amber); }
+  .fiche-back svg { flex-shrink: 0; }
+
   /* Timeline versions — sticky top, plus affirmée */
   .timeline {
     position: sticky; top: 0; z-index: 10;
