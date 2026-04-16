@@ -654,6 +654,10 @@ export default function MockupStyles() {
     padding: 0 16px; border-radius: 8px;
     font-family: var(--mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
     font-weight: 500;
+    height: 38px;
+    flex-shrink: 0;
+    align-self: flex-end;
+    cursor: pointer;
   }
 
   /* ── Chat overlay bubble ──────────────────────── */
