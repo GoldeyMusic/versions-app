@@ -234,8 +234,13 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
                     </div>
                   </div>
 
-                  {/* Durée + Date — même niveau, alignés par le flex parent */}
+                  {/* Durée juste après le titre */}
                   {durStr && <span className="wh-track-date">{durStr}</span>}
+
+                  {/* Spacer pousse la date et le CTA à droite */}
+                  <span style={{ flex: 1 }} />
+
+                  {/* Date à droite, avant le bouton Analyse */}
                   {dateStr && <span className="wh-track-date">{dateStr}</span>}
 
                   {/* Voir analyse — CTA visible */}
