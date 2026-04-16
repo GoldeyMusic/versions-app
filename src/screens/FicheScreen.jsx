@@ -791,16 +791,15 @@ function VersionChat({ config, analysisResult, open, onClose }) {
         <div className="chat-input">
           <textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+            }}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder="Écris ta question…"
             rows={1}
-            ref={(el) => {
-              if (el) {
-                el.style.height = 'auto';
-                el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-              }
-            }}
+            style={{ minHeight: '38px' }}
           />
           <button onClick={send}>Envoyer</button>
         </div>
