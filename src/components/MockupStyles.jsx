@@ -302,7 +302,7 @@ export default function MockupStyles() {
 
   .ptitle {
     flex: 1;
-    font-family: var(--serif); font-size: 20px; font-weight: 400; line-height: 1.3;
+    font-family: var(--body); font-size: 15px; font-weight: 300; line-height: 1.4;
     letter-spacing: 0.2px;
   }
   .done .ptitle { text-decoration: line-through; color: var(--muted); }
@@ -364,7 +364,7 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 11px; color: var(--muted);
   }
   .diag-item .di-body { flex: 1; }
-  .diag-item .di-name { font-family: var(--serif); font-size: 19px; margin-bottom: 4px; }
+  .diag-item .di-name { font-family: var(--body); font-size: 15px; font-weight: 400; margin-bottom: 4px; }
   .diag-item .di-detail { font-size: 13px; color: var(--soft); line-height: 1.6; font-weight: 300; margin-bottom: 10px; }
   .diag-item .di-tools { display: flex; flex-wrap: wrap; gap: 6px; }
   .diag-item .di-tools span {
