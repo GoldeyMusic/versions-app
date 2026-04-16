@@ -502,7 +502,19 @@ export default function VersionsApp() {
         {/* Main column */}
         <div style={showSidebar ? { display: "flex", flexDirection: "column", minWidth: 0 } : { marginLeft: contentMarginLeft, display: "flex", flexDirection: "column", minHeight: "100vh", transition: "margin-left .2s" }}>
           {/* Header — mobile only (desktop logo is in the sidebar) */}
-          {isMobile && <Header onHome={goHome} />}
+          {isMobile && (
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div style={{ flex: 1 }}><Header onHome={goHome} /></div>
+              <button
+                onClick={() => setScreen("reglages")}
+                style={{
+                  background: 'none', border: 'none', color: 'var(--muted)',
+                  padding: '12px 16px', cursor: 'pointer', fontSize: 18,
+                }}
+                aria-label="Réglages"
+              >⚙</button>
+            </div>
+          )}
 
           {/* Ask Modal */}
           {askOpen && <AskModal onClose={() => setAskOpen(false)} />}

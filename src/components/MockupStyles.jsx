@@ -1193,6 +1193,78 @@ export default function MockupStyles() {
   .reglages-signout:hover {
     border-color: var(--red); background: rgba(239,107,107,.06);
   }
+
+  /* ══════════════════════════════════════════════════════ */
+  /* RESPONSIVE MOBILE                                      */
+  /* ══════════════════════════════════════════════════════ */
+  @media (max-width: 768px) {
+    /* Layout */
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .player { padding-left: 24px; }
+    body { padding-bottom: 120px; }
+
+    /* Auth */
+    .auth-screen { padding: 30px 20px; min-height: 100dvh; }
+    .auth-card { max-width: 100%; gap: 20px; }
+    .auth-brand { font-size: 36px; letter-spacing: 4px; }
+    .auth-tagline { font-size: 9px; letter-spacing: 2px; gap: 8px; }
+    .auth-input { padding: 14px 16px; font-size: 16px; border-radius: 12px; }
+    .auth-submit { padding: 16px; font-size: 14px; border-radius: 12px; }
+    .auth-oauth-btn { padding: 14px 16px; font-size: 13px; border-radius: 12px; }
+
+    /* Réglages */
+    .reglages-screen { padding: 30px 20px 120px; max-width: 100%; }
+    .reglages-title { font-size: 30px; letter-spacing: 2px; }
+    .reglages-section { padding: 16px; border-radius: 12px; }
+    .reglages-fields { flex-direction: column; gap: 10px; }
+    .reglages-input { font-size: 16px; padding: 12px 14px; }
+    .reglages-select { font-size: 16px; padding: 13px 40px 13px 14px; }
+    .reglages-avatar { width: 64px; height: 64px; }
+    .reglages-avatar-initial { font-size: 24px; }
+    .reglages-save { padding: 16px; font-size: 14px; }
+    .reglages-signout { padding: 14px 16px; }
+
+    /* Welcome Home */
+    .welcome-home { padding: 30px 20px 120px; max-width: 100%; }
+    .wh-greeting { font-size: 22px; }
+    .wh-stats { gap: 14px; flex-wrap: wrap; }
+    .wh-stat { min-width: 80px; padding: 14px 16px; }
+    .wh-stat-value { font-size: 28px; }
+    .wh-actions { flex-direction: column; gap: 10px; }
+    .wh-action { justify-content: center; }
+
+    /* Input Screen */
+    .input-screen { padding: 30px 20px 120px; max-width: 100%; }
+    .input-title { font-size: 28px; letter-spacing: 2px; }
+    .input-tagline { font-size: 10px; letter-spacing: 2px; gap: 8px; }
+    .input-fields { flex-direction: column; gap: 10px; }
+    .input-input { font-size: 16px; padding: 12px 14px; }
+    .input-select { font-size: 16px; padding: 13px 40px 13px 14px; }
+    .input-cta { padding: 16px; font-size: 14px; }
+    .input-section { padding: 16px; }
+
+    /* Page / Fiche */
+    .page { padding: 24px 20px 120px; }
+    .verdict { flex-direction: column; gap: 24px; text-align: center; }
+    .score-ring { width: 110px; height: 110px; }
+    .verdict-text h1 { font-size: 26px; }
+    .verdict-text p { font-size: 14px; }
+    .timeline { padding: 12px 16px 10px; gap: 12px; flex-wrap: wrap; }
+    .track-title { font-size: 20px; }
+    .versions-block { padding: 8px; }
+    .vchip { padding: 6px 10px; min-width: 50px; }
+
+    /* Focus */
+    .focus-content { padding: 24px 20px 100px; }
+    .focus-content h2 { font-size: 28px; }
+    .focus-bar { padding: 12px 16px; }
+    .mt-grid { grid-template-columns: 1fr; }
+
+    /* Player mobile */
+    .player .pl-meta .pl-title { font-size: 12px; }
+    .player .pl-meta { min-width: 100px; }
+  }
 `}</style>
     </>
   );
