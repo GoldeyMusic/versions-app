@@ -17,6 +17,9 @@ export default function Sidebar({
 }) {
   const [tracks, setTracks] = useState([]);
   const [localRefresh, setLocalRefresh] = useState(0);
+  const [renameTarget, setRenameTarget] = useState(null); // track being renamed
+  const [renameValue, setRenameValue] = useState('');
+  const renameInputRef = useRef(null);
 
   useEffect(() => {
     let alive = true;
@@ -29,14 +32,21 @@ export default function Sidebar({
     if (latest && onSelectVersion) onSelectVersion(track, latest);
   };
 
-  const handleRename = async (e, track) => {
+  const handleRename = (e, track) => {
     e.stopPropagation();
-    const next = window.prompt('Nouveau nom du titre :', track.title);
-    if (!next || next.trim() === '' || next.trim() === track.title) return;
+    setRenameTarget(track);
+    setRenameValue(track.title);
+    setTimeout(() => renameInputRef.current?.select(), 50);
+  };
+
+  const submitRename = async () => {
+    const next = renameValue.trim();
+    if (!next || next === renameTarget?.title) { setRenameTarget(null); return; }
     try {
-      await renameTrack(track.id, next.trim());
+      await renameTrack(renameTarget.id, next);
       setLocalRefresh((n) => n + 1);
     } catch (err) { console.warn('renameTrack failed', err); }
+    setRenameTarget(null);
   };
 
   const handleDelete = async (e, track) => {
@@ -99,6 +109,63 @@ export default function Sidebar({
       <div className="footer">
         <button onClick={onGoReglages}>⚙ Réglages</button>
       </div>
+
+      {/* Modale renommer titre */}
+      {renameTarget && (
+        <div
+          onClick={() => setRenameTarget(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10000,
+            background: 'rgba(0,0,0,.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'Inter, sans-serif',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 380, background: '#141416', border: '1px solid #2a2a2e',
+              borderRadius: 14, padding: 22, boxShadow: '0 20px 60px rgba(0,0,0,.6)',
+            }}
+          >
+            <div style={{ fontSize: 14, color: '#e8e8ea', marginBottom: 14, fontWeight: 500 }}>
+              Renommer le titre
+            </div>
+            <input
+              ref={renameInputRef}
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submitRename();
+                if (e.key === 'Escape') setRenameTarget(null);
+              }}
+              placeholder="Nom du titre"
+              style={{
+                width: '100%', padding: '10px 12px', fontSize: 13,
+                background: '#0e0e10', border: '1px solid #2a2a2e',
+                borderRadius: 8, color: '#e8e8ea', outline: 'none',
+                fontFamily: 'inherit', boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+              <button onClick={() => setRenameTarget(null)}
+                style={{
+                  padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                  background: 'transparent', border: '1px solid #2a2a2e',
+                  color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
+                }}>Annuler</button>
+              <button onClick={submitRename}
+                disabled={!renameValue.trim() || renameValue.trim() === renameTarget?.title}
+                style={{
+                  padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                  background: '#f5b056', border: 'none',
+                  color: '#141416', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit',
+                  opacity: (!renameValue.trim() || renameValue.trim() === renameTarget?.title) ? 0.5 : 1,
+                }}>Renommer</button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
