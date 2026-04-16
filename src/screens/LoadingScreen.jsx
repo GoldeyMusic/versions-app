@@ -224,7 +224,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           <div style={{ fontFamily: T.display, fontSize: 32, fontWeight: 400, color: "#ededed", letterSpacing: 5, textAlign: "center", textTransform: "uppercase" }}>
             Analyse en cours
           </div>
-          <div style={{ fontFamily: T.mono, fontSize: 11, color: "#7c7c80", fontWeight: 300, textAlign: "center", lineHeight: 1.6, letterSpacing: 1 }}>
+          <div style={{ fontFamily: T.mono, fontSize: 12, color: T.amber, fontWeight: 400, textAlign: "center", lineHeight: 1.6, letterSpacing: 1, opacity: 0.85 }}>
             {config?.title}{config?.version ? ` · ${config.version}` : ""}
           </div>
         </div>
