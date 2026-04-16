@@ -186,18 +186,12 @@ function ListeningSection({ listening }) {
   );
 
   return (
-    <section style={{ marginTop: 48, marginBottom: 8 }}>
+    <section className="listening-section">
       <div className="section-head">
         <span className="t">Écoute qualitative</span>
         <span className="line" />
       </div>
-      <div style={{
-        background: 'rgba(245,176,86,.03)',
-        border: '1px solid #2a2a2e',
-        borderRadius: 12,
-        padding: '28px 32px',
-        display: 'flex', flexDirection: 'column', gap: 24,
-      }}>
+      <div className="listening-box">
         {hasStructured ? (
           <>
             {impression && <Block title="Impression"><P>{impression}</P></Block>}
@@ -290,11 +284,7 @@ function AnalyzingState({ stage }) {
   const bars = Array.from({ length: 20 }, (_, i) => Math.random());
 
   return (
-    <div style={{
-      maxWidth: 480, margin: '60px auto 0', padding: '0 40px',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 36,
-      animation: 'fadeup .3s ease',
-    }}>
+    <div className="analyzing-state">
       {/* Spinner + titre */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
         <div style={{
@@ -525,8 +515,8 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
 
   return (
     <div className="timeline">
-      <div className="track-title" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+      <div className="track-title">
+        <span className="track-title-left">
           <TrackMenu track={track} onRename={onRenameTrack} onDelete={onDeleteTrack} onExport={onExportTrack} />
           <span><TrackTitleText title={track.title} /></span>
         </span>
@@ -538,7 +528,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
         )}
       </div>
 
-      <div className="versions-block" style={{ minWidth: 0, maxWidth: "55%" }}>
+      <div className="versions-block">
         <CompareButton track={track} currentVersion={current} /><span className="versions-label" style={{ marginLeft: 8 }}>Versions</span>
         <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
           <div
@@ -621,64 +611,30 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
   const atFirst = idx === 0;
   const atLast = idx === plan.length - 1;
 
-  const backdrop = {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)',
-    backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
-    zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
-    padding: 40, animation: 'fadein .2s ease',
-  };
-  const panel = {
-    position: 'relative',
-    width: '100%', maxHeight: '88vh',
-    overflowY: 'auto', background: '#141416', border: '1px solid #2a2a2e',
-    borderRadius: 14, padding: '32px 36px',
-    boxShadow: '0 24px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(245,176,86,.08)',
-    animation: 'popin .22s ease', boxSizing: 'border-box',
-  };
-  // Flèches positionnées en fixed par rapport au viewport :
-  // horizontalement à ±(320 + 4)px du centre (320 = moitié de 640, 4 = overlap sur bordure).
-  const arrowBtn = (disabled, side) => {
-    const offset = `calc(50% - 320px - 4px)`; // distance depuis le bord opposé du viewport
-    const base = {
-      position: 'fixed', top: '50%', transform: 'translateY(-50%)',
-      width: 44, height: 44, borderRadius: '50%',
-      background: disabled ? 'rgba(20,20,22,.95)' : '#f5b056',
-      border: `1px solid ${disabled ? '#2a2a2e' : '#f5b056'}`,
-      color: disabled ? '#5a5a5e' : '#0c0c0d',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      cursor: disabled ? 'default' : 'pointer',
-      fontSize: 22, fontFamily: 'Inter, sans-serif', lineHeight: 1,
-      boxShadow: disabled ? 'none' : '0 6px 20px rgba(245,176,86,.35)',
-      transition: 'all .18s ease',
-      pointerEvents: disabled ? 'none' : 'auto',
-      zIndex: 210,
-    };
-    return { ...base, [side]: offset };
-  };
+  const backdrop = 'focus-backdrop';
+  const panel = 'focus-panel';
+  // (arrows styled via CSS classes now)
 
   return (
-    <div style={backdrop} onClick={onClose}>
+    <div className="focus-backdrop" onClick={onClose}>
       <style>{`
         @keyframes popin { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
         @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
       `}</style>
 
-      {/* Flèche gauche — fixed à gauche du panneau */}
       <button
-        style={arrowBtn(atFirst, 'left')}
+        className={`focus-arrow focus-arrow-left${atFirst ? ' disabled' : ''}`}
         onClick={(e) => { e.stopPropagation(); if (!atFirst) onPrev(); }}
         aria-label="Précédent"
       >‹</button>
-
-      {/* Flèche droite — fixed à droite du panneau */}
       <button
-        style={arrowBtn(atLast, 'right')}
+        className={`focus-arrow focus-arrow-right${atLast ? ' disabled' : ''}`}
         onClick={(e) => { e.stopPropagation(); if (!atLast) onNext(); }}
         aria-label="Suivant"
       >›</button>
 
-      <div style={{ width: 640, maxWidth: 'calc(100vw - 160px)', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-      <div style={panel}>
+      <div className="focus-container" onClick={(e) => e.stopPropagation()}>
+      <div className="focus-panel">
         {/* En-tête : compteur + close */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <span style={{
