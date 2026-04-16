@@ -535,7 +535,7 @@ export default function MockupStyles() {
     min-width: 140px; flex-shrink: 0;
   }
   .player .pl-meta .pl-title {
-    font-family: var(--body); font-size: 13px; font-weight: 500; color: var(--text); line-height: 1; letter-spacing: 0.3px;
+    font-family: var(--body); font-size: 13px; font-weight: 300; color: var(--soft); line-height: 1; letter-spacing: 0.3px;
   }
   .player .pl-meta .pl-sub {
     font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 1px;
