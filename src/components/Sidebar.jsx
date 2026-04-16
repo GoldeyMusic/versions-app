@@ -13,6 +13,7 @@ export default function Sidebar({
   onGoReglages,
   onGoHome,
   onPlay,
+  onToggle,
   playerState,
   user,
   userProfile,
@@ -51,9 +52,11 @@ export default function Sidebar({
     if (latest && onSelectVersion) onSelectVersion(track, latest);
   };
 
-  // Construit la playlist (dernière version de chaque titre) et lance la lecture depuis le titre cliqué
+  // Construit la playlist et lance la lecture, ou toggle si déjà en lecture
   const handlePlayTrack = (e, track) => {
     e.stopPropagation();
+    // Si ce titre est déjà en lecture → toggle pause/play
+    if (playerState?.trackTitle === track.title && onToggle) { onToggle(); return; }
     const playlist = tracks
       .map((t) => {
         const latest = t.versions?.[t.versions.length - 1];

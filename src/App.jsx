@@ -8,7 +8,7 @@ import GlobalStyles from "./components/GlobalStyles";
 import MockupStyles from "./components/MockupStyles";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
-import BottomPlayer from "./components/BottomPlayer";
+import BottomPlayer, { resolveAudio } from "./components/BottomPlayer";
 import AskModal from "./components/AskModal";
 import Sidebar from "./components/Sidebar";
 import InputScreen from "./screens/InputScreen";
@@ -39,7 +39,7 @@ const HOME_TIPS = [
   "Écouter à faible volume est le meilleur test : si le mix fonctionne bas, il fonctionnera fort.",
 ];
 
-function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVersion, onPlay, playerState }) {
+function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVersion, onPlay, onToggle, playerState }) {
   const [tracks, setTracks] = useState([]);
   const [tip] = useState(() => HOME_TIPS[Math.floor(Math.random() * HOME_TIPS.length)]);
   const [pickingTrack, setPickingTrack] = useState(false);
@@ -64,6 +64,10 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
       .filter(Boolean);
 
   const handlePlayTrack = (track) => {
+    // Si ce titre est déjà en lecture → toggle pause/play
+    const isThisTrack = playerState?.trackTitle === track.title;
+    if (isThisTrack && onToggle) { onToggle(); return; }
+    // Sinon, lancer la playlist depuis ce titre
     const playlist = buildPlaylist();
     const idx = playlist.findIndex((p) => p.trackTitle === track.title);
     if (idx < 0 || !onPlay) return;
@@ -285,6 +289,17 @@ export default function VersionsApp() {
       .catch(() => {});
   }, [user]);
 
+  // ── Preload first track audio on login (kills the 5s first-play delay) ──
+  useEffect(() => {
+    if (!user) return;
+    loadTracks().then((tracks) => {
+      const ordered = applyTrackOrder(tracks);
+      const first = ordered[0];
+      const latest = first?.versions?.[first.versions.length - 1];
+      if (latest?.storagePath) resolveAudio(latest.storagePath).catch(() => {});
+    });
+  }, [user]);
+
   // ── Language ──
   const [lang, setLangState] = useState("fr");
   useEffect(() => {
@@ -480,6 +495,7 @@ export default function VersionsApp() {
             onAddVersion={handleSidebarAddVersion}
             onSelectVersion={handleSidebarSelectVersion}
             onPlay={play}
+            onToggle={togglePlay}
             playerState={playerState}
           />
         );
@@ -573,6 +589,7 @@ export default function VersionsApp() {
             onGoReglages={() => setScreen("reglages")}
             onAskOpen={() => setAskOpen(true)}
             onPlay={play}
+            onToggle={togglePlay}
             onStop={stopPlay}
             playerState={playerState}
             user={user}

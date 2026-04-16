@@ -14,7 +14,7 @@ const blobUrlCache = new Map(); // storagePath → blobObjectUrl
 const audioPool = new Map();  // storagePath → HTMLAudioElement (preloaded)
 
 /** Download blob, create Audio element, cache everything. Reliable, zero buffer gaps. */
-async function resolveAudio(storagePath) {
+export async function resolveAudio(storagePath) {
   if (audioPool.has(storagePath)) return audioPool.get(storagePath);
 
   // Signed URL
