@@ -786,6 +786,8 @@ export default function MockupStyles() {
     background: var(--s1); border: 1px solid var(--border);
     transition: all .2s;
   }
+  .wh-track-row.drag-over-above { border-top: 2px solid var(--amber); margin-top: -2px; }
+  .wh-track-row.drag-over-below { border-bottom: 2px solid var(--amber); margin-bottom: -2px; }
   .wh-track-row:hover {
     border-color: rgba(245,176,86,0.3); background: rgba(245,176,86,0.04);
   }

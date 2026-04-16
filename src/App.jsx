@@ -16,7 +16,7 @@ import LoadingScreen from "./screens/LoadingScreen";
 import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
 
-import { saveAnalysis, getAnalysis, loadTracks, applyTrackOrder } from "./lib/storage";
+import { saveAnalysis, getAnalysis, loadTracks, applyTrackOrder, saveTrackOrder } from "./lib/storage";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
@@ -39,14 +39,33 @@ const HOME_TIPS = [
   "Écouter à faible volume est le meilleur test : si le mix fonctionne bas, il fonctionnera fort.",
 ];
 
-function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVersion, onPlay, onToggle, playerState, refreshKey }) {
+function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVersion, onPlay, onToggle, playerState, refreshKey, onReorder }) {
   const [tracks, setTracks] = useState([]);
   const [tip] = useState(() => HOME_TIPS[Math.floor(Math.random() * HOME_TIPS.length)]);
   const [pickingTrack, setPickingTrack] = useState(false);
+  const [dragIdx, setDragIdx] = useState(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
 
   useEffect(() => {
     loadTracks().then((raw) => setTracks(applyTrackOrder(raw)));
   }, [refreshKey]);
+
+  const handleDragStart = (idx) => setDragIdx(idx);
+  const handleDragOver = (e, idx) => { e.preventDefault(); setDragOverIdx(idx); };
+  const handleDragEnd = () => { setDragIdx(null); setDragOverIdx(null); };
+  const handleDrop = (idx) => {
+    if (dragIdx === null || dragIdx === idx) { handleDragEnd(); return; }
+    const reordered = [...tracks];
+    const [moved] = reordered.splice(dragIdx, 1);
+    reordered.splice(idx, 0, moved);
+    setTracks(reordered);
+    saveTrackOrder(reordered.map(t => t.id));
+    handleDragEnd();
+    if (onReorder) onReorder();
+  };
+  const dragDir = dragIdx !== null && dragOverIdx !== null
+    ? (dragOverIdx > dragIdx ? 'below' : 'above')
+    : null;
 
   const displayName = userProfile?.prenom || null;
   const totalTracks = tracks.length;
@@ -126,14 +145,37 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
         <div className="wh-tracklist">
           <div className="wh-section-title">Mes titres</div>
           <div className="wh-tracklist-list">
-            {tracks.map((track) => {
+            {tracks.map((track, idx) => {
               const latest = track.versions?.[track.versions.length - 1];
               const score = latest?.analysisResult?.fiche?.globalScore;
               const hasFiche = !!latest?.analysisResult?.fiche;
               const isThisPlaying = playerState?.trackTitle === track.title && !!playerState?.isPlaying;
+              const isOver = dragOverIdx === idx;
+              const overClass = isOver && dragDir === 'above' ? ' drag-over-above' : isOver && dragDir === 'below' ? ' drag-over-below' : '';
 
               return (
-                <div key={track.id} className="wh-track-row">
+                <div
+                  key={track.id}
+                  className={`wh-track-row${overClass}`}
+                  onDragOver={(e) => handleDragOver(e, idx)}
+                  onDrop={() => handleDrop(idx)}
+                  style={{ opacity: dragIdx === idx ? 0.4 : 1, transition: 'opacity .15s' }}
+                >
+                  {/* Poignée drag */}
+                  <span
+                    className="sb-drag-handle"
+                    draggable
+                    onDragStart={() => handleDragStart(idx)}
+                    onDragEnd={handleDragEnd}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
+                      <circle cx="2" cy="2" r="1.2"/><circle cx="6" cy="2" r="1.2"/>
+                      <circle cx="2" cy="7" r="1.2"/><circle cx="6" cy="7" r="1.2"/>
+                      <circle cx="2" cy="12" r="1.2"/><circle cx="6" cy="12" r="1.2"/>
+                    </svg>
+                  </span>
+
                   {/* Play */}
                   <button
                     className={`wh-track-play${isThisPlaying ? ' playing' : ''}`}
@@ -499,6 +541,7 @@ export default function VersionsApp() {
             onToggle={togglePlay}
             playerState={playerState}
             refreshKey={homeRefreshKey}
+            onReorder={() => setSidebarRefreshKey(k => k + 1)}
           />
         );
       case "input":
@@ -592,7 +635,7 @@ export default function VersionsApp() {
             onAskOpen={() => setAskOpen(true)}
             onPlay={play}
             onToggle={togglePlay}
-            onReorder={() => setHomeRefreshKey(k => k + 1)}
+            onReorder={() => { setHomeRefreshKey(k => k + 1); }}
             onStop={stopPlay}
             playerState={playerState}
             user={user}
