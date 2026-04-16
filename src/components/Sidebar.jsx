@@ -48,8 +48,8 @@ export default function Sidebar({
     handleDragEnd();
     if (onReorder) onReorder();
   };
-  // Direction: above or below
-  const dragDir = dragIdx !== null && dragOverIdx !== null
+  // Direction: above or below (rien si on survole soi-même)
+  const dragDir = dragIdx !== null && dragOverIdx !== null && dragOverIdx !== dragIdx
     ? (dragOverIdx > dragIdx ? 'below' : 'above')
     : null;
 
