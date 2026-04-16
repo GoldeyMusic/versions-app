@@ -228,16 +228,14 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
 
                   {/* Info */}
                   <div className="wh-track-info">
-                    <div className="wh-track-title-row">
-                      <span className="wh-track-title">{track.title}</span>
-                      {durStr && <span className="wh-track-dur">{durStr}</span>}
-                    </div>
+                    <div className="wh-track-title">{track.title}</div>
                     <div className="wh-track-meta">
                       {track.versions?.length || 1} version{(track.versions?.length || 1) > 1 ? 's' : ''}
                     </div>
                   </div>
 
-                  {/* Date */}
+                  {/* Durée + Date — même niveau, alignés par le flex parent */}
+                  {durStr && <span className="wh-track-date">{durStr}</span>}
                   {dateStr && <span className="wh-track-date">{dateStr}</span>}
 
                   {/* Voir analyse — CTA visible */}
