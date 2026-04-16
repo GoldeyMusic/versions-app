@@ -37,18 +37,19 @@ function TrackTitleText({ title }) {
 function ScoreRingBig({ value }) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
   const offset = 276 - (276 * v) / 100;
+  const color = v < 50 ? '#ef6b6b' : v < 75 ? '#f5b056' : '#7bd88f';
   return (
     <div className="score-ring">
       <svg viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="44" fill="none" stroke="#f5b05622" strokeWidth="5" />
+        <circle cx="50" cy="50" r="44" fill="none" stroke={`${color}22`} strokeWidth="5" />
         <circle
-          cx="50" cy="50" r="44" fill="none" stroke="#f5b056" strokeWidth="5"
+          cx="50" cy="50" r="44" fill="none" stroke={color} strokeWidth="5"
           strokeDasharray="276" strokeDashoffset={offset} strokeLinecap="round"
           transform="rotate(-90 50 50)"
         />
       </svg>
       <div className="center">
-        <div className="big">{Math.round(v)}</div>
+        <div className="big" style={{ color }}>{Math.round(v)}</div>
         <div className="unit">SCORE / 100</div>
       </div>
     </div>
