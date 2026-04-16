@@ -462,6 +462,7 @@ export default function VersionsApp() {
       <LangContext.Provider value={{ lang, s, setLang }}>
         <FontLink />
         <GlobalStyles />
+        <MockupStyles />
         <AuthScreen />
       </LangContext.Provider>
     );
