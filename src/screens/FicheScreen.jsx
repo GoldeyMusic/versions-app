@@ -258,6 +258,8 @@ const ANALYSIS_TIPS = [
 
 function AnalyzingState({ stage }) {
   const [tipIdx, setTipIdx] = useState(() => Math.floor(Math.random() * ANALYSIS_TIPS.length));
+  // Track the highest stage reached to prevent checkboxes from unchecking
+  const [maxIdx, setMaxIdx] = useState(0);
   useEffect(() => {
     const id = setInterval(() => {
       setTipIdx((i) => (i + 1) % ANALYSIS_TIPS.length);
@@ -270,38 +272,48 @@ function AnalyzingState({ stage }) {
     { id: 'listening', label: 'Écoute qualitative' },
     { id: 'fiche', label: 'Génération de la fiche' },
   ];
-  // Derive progress from stage
-  const currentIdx =
+
+  // Derive progress from stage — monotonic (never goes backward)
+  const rawIdx =
     stage === 'all_done' ? 3 :
-    stage === 'fiche_done' ? 2 :
+    stage === 'fiche_done' ? 3 :
     stage === 'listening_done' ? 2 :
     stage === 'listening_started' ? 1 :
     1;
 
+  useEffect(() => {
+    setMaxIdx((prev) => Math.max(prev, rawIdx));
+  }, [rawIdx]);
+
+  const currentIdx = Math.max(maxIdx, rawIdx);
+
+  const bars = Array.from({ length: 20 }, (_, i) => Math.random());
+
   return (
     <div style={{
-      maxWidth: 560, margin: '80px auto 0', padding: '0 60px',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 40,
+      maxWidth: 480, margin: '60px auto 0', padding: '0 40px',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 36,
+      animation: 'fadeup .3s ease',
     }}>
-      {/* Titre + indicateur rotatif */}
+      {/* Spinner + titre */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
         <div style={{
-          width: 48, height: 48, borderRadius: '50%',
-          border: '2px solid #f5b05622',
+          width: 52, height: 52, borderRadius: '50%',
+          border: '2.5px solid #f5b05622',
           borderTopColor: '#f5b056',
           animation: 'spin 1s linear infinite',
         }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         <h1 style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 32, fontWeight: 400,
+          fontFamily: 'Inter, sans-serif', fontSize: 26, fontWeight: 400,
           color: '#ededed', margin: 0, textAlign: 'center', lineHeight: 1.2,
-        }}>Analyse en cours</h1>
+          letterSpacing: 1,
+        }}>Finalisation de l'analyse</h1>
         <p style={{
           fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#7c7c80',
           margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6,
         }}>
-          L'écoute qualitative et la fiche se génèrent en parallèle.<br/>
-          Compte 30 à 90 secondes selon la longueur du titre.
+          La fiche d'analyse se génère. Encore quelques secondes.
         </p>
       </div>
 
@@ -309,19 +321,19 @@ function AnalyzingState({ stage }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
         {steps.map((s, i) => {
           const done = i < currentIdx;
-          const active = i === currentIdx - 1 && currentIdx < 3;
+          const active = i === currentIdx && currentIdx < 3;
           const color = done ? '#7bd88f' : active ? '#f5b056' : '#5a5a5e';
           return (
             <div key={s.id} style={{
               display: 'flex', alignItems: 'center', gap: 14,
-              padding: '10px 14px',
+              padding: '12px 16px',
               border: `1px solid ${active ? '#f5b05655' : '#2a2a2e'}`,
-              borderRadius: 8,
+              borderRadius: 10,
               background: active ? '#f5b05611' : 'transparent',
               transition: 'all .3s',
             }}>
               <span style={{
-                width: 18, height: 18, borderRadius: '50%',
+                width: 20, height: 20, borderRadius: '50%',
                 background: done ? color : 'transparent',
                 border: `1.5px solid ${color}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -339,9 +351,9 @@ function AnalyzingState({ stage }) {
                   }} />
                 )}
               </span>
-              <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+              <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
               <span style={{
-                fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: 1,
+                fontFamily: 'JetBrains Mono, Inter, monospace', fontSize: 11, letterSpacing: 1,
                 textTransform: 'uppercase',
                 color: done ? '#c5c5c7' : active ? '#f5b056' : '#7c7c80',
               }}>{s.label}</span>
@@ -350,11 +362,28 @@ function AnalyzingState({ stage }) {
         })}
       </div>
 
-      {/* Tip qui défile */}
+      {/* Mini animated bars */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 28, width: 120, opacity: 0.6 }}>
+        {bars.map((h, i) => (
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              background: 'linear-gradient(to top, #f5b056, #f5b05633)',
+              borderRadius: '1.5px 1.5px 0 0',
+              animation: `barrise ${0.3 + h * 0.4}s ease ${i * 0.03}s alternate infinite`,
+              transformOrigin: 'bottom',
+              height: `${20 + h * 80}%`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Tip */}
       <div style={{
-        width: '100%', padding: '20px 24px',
+        width: '100%', padding: '18px 22px',
         background: '#f5b05608', border: '1px solid #f5b05622', borderLeft: '3px solid #f5b056',
-        borderRadius: 10, minHeight: 80, display: 'flex', flexDirection: 'column', gap: 10,
+        borderRadius: 10, minHeight: 70, display: 'flex', flexDirection: 'column', gap: 8,
       }}>
         <div style={{
           fontFamily: 'JetBrains Mono, monospace', fontSize: 9, letterSpacing: 2,

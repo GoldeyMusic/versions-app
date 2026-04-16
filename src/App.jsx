@@ -343,7 +343,7 @@ export default function VersionsApp() {
   }
 
   // On desktop, the sidebar shows the tracks list so we don't need the "versions" screen
-  const showSidebar = isDesktop && screen !== "loading";
+  const showSidebar = isDesktop;
   const contentMarginLeft = showSidebar ? SIDEBAR_WIDTH : 0;
 
   return (
@@ -386,7 +386,7 @@ export default function VersionsApp() {
           </div>
 
           {/* Persistent Bottom Player */}
-          {screen !== "loading" && (playerState || screen === "versions" || screen === "fiche") && (
+          {(playerState || screen === "versions" || screen === "fiche" || screen === "loading") && (
             <BottomPlayer
               trackTitle={playerState?.trackTitle}
               versionName={playerState?.versionName}
@@ -403,7 +403,7 @@ export default function VersionsApp() {
           )}
 
           {/* Bottom Nav — mobile only */}
-          {screen !== "loading" && isMobile && (
+          {isMobile && (
             <BottomNav
               active={askOpen ? "ask" : screen === "input" || screen === "fiche" ? "input" : screen === "versions" ? "historique" : screen}
               onChange={(id) => {

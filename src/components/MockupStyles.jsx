@@ -687,6 +687,16 @@ export default function MockupStyles() {
   body.chat-open .chat-fab {
     transform: scale(0.6); opacity: 0; pointer-events: none;
   }
+
+  /* ── Keyframes for loading animations ── */
+  @keyframes fadeup {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes barrise {
+    from { transform: scaleY(0.1); }
+    to   { transform: scaleY(1); }
+  }
 `}</style>
     </>
   );

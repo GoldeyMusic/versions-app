@@ -193,7 +193,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
   // Error state
   if (error) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "calc(100vh - 58px)", gap: 20 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100%", gap: 20, padding: "60px 20px" }}>
         <div style={{ fontFamily: T.mono, fontSize: 13, color: T.red, textAlign: "center", maxWidth: 320 }}>
           ⚠️ {error}
         </div>
@@ -207,20 +207,83 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
     );
   }
 
-  // Loading state
+  // Loading state — embedded in main layout (sidebar + player stay visible)
   return (
-    <div style={{ width: "100%", minHeight: "100%", display: "grid", placeItems: "center", padding: "40px 20px", boxSizing: "border-box" }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 34 }}>
-        {/* Animated bars */}
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 70, width: 180 }}>
-          {bars.map((h, i) => (
+    <div style={{ width: "100%", minHeight: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px", boxSizing: "border-box", animation: "fadeup .3s ease" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 36, maxWidth: 480, width: "100%" }}>
+
+        {/* Spinner + titre */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: "50%",
+            border: `2.5px solid ${T.amber}22`,
+            borderTopColor: T.amber,
+            animation: "spin 1s linear infinite",
+          }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 26, fontWeight: 400, color: "#ededed", letterSpacing: 1, textAlign: "center" }}>
+            Analyse en cours
+          </div>
+          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "#7c7c80", fontWeight: 300, textAlign: "center", lineHeight: 1.6 }}>
+            {config?.title}{config?.version ? ` · ${config.version}` : ""}
+          </div>
+        </div>
+
+        {/* Étapes */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+          {steps.map((label, i) => {
+            const done = i < phase;
+            const active = i === phase;
+            const color = done ? "#7bd88f" : active ? T.amber : "#5a5a5e";
+            return (
+              <div key={i} style={{
+                display: "flex", alignItems: "center", gap: 14,
+                padding: "12px 16px",
+                border: `1px solid ${active ? `${T.amber}55` : "#2a2a2e"}`,
+                borderRadius: 10,
+                background: active ? `${T.amber}11` : "transparent",
+                transition: "all .3s",
+              }}>
+                <span style={{
+                  width: 20, height: 20, borderRadius: "50%",
+                  background: done ? color : "transparent",
+                  border: `1.5px solid ${color}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  {done && (
+                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                      <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                  {active && (
+                    <span style={{
+                      width: 6, height: 6, borderRadius: "50%",
+                      background: color, animation: "pulse 1.2s ease-in-out infinite",
+                    }} />
+                  )}
+                </span>
+                <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
+                <span style={{
+                  fontFamily: "JetBrains Mono, Inter, monospace", fontSize: 11, letterSpacing: 1,
+                  textTransform: "uppercase",
+                  color: done ? "#c5c5c7" : active ? T.amber : "#7c7c80",
+                }}>{label}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Mini animated bars */}
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 28, width: 120, opacity: 0.6 }}>
+          {bars.slice(0, 20).map((h, i) => (
             <div
               key={i}
               style={{
                 flex: 1,
-                background: `linear-gradient(to top, ${T.amber}, ${T.orange}44)`,
-                borderRadius: "2px 2px 0 0",
-                animation: `barrise ${0.3 + h * 0.4}s ease ${i * 0.025}s alternate infinite`,
+                background: `linear-gradient(to top, ${T.amber}, ${T.amber}33)`,
+                borderRadius: "1.5px 1.5px 0 0",
+                animation: `barrise ${0.3 + h * 0.4}s ease ${i * 0.03}s alternate infinite`,
                 transformOrigin: "bottom",
                 height: `${20 + h * 80}%`,
               }}
@@ -228,29 +291,21 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           ))}
         </div>
 
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: T.display, fontSize: "clamp(32px, 8vw, 42px)", letterSpacing: 6, color: T.amber, marginBottom: 10 }}>
-            ANALYSE
-          </div>
-          <div style={{ fontFamily: T.mono, fontSize: 13, color: T.muted }}>
-            {steps[phase]}
-            <span style={{ animation: "blink 1s infinite" }}>_</span>
-          </div>
-        </div>
-
-        {/* Progress */}
-        <div style={{ display: "flex", gap: 7 }}>
-          {steps.map((_, i) => (
-            <div key={i} style={{ width: i <= phase ? 20 : 6, height: 6, borderRadius: 3, background: i <= phase ? T.amber : T.border, transition: "all .3s" }} />
-          ))}
-        </div>
-
-        <div style={{ fontFamily: T.body, fontWeight: 300, fontSize: 11, color: T.muted, textAlign: "center", maxWidth: 300, lineHeight: 1.6, fontStyle: "italic", transition: "opacity .4s", minHeight: 36 }}>
-          "{shuffledTips[tipIdx]}"
-        </div>
-
-        <div style={{ textAlign: "center", fontFamily: T.mono, fontSize: 10, color: T.muted2 }}>
-          {config?.title} · {config?.version}
+        {/* Tip */}
+        <div style={{
+          width: "100%", padding: "18px 22px",
+          background: `${T.amber}08`, border: `1px solid ${T.amber}22`, borderLeft: `3px solid ${T.amber}`,
+          borderRadius: 10, minHeight: 70, display: "flex", flexDirection: "column", gap: 8,
+        }}>
+          <div style={{
+            fontFamily: "JetBrains Mono, monospace", fontSize: 9, letterSpacing: 2,
+            color: T.amber, textTransform: "uppercase",
+          }}>Le saviez-vous</div>
+          <div key={tipIdx} style={{
+            fontFamily: "Inter, sans-serif", fontSize: 13, color: "#c5c5c7",
+            lineHeight: 1.7, fontWeight: 300,
+            animation: "fadein .4s ease",
+          }}>{shuffledTips[tipIdx]}</div>
         </div>
       </div>
     </div>
