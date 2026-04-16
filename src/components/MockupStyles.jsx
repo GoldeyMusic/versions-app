@@ -1610,7 +1610,13 @@ export default function MockupStyles() {
     .mt-grid { grid-template-columns: 1fr; }
 
     /* Chat mobile */
-    .chat-panel { width: 100%; }
+    .chat-panel { width: 100%; max-width: 100vw; }
+    .chat-head { padding: 14px 16px; }
+    .chat-head .cclose {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--s2); border: 1px solid var(--border);
+      font-size: 16px;
+    }
     .chat-fab { bottom: 82px; right: 16px; width: 44px; height: 44px; }
 
     /* Player mobile */
