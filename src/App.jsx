@@ -205,6 +205,7 @@ export default function VersionsApp() {
 
   // Sidebar handlers
   const handleSidebarSelectVersion = async (track, v) => {
+    console.log('[select-version]', v.name, 'storagePath:', v.storagePath, 'isPlaying:', playerState?.isPlaying);
     const saved = await getAnalysis(track.id, v.id);
     setConfig({ title: track.title, version: v.name, daw: config?.daw || "Logic Pro" });
     setAnalysisResult(saved || v.analysisResult || null);
