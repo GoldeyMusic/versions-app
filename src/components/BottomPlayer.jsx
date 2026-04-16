@@ -160,6 +160,21 @@ export default function BottomPlayer({
     } catch {}
   }, [isPlaying, idle, loading]);
 
+  // ── Spacebar play/pause ────────────────────────────────────
+  useEffect(() => {
+    const handler = (e) => {
+      // Ignore if user is typing in an input/textarea
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (!idle && onToggle) onToggle();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [idle, onToggle]);
+
   // ── Cleanup on unmount ────────────────────────────────────
   useEffect(() => {
     return () => {
