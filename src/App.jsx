@@ -50,22 +50,56 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
     loadTracks().then((raw) => setTracks(applyTrackOrder(raw)));
   }, [refreshKey]);
 
+  // ── Drag & drop (desktop HTML5 + mobile touch) ──
   const handleDragStart = (idx) => setDragIdx(idx);
   const handleDragOver = (e, idx) => { e.preventDefault(); setDragOverIdx(idx); };
   const handleDragEnd = () => { setDragIdx(null); setDragOverIdx(null); };
-  const handleDrop = (idx) => {
-    if (dragIdx === null || dragIdx === idx) { handleDragEnd(); return; }
+  const commitDrop = (fromIdx, toIdx) => {
+    if (fromIdx === null || fromIdx === toIdx) { handleDragEnd(); return; }
     const reordered = [...tracks];
-    const [moved] = reordered.splice(dragIdx, 1);
-    reordered.splice(idx, 0, moved);
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
     setTracks(reordered);
     saveTrackOrder(reordered.map(t => t.id));
     handleDragEnd();
     if (onReorder) onReorder();
   };
-  const dragDir = dragIdx !== null && dragOverIdx !== null
+  const handleDrop = (idx) => commitDrop(dragIdx, idx);
+  const dragDir = dragIdx !== null && dragOverIdx !== null && dragOverIdx !== dragIdx
     ? (dragOverIdx > dragIdx ? 'below' : 'above')
     : null;
+
+  // Touch reorder (mobile)
+  const touchState = useRef({ idx: null, startY: 0, rowEls: [] });
+  const listRef = useRef(null);
+  const handleTouchStart = (idx, e) => {
+    touchState.current.idx = idx;
+    touchState.current.startY = e.touches[0].clientY;
+    // Capture row positions
+    if (listRef.current) {
+      touchState.current.rowEls = Array.from(listRef.current.querySelectorAll('.wh-track-row'));
+    }
+    setDragIdx(idx);
+  };
+  const handleTouchMove = (e) => {
+    if (touchState.current.idx === null) return;
+    e.preventDefault();
+    const y = e.touches[0].clientY;
+    const rows = touchState.current.rowEls;
+    let overIdx = touchState.current.idx;
+    for (let i = 0; i < rows.length; i++) {
+      const rect = rows[i].getBoundingClientRect();
+      if (y >= rect.top && y <= rect.bottom) { overIdx = i; break; }
+    }
+    setDragOverIdx(overIdx);
+  };
+  const handleTouchEnd = () => {
+    if (touchState.current.idx !== null && dragOverIdx !== null) {
+      commitDrop(touchState.current.idx, dragOverIdx);
+    }
+    touchState.current.idx = null;
+    handleDragEnd();
+  };
 
   const displayName = userProfile?.prenom || null;
   const totalTracks = tracks.length;
@@ -142,7 +176,7 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
       {totalTracks > 0 && (
         <div className="wh-tracklist">
           <div className="wh-section-title">Mes <em>titres</em></div>
-          <div className="wh-tracklist-list">
+          <div className="wh-tracklist-list" ref={listRef} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
             {tracks.map((track, idx) => {
               const latest = track.versions?.[track.versions.length - 1];
               const fiche = latest?.analysisResult?.fiche;
@@ -170,6 +204,7 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
                     draggable
                     onDragStart={() => handleDragStart(idx)}
                     onDragEnd={handleDragEnd}
+                    onTouchStart={(e) => handleTouchStart(idx, e)}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
@@ -278,9 +313,6 @@ function MobileMenu({ screen, onNavigate, onSignOut, user, userProfile }) {
           </button>
           <button className={`mobile-menu-item${screen === 'input' || screen === 'loading' || screen === 'fiche' ? ' active' : ''}`} onClick={() => go('input')}>
             <span className="mobile-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg></span> Nouvelle analyse
-          </button>
-          <button className={`mobile-menu-item${screen === 'versions' ? ' active' : ''}`} onClick={() => go('versions')}>
-            <span className="mobile-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span> Mes titres
           </button>
           <button className={`mobile-menu-item${screen === 'reglages' ? ' active' : ''}`} onClick={() => go('reglages')}>
             <span className="mobile-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span> Réglages

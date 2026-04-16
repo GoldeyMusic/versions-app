@@ -34,24 +34,55 @@ export default function Sidebar({
     return () => { alive = false; };
   }, [refreshKey, localRefresh]);
 
-  // Drag-and-drop reorder
+  // Drag-and-drop reorder (desktop + mobile touch)
   const handleDragStart = (idx) => setDragIdx(idx);
   const handleDragOver = (e, idx) => { e.preventDefault(); setDragOverIdx(idx); };
   const handleDragEnd = () => { setDragIdx(null); setDragOverIdx(null); };
-  const handleDrop = (idx) => {
-    if (dragIdx === null || dragIdx === idx) { handleDragEnd(); return; }
+  const commitDrop = (fromIdx, toIdx) => {
+    if (fromIdx === null || fromIdx === toIdx) { handleDragEnd(); return; }
     const reordered = [...tracks];
-    const [moved] = reordered.splice(dragIdx, 1);
-    reordered.splice(idx, 0, moved);
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
     setTracks(reordered);
     saveTrackOrder(reordered.map(t => t.id));
     handleDragEnd();
     if (onReorder) onReorder();
   };
-  // Direction: above or below (rien si on survole soi-même)
+  const handleDrop = (idx) => commitDrop(dragIdx, idx);
   const dragDir = dragIdx !== null && dragOverIdx !== null && dragOverIdx !== dragIdx
     ? (dragOverIdx > dragIdx ? 'below' : 'above')
     : null;
+
+  // Touch reorder (mobile)
+  const touchState = useRef({ idx: null, startY: 0, rowEls: [] });
+  const listRef = useRef(null);
+  const handleTouchStart = (idx, e) => {
+    touchState.current.idx = idx;
+    touchState.current.startY = e.touches[0].clientY;
+    if (listRef.current) {
+      touchState.current.rowEls = Array.from(listRef.current.querySelectorAll('.track'));
+    }
+    setDragIdx(idx);
+  };
+  const handleTouchMove = (e) => {
+    if (touchState.current.idx === null) return;
+    e.preventDefault();
+    const y = e.touches[0].clientY;
+    const rows = touchState.current.rowEls;
+    let overIdx = touchState.current.idx;
+    for (let i = 0; i < rows.length; i++) {
+      const rect = rows[i].getBoundingClientRect();
+      if (y >= rect.top && y <= rect.bottom) { overIdx = i; break; }
+    }
+    setDragOverIdx(overIdx);
+  };
+  const handleTouchEnd = () => {
+    if (touchState.current.idx !== null && dragOverIdx !== null) {
+      commitDrop(touchState.current.idx, dragOverIdx);
+    }
+    touchState.current.idx = null;
+    handleDragEnd();
+  };
 
   const handleTrackClick = (track) => {
     const latest = track.versions?.[track.versions.length - 1];
@@ -136,7 +167,7 @@ export default function Sidebar({
 
       <div>
         <div className="section-label">Mes titres</div>
-        <div className="track-list">
+        <div className="track-list" ref={listRef} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
           {tracks.map((track, idx) => {
             const active = track.title === currentTrackTitle;
             const count = track.versions?.length || 0;
@@ -161,6 +192,7 @@ export default function Sidebar({
                 onDragOver={(e) => handleDragOver(e, idx)}
                 onDragEnd={handleDragEnd}
                 onDrop={() => handleDrop(idx)}
+                onTouchStart={(e) => handleTouchStart(idx, e)}
               />
             );
           })}
@@ -231,7 +263,7 @@ export default function Sidebar({
   );
 }
 
-function TrackRow({ track, active, count, onClick, onRename, onDelete, onPlayTrack, isPlaying, idx, isDragging, isDragOver, dragDir, onDragStart, onDragOver, onDragEnd, onDrop }) {
+function TrackRow({ track, active, count, onClick, onRename, onDelete, onPlayTrack, isPlaying, idx, isDragging, isDragOver, dragDir, onDragStart, onDragOver, onDragEnd, onDrop, onTouchStart }) {
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -270,6 +302,7 @@ function TrackRow({ track, active, count, onClick, onRename, onDelete, onPlayTra
         draggable
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
+        onTouchStart={onTouchStart}
         onClick={(e) => e.stopPropagation()}
       >
         <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
