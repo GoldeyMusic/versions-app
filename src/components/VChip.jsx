@@ -71,7 +71,7 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
       cancelLabel: "Annuler",
       danger: true,
     });
-    if (!ok) return;
+    if (ok !== "confirm") return;
     try {
       await deleteVersion(track.id, version.id);
       onDeleted?.(version);
