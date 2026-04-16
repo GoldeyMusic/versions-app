@@ -847,7 +847,17 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   }, [focusIdx, chatOpen]);
 
   const dbTrack = tracks.find((t) => t.title === config?.title) || null;
-  const currentTrack = dbTrack || (config?.title ? {
+  // Si le track DB existe mais ne contient pas encore la version courante (save en cours),
+  // utiliser un fallback avec la version en mémoire pour afficher les VChips immédiatement
+  const versionInDb = dbTrack?.versions?.find(v => v.name === config?.version);
+  const currentTrack = (dbTrack && versionInDb) ? dbTrack : (dbTrack && !versionInDb && config?.version) ? {
+    ...dbTrack,
+    versions: [...(dbTrack.versions || []), {
+      id: "__pending_v__",
+      name: config.version,
+      analysisResult: analysisResult || null,
+    }],
+  } : dbTrack || (config?.title ? {
     id: "__pending__",
     title: config.title,
     versions: [{
