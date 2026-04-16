@@ -48,6 +48,10 @@ export default function Sidebar({
     handleDragEnd();
     if (onReorder) onReorder();
   };
+  // Direction: above or below
+  const dragDir = dragIdx !== null && dragOverIdx !== null
+    ? (dragOverIdx > dragIdx ? 'below' : 'above')
+    : null;
 
   const handleTrackClick = (track) => {
     const latest = track.versions?.[track.versions.length - 1];
@@ -152,6 +156,7 @@ export default function Sidebar({
                 idx={idx}
                 isDragging={dragIdx === idx}
                 isDragOver={dragOverIdx === idx}
+                dragDir={dragDir}
                 onDragStart={() => handleDragStart(idx)}
                 onDragOver={(e) => handleDragOver(e, idx)}
                 onDragEnd={handleDragEnd}
@@ -226,7 +231,7 @@ export default function Sidebar({
   );
 }
 
-function TrackRow({ track, active, count, onClick, onRename, onDelete, onPlayTrack, isPlaying, idx, isDragging, isDragOver, onDragStart, onDragOver, onDragEnd, onDrop }) {
+function TrackRow({ track, active, count, onClick, onRename, onDelete, onPlayTrack, isPlaying, idx, isDragging, isDragOver, dragDir, onDragStart, onDragOver, onDragEnd, onDrop }) {
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -251,7 +256,7 @@ function TrackRow({ track, active, count, onClick, onRename, onDelete, onPlayTra
 
   return (
     <div
-      className={`track${active ? ' active' : ''}${isDragOver ? ' drag-over' : ''}`}
+      className={`track${active ? ' active' : ''}${isDragOver && dragDir === 'above' ? ' drag-over-above' : ''}${isDragOver && dragDir === 'below' ? ' drag-over-below' : ''}`}
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
