@@ -39,14 +39,14 @@ const HOME_TIPS = [
   "Écouter à faible volume est le meilleur test : si le mix fonctionne bas, il fonctionnera fort.",
 ];
 
-function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVersion, onPlay, onToggle, playerState }) {
+function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVersion, onPlay, onToggle, playerState, refreshKey }) {
   const [tracks, setTracks] = useState([]);
   const [tip] = useState(() => HOME_TIPS[Math.floor(Math.random() * HOME_TIPS.length)]);
   const [pickingTrack, setPickingTrack] = useState(false);
 
   useEffect(() => {
-    loadTracks().then((raw) => setTracks(applyTrackOrder ? applyTrackOrder(raw) : raw));
-  }, []);
+    loadTracks().then((raw) => setTracks(applyTrackOrder(raw)));
+  }, [refreshKey]);
 
   const displayName = userProfile?.prenom || null;
   const totalTracks = tracks.length;
@@ -275,6 +275,7 @@ export default function VersionsApp() {
   const [prefillTitle, setPrefillTitle] = useState("");
   const [autoSelectTrackTitle, setAutoSelectTrackTitle] = useState("");
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
+  const [homeRefreshKey, setHomeRefreshKey] = useState(0);
 
   // ── User profile (avatar, prénom…) ──
   const [userProfile, setUserProfile] = useState(null);
@@ -497,6 +498,7 @@ export default function VersionsApp() {
             onPlay={play}
             onToggle={togglePlay}
             playerState={playerState}
+            refreshKey={homeRefreshKey}
           />
         );
       case "input":
@@ -590,6 +592,7 @@ export default function VersionsApp() {
             onAskOpen={() => setAskOpen(true)}
             onPlay={play}
             onToggle={togglePlay}
+            onReorder={() => setHomeRefreshKey(k => k + 1)}
             onStop={stopPlay}
             playerState={playerState}
             user={user}

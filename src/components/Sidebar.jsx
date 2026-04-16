@@ -14,6 +14,7 @@ export default function Sidebar({
   onGoHome,
   onPlay,
   onToggle,
+  onReorder,
   playerState,
   user,
   userProfile,
@@ -45,6 +46,7 @@ export default function Sidebar({
     setTracks(reordered);
     saveTrackOrder(reordered.map(t => t.id));
     handleDragEnd();
+    if (onReorder) onReorder();
   };
 
   const handleTrackClick = (track) => {
