@@ -84,7 +84,7 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
   return (
     <div
       className={`vchip${isActive ? ' active current-badge' : ''}`}
-      onClick={() => onSelect?.(track, version)}
+      onClick={() => { console.log("[vchip] clicked", version.name); onSelect?.(track, version); }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{ position: 'relative' }}
