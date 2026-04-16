@@ -583,26 +583,24 @@ export default function VersionsApp() {
           {askOpen && <AskModal onClose={() => setAskOpen(false)} />}
 
           {/* Content */}
-          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: playerState ? 80 : 0 }}>
+          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: 80 }}>
             {renderContent()}
           </div>
 
-          {/* Persistent Bottom Player */}
-          {(playerState || screen === "versions" || screen === "fiche" || screen === "loading") && (
-            <BottomPlayer
-              trackTitle={playerState?.trackTitle}
-              versionName={playerState?.versionName}
-              storagePath={playerState?.storagePath}
-              isPlaying={!!playerState?.isPlaying}
-              onToggle={togglePlay}
-              onNext={playNext}
-              onPrev={playPrev}
-              hasNext={hasNext}
-              hasPrev={hasPrev}
-              resetKey={playerState?.resetKey || 0}
-              idle={!playerState}
-            />
-          )}
+          {/* Persistent Bottom Player — toujours visible */}
+          <BottomPlayer
+            trackTitle={playerState?.trackTitle}
+            versionName={playerState?.versionName}
+            storagePath={playerState?.storagePath}
+            isPlaying={!!playerState?.isPlaying}
+            onToggle={togglePlay}
+            onNext={playNext}
+            onPrev={playPrev}
+            hasNext={hasNext}
+            hasPrev={hasPrev}
+            resetKey={playerState?.resetKey || 0}
+            idle={!playerState}
+          />
 
           {/* BottomNav retiré — remplacé par le hamburger menu */}
         </div>

@@ -12,6 +12,8 @@ export default function Sidebar({
   onNewTrack,
   onGoReglages,
   onGoHome,
+  onPlay,
+  playerState,
   user,
   userProfile,
   refreshKey,
@@ -31,6 +33,21 @@ export default function Sidebar({
   const handleTrackClick = (track) => {
     const latest = track.versions?.[track.versions.length - 1];
     if (latest && onSelectVersion) onSelectVersion(track, latest);
+  };
+
+  // Construit la playlist (dernière version de chaque titre) et lance la lecture depuis le titre cliqué
+  const handlePlayTrack = (e, track) => {
+    e.stopPropagation();
+    const playlist = tracks
+      .map((t) => {
+        const latest = t.versions?.[t.versions.length - 1];
+        if (!latest?.storagePath) return null;
+        return { trackTitle: t.title, versionName: latest.name, storagePath: latest.storagePath };
+      })
+      .filter(Boolean);
+    const idx = playlist.findIndex((p) => p.trackTitle === track.title);
+    if (idx < 0 || !onPlay) return;
+    onPlay(playlist[idx].trackTitle, playlist[idx].versionName, playlist[idx].storagePath, playlist, idx);
   };
 
   const handleRename = (e, track) => {
@@ -107,6 +124,10 @@ export default function Sidebar({
                 onClick={() => handleTrackClick(track)}
                 onRename={(e) => handleRename(e, track)}
                 onDelete={(e) => handleDelete(e, track)}
+                onPlayTrack={(e) => handlePlayTrack(e, track)}
+                isPlaying={
+                  playerState?.trackTitle === track.title && !!playerState?.isPlaying
+                }
               />
             );
           })}
@@ -177,7 +198,7 @@ export default function Sidebar({
   );
 }
 
-function TrackRow({ track, active, count, onClick, onRename, onDelete }) {
+function TrackRow({ track, active, count, onClick, onRename, onDelete, onPlayTrack, isPlaying }) {
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -208,6 +229,19 @@ function TrackRow({ track, active, count, onClick, onRename, onDelete }) {
       onMouseLeave={() => setHover(false)}
       style={{ position: 'relative' }}
     >
+      {/* Bouton play devant le titre */}
+      <button
+        onClick={onPlayTrack}
+        title={isPlaying ? 'En lecture' : 'Écouter'}
+        className={`sb-play-btn${isPlaying ? ' playing' : ''}`}
+      >
+        {isPlaying ? (
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9" rx="0.8"/><rect x="7" y="1.5" width="3" height="9" rx="0.8"/></svg>
+        ) : (
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2.5 1v10l8-5z"/></svg>
+        )}
+      </button>
+
       <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {track.title}
       </span>

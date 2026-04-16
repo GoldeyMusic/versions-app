@@ -86,6 +86,20 @@ export default function MockupStyles() {
   .track.active { background: var(--amber-glow); color: var(--amber); }
   .track .count { font-family: var(--mono); font-size: 10px; color: var(--muted); }
 
+  .sb-play-btn {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; padding: 0;
+    transition: all .15s;
+  }
+  .sb-play-btn:hover { color: var(--amber); border-color: var(--amber); }
+  .sb-play-btn.playing {
+    color: var(--amber); border-color: var(--amber);
+    background: rgba(245,176,86,0.12);
+  }
+
   .footer {
     margin-top: auto;
     display: flex; flex-direction: column; gap: 6px;
