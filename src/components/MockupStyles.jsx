@@ -139,12 +139,12 @@ export default function MockupStyles() {
 
   .fiche-back {
     display: flex; align-items: center; justify-content: center;
-    width: 32px; height: 32px; border-radius: 8px;
-    background: none; border: 1px solid transparent; cursor: pointer;
-    color: var(--muted); margin: 2px 0 -4px 12px;
-    transition: all .15s;
+    width: 28px; height: 28px; border-radius: 6px;
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); padding: 0; flex-shrink: 0;
+    transition: color .15s;
   }
-  .fiche-back:hover { color: var(--amber); border-color: var(--border); background: rgba(245,176,86,0.05); }
+  .fiche-back:hover { color: var(--amber); }
 
   /* Timeline versions — sticky top, plus affirmée */
   .timeline {

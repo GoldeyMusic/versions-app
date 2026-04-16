@@ -466,7 +466,7 @@ function MenuItem({ label, onClick, danger }) {
 
 // ── Timeline (sticky bar avec chips versions) ──────────────
 
-function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onRenameTrack, onDeleteTrack, onExportTrack, onTracksRefresh }) {
+function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onRenameTrack, onDeleteTrack, onExportTrack, onTracksRefresh, onGoHome }) {
   const scrollRef = useRef(null);
   const [showFadeRight, setShowFadeRight] = useState(false);
   const [showFadeLeft, setShowFadeLeft] = useState(false);
@@ -517,6 +517,11 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
     <div className="timeline">
       <div className="track-title">
         <span className="track-title-left">
+          {onGoHome && (
+            <button className="fiche-back" onClick={onGoHome} title="Accueil">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13l-5-5 5-5"/></svg>
+            </button>
+          )}
           <span><TrackTitleText title={track.title} /></span>
         </span>
         {current && (
@@ -924,13 +929,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   return (
     <>
       <main className="main">
-        {onGoHome && (
-          <button className="fiche-back" onClick={onGoHome} title="Accueil">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 14l-5-5 5-5"/></svg>
-          </button>
-        )}
         {currentTrack && (
           <Timeline
+            onGoHome={onGoHome}
             track={currentTrack}
             currentVersionName={config?.version}
             stage={stage}
