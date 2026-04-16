@@ -588,7 +588,7 @@ export default function VersionsApp() {
           {askOpen && <AskModal onClose={() => setAskOpen(false)} />}
 
           {/* Content */}
-          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0 }}>
+          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: playerState ? 80 : 0 }}>
             {renderContent()}
           </div>
 

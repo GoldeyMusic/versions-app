@@ -89,7 +89,9 @@ export default function VersionsScreen({
                   <div className="versions-s-card-body">
                     {versions.map((v, i) => {
                       const score = v.analysisResult?.fiche?.globalScore;
-                      const isPlaying = playerState?.storagePath === v.storagePath && playerState?.isPlaying;
+                      const isThisVersion = playerState?.storagePath === v.storagePath
+                        || (playerState?.trackTitle === track.title && playerState?.versionName === v.name);
+                      const isPlaying = isThisVersion && playerState?.isPlaying;
 
                       return (
                         <div key={v.id} className="versions-s-version">
