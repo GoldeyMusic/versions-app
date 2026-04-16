@@ -250,14 +250,26 @@ function TrackRow({ track, active, count, onClick, onRename, onDelete, onPlayTra
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      draggable
-      onDragStart={onDragStart}
       onDragOver={onDragOver}
-      onDragEnd={onDragEnd}
       onDrop={onDrop}
       style={{ position: 'relative', opacity: isDragging ? 0.4 : 1, transition: 'opacity .15s' }}
     >
-      {/* Bouton play devant le titre */}
+      {/* Poignée drag */}
+      <span
+        className="sb-drag-handle"
+        draggable
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
+          <circle cx="2" cy="2" r="1.2"/><circle cx="6" cy="2" r="1.2"/>
+          <circle cx="2" cy="7" r="1.2"/><circle cx="6" cy="7" r="1.2"/>
+          <circle cx="2" cy="12" r="1.2"/><circle cx="6" cy="12" r="1.2"/>
+        </svg>
+      </span>
+
+      {/* Bouton play */}
       <button
         onClick={onPlayTrack}
         title={isPlaying ? 'En lecture' : 'Écouter'}

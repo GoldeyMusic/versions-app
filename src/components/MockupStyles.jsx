@@ -87,6 +87,15 @@ export default function MockupStyles() {
   .track.drag-over { border-top: 2px solid var(--amber); margin-top: -2px; }
   .track .count { font-family: var(--mono); font-size: 10px; color: var(--muted); }
 
+  .sb-drag-handle {
+    display: flex; align-items: center; justify-content: center;
+    width: 14px; flex-shrink: 0;
+    color: var(--muted2); cursor: grab;
+    opacity: 0.4; transition: opacity .15s, color .15s;
+  }
+  .sb-drag-handle:active { cursor: grabbing; }
+  .track:hover .sb-drag-handle { opacity: 1; color: var(--muted); }
+
   .sb-play-btn {
     width: 22px; height: 22px; border-radius: 50%;
     background: transparent; border: 1px solid var(--border);
