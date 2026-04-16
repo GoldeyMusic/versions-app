@@ -517,7 +517,6 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
     <div className="timeline">
       <div className="track-title">
         <span className="track-title-left">
-          <TrackMenu track={track} onRename={onRenameTrack} onDelete={onDeleteTrack} onExport={onExportTrack} />
           <span><TrackTitleText title={track.title} /></span>
         </span>
         {current && (
