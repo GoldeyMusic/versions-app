@@ -73,6 +73,7 @@ export default function BottomPlayer({
     const ws = wsRef.current;
     if (!ws || !storagePath) return;
 
+    console.log('[player] loading new audio:', storagePath, 'resetKey:', resetKey);
     loadedPathRef.current = storagePath;
     setLoading(true);
     setCurrentTime(0);
