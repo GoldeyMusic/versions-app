@@ -16,7 +16,7 @@ import LoadingScreen from "./screens/LoadingScreen";
 import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
 
-import { saveAnalysis, getAnalysis, loadTracks } from "./lib/storage";
+import { saveAnalysis, getAnalysis, loadTracks, applyTrackOrder } from "./lib/storage";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
@@ -39,37 +39,41 @@ const HOME_TIPS = [
   "Écouter à faible volume est le meilleur test : si le mix fonctionne bas, il fonctionnera fort.",
 ];
 
-function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVersion }) {
+function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVersion, onPlay, playerState }) {
   const [tracks, setTracks] = useState([]);
   const [tip] = useState(() => HOME_TIPS[Math.floor(Math.random() * HOME_TIPS.length)]);
   const [pickingTrack, setPickingTrack] = useState(false);
 
   useEffect(() => {
-    loadTracks().then(setTracks);
+    loadTracks().then((raw) => setTracks(applyTrackOrder ? applyTrackOrder(raw) : raw));
   }, []);
 
   const displayName = userProfile?.prenom || null;
-
-  // Stats
   const totalTracks = tracks.length;
-  const totalVersions = tracks.reduce((sum, t) => sum + (t.versions?.length || 0), 0);
-  const allScores = tracks.flatMap(t =>
-    (t.versions || []).map(v => v.analysisResult?.fiche?.globalScore).filter(s => typeof s === "number")
-  );
-  const avgScore = allScores.length ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : null;
-
-  // Dernières analyses (4 max)
-  const recent = tracks.flatMap(t =>
-    (t.versions || []).filter(v => v.analysisResult?.fiche).map(v => ({
-      track: t,
-      version: v,
-      score: v.analysisResult?.fiche?.globalScore,
-      verdict: v.analysisResult?.fiche?.verdict || v.analysisResult?.fiche?.summary || "",
-      date: v.date,
-    }))
-  ).sort((a, b) => new Date(b.version.id) - new Date(a.version.id)).slice(0, 4);
 
   const scoreColor = (s) => s < 50 ? "#ef6b6b" : s < 75 ? "#f5b056" : "#7bd88f";
+
+  // Construire la playlist (dernière version de chaque titre)
+  const buildPlaylist = () =>
+    tracks
+      .map((t) => {
+        const latest = t.versions?.[t.versions.length - 1];
+        if (!latest?.storagePath) return null;
+        return { trackTitle: t.title, versionName: latest.name, storagePath: latest.storagePath };
+      })
+      .filter(Boolean);
+
+  const handlePlayTrack = (track) => {
+    const playlist = buildPlaylist();
+    const idx = playlist.findIndex((p) => p.trackTitle === track.title);
+    if (idx < 0 || !onPlay) return;
+    onPlay(playlist[idx].trackTitle, playlist[idx].versionName, playlist[idx].storagePath, playlist, idx);
+  };
+
+  const handleViewFiche = (track) => {
+    const latest = track.versions?.[track.versions.length - 1];
+    if (latest && onSelectVersion) onSelectVersion(track, latest);
+  };
 
   return (
     <div className="welcome-home">
@@ -81,26 +85,6 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
           <div className="wh-tip-text">{tip}</div>
         </div>
       </div>
-
-      {/* Stats */}
-      {totalTracks > 0 && (
-        <div className="wh-stats">
-          <div className="wh-stat">
-            <div className="wh-stat-value">{totalTracks}</div>
-            <div className="wh-stat-label">{totalTracks > 1 ? "titres" : "titre"}</div>
-          </div>
-          <div className="wh-stat">
-            <div className="wh-stat-value">{totalVersions}</div>
-            <div className="wh-stat-label">{totalVersions > 1 ? "versions" : "version"}</div>
-          </div>
-          {avgScore != null && (
-            <div className="wh-stat">
-              <div className="wh-stat-value" style={{ color: scoreColor(avgScore) }}>{avgScore}</div>
-              <div className="wh-stat-label">score moyen</div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Raccourcis */}
       <div className="wh-actions">
@@ -133,29 +117,58 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
         )}
       </div>
 
-      {/* Dernières analyses */}
-      {recent.length > 0 && (
-        <div className="wh-recent">
-          <div className="wh-section-title">Dernières analyses</div>
-          <div className="wh-recent-list">
-            {recent.map((r, i) => (
-              <div
-                key={i}
-                className="wh-recent-card"
-                onClick={() => onSelectVersion(r.track, r.version)}
-              >
-                <div className="wh-recent-score" style={{
-                  borderColor: typeof r.score === "number" ? scoreColor(r.score) : "#5a5a5e",
-                  color: typeof r.score === "number" ? scoreColor(r.score) : "#7c7c80",
-                }}>
-                  {typeof r.score === "number" ? r.score : "—"}
+      {/* Liste des titres — playlist */}
+      {totalTracks > 0 && (
+        <div className="wh-tracklist">
+          <div className="wh-section-title">Mes titres</div>
+          <div className="wh-tracklist-list">
+            {tracks.map((track) => {
+              const latest = track.versions?.[track.versions.length - 1];
+              const score = latest?.analysisResult?.fiche?.globalScore;
+              const hasFiche = !!latest?.analysisResult?.fiche;
+              const isThisPlaying = playerState?.trackTitle === track.title && !!playerState?.isPlaying;
+
+              return (
+                <div key={track.id} className="wh-track-row">
+                  {/* Play */}
+                  <button
+                    className={`wh-track-play${isThisPlaying ? ' playing' : ''}`}
+                    onClick={() => handlePlayTrack(track)}
+                    title={isThisPlaying ? 'En lecture' : 'Écouter'}
+                  >
+                    {isThisPlaying ? (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9-5.5z"/></svg>
+                    )}
+                  </button>
+
+                  {/* Info */}
+                  <div className="wh-track-info">
+                    <div className="wh-track-title">{track.title}</div>
+                    <div className="wh-track-meta">
+                      {latest?.name || 'v1'}
+                      {' · '}
+                      {track.versions?.length || 0} version{(track.versions?.length || 0) > 1 ? 's' : ''}
+                    </div>
+                  </div>
+
+                  {/* Score badge */}
+                  {typeof score === 'number' && (
+                    <div className="wh-track-score" style={{ color: scoreColor(score), borderColor: scoreColor(score) }}>
+                      {score}
+                    </div>
+                  )}
+
+                  {/* Voir fiche */}
+                  {hasFiche && (
+                    <button className="wh-track-fiche" onClick={() => handleViewFiche(track)}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </button>
+                  )}
                 </div>
-                <div className="wh-recent-info">
-                  <div className="wh-recent-title">{r.track.title}</div>
-                  <div className="wh-recent-version">{r.version.name}{r.date ? ` · ${r.date}` : ""}</div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -460,6 +473,8 @@ export default function VersionsApp() {
             onNewTrack={handleSidebarNewTrack}
             onAddVersion={handleSidebarAddVersion}
             onSelectVersion={handleSidebarSelectVersion}
+            onPlay={play}
+            playerState={playerState}
           />
         );
       case "input":

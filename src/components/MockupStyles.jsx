@@ -752,24 +752,6 @@ export default function MockupStyles() {
     line-height: 1.7; font-weight: 300;
   }
 
-  .wh-stats {
-    display: flex; justify-content: center; gap: 32px;
-  }
-  .wh-stat {
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
-    padding: 18px 24px;
-    background: var(--s1); border: 1px solid var(--border); border-radius: 14px;
-    min-width: 100px;
-  }
-  .wh-stat-value {
-    font-family: 'Bebas Neue', sans-serif; font-size: 36px;
-    color: var(--text); line-height: 1;
-  }
-  .wh-stat-label {
-    font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px;
-    text-transform: uppercase; color: var(--muted);
-  }
-
   .wh-actions {
     display: flex; justify-content: center; gap: 12px;
   }
@@ -792,33 +774,55 @@ export default function MockupStyles() {
     text-transform: uppercase; color: var(--muted); margin-bottom: 14px;
   }
 
-  .wh-recent-list {
-    display: flex; flex-direction: column; gap: 8px;
+  /* Tracklist homepage */
+  .wh-tracklist { width: 100%; max-width: 520px; margin: 0 auto; }
+  .wh-tracklist-list {
+    display: flex; flex-direction: column; gap: 6px;
   }
-  .wh-recent-card {
-    display: flex; align-items: center; gap: 16px;
-    padding: 14px 18px; border-radius: 12px;
+  .wh-track-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; border-radius: 10px;
     background: var(--s1); border: 1px solid var(--border);
-    cursor: pointer; transition: all .2s;
+    transition: all .2s;
   }
-  .wh-recent-card:hover {
-    border-color: var(--amber); background: rgba(245,176,86,0.04);
+  .wh-track-row:hover {
+    border-color: rgba(245,176,86,0.3); background: rgba(245,176,86,0.04);
   }
-  .wh-recent-score {
-    width: 44px; height: 44px; border-radius: 50%;
-    border: 2px solid; flex-shrink: 0;
+  .wh-track-play {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); cursor: pointer; flex-shrink: 0; padding: 0;
     display: flex; align-items: center; justify-content: center;
-    font-family: 'Bebas Neue', sans-serif; font-size: 20px; line-height: 1;
+    transition: all .15s;
   }
-  .wh-recent-info { min-width: 0; }
-  .wh-recent-title {
+  .wh-track-play:hover { color: var(--amber); border-color: var(--amber); }
+  .wh-track-play.playing {
+    color: var(--amber); border-color: var(--amber);
+    background: rgba(245,176,86,0.12);
+  }
+  .wh-track-info { flex: 1; min-width: 0; }
+  .wh-track-title {
     font-family: var(--body); font-size: 14px; font-weight: 400;
     color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .wh-recent-version {
+  .wh-track-meta {
     font-family: var(--mono); font-size: 10px; color: var(--muted);
     letter-spacing: 0.5px; margin-top: 2px;
   }
+  .wh-track-score {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1.5px solid; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 12px; font-weight: 500; line-height: 1;
+  }
+  .wh-track-fiche {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); cursor: pointer; flex-shrink: 0; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .wh-track-fiche:hover { color: var(--amber); border-color: var(--amber); }
 
   .wh-track-picker {
     position: absolute; top: calc(100% + 6px); left: 0; right: 0;
@@ -1556,10 +1560,8 @@ export default function MockupStyles() {
     /* Welcome Home */
     .welcome-home { padding: 30px 20px 120px; max-width: 100%; }
     .wh-greeting { font-size: 28px; letter-spacing: 2px; }
-    .wh-stats { gap: 14px; flex-wrap: wrap; }
-    .wh-stat { min-width: 80px; padding: 14px 16px; }
-    .wh-stat-value { font-size: 28px; }
     .wh-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .wh-tracklist { max-width: 100%; }
     .wh-action { justify-content: center; padding: 12px 10px; font-size: 12px; }
 
     /* Versions Screen */
