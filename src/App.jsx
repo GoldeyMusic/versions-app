@@ -17,6 +17,7 @@ import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
 
 import { saveAnalysis, getAnalysis, loadTracks } from "./lib/storage";
+import { supabase } from "./lib/supabase";
 import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
 import ReglagesScreen from "./screens/ReglagesScreen";
@@ -38,7 +39,7 @@ const HOME_TIPS = [
   "Écouter à faible volume est le meilleur test : si le mix fonctionne bas, il fonctionnera fort.",
 ];
 
-function WelcomeHome({ user, onNewTrack, onAddVersion, onSelectVersion }) {
+function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVersion }) {
   const [tracks, setTracks] = useState([]);
   const [tip] = useState(() => HOME_TIPS[Math.floor(Math.random() * HOME_TIPS.length)]);
   const [pickingTrack, setPickingTrack] = useState(false);
@@ -47,8 +48,7 @@ function WelcomeHome({ user, onNewTrack, onAddVersion, onSelectVersion }) {
     loadTracks().then(setTracks);
   }, []);
 
-  // TODO: récupérer le prénom depuis les réglages utilisateur (Supabase profile)
-  const displayName = null;
+  const displayName = userProfile?.prenom || null;
 
   // Stats
   const totalTracks = tracks.length;
@@ -193,6 +193,19 @@ export default function VersionsApp() {
   const [prefillTitle, setPrefillTitle] = useState("");
   const [autoSelectTrackTitle, setAutoSelectTrackTitle] = useState("");
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
+
+  // ── User profile (avatar, prénom…) ──
+  const [userProfile, setUserProfile] = useState(null);
+  useEffect(() => {
+    if (!user) { setUserProfile(null); return; }
+    supabase
+      .from("profiles")
+      .select("prenom, nom, avatar_url, default_daw, langue")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => { if (data) setUserProfile(data); })
+      .catch(() => {});
+  }, [user]);
 
   // ── Language ──
   const [lang, setLangState] = useState("fr");
@@ -376,6 +389,7 @@ export default function VersionsApp() {
         return (
           <WelcomeHome
             user={user}
+            userProfile={userProfile}
             onNewTrack={handleSidebarNewTrack}
             onAddVersion={handleSidebarAddVersion}
             onSelectVersion={handleSidebarSelectVersion}
@@ -425,7 +439,7 @@ export default function VersionsApp() {
           />
         );
       case "reglages":
-        return <ReglagesScreen onSignOut={signOut} onGoHome={goHome} />;
+        return <ReglagesScreen onSignOut={signOut} onGoHome={goHome} onProfileUpdate={setUserProfile} />;
       default:
         return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} />;
     }
@@ -477,6 +491,7 @@ export default function VersionsApp() {
             onStop={stopPlay}
             playerState={playerState}
             user={user}
+            userProfile={userProfile}
             onSignOut={signOut}
             onGoHome={goHome}
             refreshKey={sidebarRefreshKey}

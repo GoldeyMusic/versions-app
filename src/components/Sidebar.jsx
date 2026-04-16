@@ -13,6 +13,7 @@ export default function Sidebar({
   onGoReglages,
   onGoHome,
   user,
+  userProfile,
   refreshKey,
 }) {
   const [tracks, setTracks] = useState([]);
@@ -66,8 +67,10 @@ export default function Sidebar({
     } catch (err) { console.warn('deleteTrack failed', err); }
   };
 
-  const initial = (user?.email || 'U').trim().charAt(0).toUpperCase();
-  const who = user?.email ? user.email.split('@')[0] : 'utilisateur';
+  const avatarUrl = userProfile?.avatar_url || null;
+  const displayName = userProfile?.prenom || null;
+  const initial = (displayName || user?.email || 'U').trim().charAt(0).toUpperCase();
+  const who = displayName || (user?.email ? user.email.split('@')[0] : 'utilisateur');
 
   return (
     <aside className="sidebar">
@@ -75,8 +78,12 @@ export default function Sidebar({
         <img src="/logo-versions.svg" alt="" style={{ height: 28, width: 'auto' }} /><span>{"VER"}<span className="accent">{"SI"}</span>{"ONS"}</span>
       </div>
 
-      <div className="user-pill">
-        <div className="avatar">{initial}</div>
+      <div className="user-pill" onClick={onGoReglages} style={{ cursor: 'pointer' }}>
+        <div className="avatar">
+          {avatarUrl
+            ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+            : initial}
+        </div>
         <div>
           <div className="who">{who}</div>
           <div className="plan">Premier</div>

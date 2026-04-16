@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 /* ═══════════════════════════════════════════════════════════ */
 /* RÉGLAGES                                                    */
 /* ═══════════════════════════════════════════════════════════ */
-export default function ReglagesScreen({ onSignOut, onGoHome }) {
+export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate }) {
   const { user } = useAuth();
   const fileRef = useRef(null);
 
@@ -72,6 +72,7 @@ export default function ReglagesScreen({ onSignOut, onGoHome }) {
         updated_at: new Date().toISOString(),
       });
       setSaved(true);
+      if (onProfileUpdate) onProfileUpdate({ prenom: prenom.trim(), nom: nom.trim(), avatar_url: avatarUrl, default_daw: defaultDaw, langue });
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
       console.warn('save profile:', e);
