@@ -1610,8 +1610,8 @@ export default function MockupStyles() {
     .mt-grid { grid-template-columns: 1fr; }
 
     /* Chat mobile — doit passer au-dessus de la topbar (z-index: 100) */
-    .chat-panel { width: 100%; max-width: 100vw; z-index: 150; }
-    .chat-backdrop { z-index: 140; }
+    .chat-panel { width: 100%; max-width: 100vw; z-index: 150; bottom: 60px; }
+    .chat-backdrop { z-index: 140; bottom: 60px; }
     .chat-head { padding: 14px 16px; }
     .chat-head .cclose {
       width: 36px; height: 36px; border-radius: 8px;
