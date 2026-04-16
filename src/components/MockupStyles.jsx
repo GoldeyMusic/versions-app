@@ -649,6 +649,18 @@ export default function MockupStyles() {
     appearance: none;
   }
   .chat-input textarea:focus { border-color: var(--amber); }
+  .chat-typing { display: inline-flex; gap: 4px; align-items: center; padding: 4px 0; }
+  .chat-typing .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--amber); opacity: 0.4;
+    animation: chatBounce 1.2s infinite ease-in-out;
+  }
+  .chat-typing .dot:nth-child(2) { animation-delay: 0.2s; }
+  .chat-typing .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes chatBounce {
+    0%, 60%, 100% { opacity: 0.4; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-4px); }
+  }
   .chat-input button {
     background: var(--amber); color: #000;
     padding: 0 16px; border-radius: 8px;

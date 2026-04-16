@@ -739,11 +739,13 @@ function VersionChat({ config, analysisResult, open, onClose }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const controllerRef = useRef(null);
+  const textareaRef = useRef(null);
   const send = async () => {
     if (!input.trim() || loading) return;
     const userMsg = { role: 'user', content: input.trim() };
     setMessages((m) => [...m, userMsg]);
     setInput('');
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setLoading(true);
     try {
       if (controllerRef.current) controllerRef.current.abort();
@@ -794,9 +796,18 @@ function VersionChat({ config, analysisResult, open, onClose }) {
               {m.content}
             </div>
           ))}
+          {loading && (
+            <div className="msg ai">
+              <span className="ai-label">Versions</span>
+              <span className="chat-typing">
+                <span className="dot" /><span className="dot" /><span className="dot" />
+              </span>
+            </div>
+          )}
         </div>
         <div className="chat-input">
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => {
               setInput(e.target.value);
