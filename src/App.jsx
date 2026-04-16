@@ -209,9 +209,13 @@ export default function VersionsApp() {
     setConfig({ title: track.title, version: v.name, daw: config?.daw || "Logic Pro" });
     setAnalysisResult(saved || v.analysisResult || null);
     setScreen("fiche");
-    // Charger l'audio dans le player (sans lancer la lecture)
+    // Charger l'audio — continue la lecture si déjà en cours
     if (v.storagePath) {
-      loadPlayer(track.title, v.name, v.storagePath);
+      if (playerState?.isPlaying) {
+        play(track.title, v.name, v.storagePath);
+      } else {
+        loadPlayer(track.title, v.name, v.storagePath);
+      }
     }
   };
   const handleSidebarAddVersion = (track) => {
