@@ -797,9 +797,8 @@ function VersionChat({ config, analysisResult, open, onClose }) {
               e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
             }}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-            placeholder="Écris ta question…"
+            placeholder="Pose une question sur l'analyse…"
             rows={1}
-            style={{ minHeight: '38px' }}
           />
           <button onClick={send}>Envoyer</button>
         </div>

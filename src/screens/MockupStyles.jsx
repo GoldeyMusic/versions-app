@@ -638,15 +638,15 @@ export default function MockupStyles() {
   }
   .chat-input textarea {
     flex: 1;
-    background: var(--s2); border: 1px solid var(--border);
+    background: var(--s2) !important; border: 1px solid var(--border);
     padding: 10px 12px; border-radius: 8px;
     color: var(--text); font-family: var(--body); font-size: 13px;
     outline: none; resize: none;
-    line-height: 1.5;
+    line-height: 1.4;
     max-height: 120px;
     overflow-y: auto;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    -webkit-appearance: none;
+    appearance: none;
   }
   .chat-input textarea:focus { border-color: var(--amber); }
   .chat-input button {
