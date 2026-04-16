@@ -232,7 +232,7 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
                     <div className="wh-track-title">{track.title}</div>
                     <div className="wh-track-meta">
                       {durStr && <>{durStr} · </>}
-                      {latest?.name || 'v1'}
+                      {track.versions?.length || 1} version{(track.versions?.length || 1) > 1 ? 's' : ''}
                       {dateStr && <> · {dateStr}</>}
                     </div>
                   </div>
