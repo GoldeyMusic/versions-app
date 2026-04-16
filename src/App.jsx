@@ -305,10 +305,16 @@ export default function VersionsApp() {
 
   const play = (trackTitle, versionName, storagePath, playlist, currentIdx, keepProgress) => {
     if (!storagePath) return; // pas d'audio disponible
-    // Bump resetKey uniquement pour restart le même fichier (pas quand on switch de version)
-    if (!keepProgress && playerState?.storagePath === storagePath) {
-      resetKeyRef.current += 1;
+    const samePath = playerState?.storagePath === storagePath;
+    const sameTrack = playerState?.trackTitle === trackTitle;
+    // Restart si : même fichier rejoué, OU titre différent (playlist avance)
+    // Pas de restart si : switch de version au sein du même titre (lecture ininterrompue)
+    if (samePath && !keepProgress) {
+      resetKeyRef.current += 1;  // replay même fichier
+    } else if (!sameTrack) {
+      resetKeyRef.current += 1;  // nouveau titre → reprend du début
     }
+    // Si sameTrack && !samePath → switch de version, pas de bump → lecture continue
     setPlayerState({
       trackTitle, versionName, storagePath, isPlaying: true,
       playlist: playlist || [], currentIdx: currentIdx || 0,
