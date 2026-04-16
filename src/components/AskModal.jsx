@@ -22,9 +22,12 @@ export default function AskModal({ onClose }) {
     setLoading(true);
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 45000);
       const res = await fetch(`${API}/api/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           messages: [
             ...messages,
@@ -35,6 +38,7 @@ export default function AskModal({ onClose }) {
           })),
         }),
       });
+      clearTimeout(timeout);
       const data = await res.json();
       const txt = data.reply || data.error || 'Pas de réponse.';
       setMessages((prev) => [...prev, { role: 'assistant', text: txt }]);
@@ -268,11 +272,17 @@ export default function AskModal({ onClose }) {
             flexShrink: 0,
           }}
         >
-          <input
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ta question…"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder="Ta question… (Shift+Enter pour retour à la ligne)"
+            rows={1}
             style={{
               flex: 1,
               background: T.s2,
@@ -283,6 +293,17 @@ export default function AskModal({ onClose }) {
               outline: 'none',
               fontSize: 12,
               transition: 'border-color .2s',
+              resize: 'none',
+              fontFamily: 'inherit',
+              lineHeight: 1.5,
+              maxHeight: 120,
+              overflowY: 'auto',
+            }}
+            ref={(el) => {
+              if (el) {
+                el.style.height = 'auto';
+                el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+              }
             }}
           />
           <button
