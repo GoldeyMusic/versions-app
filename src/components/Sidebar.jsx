@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { loadTracks, deleteTrack, renameTrack } from '../lib/storage';
+import { confirmDialog } from '../lib/confirm.jsx';
 
 /**
  * Sidebar — rendu conforme à mockup-v3.html (classes maquette).
@@ -41,8 +42,14 @@ export default function Sidebar({
   const handleDelete = async (e, track) => {
     e.stopPropagation();
     const n = (track.versions || []).length;
-    const msg = `Supprimer "${track.title}" et ses ${n} version${n > 1 ? 's' : ''} ? Cette action est définitive.`;
-    if (!window.confirm(msg)) return;
+    const ok = await confirmDialog({
+      title: "Supprimer le titre ?",
+      message: `Supprimer "${track.title}" et ses ${n} version${n > 1 ? 's' : ''} ? Cette action est définitive.`,
+      confirmLabel: "Supprimer",
+      cancelLabel: "Annuler",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteTrack(track.id);
       setLocalRefresh((n2) => n2 + 1);
@@ -54,9 +61,8 @@ export default function Sidebar({
 
   return (
     <aside className="sidebar">
-      <div className="brand" onClick={onGoHome} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-        <img src="/logo-versions.svg" alt="" style={{ height: 22, width: "auto", display: "block" }} />
-        <span>VER<span className="accent">SI</span>ONS</span>
+      <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
+        VER<span className="accent">si</span>ONS
       </div>
 
       <div className="user-pill">
