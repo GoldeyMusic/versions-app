@@ -305,13 +305,13 @@ function AnalyzingState({ stage }) {
         }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         <h1 style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 26, fontWeight: 400,
+          fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, fontWeight: 400,
           color: '#ededed', margin: 0, textAlign: 'center', lineHeight: 1.2,
-          letterSpacing: 1,
+          letterSpacing: 5, textTransform: 'uppercase',
         }}>Finalisation de l'analyse</h1>
         <p style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#7c7c80',
-          margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6,
+          fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#7c7c80',
+          margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6, letterSpacing: 1,
         }}>
           La fiche d'analyse se génère. Encore quelques secondes.
         </p>

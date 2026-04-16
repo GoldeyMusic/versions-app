@@ -221,10 +221,10 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
             animation: "spin 1s linear infinite",
           }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 26, fontWeight: 400, color: "#ededed", letterSpacing: 1, textAlign: "center" }}>
+          <div style={{ fontFamily: T.display, fontSize: 32, fontWeight: 400, color: "#ededed", letterSpacing: 5, textAlign: "center", textTransform: "uppercase" }}>
             Analyse en cours
           </div>
-          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "#7c7c80", fontWeight: 300, textAlign: "center", lineHeight: 1.6 }}>
+          <div style={{ fontFamily: T.mono, fontSize: 11, color: "#7c7c80", fontWeight: 300, textAlign: "center", lineHeight: 1.6, letterSpacing: 1 }}>
             {config?.title}{config?.version ? ` · ${config.version}` : ""}
           </div>
         </div>
