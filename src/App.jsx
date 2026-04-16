@@ -260,6 +260,7 @@ export default function VersionsApp() {
             config={config}
             analysisResult={analysisResult}
             onSelectVersion={handleSidebarSelectVersion}
+            refreshKey={sidebarRefreshKey}
             onAddVersion={(track) => {
               setPrefillTitle(track.title);
               setAutoSelectTrackTitle(track.title);

@@ -858,7 +858,7 @@ function VersionChat({ config, analysisResult, open, onClose }) {
 
 // ── FicheScreen (principal) ────────────────────────────────
 
-export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onTrackDeleted, onTrackRenamed }) {
+export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onTrackDeleted, onTrackRenamed, refreshKey }) {
   const [tracks, setTracks] = useState([]);
   const [openCat, setOpenCat] = useState(0); // un seul accordéon ouvert à la fois
   const [focusIdx, setFocusIdx] = useState(null);
@@ -868,7 +868,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   useEffect(() => {
     let alive = true;
     loadTracks().then((t) => { if (alive) setTracks(t); });
-  }, [config?.title, config?.version, analysisResult]);
+  }, [config?.title, config?.version, analysisResult, refreshKey]);
 
   // body class pour le chat (maquette utilise body.chat-open)
   useEffect(() => {
