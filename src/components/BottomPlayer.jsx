@@ -13,8 +13,11 @@ const urlCache = new Map();   // storagePath → signedUrl
 const blobUrlCache = new Map(); // storagePath → blobObjectUrl
 const audioPool = new Map();  // storagePath → HTMLAudioElement (preloaded)
 
-/** Resolve signed URL only (fast — no blob download) */
-async function resolveSignedUrl(storagePath) {
+/** Download blob, create Audio element, cache everything. Reliable, zero buffer gaps. */
+async function resolveAudio(storagePath) {
+  if (audioPool.has(storagePath)) return audioPool.get(storagePath);
+
+  // Signed URL
   let signedUrl = urlCache.get(storagePath);
   if (!signedUrl) {
     const res = await fetch(`${API}/api/audio/signed-url?path=${encodeURIComponent(storagePath)}`);
@@ -23,42 +26,38 @@ async function resolveSignedUrl(storagePath) {
     signedUrl = url;
     urlCache.set(storagePath, url);
   }
-  return signedUrl;
-}
 
-/** Get a playable audio element FAST — streams from signed URL, blob upgrades in background */
-async function resolveAudio(storagePath) {
-  // Already fully loaded?
-  if (audioPool.has(storagePath)) return audioPool.get(storagePath);
+  // Full blob download (guarantees smooth playback)
+  let blobUrl = blobUrlCache.get(storagePath);
+  if (!blobUrl) {
+    const audioRes = await fetch(signedUrl);
+    const blob = await audioRes.blob();
+    blobUrl = URL.createObjectURL(blob);
+    blobUrlCache.set(storagePath, blobUrl);
+  }
 
-  const signedUrl = await resolveSignedUrl(storagePath);
-
-  // Create audio from signed URL for INSTANT streaming playback
-  const audio = new Audio(signedUrl);
-  audio.crossOrigin = 'anonymous';
+  const audio = new Audio(blobUrl);
   audio.preload = 'auto';
   audio.load();
   audioPool.set(storagePath, audio);
 
-  // Wait just enough to start playing (canplay, not full download)
   await new Promise((resolve) => {
     if (audio.readyState >= 3) return resolve();
     audio.addEventListener('canplay', resolve, { once: true });
     audio.addEventListener('error', resolve, { once: true });
   });
 
-  // Background: download full blob for WaveSurfer waveform + cache
-  if (!blobUrlCache.has(storagePath)) {
-    fetch(signedUrl)
-      .then(r => r.blob())
-      .then(blob => {
-        const blobUrl = URL.createObjectURL(blob);
-        blobUrlCache.set(storagePath, blobUrl);
-      })
-      .catch(() => {});
-  }
-
   return audio;
+}
+
+/** Preload next tracks in playlist silently in background */
+function preloadPlaylist(playlist, currentIdx, count = 2) {
+  for (let i = 1; i <= count; i++) {
+    const next = playlist?.[currentIdx + i];
+    if (next?.storagePath && !audioPool.has(next.storagePath)) {
+      resolveAudio(next.storagePath).catch(() => {});
+    }
+  }
 }
 
 export default function BottomPlayer({
@@ -73,6 +72,8 @@ export default function BottomPlayer({
   hasPrev,
   resetKey,
   idle,
+  playlist,
+  currentIdx,
 }) {
   const containerRef = useRef(null);
   const wsRef = useRef(null);
@@ -103,22 +104,26 @@ export default function BottomPlayer({
 
         activePathRef.current = storagePath;
 
-        // Capture current playback position & playing state
         const prev = activeAudioRef.current;
-        const prevTime = prev ? prev.currentTime : 0;
         const wasPlaying = prev ? !prev.paused : isPlaying;
 
-        // Start new audio IMMEDIATELY (seamless switch)
-        audio.currentTime = prevTime;
+        // Version switch (same title, different file): App.jsx does NOT bump resetKey
+        // → this useEffect won't fire (guard at line 95 blocks re-entry for same path)
+        // → handled by the play/pause sync effect instead
+        //
+        // New title or replay: App.jsx BUMPS resetKey → we get here
+        // → always start from beginning
+        audio.currentTime = 0;
+
         if (wasPlaying) {
           try { await audio.play(); } catch {}
         }
 
-        // Now stop the old one (new is already playing)
-        if (prev && prev !== audio) {
-          prev.pause();
-        }
+        if (prev && prev !== audio) prev.pause();
         activeAudioRef.current = audio;
+
+        // Preload next tracks in playlist
+        if (playlist?.length) preloadPlaylist(playlist, currentIdx || 0, 2);
 
         // Update WaveSurfer visualization (async, audio already plays)
         if (wsRef.current) {

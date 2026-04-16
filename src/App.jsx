@@ -621,6 +621,8 @@ export default function VersionsApp() {
             hasPrev={hasPrev}
             resetKey={playerState?.resetKey || 0}
             idle={!playerState}
+            playlist={playerState?.playlist}
+            currentIdx={playerState?.currentIdx}
           />
 
           {/* BottomNav retiré — remplacé par le hamburger menu */}
