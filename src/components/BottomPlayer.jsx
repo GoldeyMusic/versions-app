@@ -28,6 +28,7 @@ export default function BottomPlayer({
   const [loading, setLoading] = useState(false);
   const loadedPathRef = useRef(null);
   const urlCacheRef = useRef(new Map()); // cache signed URLs (valid 1h)
+  const blobCacheRef = useRef(new Map()); // cache downloaded audio blobs
 
   const fmt = (s) => {
     const sec = Math.floor(s);
@@ -82,7 +83,14 @@ export default function BottomPlayer({
 
     (async () => {
       try {
-        // Use cached signed URL if available (valid ~1h)
+        // Use cached blob if already downloaded (instant switch)
+        let blob = blobCacheRef.current.get(storagePath);
+        if (blob) {
+          const blobUrl = URL.createObjectURL(blob);
+          ws.load(blobUrl);
+          return;
+        }
+        // Fetch signed URL (cached if already resolved)
         let audioUrl = urlCacheRef.current.get(storagePath);
         if (!audioUrl) {
           const res = await fetch(`${API}/api/audio/signed-url?path=${encodeURIComponent(storagePath)}`);
@@ -95,7 +103,15 @@ export default function BottomPlayer({
           audioUrl = url;
           urlCacheRef.current.set(storagePath, url);
         }
-        ws.load(audioUrl);
+        // Download and cache the audio blob
+        const audioRes = await fetch(audioUrl);
+        blob = await audioRes.blob();
+        blobCacheRef.current.set(storagePath, blob);
+        // Only load if this is still the current path
+        if (loadedPathRef.current === storagePath) {
+          const blobUrl = URL.createObjectURL(blob);
+          ws.load(blobUrl);
+        }
       } catch (err) {
         console.error('[player] load error:', err.message);
         setLoading(false);
