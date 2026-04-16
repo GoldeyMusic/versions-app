@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import API from '../constants/api';
-import CompareButton from '../components/CompareButton';
+// import CompareButton from '../components/CompareButton'; // mis en sommeil
 import VChip from '../components/VChip';
 import { loadTracks, deleteTrack, renameTrack } from '../lib/storage';
 import { confirmDialog } from '../lib/confirm.jsx';
@@ -529,7 +529,8 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
       </div>
 
       <div className="versions-block">
-        <CompareButton track={track} currentVersion={current} /><span className="versions-label" style={{ marginLeft: 8 }}>Versions</span>
+        {/* CompareButton retiré — en sommeil */}
+        <span className="versions-label">Versions</span>
         <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
           <div
             ref={scrollRef}
