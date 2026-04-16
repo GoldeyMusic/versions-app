@@ -706,14 +706,24 @@ export default function MockupStyles() {
     animation: fadeup .35s ease;
   }
 
-  .wh-header { text-align: center; }
+  .wh-header { display: flex; flex-direction: column; align-items: center; gap: 20px; }
   .wh-greeting {
     font-family: var(--body); font-size: 28px; font-weight: 400;
-    color: var(--text); margin-bottom: 8px;
+    color: var(--text); text-align: center;
   }
-  .wh-subtitle {
-    font-family: var(--body); font-size: 14px; font-weight: 300;
-    color: var(--muted); font-style: italic;
+  .wh-tip {
+    width: 100%; padding: 18px 22px;
+    background: rgba(245,176,86,0.03); border: 1px solid rgba(245,176,86,0.13);
+    border-left: 3px solid var(--amber);
+    border-radius: 10px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .wh-tip-label {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 2px;
+    color: var(--amber); text-transform: uppercase;
+  }
+  .wh-tip-text {
+    font-family: var(--body); font-size: 13px; color: var(--soft);
+    line-height: 1.7; font-weight: 300;
   }
 
   .wh-stats {

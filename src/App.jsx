@@ -26,23 +26,27 @@ const FontLink = () => (
 );
 
 /* ── Welcome Home Screen ───────────────────────────────── */
-const GREETINGS = [
-  "Prêt à écouter autrement ?",
-  "Tes oreilles fraîches valent de l'or.",
-  "Chaque version te rapproche du mix parfait.",
-  "Écoute, compare, progresse.",
-  "Un bon mix commence par une bonne écoute.",
+const HOME_TIPS = [
+  "Faire des pauses régulières permet de conserver une écoute attentive et objective.",
+  "Tes oreilles se fatiguent après 45 min — une pause de 10 min te fait gagner 2h de travail.",
+  "Écouter ton mix dans un autre contexte (voiture, écouteurs) révèle ce que le studio cache.",
+  "Baisser le volume de monitoring aide à repérer les déséquilibres de balance.",
+  "Prendre du recul sur un mix pendant 24h change complètement ta perception.",
+  "Comparer régulièrement avec une référence recalibre ton oreille et tes choix.",
+  "Le silence entre les sessions est aussi important que le travail lui-même.",
+  "Écouter à faible volume est le meilleur test : si le mix fonctionne bas, il fonctionnera fort.",
 ];
 
 function WelcomeHome({ user, onNewTrack, onSelectVersion, onAskOpen }) {
   const [tracks, setTracks] = useState([]);
-  const [greeting] = useState(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
+  const [tip] = useState(() => HOME_TIPS[Math.floor(Math.random() * HOME_TIPS.length)]);
 
   useEffect(() => {
     loadTracks().then(setTracks);
   }, []);
 
-  const firstName = (user?.email || "").split("@")[0].split(".")[0];
+  const parts = (user?.email || "").split("@")[0].split(".");
+  const firstName = parts.length > 1 ? parts[parts.length - 1] : parts[0];
   const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
 
   // Stats
@@ -70,8 +74,11 @@ function WelcomeHome({ user, onNewTrack, onSelectVersion, onAskOpen }) {
     <div className="welcome-home">
       {/* Header */}
       <div className="wh-header">
-        <div className="wh-greeting">Salut {displayName}</div>
-        <div className="wh-subtitle">{greeting}</div>
+        <div className="wh-greeting">Salut {displayName} !</div>
+        <div className="wh-tip">
+          <div className="wh-tip-label">Le saviez-vous</div>
+          <div className="wh-tip-text">{tip}</div>
+        </div>
       </div>
 
       {/* Stats */}
@@ -100,10 +107,12 @@ function WelcomeHome({ user, onNewTrack, onSelectVersion, onAskOpen }) {
           <span className="wh-action-icon">+</span>
           <span>Nouveau titre</span>
         </button>
-        <button className="wh-action" onClick={onAskOpen}>
-          <span className="wh-action-icon">💬</span>
-          <span>Poser une question</span>
-        </button>
+        {totalTracks > 0 && (
+          <button className="wh-action" onClick={onNewTrack}>
+            <span className="wh-action-icon">↻</span>
+            <span>Ajouter une version</span>
+          </button>
+        )}
       </div>
 
       {/* Dernières analyses */}
