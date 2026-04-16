@@ -249,10 +249,7 @@ export default function VersionsApp() {
   const isMobile = useMobile();
   const isDesktop = !isMobile;
   // On desktop, default = "welcome" (neutral empty state); on mobile, old default = "input"
-  const [screen, setScreen] = useState(() => {
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches) return "input";
-    return "welcome";
-  });
+  const [screen, setScreen] = useState("welcome");
   const [config, setConfig] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [askOpen, setAskOpen] = useState(false);
@@ -416,7 +413,7 @@ export default function VersionsApp() {
     }
   };
   const goHome = () => {
-    setScreen(isDesktop ? "welcome" : "input");
+    setScreen("welcome");
     setConfig(null);
     setAnalysisResult(null);
     setPrefillTitle("");
