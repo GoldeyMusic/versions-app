@@ -94,14 +94,15 @@ export default function BottomPlayer({
 
         activePathRef.current = storagePath;
 
-        // Pause previous audio
+        // Capture current playback position from previous audio
         const prev = activeAudioRef.current;
+        const prevTime = prev ? prev.currentTime : 0;
         if (prev && prev !== audio) {
           prev.pause();
         }
 
-        // Reset new audio to start
-        audio.currentTime = 0;
+        // Continue from same position (A/B comparison)
+        audio.currentTime = prevTime;
         activeAudioRef.current = audio;
 
         // Destroy old WaveSurfer & create new one linked to this audio element
