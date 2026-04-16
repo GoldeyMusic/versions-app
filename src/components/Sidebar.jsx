@@ -72,7 +72,7 @@ export default function Sidebar({
   return (
     <aside className="sidebar">
       <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
-        VER<span className="accent">si</span>ONS
+        VER<span className="accent">SI</span>ONS
       </div>
 
       <div className="user-pill">
