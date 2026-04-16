@@ -1,12 +1,56 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import API from '../constants/api';
 
 /**
- * BottomPlayer — WaveSurfer-powered audio player.
- * Barre fixe en bas, style VERSIONS (ambre/noir).
- * Charge un MP3 depuis Supabase Storage via signed URL.
+ * BottomPlayer — WaveSurfer + HTMLMediaElement pool.
+ * Pre-loads audio blobs for each version so A/B switching is seamless.
+ * WaveSurfer uses `media` option → no WebAudio decode latency on switch.
  */
+
+// ── Module-level caches (survive re-renders & remounts) ─────
+const urlCache = new Map();   // storagePath → signedUrl
+const blobUrlCache = new Map(); // storagePath → blobObjectUrl
+const audioPool = new Map();  // storagePath → HTMLAudioElement (preloaded)
+
+async function resolveAudio(storagePath) {
+  // Already in pool?
+  if (audioPool.has(storagePath)) return audioPool.get(storagePath);
+
+  // Resolve signed URL
+  let signedUrl = urlCache.get(storagePath);
+  if (!signedUrl) {
+    const res = await fetch(`${API}/api/audio/signed-url?path=${encodeURIComponent(storagePath)}`);
+    const { url, error } = await res.json();
+    if (error || !url) throw new Error(error || 'no url');
+    signedUrl = url;
+    urlCache.set(storagePath, url);
+  }
+
+  // Download blob & create Object URL
+  let blobUrl = blobUrlCache.get(storagePath);
+  if (!blobUrl) {
+    const audioRes = await fetch(signedUrl);
+    const blob = await audioRes.blob();
+    blobUrl = URL.createObjectURL(blob);
+    blobUrlCache.set(storagePath, blobUrl);
+  }
+
+  // Create & pre-load audio element
+  const audio = new Audio(blobUrl);
+  audio.preload = 'auto';
+  audio.load();
+  audioPool.set(storagePath, audio);
+
+  // Wait until browser has enough data to play
+  await new Promise((resolve) => {
+    if (audio.readyState >= 3) return resolve();
+    audio.addEventListener('canplay', resolve, { once: true });
+    audio.addEventListener('error', resolve, { once: true });
+  });
+
+  return audio;
+}
 
 export default function BottomPlayer({
   trackTitle,
@@ -23,129 +67,101 @@ export default function BottomPlayer({
 }) {
   const containerRef = useRef(null);
   const wsRef = useRef(null);
+  const activeAudioRef = useRef(null);
+  const activePathRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [loading, setLoading] = useState(false);
-  const loadedPathRef = useRef(null);
-  const urlCacheRef = useRef(new Map()); // cache signed URLs (valid 1h)
-  const blobCacheRef = useRef(new Map()); // cache downloaded audio blobs
 
   const fmt = (s) => {
     const sec = Math.floor(s);
     return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   };
 
-  // Create / destroy WaveSurfer instance
+  // ── Switch audio source ───────────────────────────────────
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!storagePath || !containerRef.current) return;
+    // Avoid reloading same path unless resetKey forced it
+    if (storagePath === activePathRef.current && wsRef.current) return;
 
-    const ws = WaveSurfer.create({
-      container: containerRef.current,
-      waveColor: '#3a3a3e',
-      progressColor: '#f5b056',
-      cursorColor: '#f5b056',
-      cursorWidth: 1,
-      barWidth: 2,
-      barGap: 1,
-      barRadius: 2,
-      height: 36,
-      normalize: true,
-      backend: 'WebAudio',
-      interact: true,
-    });
-
-    ws.on('timeupdate', (t) => setCurrentTime(t));
-    ws.on('decode', (d) => setDuration(d));
-    ws.on('finish', () => {
-      if (onNext) onNext();
-    });
-    ws.on('loading', () => setLoading(true));
-    ws.on('ready', () => setLoading(false));
-
-    wsRef.current = ws;
-
-    return () => {
-      ws.destroy();
-      wsRef.current = null;
-    };
-  }, []);  // mount once
-
-  // Load audio when storagePath or resetKey changes (A/B switching)
-  useEffect(() => {
-    const ws = wsRef.current;
-    if (!ws || !storagePath) return;
-
-    console.log('[player] loading new audio:', storagePath, 'resetKey:', resetKey);
-    loadedPathRef.current = storagePath;
+    let cancelled = false;
     setLoading(true);
-    setCurrentTime(0);
-    setDuration(0);
 
     (async () => {
       try {
-        // Use cached blob if already downloaded (instant switch)
-        let blob = blobCacheRef.current.get(storagePath);
-        if (blob) {
-          const blobUrl = URL.createObjectURL(blob);
-          ws.load(blobUrl);
-          return;
+        const audio = await resolveAudio(storagePath);
+        if (cancelled) return;
+
+        activePathRef.current = storagePath;
+
+        // Pause previous audio
+        const prev = activeAudioRef.current;
+        if (prev && prev !== audio) {
+          prev.pause();
         }
-        // Fetch signed URL (cached if already resolved)
-        let audioUrl = urlCacheRef.current.get(storagePath);
-        if (!audioUrl) {
-          const res = await fetch(`${API}/api/audio/signed-url?path=${encodeURIComponent(storagePath)}`);
-          const { url, error } = await res.json();
-          if (error || !url) {
-            console.error('[player] signed-url error:', error);
-            setLoading(false);
-            return;
+
+        // Reset new audio to start
+        audio.currentTime = 0;
+        activeAudioRef.current = audio;
+
+        // Destroy old WaveSurfer & create new one linked to this audio element
+        if (wsRef.current) {
+          wsRef.current.destroy();
+          wsRef.current = null;
+        }
+
+        const ws = WaveSurfer.create({
+          container: containerRef.current,
+          waveColor: '#3a3a3e',
+          progressColor: '#f5b056',
+          cursorColor: '#f5b056',
+          cursorWidth: 1,
+          barWidth: 2,
+          barGap: 1,
+          barRadius: 2,
+          height: 36,
+          normalize: true,
+          interact: true,
+          media: audio,
+        });
+
+        ws.on('timeupdate', (t) => setCurrentTime(t));
+        ws.on('decode', (d) => setDuration(d));
+        ws.on('finish', () => { if (onNext) onNext(); });
+        ws.on('ready', () => {
+          setLoading(false);
+          if (isPlaying) {
+            try { ws.play(); } catch {}
           }
-          audioUrl = url;
-          urlCacheRef.current.set(storagePath, url);
-        }
-        // Download and cache the audio blob
-        const audioRes = await fetch(audioUrl);
-        blob = await audioRes.blob();
-        blobCacheRef.current.set(storagePath, blob);
-        // Only load if this is still the current path
-        if (loadedPathRef.current === storagePath) {
-          const blobUrl = URL.createObjectURL(blob);
-          ws.load(blobUrl);
-        }
+        });
+
+        wsRef.current = ws;
       } catch (err) {
         console.error('[player] load error:', err.message);
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+
+    return () => { cancelled = true; };
   }, [storagePath, resetKey]);
 
-  // Sync play/pause state
+  // ── Sync play/pause ───────────────────────────────────────
   useEffect(() => {
     const ws = wsRef.current;
     if (!ws || idle || loading) return;
-
     try {
-      if (isPlaying && !ws.isPlaying()) {
-        ws.play();
-      } else if (!isPlaying && ws.isPlaying()) {
-        ws.pause();
-      }
+      if (isPlaying && !ws.isPlaying()) ws.play();
+      else if (!isPlaying && ws.isPlaying()) ws.pause();
     } catch {}
   }, [isPlaying, idle, loading]);
 
-  // Auto-play when ready
+  // ── Cleanup on unmount ────────────────────────────────────
   useEffect(() => {
-    const ws = wsRef.current;
-    if (!ws) return;
-
-    const onReady = () => {
-      if (isPlaying) {
-        try { ws.play(); } catch {}
-      }
+    return () => {
+      if (wsRef.current) { wsRef.current.destroy(); wsRef.current = null; }
+      if (activeAudioRef.current) { activeAudioRef.current.pause(); }
     };
-    ws.on('ready', onReady);
-    return () => ws.un('ready', onReady);
-  }, [isPlaying]);
+  }, []);
 
   return (
     <div className="player">
