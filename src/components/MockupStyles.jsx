@@ -1465,8 +1465,8 @@ export default function MockupStyles() {
     .wh-stats { gap: 14px; flex-wrap: wrap; }
     .wh-stat { min-width: 80px; padding: 14px 16px; }
     .wh-stat-value { font-size: 28px; }
-    .wh-actions { flex-direction: column; gap: 10px; }
-    .wh-action { justify-content: center; }
+    .wh-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .wh-action { justify-content: center; padding: 12px 10px; font-size: 12px; }
 
     /* Versions Screen */
     .versions-screen { padding: 30px 20px 120px; max-width: 100%; }
