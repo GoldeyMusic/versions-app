@@ -70,8 +70,6 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
   const displayName = userProfile?.prenom || null;
   const totalTracks = tracks.length;
 
-  const scoreColor = (s) => s < 50 ? "#ef6b6b" : s < 75 ? "#f5b056" : "#7bd88f";
-
   // Construire la playlist (dernière version de chaque titre)
   const buildPlaylist = () =>
     tracks
@@ -148,10 +146,12 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
             {tracks.map((track, idx) => {
               const latest = track.versions?.[track.versions.length - 1];
               const fiche = latest?.analysisResult?.fiche;
-              const score = fiche?.globalScore;
               const hasFiche = !!fiche;
               const dur = fiche?.duration_seconds;
               const durStr = dur ? `${Math.floor(dur / 60)}:${String(Math.floor(dur % 60)).padStart(2, '0')}` : null;
+              // Date de dernière analyse (depuis created_at ou updated_at de la version)
+              const rawDate = latest?.created_at || latest?.updated_at || null;
+              const dateStr = rawDate ? new Date(rawDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }).replace('.', '') : null;
               const isThisPlaying = playerState?.trackTitle === track.title && !!playerState?.isPlaying;
               const isOver = dragOverIdx === idx;
               const overClass = isOver && dragDir === 'above' ? ' drag-over-above' : isOver && dragDir === 'below' ? ' drag-over-below' : '';
@@ -196,19 +196,11 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
                   <div className="wh-track-info">
                     <div className="wh-track-title">{track.title}</div>
                     <div className="wh-track-meta">
+                      {durStr && <>{durStr} · </>}
                       {latest?.name || 'v1'}
-                      {' · '}
-                      {track.versions?.length || 0} version{(track.versions?.length || 0) > 1 ? 's' : ''}
-                      {durStr && <> · {durStr}</>}
+                      {dateStr && <> · {dateStr}</>}
                     </div>
                   </div>
-
-                  {/* Score badge */}
-                  {typeof score === 'number' && (
-                    <div className="wh-track-score" style={{ color: scoreColor(score), borderColor: scoreColor(score) }}>
-                      {score}
-                    </div>
-                  )}
 
                   {/* Voir analyse — CTA visible */}
                   {hasFiche && (

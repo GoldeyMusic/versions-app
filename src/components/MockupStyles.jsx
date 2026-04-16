@@ -816,12 +816,6 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 10px; color: var(--muted);
     letter-spacing: 0.5px; margin-top: 2px;
   }
-  .wh-track-score {
-    width: 32px; height: 32px; border-radius: 50%;
-    border: 1.5px solid; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--mono); font-size: 12px; font-weight: 500; line-height: 1;
-  }
   .wh-track-fiche {
     display: flex; align-items: center; gap: 6px;
     padding: 6px 14px; border-radius: 8px;
