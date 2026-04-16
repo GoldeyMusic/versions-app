@@ -281,7 +281,7 @@ export default function AskModal({ onClose }) {
                 handleSend();
               }
             }}
-            placeholder="Ta question… (Shift+Enter pour retour à la ligne)"
+            placeholder="Ta question…"
             rows={1}
             style={{
               flex: 1,
