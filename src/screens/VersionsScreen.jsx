@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { loadTracks } from '../lib/storage';
+import { loadTracks, applyTrackOrder } from '../lib/storage';
 
 /* ═══════════════════════════════════════════════════════════ */
 /* MES TITRES — page mobile stylisée                          */
@@ -18,7 +18,8 @@ export default function VersionsScreen({
   const [openTrackId, setOpenTrackId] = useState(null);
 
   useEffect(() => {
-    loadTracks().then((t) => {
+    loadTracks().then((raw) => {
+      const t = applyTrackOrder(raw);
       setTracks(t);
       // Auto-open a track if requested
       if (autoSelectTrackTitle) {

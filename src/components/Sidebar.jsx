@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { loadTracks, deleteTrack, renameTrack } from '../lib/storage';
+import { loadTracks, deleteTrack, renameTrack, saveTrackOrder, applyTrackOrder } from '../lib/storage';
 import { confirmDialog } from '../lib/confirm.jsx';
 
 /**
@@ -23,12 +23,28 @@ export default function Sidebar({
   const [renameTarget, setRenameTarget] = useState(null); // track being renamed
   const [renameValue, setRenameValue] = useState('');
   const renameInputRef = useRef(null);
+  const [dragIdx, setDragIdx] = useState(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
 
   useEffect(() => {
     let alive = true;
-    loadTracks().then((t) => { if (alive) setTracks(t); });
+    loadTracks().then((t) => { if (alive) setTracks(applyTrackOrder(t)); });
     return () => { alive = false; };
   }, [refreshKey, localRefresh]);
+
+  // Drag-and-drop reorder
+  const handleDragStart = (idx) => setDragIdx(idx);
+  const handleDragOver = (e, idx) => { e.preventDefault(); setDragOverIdx(idx); };
+  const handleDragEnd = () => { setDragIdx(null); setDragOverIdx(null); };
+  const handleDrop = (idx) => {
+    if (dragIdx === null || dragIdx === idx) { handleDragEnd(); return; }
+    const reordered = [...tracks];
+    const [moved] = reordered.splice(dragIdx, 1);
+    reordered.splice(idx, 0, moved);
+    setTracks(reordered);
+    saveTrackOrder(reordered.map(t => t.id));
+    handleDragEnd();
+  };
 
   const handleTrackClick = (track) => {
     const latest = track.versions?.[track.versions.length - 1];
@@ -112,7 +128,7 @@ export default function Sidebar({
       <div>
         <div className="section-label">Mes titres</div>
         <div className="track-list">
-          {tracks.map((track) => {
+          {tracks.map((track, idx) => {
             const active = track.title === currentTrackTitle;
             const count = track.versions?.length || 0;
             return (
@@ -128,6 +144,13 @@ export default function Sidebar({
                 isPlaying={
                   playerState?.trackTitle === track.title && !!playerState?.isPlaying
                 }
+                idx={idx}
+                isDragging={dragIdx === idx}
+                isDragOver={dragOverIdx === idx}
+                onDragStart={() => handleDragStart(idx)}
+                onDragOver={(e) => handleDragOver(e, idx)}
+                onDragEnd={handleDragEnd}
+                onDrop={() => handleDrop(idx)}
               />
             );
           })}
@@ -198,7 +221,7 @@ export default function Sidebar({
   );
 }
 
-function TrackRow({ track, active, count, onClick, onRename, onDelete, onPlayTrack, isPlaying }) {
+function TrackRow({ track, active, count, onClick, onRename, onDelete, onPlayTrack, isPlaying, idx, isDragging, isDragOver, onDragStart, onDragOver, onDragEnd, onDrop }) {
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -223,11 +246,16 @@ function TrackRow({ track, active, count, onClick, onRename, onDelete, onPlayTra
 
   return (
     <div
-      className={`track${active ? ' active' : ''}`}
+      className={`track${active ? ' active' : ''}${isDragOver ? ' drag-over' : ''}`}
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ position: 'relative' }}
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragEnd={onDragEnd}
+      onDrop={onDrop}
+      style={{ position: 'relative', opacity: isDragging ? 0.4 : 1, transition: 'opacity .15s' }}
     >
       {/* Bouton play devant le titre */}
       <button

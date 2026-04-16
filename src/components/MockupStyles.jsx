@@ -84,6 +84,7 @@ export default function MockupStyles() {
   }
   .track:hover { background: var(--s1); }
   .track.active { background: var(--amber-glow); color: var(--amber); }
+  .track.drag-over { border-top: 2px solid var(--amber); margin-top: -2px; }
   .track .count { font-family: var(--mono); font-size: 10px; color: var(--muted); }
 
   .sb-play-btn {
