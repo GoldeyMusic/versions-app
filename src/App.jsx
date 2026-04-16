@@ -183,9 +183,8 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
               const hasFiche = !!fiche;
               const dur = fiche?.duration_seconds;
               const durStr = dur ? `${Math.floor(dur / 60)}:${String(Math.floor(dur % 60)).padStart(2, '0')}` : null;
-              // Date de dernière analyse (depuis created_at ou updated_at de la version)
-              const rawDate = latest?.created_at || latest?.updated_at || null;
-              const dateStr = rawDate ? new Date(rawDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }).replace('.', '') : null;
+              // Date de la version (champ "date" formaté par storage.js, ex: "14 avr 2026")
+              const dateStr = latest?.date || null;
               const isThisPlaying = playerState?.trackTitle === track.title && !!playerState?.isPlaying;
               const isOver = dragOverIdx === idx;
               const overClass = isOver && dragDir === 'above' ? ' drag-over-above' : isOver && dragDir === 'below' ? ' drag-over-below' : '';
