@@ -607,10 +607,8 @@ export default function MockupStyles() {
     flex: 1; overflow-y: auto; padding: 20px 18px;
     display: flex; flex-direction: column; gap: 14px;
   }
-  .chat-body::before,
-  .chat-body::after {
-    content: ''; flex: 1;
-  }
+  .chat-body .msg:first-child { margin-top: auto; }
+  .chat-body .msg:last-child  { margin-bottom: auto; }
   .msg {
     max-width: 86%;
     padding: 10px 14px;
@@ -638,7 +636,7 @@ export default function MockupStyles() {
     padding: 12px 14px 14px;
     border-top: 1px solid var(--border);
     display: flex; gap: 8px;
-    align-items: flex-end;
+    align-items: center;
   }
   .chat-input textarea {
     flex: 1;
