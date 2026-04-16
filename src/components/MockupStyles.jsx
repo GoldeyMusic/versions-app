@@ -819,16 +819,16 @@ export default function MockupStyles() {
   }
   .wh-track-info { flex: 1; min-width: 0; }
   .wh-track-title-row {
-    display: flex; align-items: baseline; gap: 8px;
+    display: flex; align-items: center; gap: 8px;
   }
   .wh-track-title {
-    font-family: var(--body); font-size: 14px; font-weight: 400;
+    font-family: var(--body); font-size: 14px; font-weight: 400; line-height: 1;
     color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     min-width: 0;
   }
   .wh-track-dur {
     font-family: var(--mono); font-size: 10px; color: var(--muted);
-    flex-shrink: 0; letter-spacing: 0.3px;
+    flex-shrink: 0; letter-spacing: 0.3px; line-height: 1;
   }
   .wh-track-date {
     font-family: var(--mono); font-size: 10px; color: var(--muted);
