@@ -206,6 +206,34 @@ export function saveTracks() {
   // breaking imports in older code paths.
 }
 
+/** Save custom track order (array of track IDs) to localStorage */
+export function saveTrackOrder(orderedIds) {
+  try { localStorage.setItem('versions_track_order', JSON.stringify(orderedIds)); } catch {}
+}
+
+/** Load custom track order from localStorage */
+export function getTrackOrder() {
+  try {
+    const raw = localStorage.getItem('versions_track_order');
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+/** Apply custom order to tracks array. Tracks not in the order go at the end. */
+export function applyTrackOrder(tracks) {
+  const order = getTrackOrder();
+  if (!order || !order.length) return tracks;
+  const map = new Map(tracks.map(t => [t.id, t]));
+  const ordered = [];
+  for (const id of order) {
+    const t = map.get(id);
+    if (t) { ordered.push(t); map.delete(id); }
+  }
+  // Append any tracks not in saved order (new tracks)
+  for (const t of map.values()) ordered.push(t);
+  return ordered;
+}
+
 /** Delete a track and all its versions */
 export async function deleteTrack(trackId) {
   await supabase.from('versions').delete().eq('track_id', trackId);
