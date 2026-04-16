@@ -68,11 +68,10 @@ export default function BottomPlayer({
     };
   }, []);  // mount once
 
-  // Load audio when storagePath changes
+  // Load audio when storagePath or resetKey changes (A/B switching)
   useEffect(() => {
     const ws = wsRef.current;
     if (!ws || !storagePath) return;
-    if (storagePath === loadedPathRef.current) return;
 
     loadedPathRef.current = storagePath;
     setLoading(true);
@@ -94,16 +93,7 @@ export default function BottomPlayer({
         setLoading(false);
       }
     })();
-  }, [storagePath]);
-
-  // Reset on track change (resetKey)
-  useEffect(() => {
-    const ws = wsRef.current;
-    if (!ws) return;
-    // If storagePath changed, loading handles it already.
-    // But if resetKey changed (prev/next), we might need to reload.
-    loadedPathRef.current = null;
-  }, [resetKey]);
+  }, [storagePath, resetKey]);
 
   // Sync play/pause state
   useEffect(() => {
