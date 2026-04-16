@@ -820,6 +820,124 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 0.5px;
   }
 
+  /* ── Input Screen ── */
+  .input-screen {
+    width: 100%; max-width: 520px; margin: 0 auto;
+    padding: 50px 40px 80px; box-sizing: border-box;
+    display: flex; flex-direction: column; gap: 28px;
+    animation: fadeup .35s ease;
+  }
+  .input-header { text-align: center; }
+  .input-title {
+    font-family: var(--body); font-size: 24px; font-weight: 400;
+    color: var(--text); margin-bottom: 8px;
+  }
+  .input-subtitle {
+    font-family: var(--body); font-size: 13px; font-weight: 300;
+    color: var(--muted); line-height: 1.6;
+  }
+
+  .input-progress {
+    width: 100%; height: 3px; border-radius: 2px;
+    background: var(--border);
+  }
+  .input-progress-bar {
+    height: 100%; border-radius: 2px;
+    background: linear-gradient(90deg, var(--amber), #f5c056);
+    transition: width .4s ease;
+  }
+
+  .input-form {
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  .input-section {
+    background: var(--s1); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px; transition: border-color .2s;
+  }
+  .input-section-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+    color: var(--amber); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .input-section-line {
+    flex: 1; height: 1px; background: var(--border);
+  }
+
+  .input-dropzone {
+    border: 1px dashed var(--border); border-radius: 10px;
+    padding: 16px 18px;
+    display: flex; align-items: center; gap: 14px;
+    cursor: pointer; transition: all .2s;
+  }
+  .input-dropzone:hover {
+    border-color: var(--muted); background: rgba(255,255,255,0.02);
+  }
+  .input-drop-name {
+    font-family: var(--body); font-size: 13px; font-weight: 400;
+    color: #7bd88f; flex: 1;
+  }
+  .input-drop-text { flex: 1; }
+  .input-drop-hint {
+    font-family: var(--body); font-size: 13px; font-weight: 300; color: var(--muted);
+  }
+  .input-drop-formats {
+    font-family: var(--mono); font-size: 9px; color: #5a5a5e; margin-top: 3px;
+    letter-spacing: 0.5px;
+  }
+
+  .input-fields {
+    display: flex; gap: 12px;
+  }
+  .input-field { flex: 1; }
+  .input-label {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px;
+    color: var(--muted); margin-bottom: 6px; display: block;
+  }
+  .input-input {
+    width: 100%; background: var(--s2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px;
+    font-family: var(--body); font-size: 13px; font-weight: 300;
+    color: var(--text); outline: none; transition: border-color .2s;
+    box-sizing: border-box;
+  }
+  .input-input:focus { border-color: var(--amber); }
+  .input-input::placeholder { color: #5a5a5e; }
+
+  .input-select {
+    width: 100%; background: var(--s2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 11px 40px 11px 14px;
+    font-family: var(--body); font-size: 13px; font-weight: 300;
+    color: var(--muted); outline: none; cursor: pointer;
+    appearance: none; transition: border-color .2s;
+  }
+  .input-select option { background: var(--s1); color: var(--text); }
+  .input-select-arrow {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .input-cta {
+    width: 100%; padding: 14px 16px; border-radius: 10px;
+    background: var(--s2); border: 1px solid var(--border);
+    font-family: var(--body); font-size: 13px; font-weight: 400;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--muted); cursor: not-allowed; transition: all .2s;
+  }
+  .input-cta.ready {
+    background: linear-gradient(135deg, var(--amber), #e08a00);
+    border-color: var(--amber); color: #000; cursor: pointer;
+    font-weight: 600; box-shadow: 0 4px 24px rgba(245,160,0,.3);
+  }
+  .input-cta.ready:hover {
+    box-shadow: 0 6px 32px rgba(245,160,0,.45); transform: translateY(-1px);
+  }
+
+  .input-mode-hint {
+    text-align: center; font-family: var(--mono); font-size: 10px;
+    color: var(--amber); opacity: 0.5; animation: fadeup .2s ease;
+  }
+
   .wh-empty {
     display: flex; flex-direction: column; align-items: center; gap: 16px;
     padding: 40px 0;
