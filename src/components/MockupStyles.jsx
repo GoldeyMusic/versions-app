@@ -234,7 +234,7 @@ export default function MockupStyles() {
     align-items: center; justify-content: center;
   }
   .score-ring .big {
-    font-family: var(--serif); font-size: 58px; line-height: 1; color: var(--text);
+    font-family: var(--serif); font-size: 58px; line-height: 1; color: var(--amber);
   }
   .score-ring .unit { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 4px; }
 
