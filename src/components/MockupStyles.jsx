@@ -138,13 +138,13 @@ export default function MockupStyles() {
   .main { display: flex; flex-direction: column; min-width: 0; position: relative; }
 
   .fiche-back {
-    display: flex; align-items: center; gap: 4px;
-    background: none; border: none; cursor: pointer;
-    font-family: var(--body); font-size: 12px; color: var(--muted);
-    padding: 10px 16px 4px; transition: color .15s;
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 8px;
+    background: none; border: 1px solid transparent; cursor: pointer;
+    color: var(--muted); margin: 8px 0 0 12px;
+    transition: all .15s;
   }
-  .fiche-back:hover { color: var(--amber); }
-  .fiche-back svg { flex-shrink: 0; }
+  .fiche-back:hover { color: var(--amber); border-color: var(--border); background: rgba(245,176,86,0.05); }
 
   /* Timeline versions — sticky top, plus affirmée */
   .timeline {
