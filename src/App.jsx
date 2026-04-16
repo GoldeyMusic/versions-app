@@ -147,8 +147,11 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
           <div className="wh-tracklist-list">
             {tracks.map((track, idx) => {
               const latest = track.versions?.[track.versions.length - 1];
-              const score = latest?.analysisResult?.fiche?.globalScore;
-              const hasFiche = !!latest?.analysisResult?.fiche;
+              const fiche = latest?.analysisResult?.fiche;
+              const score = fiche?.globalScore;
+              const hasFiche = !!fiche;
+              const dur = fiche?.duration_seconds;
+              const durStr = dur ? `${Math.floor(dur / 60)}:${String(Math.floor(dur % 60)).padStart(2, '0')}` : null;
               const isThisPlaying = playerState?.trackTitle === track.title && !!playerState?.isPlaying;
               const isOver = dragOverIdx === idx;
               const overClass = isOver && dragDir === 'above' ? ' drag-over-above' : isOver && dragDir === 'below' ? ' drag-over-below' : '';
@@ -196,6 +199,7 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
                       {latest?.name || 'v1'}
                       {' · '}
                       {track.versions?.length || 0} version{(track.versions?.length || 0) > 1 ? 's' : ''}
+                      {durStr && <> · {durStr}</>}
                     </div>
                   </div>
 
@@ -206,10 +210,12 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
                     </div>
                   )}
 
-                  {/* Voir fiche */}
+                  {/* Voir analyse — CTA visible */}
                   {hasFiche && (
                     <button className="wh-track-fiche" onClick={() => handleViewFiche(track)}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      <span>Analyse</span>
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3.5 2l3.5 3-3.5 3"/></svg>
                     </button>
                   )}
                 </div>

@@ -823,13 +823,17 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 12px; font-weight: 500; line-height: 1;
   }
   .wh-track-fiche {
-    width: 32px; height: 32px; border-radius: 8px;
-    background: transparent; border: 1px solid var(--border);
-    color: var(--muted); cursor: pointer; flex-shrink: 0; padding: 0;
-    display: flex; align-items: center; justify-content: center;
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 8px;
+    background: rgba(245,176,86,0.08); border: 1px solid rgba(245,176,86,0.25);
+    color: var(--amber); cursor: pointer; flex-shrink: 0;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.8px;
+    text-transform: uppercase; font-weight: 500;
     transition: all .15s;
   }
-  .wh-track-fiche:hover { color: var(--amber); border-color: var(--amber); }
+  .wh-track-fiche:hover {
+    background: rgba(245,176,86,0.15); border-color: var(--amber);
+  }
 
   .wh-track-picker {
     position: absolute; top: calc(100% + 6px); left: 0; right: 0;
