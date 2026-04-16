@@ -94,18 +94,24 @@ export default function BottomPlayer({
 
         activePathRef.current = storagePath;
 
-        // Capture current playback position from previous audio
+        // Capture current playback position & playing state
         const prev = activeAudioRef.current;
         const prevTime = prev ? prev.currentTime : 0;
+        const wasPlaying = prev ? !prev.paused : isPlaying;
+
+        // Start new audio IMMEDIATELY (seamless switch)
+        audio.currentTime = prevTime;
+        if (wasPlaying) {
+          try { await audio.play(); } catch {}
+        }
+
+        // Now stop the old one (new is already playing)
         if (prev && prev !== audio) {
           prev.pause();
         }
-
-        // Continue from same position (A/B comparison)
-        audio.currentTime = prevTime;
         activeAudioRef.current = audio;
 
-        // Destroy old WaveSurfer & create new one linked to this audio element
+        // Update WaveSurfer visualization (async, audio already plays)
         if (wsRef.current) {
           wsRef.current.destroy();
           wsRef.current = null;
@@ -131,9 +137,7 @@ export default function BottomPlayer({
         ws.on('finish', () => { if (onNext) onNext(); });
         ws.on('ready', () => {
           setLoading(false);
-          if (isPlaying) {
-            try { ws.play(); } catch {}
-          }
+          // Audio already playing via audio.play() above — no need to call ws.play()
         });
 
         wsRef.current = ws;
