@@ -16,7 +16,7 @@ import LoadingScreen from "./screens/LoadingScreen";
 import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
 import { IconSettings } from "./components/Icons";
-import { saveAnalysis, getAnalysis } from "./lib/storage";
+import { saveAnalysis, getAnalysis, loadTracks } from "./lib/storage";
 import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
 
@@ -25,16 +25,124 @@ const FontLink = () => (
   <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap');`}</style>
 );
 
-/* ── Placeholder screen for Réglages ───────────────────── */
-const PlaceholderScreen = ({ title, icon, desc }) => (
-  <div style={{width:"100%",minHeight:"100%",display:"grid",placeItems:"center",padding:"40px 30px",boxSizing:"border-box",animation:"fadeup .3s ease"}}>
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
-      <div style={{width:56,height:56,borderRadius:16,background:T.amberGlow,border:`1px solid ${T.amber}22`,display:"flex",alignItems:"center",justifyContent:"center"}}>{icon}</div>
-      <div style={{fontFamily:T.display,fontSize:28,letterSpacing:4,color:T.amber}}>{title}</div>
-      <div style={{fontFamily:T.body,fontWeight:300,fontSize:12,color:T.muted,textAlign:"center",lineHeight:1.6}}>{desc}</div>
+/* ── Welcome Home Screen ───────────────────────────────── */
+const GREETINGS = [
+  "Prêt à écouter autrement ?",
+  "Tes oreilles fraîches valent de l'or.",
+  "Chaque version te rapproche du mix parfait.",
+  "Écoute, compare, progresse.",
+  "Un bon mix commence par une bonne écoute.",
+];
+
+function WelcomeHome({ user, onNewTrack, onSelectVersion, onAskOpen }) {
+  const [tracks, setTracks] = useState([]);
+  const [greeting] = useState(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
+
+  useEffect(() => {
+    loadTracks().then(setTracks);
+  }, []);
+
+  const firstName = (user?.email || "").split("@")[0].split(".")[0];
+  const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+
+  // Stats
+  const totalTracks = tracks.length;
+  const totalVersions = tracks.reduce((sum, t) => sum + (t.versions?.length || 0), 0);
+  const allScores = tracks.flatMap(t =>
+    (t.versions || []).map(v => v.analysisResult?.fiche?.globalScore).filter(s => typeof s === "number")
+  );
+  const avgScore = allScores.length ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : null;
+
+  // Dernières analyses (4 max)
+  const recent = tracks.flatMap(t =>
+    (t.versions || []).filter(v => v.analysisResult?.fiche).map(v => ({
+      track: t,
+      version: v,
+      score: v.analysisResult?.fiche?.globalScore,
+      verdict: v.analysisResult?.fiche?.verdict || v.analysisResult?.fiche?.summary || "",
+      date: v.date,
+    }))
+  ).sort((a, b) => new Date(b.version.id) - new Date(a.version.id)).slice(0, 4);
+
+  const scoreColor = (s) => s < 50 ? "#ef6b6b" : s < 75 ? "#f5b056" : "#7bd88f";
+
+  return (
+    <div className="welcome-home">
+      {/* Header */}
+      <div className="wh-header">
+        <div className="wh-greeting">Salut {displayName}</div>
+        <div className="wh-subtitle">{greeting}</div>
+      </div>
+
+      {/* Stats */}
+      {totalTracks > 0 && (
+        <div className="wh-stats">
+          <div className="wh-stat">
+            <div className="wh-stat-value">{totalTracks}</div>
+            <div className="wh-stat-label">{totalTracks > 1 ? "titres" : "titre"}</div>
+          </div>
+          <div className="wh-stat">
+            <div className="wh-stat-value">{totalVersions}</div>
+            <div className="wh-stat-label">{totalVersions > 1 ? "versions" : "version"}</div>
+          </div>
+          {avgScore != null && (
+            <div className="wh-stat">
+              <div className="wh-stat-value" style={{ color: scoreColor(avgScore) }}>{avgScore}</div>
+              <div className="wh-stat-label">score moyen</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Raccourcis */}
+      <div className="wh-actions">
+        <button className="wh-action" onClick={onNewTrack}>
+          <span className="wh-action-icon">+</span>
+          <span>Nouveau titre</span>
+        </button>
+        <button className="wh-action" onClick={onAskOpen}>
+          <span className="wh-action-icon">💬</span>
+          <span>Poser une question</span>
+        </button>
+      </div>
+
+      {/* Dernières analyses */}
+      {recent.length > 0 && (
+        <div className="wh-recent">
+          <div className="wh-section-title">Dernières analyses</div>
+          <div className="wh-recent-list">
+            {recent.map((r, i) => (
+              <div
+                key={i}
+                className="wh-recent-card"
+                onClick={() => onSelectVersion(r.track, r.version)}
+              >
+                <div className="wh-recent-score" style={{
+                  borderColor: typeof r.score === "number" ? scoreColor(r.score) : "#5a5a5e",
+                  color: typeof r.score === "number" ? scoreColor(r.score) : "#7c7c80",
+                }}>
+                  {typeof r.score === "number" ? r.score : "—"}
+                </div>
+                <div className="wh-recent-info">
+                  <div className="wh-recent-title">{r.track.title}</div>
+                  <div className="wh-recent-version">{r.version.name}{r.date ? ` · ${r.date}` : ""}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {totalTracks === 0 && (
+        <div className="wh-empty">
+          <img src="/logo-versions.svg" alt="" style={{ height: 60, width: "auto", opacity: 0.3 }} />
+          <div>Importe ton premier titre pour commencer l'aventure.</div>
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+}
 
 const SIDEBAR_WIDTH = 260;
 
@@ -239,16 +347,12 @@ export default function VersionsApp() {
     switch (screen) {
       case "welcome":
         return (
-          <div style={{width:"100%",minHeight:"100%",display:"grid",placeItems:"center",padding:"40px 30px",boxSizing:"border-box",animation:"fadeup .3s ease"}}>
-            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,maxWidth:420,textAlign:"center"}}>
-              <img src="/logo-versions.svg" alt="" style={{ height: 80, width: "auto", display: "block" }} />
-              <div style={{fontFamily:T.display,fontSize:32,letterSpacing:3,color:T.text}}>VER<span style={{color:T.amber}}>SI</span>ONS</div>
-              <div style={{fontFamily:T.body,fontWeight:300,fontSize:13,color:T.muted,lineHeight:1.6}}>
-                Sélectionne une version dans la sidebar pour voir son analyse,<br/>
-                ou crée un nouveau titre pour démarrer.
-              </div>
-            </div>
-          </div>
+          <WelcomeHome
+            user={user}
+            onNewTrack={handleSidebarNewTrack}
+            onSelectVersion={handleSidebarSelectVersion}
+            onAskOpen={() => setAskOpen(true)}
+          />
         );
       case "input":
         return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialTitle={prefillTitle} />;

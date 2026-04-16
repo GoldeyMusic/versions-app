@@ -697,6 +697,99 @@ export default function MockupStyles() {
     from { transform: scaleY(0.1); }
     to   { transform: scaleY(1); }
   }
+
+  /* ── Welcome Home ── */
+  .welcome-home {
+    width: 100%; max-width: 620px; margin: 0 auto;
+    padding: 50px 40px 80px; box-sizing: border-box;
+    display: flex; flex-direction: column; gap: 40px;
+    animation: fadeup .35s ease;
+  }
+
+  .wh-header { text-align: center; }
+  .wh-greeting {
+    font-family: var(--body); font-size: 28px; font-weight: 400;
+    color: var(--text); margin-bottom: 8px;
+  }
+  .wh-subtitle {
+    font-family: var(--body); font-size: 14px; font-weight: 300;
+    color: var(--muted); font-style: italic;
+  }
+
+  .wh-stats {
+    display: flex; justify-content: center; gap: 32px;
+  }
+  .wh-stat {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 18px 24px;
+    background: var(--s1); border: 1px solid var(--border); border-radius: 14px;
+    min-width: 100px;
+  }
+  .wh-stat-value {
+    font-family: 'Bebas Neue', sans-serif; font-size: 36px;
+    color: var(--text); line-height: 1;
+  }
+  .wh-stat-label {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted);
+  }
+
+  .wh-actions {
+    display: flex; justify-content: center; gap: 12px;
+  }
+  .wh-action {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 22px; border-radius: 10px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--soft); font-family: var(--body); font-size: 13px; font-weight: 300;
+    cursor: pointer; transition: all .2s;
+  }
+  .wh-action:hover {
+    border-color: var(--amber); color: var(--amber); background: rgba(245,176,86,0.06);
+  }
+  .wh-action-icon {
+    font-size: 16px; line-height: 1;
+  }
+
+  .wh-section-title {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 14px;
+  }
+
+  .wh-recent-list {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .wh-recent-card {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 18px; border-radius: 12px;
+    background: var(--s1); border: 1px solid var(--border);
+    cursor: pointer; transition: all .2s;
+  }
+  .wh-recent-card:hover {
+    border-color: var(--amber); background: rgba(245,176,86,0.04);
+  }
+  .wh-recent-score {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 2px solid; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif; font-size: 20px; line-height: 1;
+  }
+  .wh-recent-info { min-width: 0; }
+  .wh-recent-title {
+    font-family: var(--body); font-size: 14px; font-weight: 400;
+    color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .wh-recent-version {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    letter-spacing: 0.5px; margin-top: 2px;
+  }
+
+  .wh-empty {
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    padding: 40px 0;
+    font-family: var(--body); font-size: 13px; font-weight: 300;
+    color: var(--muted); text-align: center;
+  }
 `}</style>
     </>
   );
