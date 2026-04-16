@@ -295,7 +295,10 @@ export default function VersionsApp() {
 
   const play = (trackTitle, versionName, storagePath, playlist, currentIdx, keepProgress) => {
     if (!storagePath) return; // pas d'audio disponible
-    if (!keepProgress) resetKeyRef.current += 1;
+    // Bump resetKey uniquement pour restart le même fichier (pas quand on switch de version)
+    if (!keepProgress && playerState?.storagePath === storagePath) {
+      resetKeyRef.current += 1;
+    }
     setPlayerState({
       trackTitle, versionName, storagePath, isPlaying: true,
       playlist: playlist || [], currentIdx: currentIdx || 0,
