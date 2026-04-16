@@ -3,6 +3,7 @@ import API from '../constants/api';
 import CompareButton from '../components/CompareButton';
 import VChip from '../components/VChip';
 import { loadTracks, deleteTrack, renameTrack } from '../lib/storage';
+import { confirmDialog } from '../lib/confirm.jsx';
 
 /**
  * FicheScreen — rendu fidèle à mockup-v3.html.
@@ -899,8 +900,14 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   };
   const handleDeleteTrack = async (track) => {
     const n = (track.versions || []).length;
-    const msg = `Supprimer "${track.title}" et ses ${n} version${n > 1 ? 's' : ''} ? Cette action est définitive.`;
-    if (!window.confirm(msg)) return;
+    const ok = await confirmDialog({
+      title: "Supprimer le titre ?",
+      message: `Supprimer "${track.title}" et ses ${n} version${n > 1 ? 's' : ''} ? Cette action est définitive.`,
+      confirmLabel: "Supprimer",
+      cancelLabel: "Annuler",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteTrack(track.id);
       const t = await loadTracks();
