@@ -765,10 +765,10 @@ function VersionChat({ config, analysisResult, open, onClose }) {
       });
       clearTimeout(timeout);
       const json = await res.json();
-      setMessages((m) => [...m, { role: 'ai', content: json.reply || '…' }]);
+      setMessages((m) => [...m, { role: 'assistant', content: json.reply || '…' }]);
     } catch (e) {
       if (e.name !== 'AbortError') {
-        setMessages((m) => [...m, { role: 'ai', content: 'Erreur de connexion.' }]);
+        setMessages((m) => [...m, { role: 'assistant', content: 'Erreur de connexion.' }]);
       }
     } finally { setLoading(false); controllerRef.current = null; }
   };
@@ -789,8 +789,8 @@ function VersionChat({ config, analysisResult, open, onClose }) {
             </div>
           )}
           {messages.map((m, i) => (
-            <div key={i} className={`msg ${m.role}`}>
-              {m.role === 'ai' && <span className="ai-label">Versions</span>}
+            <div key={i} className={`msg ${m.role === 'assistant' ? 'ai' : m.role}`}>
+              {m.role === 'assistant' && <span className="ai-label">Versions</span>}
               {m.content}
             </div>
           ))}
