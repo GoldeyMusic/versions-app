@@ -828,9 +828,14 @@ export default function MockupStyles() {
     animation: fadeup .35s ease;
   }
   .input-header { text-align: center; }
+  .input-tagline {
+    font-family: var(--body); font-size: 11px; font-weight: 300;
+    letter-spacing: 3px; color: var(--muted); text-transform: uppercase;
+    margin-bottom: 8px;
+  }
   .input-title {
-    font-family: var(--body); font-size: 24px; font-weight: 400;
-    color: var(--text); margin-bottom: 8px;
+    font-family: 'Bebas Neue', sans-serif; font-size: 36px; font-weight: 400;
+    letter-spacing: 3px; color: var(--text); margin-bottom: 10px;
   }
   .input-subtitle {
     font-family: var(--body); font-size: 13px; font-weight: 300;

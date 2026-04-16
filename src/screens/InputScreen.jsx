@@ -83,7 +83,8 @@ const InputScreen = ({ onAnalyze, initialTitle = '' }) => {
     <div className="input-screen">
       {/* Header */}
       <div className="input-header">
-        <div className="input-title">Nouvelle analyse</div>
+        <div className="input-tagline">Analyse. Compare. Évolue.</div>
+        <div className="input-title">NOUVELLE ANALYSE</div>
         <div className="input-subtitle">
           Importe ton mix, remplis les infos et lance l'analyse IA.
         </div>
