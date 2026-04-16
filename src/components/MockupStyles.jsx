@@ -1558,6 +1558,8 @@ export default function MockupStyles() {
     .page { padding: 24px 20px 120px; }
     .verdict { flex-direction: column; gap: 24px; text-align: center; }
     .score-ring { width: 110px; height: 110px; }
+    .score-ring .big { font-size: 38px; }
+    .score-ring .unit { font-size: 8px; letter-spacing: 0.5px; margin-top: 2px; }
     .verdict-text h1 { font-size: 26px; }
     .verdict-text p { font-size: 14px; }
     .timeline { padding: 12px 16px 10px; gap: 12px; flex-wrap: wrap; }
@@ -1588,6 +1590,8 @@ export default function MockupStyles() {
       padding: 24px 0 40px;
     }
     .score-ring { width: 110px; height: 110px; }
+    .score-ring .big { font-size: 38px; }
+    .score-ring .unit { font-size: 8px; letter-spacing: 0.5px; margin-top: 2px; }
     .verdict-text h1 { font-size: 24px; }
     .verdict-text p { font-size: 13px; }
 
