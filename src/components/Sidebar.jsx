@@ -310,9 +310,7 @@ function TrackRow({ track, active, count, onClick, onRename, onDelete, onPlayTra
             fontSize: 14, lineHeight: 1,
           }}
         >⋯</button>
-      ) : (
-        <span className="count">{count}</span>
-      )}
+      ) : null}
 
       {menuOpen && (
         <div
