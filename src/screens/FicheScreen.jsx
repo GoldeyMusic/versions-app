@@ -907,7 +907,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
       cancelLabel: "Annuler",
       danger: true,
     });
-    if (!ok) return;
+    if (ok !== 'confirm') return;
     try {
       await deleteTrack(track.id);
       const t = await loadTracks();

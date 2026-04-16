@@ -49,7 +49,7 @@ export default function Sidebar({
       cancelLabel: "Annuler",
       danger: true,
     });
-    if (!ok) return;
+    if (ok !== 'confirm') return;
     try {
       await deleteTrack(track.id);
       setLocalRefresh((n2) => n2 + 1);
