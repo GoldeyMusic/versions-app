@@ -486,12 +486,7 @@ export default function VersionsApp() {
       case "versions":
         return (
           <VersionsScreen
-            onViewAnalysis={async (track, v) => {
-              const saved = await getAnalysis(track.id, v.id);
-              setConfig({ title: track.title, version: v.name, daw: config?.daw || "Logic Pro" });
-              setAnalysisResult(saved || v.analysisResult || null);
-              setScreen("fiche");
-            }}
+            onViewAnalysis={handleSidebarSelectVersion}
             onAddVersion={(track) => {
               setPrefillTitle(track.title);
               setAutoSelectTrackTitle(track.title);
