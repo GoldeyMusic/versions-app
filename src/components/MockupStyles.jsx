@@ -835,6 +835,10 @@ export default function MockupStyles() {
   .input-tagline {
     font-family: var(--body); font-size: 11px; font-weight: 300;
     letter-spacing: 3px; color: var(--amber); text-transform: uppercase;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+  }
+  .input-tagline-dot {
+    font-size: 18px; line-height: 1; letter-spacing: 0; opacity: 0.5;
   }
 
   .input-progress {

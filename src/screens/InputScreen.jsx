@@ -84,7 +84,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '' }) => {
       {/* Header */}
       <div className="input-header">
         <div className="input-title">NOUVELLE ANALYSE</div>
-        <div className="input-tagline">Analyse. Compare. Évolue.</div>
+        <div className="input-tagline">Analyse <span className="input-tagline-dot">·</span> Compare <span className="input-tagline-dot">·</span> Évolue</div>
       </div>
 
       {/* Progress bar */}
