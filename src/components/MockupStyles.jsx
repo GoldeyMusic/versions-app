@@ -607,6 +607,9 @@ export default function MockupStyles() {
     flex: 1; overflow-y: auto; padding: 20px 18px;
     display: flex; flex-direction: column; gap: 14px;
   }
+  .chat-body::before {
+    content: ''; flex: 1;
+  }
   .msg {
     max-width: 86%;
     padding: 10px 14px;
