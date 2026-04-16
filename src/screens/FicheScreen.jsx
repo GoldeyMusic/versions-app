@@ -754,7 +754,14 @@ function VersionChat({ config, analysisResult, open, onClose }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
-        body: JSON.stringify({ messages: [...messages, userMsg], config, analysisResult }),
+        body: JSON.stringify({
+          messages: [...messages, userMsg],
+          title: config?.title || '',
+          version: config?.version || '',
+          daw: config?.daw || 'Logic Pro',
+          listening: analysisResult?.listening || null,
+          fiche: analysisResult?.fiche || null,
+        }),
       });
       clearTimeout(timeout);
       const json = await res.json();
