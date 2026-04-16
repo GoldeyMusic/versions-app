@@ -230,15 +230,10 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
                   <div className="wh-track-info">
                     <div className="wh-track-title">{track.title}</div>
                     <div className="wh-track-meta">
+                      {durStr && <>{durStr} · </>}
                       {track.versions?.length || 1} version{(track.versions?.length || 1) > 1 ? 's' : ''}
                     </div>
                   </div>
-
-                  {/* Durée juste après le titre */}
-                  {durStr && <span className="wh-track-date">{durStr}</span>}
-
-                  {/* Spacer pousse la date et le CTA à droite */}
-                  <span style={{ flex: 1 }} />
 
                   {/* Date à droite, avant le bouton Analyse */}
                   {dateStr && <span className="wh-track-date">{dateStr}</span>}
