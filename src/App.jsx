@@ -242,7 +242,7 @@ export default function VersionsApp() {
           <div style={{width:"100%",minHeight:"100%",display:"grid",placeItems:"center",padding:"40px 30px",boxSizing:"border-box",animation:"fadeup .3s ease"}}>
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,maxWidth:420,textAlign:"center"}}>
               <img src="/logo-versions.svg" alt="" style={{ height: 80, width: "auto", display: "block" }} />
-              <div style={{fontFamily:T.display,fontSize:32,letterSpacing:5,color:T.text}}>VER<span style={{color:T.amber}}>SI</span>ONS</div>
+              <div style={{fontFamily:T.display,fontSize:32,letterSpacing:3,color:T.text}}>VER<span style={{color:T.amber}}>SI</span>ONS</div>
               <div style={{fontFamily:T.body,fontWeight:300,fontSize:13,color:T.muted,lineHeight:1.6}}>
                 Sélectionne une version dans la sidebar pour voir son analyse,<br/>
                 ou crée un nouveau titre pour démarrer.
