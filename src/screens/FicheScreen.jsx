@@ -50,7 +50,7 @@ function ScoreRingBig({ value }) {
         />
       </svg>
       <div className="center">
-        <div className="big" style={{ color }}>{Math.round(v)}</div>
+        <div className="big">{Math.round(v)}</div>
         <div className="unit">SCORE / 100</div>
       </div>
     </div>
