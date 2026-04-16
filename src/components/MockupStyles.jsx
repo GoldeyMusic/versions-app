@@ -607,8 +607,6 @@ export default function MockupStyles() {
     flex: 1; overflow-y: auto; padding: 20px 18px;
     display: flex; flex-direction: column; gap: 14px;
   }
-  .chat-body .msg:first-child { margin-top: auto; }
-  .chat-body .msg:last-child  { margin-bottom: auto; }
   .msg {
     max-width: 86%;
     padding: 10px 14px;
@@ -645,10 +643,12 @@ export default function MockupStyles() {
     color: var(--text); font-family: var(--body); font-size: 13px;
     outline: none; resize: none;
     line-height: 1.4;
+    height: 40px; min-height: 40px;
     max-height: 120px;
     overflow-y: auto;
     -webkit-appearance: none;
     appearance: none;
+    box-sizing: border-box;
   }
   .chat-input textarea:focus { border-color: var(--amber); }
   .chat-typing { display: inline-flex; gap: 4px; align-items: center; padding: 4px 0; }
@@ -668,10 +668,10 @@ export default function MockupStyles() {
     padding: 0 16px; border-radius: 8px;
     font-family: var(--mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
     font-weight: 500;
-    height: 38px;
+    height: 40px; min-height: 40px;
     flex-shrink: 0;
-    align-self: flex-end;
     cursor: pointer;
+    box-sizing: border-box;
   }
 
   /* ── Chat overlay bubble ──────────────────────── */
