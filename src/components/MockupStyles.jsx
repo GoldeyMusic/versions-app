@@ -834,6 +834,9 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 10px; color: var(--muted);
     flex-shrink: 0; white-space: nowrap; letter-spacing: 0.3px;
   }
+  @media (max-width: 600px) {
+    .wh-track-date { display: none; }
+  }
   .wh-track-meta {
     font-family: var(--mono); font-size: 10px; color: var(--muted);
     letter-spacing: 0.5px; margin-top: 2px;
