@@ -72,6 +72,7 @@ export default function Sidebar({
   return (
     <aside className="sidebar">
       <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
+        <img src="/logo-versions.svg" alt="" style={{ height: 28, width: 'auto' }} />
         VER<span className="accent">SI</span>ONS
       </div>
 

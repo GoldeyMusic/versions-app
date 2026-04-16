@@ -45,7 +45,7 @@ export default function MockupStyles() {
     display: flex; flex-direction: column; gap: 18px;
     position: sticky; top: 0; height: 100vh; overflow-y: auto;
   }
-  .brand { display: flex; align-items: baseline; gap: 0; font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 4px; color: var(--text); }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 4px; color: var(--text); }
   .brand .accent { color: var(--amber); font-style: normal; }
   .user-pill {
     display: flex; align-items: center; gap: 10px;
