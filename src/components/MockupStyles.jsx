@@ -819,7 +819,7 @@ export default function MockupStyles() {
   }
   .wh-track-info { flex: 1; min-width: 0; }
   .wh-track-title-row {
-    display: flex; align-items: last baseline; gap: 8px;
+    display: flex; align-items: flex-end; gap: 8px;
   }
   .wh-track-title {
     font-family: var(--body); font-size: 14px; font-weight: 400;
