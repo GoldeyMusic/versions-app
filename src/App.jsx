@@ -15,10 +15,11 @@ import InputScreen from "./screens/InputScreen";
 import LoadingScreen from "./screens/LoadingScreen";
 import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
-import { IconSettings } from "./components/Icons";
+
 import { saveAnalysis, getAnalysis, loadTracks } from "./lib/storage";
 import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
+import ReglagesScreen from "./screens/ReglagesScreen";
 
 /* ── Font loader ────────────────────────────────────────── */
 const FontLink = () => (
@@ -424,28 +425,7 @@ export default function VersionsApp() {
           />
         );
       case "reglages":
-        return (
-          <div style={{width:"100%",minHeight:"100%",display:"grid",placeItems:"center",padding:"40px 30px",boxSizing:"border-box",animation:"fadeup .3s ease"}}>
-            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,maxWidth:380,width:"100%"}}>
-              <div style={{width:56,height:56,borderRadius:16,background:T.amberGlow,border:`1px solid ${T.amber}22`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <IconSettings c={T.amber} s={24} />
-              </div>
-              <div style={{fontFamily:T.display,fontSize:28,letterSpacing:4,color:T.amber}}>RÉGLAGES</div>
-              <div style={{fontFamily:T.body,fontWeight:300,fontSize:12,color:T.muted,textAlign:"center",lineHeight:1.6}}>
-                Connecté en tant que<br/>
-                <span style={{color:T.text,fontFamily:T.mono,fontSize:11}}>{user?.email}</span>
-              </div>
-              <button
-                onClick={async () => { await signOut(); goHome(); }}
-                style={{
-                  marginTop:20,padding:"12px 24px",background:"transparent",
-                  border:`1px solid ${T.border}`,borderRadius:10,color:T.red,
-                  fontFamily:T.mono,fontSize:11,letterSpacing:1,cursor:"pointer",textTransform:"uppercase"
-                }}
-              >Se déconnecter</button>
-            </div>
-          </div>
-        );
+        return <ReglagesScreen onSignOut={signOut} onGoHome={goHome} />;
       default:
         return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} />;
     }
