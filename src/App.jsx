@@ -75,7 +75,7 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
     <div className="welcome-home">
       {/* Header */}
       <div className="wh-header">
-        <div className="wh-greeting">{displayName ? `Salut ${displayName} !` : "Salut !"}</div>
+        <div className="wh-greeting">{displayName ? `SALUT ${displayName.toUpperCase()} !` : "SALUT !"}</div>
         <div className="wh-tip">
           <div className="wh-tip-label">Le saviez-vous</div>
           <div className="wh-tip-text">{tip}</div>

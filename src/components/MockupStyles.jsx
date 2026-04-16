@@ -708,8 +708,8 @@ export default function MockupStyles() {
 
   .wh-header { display: flex; flex-direction: column; align-items: center; gap: 20px; }
   .wh-greeting {
-    font-family: var(--body); font-size: 28px; font-weight: 400;
-    color: var(--text); text-align: center;
+    font-family: 'Bebas Neue', sans-serif; font-size: 36px; font-weight: 400;
+    letter-spacing: 3px; color: var(--text); text-align: center;
   }
   .wh-tip {
     width: 100%; padding: 18px 22px;
@@ -1461,7 +1461,7 @@ export default function MockupStyles() {
 
     /* Welcome Home */
     .welcome-home { padding: 30px 20px 120px; max-width: 100%; }
-    .wh-greeting { font-size: 22px; }
+    .wh-greeting { font-size: 28px; letter-spacing: 2px; }
     .wh-stats { gap: 14px; flex-wrap: wrap; }
     .wh-stat { min-width: 80px; padding: 14px 16px; }
     .wh-stat-value { font-size: 28px; }
