@@ -168,11 +168,6 @@ const InputScreen = ({ onAnalyze, initialTitle = '' }) => {
           {ok ? 'Analyser' : `${filled}/4 champs remplis`}
         </button>
 
-        {ok && (
-          <div className="input-mode-hint">
-            Mode diagnostic · {file.name}
-          </div>
-        )}
       </div>
     </div>
   );
