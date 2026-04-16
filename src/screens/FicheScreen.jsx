@@ -738,6 +738,7 @@ function VersionChat({ config, analysisResult, open, onClose }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const controllerRef = useRef(null);
   const send = async () => {
     if (!input.trim() || loading) return;
     const userMsg = { role: 'user', content: input.trim() };
@@ -745,16 +746,24 @@ function VersionChat({ config, analysisResult, open, onClose }) {
     setInput('');
     setLoading(true);
     try {
+      if (controllerRef.current) controllerRef.current.abort();
+      const controller = new AbortController();
+      controllerRef.current = controller;
+      const timeout = setTimeout(() => controller.abort(), 45000);
       const res = await fetch(`${API}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({ messages: [...messages, userMsg], config, analysisResult }),
       });
+      clearTimeout(timeout);
       const json = await res.json();
       setMessages((m) => [...m, { role: 'ai', content: json.reply || '…' }]);
-    } catch {
-      setMessages((m) => [...m, { role: 'ai', content: 'Erreur de connexion.' }]);
-    } finally { setLoading(false); }
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        setMessages((m) => [...m, { role: 'ai', content: 'Erreur de connexion.' }]);
+      }
+    } finally { setLoading(false); controllerRef.current = null; }
   };
 
   return (
@@ -780,11 +789,18 @@ function VersionChat({ config, analysisResult, open, onClose }) {
           ))}
         </div>
         <div className="chat-input">
-          <input
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') send(); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder="Écris ta question…"
+            rows={1}
+            ref={(el) => {
+              if (el) {
+                el.style.height = 'auto';
+                el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+              }
+            }}
           />
           <button onClick={send}>Envoyer</button>
         </div>
