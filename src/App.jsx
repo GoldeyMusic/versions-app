@@ -86,6 +86,15 @@ export default function VersionsApp() {
       resetKey: resetKeyRef.current,
     });
   };
+  const loadPlayer = (trackTitle, versionName, storagePath) => {
+    if (!storagePath) return;
+    resetKeyRef.current += 1;
+    setPlayerState({
+      trackTitle, versionName, storagePath, isPlaying: false,
+      playlist: [], currentIdx: 0,
+      resetKey: resetKeyRef.current,
+    });
+  };
   const togglePlay = () => setPlayerState(prev => prev ? { ...prev, isPlaying: !prev.isPlaying } : null);
   const stopPlay = () => setPlayerState(null);
   const playNext = () => {
@@ -200,9 +209,9 @@ export default function VersionsApp() {
     setConfig({ title: track.title, version: v.name, daw: config?.daw || "Logic Pro" });
     setAnalysisResult(saved || v.analysisResult || null);
     setScreen("fiche");
-    // Auto-play si audio disponible
+    // Charger l'audio dans le player (sans lancer la lecture)
     if (v.storagePath) {
-      play(track.title, v.name, v.storagePath);
+      loadPlayer(track.title, v.name, v.storagePath);
     }
   };
   const handleSidebarAddVersion = (track) => {

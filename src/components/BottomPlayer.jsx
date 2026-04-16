@@ -134,7 +134,7 @@ export default function BottomPlayer({
   }, [isPlaying]);
 
   return (
-    <div className="player" style={{ position: 'relative', padding: '0 24px', flexShrink: 0 }}>
+    <div className="player">
       {/* Prev */}
       <div
         className="pl-ctrl"
@@ -202,7 +202,6 @@ export default function BottomPlayer({
 
       {/* WaveSurfer container */}
       <div
-        className="pl-wave"
         ref={containerRef}
         style={{
           flex: 1,
@@ -210,6 +209,8 @@ export default function BottomPlayer({
           height: 36,
           opacity: idle ? 0.25 : 1,
           cursor: idle ? 'default' : 'pointer',
+          display: 'block',
+          overflow: 'hidden',
         }}
       />
 
