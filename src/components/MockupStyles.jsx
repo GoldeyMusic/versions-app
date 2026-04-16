@@ -634,15 +634,21 @@ export default function MockupStyles() {
     padding: 12px 14px 14px;
     border-top: 1px solid var(--border);
     display: flex; gap: 8px;
+    align-items: flex-end;
   }
-  .chat-input input {
+  .chat-input textarea {
     flex: 1;
-    background: var(--s2); border: 1px solid var(--border);
+    background: var(--s2) !important; border: 1px solid var(--border);
     padding: 10px 12px; border-radius: 8px;
     color: var(--text); font-family: var(--body); font-size: 13px;
-    outline: none;
+    outline: none; resize: none;
+    line-height: 1.4;
+    max-height: 120px;
+    overflow-y: auto;
+    -webkit-appearance: none;
+    appearance: none;
   }
-  .chat-input input:focus { border-color: var(--amber); }
+  .chat-input textarea:focus { border-color: var(--amber); }
   .chat-input button {
     background: var(--amber); color: #000;
     padding: 0 16px; border-radius: 8px;
