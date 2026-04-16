@@ -13,11 +13,8 @@ const urlCache = new Map();   // storagePath → signedUrl
 const blobUrlCache = new Map(); // storagePath → blobObjectUrl
 const audioPool = new Map();  // storagePath → HTMLAudioElement (preloaded)
 
-async function resolveAudio(storagePath) {
-  // Already in pool?
-  if (audioPool.has(storagePath)) return audioPool.get(storagePath);
-
-  // Resolve signed URL
+/** Resolve signed URL only (fast — no blob download) */
+async function resolveSignedUrl(storagePath) {
   let signedUrl = urlCache.get(storagePath);
   if (!signedUrl) {
     const res = await fetch(`${API}/api/audio/signed-url?path=${encodeURIComponent(storagePath)}`);
@@ -26,28 +23,40 @@ async function resolveAudio(storagePath) {
     signedUrl = url;
     urlCache.set(storagePath, url);
   }
+  return signedUrl;
+}
 
-  // Download blob & create Object URL
-  let blobUrl = blobUrlCache.get(storagePath);
-  if (!blobUrl) {
-    const audioRes = await fetch(signedUrl);
-    const blob = await audioRes.blob();
-    blobUrl = URL.createObjectURL(blob);
-    blobUrlCache.set(storagePath, blobUrl);
-  }
+/** Get a playable audio element FAST — streams from signed URL, blob upgrades in background */
+async function resolveAudio(storagePath) {
+  // Already fully loaded?
+  if (audioPool.has(storagePath)) return audioPool.get(storagePath);
 
-  // Create & pre-load audio element
-  const audio = new Audio(blobUrl);
+  const signedUrl = await resolveSignedUrl(storagePath);
+
+  // Create audio from signed URL for INSTANT streaming playback
+  const audio = new Audio(signedUrl);
+  audio.crossOrigin = 'anonymous';
   audio.preload = 'auto';
   audio.load();
   audioPool.set(storagePath, audio);
 
-  // Wait until browser has enough data to play
+  // Wait just enough to start playing (canplay, not full download)
   await new Promise((resolve) => {
     if (audio.readyState >= 3) return resolve();
     audio.addEventListener('canplay', resolve, { once: true });
     audio.addEventListener('error', resolve, { once: true });
   });
+
+  // Background: download full blob for WaveSurfer waveform + cache
+  if (!blobUrlCache.has(storagePath)) {
+    fetch(signedUrl)
+      .then(r => r.blob())
+      .then(blob => {
+        const blobUrl = URL.createObjectURL(blob);
+        blobUrlCache.set(storagePath, blobUrl);
+      })
+      .catch(() => {});
+  }
 
   return audio;
 }
