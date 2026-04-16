@@ -794,6 +794,32 @@ export default function MockupStyles() {
     letter-spacing: 0.5px; margin-top: 2px;
   }
 
+  .wh-track-picker {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+    min-width: 220px;
+    background: var(--s1); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    padding: 6px; z-index: 50;
+    animation: fadeup .15s ease;
+  }
+  .wh-picker-label {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted);
+    padding: 8px 12px 4px;
+  }
+  .wh-picker-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 12px; border-radius: 8px;
+    font-family: var(--body); font-size: 13px; font-weight: 300; color: var(--soft);
+    cursor: pointer; transition: all .15s;
+  }
+  .wh-picker-item:hover {
+    background: rgba(245,176,86,0.08); color: var(--amber);
+  }
+  .wh-picker-count {
+    font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 0.5px;
+  }
+
   .wh-empty {
     display: flex; flex-direction: column; align-items: center; gap: 16px;
     padding: 40px 0;

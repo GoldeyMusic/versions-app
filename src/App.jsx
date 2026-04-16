@@ -37,17 +37,17 @@ const HOME_TIPS = [
   "Écouter à faible volume est le meilleur test : si le mix fonctionne bas, il fonctionnera fort.",
 ];
 
-function WelcomeHome({ user, onNewTrack, onSelectVersion, onAskOpen }) {
+function WelcomeHome({ user, onNewTrack, onAddVersion, onSelectVersion }) {
   const [tracks, setTracks] = useState([]);
   const [tip] = useState(() => HOME_TIPS[Math.floor(Math.random() * HOME_TIPS.length)]);
+  const [pickingTrack, setPickingTrack] = useState(false);
 
   useEffect(() => {
     loadTracks().then(setTracks);
   }, []);
 
-  const parts = (user?.email || "").split("@")[0].split(".");
-  const firstName = parts.length > 1 ? parts[parts.length - 1] : parts[0];
-  const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+  // TODO: récupérer le prénom depuis les réglages utilisateur (Supabase profile)
+  const displayName = null;
 
   // Stats
   const totalTracks = tracks.length;
@@ -74,7 +74,7 @@ function WelcomeHome({ user, onNewTrack, onSelectVersion, onAskOpen }) {
     <div className="welcome-home">
       {/* Header */}
       <div className="wh-header">
-        <div className="wh-greeting">Salut {displayName} !</div>
+        <div className="wh-greeting">{displayName ? `Salut ${displayName} !` : "Salut !"}</div>
         <div className="wh-tip">
           <div className="wh-tip-label">Le saviez-vous</div>
           <div className="wh-tip-text">{tip}</div>
@@ -108,10 +108,27 @@ function WelcomeHome({ user, onNewTrack, onSelectVersion, onAskOpen }) {
           <span>Nouveau titre</span>
         </button>
         {totalTracks > 0 && (
-          <button className="wh-action" onClick={onNewTrack}>
-            <span className="wh-action-icon">↻</span>
-            <span>Ajouter une version</span>
-          </button>
+          <div style={{ position: "relative" }}>
+            <button className="wh-action" onClick={() => setPickingTrack(!pickingTrack)}>
+              <span className="wh-action-icon">↻</span>
+              <span>Ajouter une version</span>
+            </button>
+            {pickingTrack && (
+              <div className="wh-track-picker">
+                <div className="wh-picker-label">À quel titre ?</div>
+                {tracks.map((t) => (
+                  <div
+                    key={t.id}
+                    className="wh-picker-item"
+                    onClick={() => { setPickingTrack(false); onAddVersion(t); }}
+                  >
+                    {t.title}
+                    <span className="wh-picker-count">{t.versions?.length || 0} version{(t.versions?.length || 0) > 1 ? "s" : ""}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -359,8 +376,8 @@ export default function VersionsApp() {
           <WelcomeHome
             user={user}
             onNewTrack={handleSidebarNewTrack}
+            onAddVersion={handleSidebarAddVersion}
             onSelectVersion={handleSidebarSelectVersion}
-            onAskOpen={() => setAskOpen(true)}
           />
         );
       case "input":
