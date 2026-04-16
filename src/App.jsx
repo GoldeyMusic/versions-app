@@ -503,6 +503,7 @@ export default function VersionsApp() {
             onAutoSelectConsumed={() => setAutoSelectTrackTitle("")}
             onPlay={play}
             onStop={stopPlay}
+            onToggle={togglePlay}
             playerState={playerState}
           />
         );

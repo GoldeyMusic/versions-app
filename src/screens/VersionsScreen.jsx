@@ -11,6 +11,7 @@ export default function VersionsScreen({
   onAutoSelectConsumed,
   onPlay,
   onStop,
+  onToggle,
   playerState,
 }) {
   const [tracks, setTracks] = useState([]);
@@ -89,9 +90,11 @@ export default function VersionsScreen({
                   <div className="versions-s-card-body">
                     {versions.map((v, i) => {
                       const score = v.analysisResult?.fiche?.globalScore;
-                      const isThisVersion = playerState?.storagePath === v.storagePath
-                        || (playerState?.trackTitle === track.title && playerState?.versionName === v.name);
-                      const isPlaying = isThisVersion && playerState?.isPlaying;
+                      // Matching souple : par storagePath OU par titre+version
+                      const pathMatch = v.storagePath && playerState?.storagePath && v.storagePath === playerState.storagePath;
+                      const nameMatch = playerState?.trackTitle === track.title && playerState?.versionName === v.name;
+                      const isThisVersion = pathMatch || nameMatch;
+                      const isPlaying = isThisVersion && !!playerState?.isPlaying;
 
                       return (
                         <div key={v.id} className="versions-s-version">
@@ -105,10 +108,10 @@ export default function VersionsScreen({
                           <div className="versions-s-version-actions">
                             {v.storagePath && (
                               <button
-                                className="versions-s-btn-icon"
+                                className={`versions-s-btn-icon${isPlaying ? ' playing' : ''}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (isPlaying) { onStop(); }
+                                  if (isPlaying) { if (onToggle) onToggle(); else onStop(); }
                                   else { onPlay(track.title, v.name, v.storagePath); }
                                 }}
                                 title={isPlaying ? 'Stop' : 'Écouter'}

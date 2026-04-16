@@ -1292,6 +1292,10 @@ export default function MockupStyles() {
     display: flex; align-items: center; justify-content: center;
   }
   .versions-s-btn-icon:hover { color: var(--amber); border-color: var(--amber); }
+  .versions-s-btn-icon.playing {
+    color: var(--amber); border-color: var(--amber);
+    background: rgba(245,176,86,0.1);
+  }
 
   .versions-s-btn-view {
     padding: 5px 12px; border-radius: 6px;
