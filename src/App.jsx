@@ -145,8 +145,8 @@ export default function VersionsApp() {
           if (job.status === "complete" && !savedRef.current) {
             savedRef.current = true;
             setAnalysisResult(prev => {
-              const full = { ...prev, fiche: job.fiche || prev?.fiche, listening: job.listening || prev?.listening, _stage: "all_done" };
-              saveAnalysis(config, full)
+              const full = { ...prev, fiche: job.fiche || prev?.fiche, listening: job.listening || prev?.listening, storagePath: job.storagePath || prev?.storagePath || null, _stage: "all_done" };
+              saveAnalysis(config, full, job.storagePath || prev?.storagePath || null)
                 .then(() => setSidebarRefreshKey(k => k + 1))
                 .catch(e => console.warn("saveAnalysis failed:", e));
               return full;
@@ -181,7 +181,7 @@ export default function VersionsApp() {
       } else if (result._stage === "all_done" && !savedRef.current) {
         // Analysis completed in one shot — save immediately
         savedRef.current = true;
-        saveAnalysis(cfgWithHash, merged)
+        saveAnalysis(cfgWithHash, merged, merged.storagePath || null)
           .then(() => setSidebarRefreshKey(k => k + 1))
           .catch(e => console.warn("saveAnalysis failed:", e));
       }

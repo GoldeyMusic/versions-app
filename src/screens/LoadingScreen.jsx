@@ -106,8 +106,9 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
         }
 
         // Récupère l'utilisateur courant pour l'upload Supabase Storage côté backend
-        const { data: { user } } = await supabase.auth.getUser();
-        const userId = user?.id || null;
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id || null;
+        console.log('[analyze] userId:', userId);
 
         // Build FormData
         const formData = new FormData();
