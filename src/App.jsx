@@ -109,8 +109,8 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
           <span>Nouveau titre</span>
         </button>
         {totalTracks > 0 && (
-          <div style={{ position: "relative" }}>
-            <button className="wh-action" onClick={() => setPickingTrack(!pickingTrack)}>
+          <div style={{ position: "relative", display: "flex" }}>
+            <button className="wh-action" style={{ flex: 1 }} onClick={() => setPickingTrack(!pickingTrack)}>
               <span className="wh-action-icon">↻</span>
               <span>Ajouter une version</span>
             </button>
@@ -424,12 +424,7 @@ export default function VersionsApp() {
 
   // Sidebar handlers
   const handleSidebarSelectVersion = async (track, v) => {
-    console.log('[select-version]', v.name, 'storagePath:', v.storagePath, 'isPlaying:', playerState?.isPlaying);
-    const saved = await getAnalysis(track.id, v.id);
-    setConfig({ title: track.title, version: v.name, daw: config?.daw || "Logic Pro" });
-    setAnalysisResult(saved || v.analysisResult || null);
-    setScreen("fiche");
-    // Charger l'audio — continue la lecture si déjà en cours
+    // Charger l'audio EN PREMIER (avant l'await) pour éviter la coupure
     if (v.storagePath) {
       if (playerState?.isPlaying) {
         play(track.title, v.name, v.storagePath);
@@ -437,6 +432,10 @@ export default function VersionsApp() {
         loadPlayer(track.title, v.name, v.storagePath);
       }
     }
+    const saved = await getAnalysis(track.id, v.id);
+    setConfig({ title: track.title, version: v.name, daw: config?.daw || "Logic Pro" });
+    setAnalysisResult(saved || v.analysisResult || null);
+    setScreen("fiche");
   };
   const handleSidebarAddVersion = (track) => {
     setPrefillTitle(track.title);
