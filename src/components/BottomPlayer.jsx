@@ -27,6 +27,7 @@ export default function BottomPlayer({
   const [duration, setDuration] = useState(0);
   const [loading, setLoading] = useState(false);
   const loadedPathRef = useRef(null);
+  const urlCacheRef = useRef(new Map()); // cache signed URLs (valid 1h)
 
   const fmt = (s) => {
     const sec = Math.floor(s);
@@ -81,14 +82,20 @@ export default function BottomPlayer({
 
     (async () => {
       try {
-        const res = await fetch(`${API}/api/audio/signed-url?path=${encodeURIComponent(storagePath)}`);
-        const { url, error } = await res.json();
-        if (error || !url) {
-          console.error('[player] signed-url error:', error);
-          setLoading(false);
-          return;
+        // Use cached signed URL if available (valid ~1h)
+        let audioUrl = urlCacheRef.current.get(storagePath);
+        if (!audioUrl) {
+          const res = await fetch(`${API}/api/audio/signed-url?path=${encodeURIComponent(storagePath)}`);
+          const { url, error } = await res.json();
+          if (error || !url) {
+            console.error('[player] signed-url error:', error);
+            setLoading(false);
+            return;
+          }
+          audioUrl = url;
+          urlCacheRef.current.set(storagePath, url);
         }
-        ws.load(url);
+        ws.load(audioUrl);
       } catch (err) {
         console.error('[player] load error:', err.message);
         setLoading(false);
