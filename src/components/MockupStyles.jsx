@@ -1323,12 +1323,16 @@ export default function MockupStyles() {
   }
 
   .versions-s-version {
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px 12px; border-radius: 8px;
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 12px; border-radius: 10px;
+    background: var(--s1); border: 1px solid var(--border);
     transition: background .15s;
   }
   .versions-s-version:hover { background: var(--s2); }
 
+  .versions-s-version-row {
+    display: flex; align-items: center; gap: 12px;
+  }
   .versions-s-version-badge {
     font-family: var(--mono); font-size: 13px; font-weight: 500;
     min-width: 28px; text-align: center;
@@ -1342,14 +1346,12 @@ export default function MockupStyles() {
     letter-spacing: 0.5px; margin-top: 2px;
   }
 
-  .versions-s-version-actions {
-    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
-  }
   .versions-s-btn-icon {
     width: 30px; height: 30px; border-radius: 6px;
     background: transparent; border: 1px solid var(--border);
     color: var(--muted); cursor: pointer; transition: all .15s;
     display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
   }
   .versions-s-btn-icon:hover { color: var(--amber); border-color: var(--amber); }
   .versions-s-btn-icon.playing {
@@ -1357,13 +1359,17 @@ export default function MockupStyles() {
     background: rgba(245,176,86,0.1);
   }
 
-  .versions-s-btn-view {
-    padding: 5px 12px; border-radius: 6px;
-    background: transparent; border: 1px solid var(--border);
-    color: var(--soft); font-family: var(--mono); font-size: 10px;
-    letter-spacing: 0.5px; cursor: pointer; transition: all .15s;
+  .versions-s-btn-fiche {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 10px 14px; border-radius: 8px;
+    background: rgba(245,176,86,0.08); border: 1px solid rgba(245,176,86,0.25);
+    color: var(--amber); font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.8px; text-transform: uppercase; font-weight: 500;
+    cursor: pointer; transition: all .2s;
   }
-  .versions-s-btn-view:hover { color: var(--amber); border-color: var(--amber); }
+  .versions-s-btn-fiche:hover {
+    background: rgba(245,176,86,0.15); border-color: var(--amber);
+  }
 
   .versions-s-add {
     display: flex; align-items: center; justify-content: center; gap: 8px;

@@ -98,14 +98,15 @@ export default function VersionsScreen({
 
                       return (
                         <div key={v.id} className="versions-s-version">
-                          <div className="versions-s-version-badge" style={{ color: scoreColor(score) }}>
-                            {typeof score === 'number' ? score : '—'}
-                          </div>
-                          <div className="versions-s-version-info">
-                            <div className="versions-s-version-name">{v.name}</div>
-                            {v.date && <div className="versions-s-version-date">{v.date}</div>}
-                          </div>
-                          <div className="versions-s-version-actions">
+                          {/* Top row: score + name + play */}
+                          <div className="versions-s-version-row">
+                            <div className="versions-s-version-badge" style={{ color: scoreColor(score) }}>
+                              {typeof score === 'number' ? score : '—'}
+                            </div>
+                            <div className="versions-s-version-info">
+                              <div className="versions-s-version-name">{v.name}</div>
+                              {v.date && <div className="versions-s-version-date">{v.date}</div>}
+                            </div>
                             {v.storagePath && (
                               <button
                                 className={`versions-s-btn-icon${isPlaying ? ' playing' : ''}`}
@@ -123,15 +124,18 @@ export default function VersionsScreen({
                                 )}
                               </button>
                             )}
-                            {v.analysisResult?.fiche && (
-                              <button
-                                className="versions-s-btn-view"
-                                onClick={(e) => { e.stopPropagation(); onViewAnalysis(track, v); }}
-                              >
-                                Voir
-                              </button>
-                            )}
                           </div>
+                          {/* CTA fiche — full width */}
+                          {v.analysisResult?.fiche && (
+                            <button
+                              className="versions-s-btn-fiche"
+                              onClick={(e) => { e.stopPropagation(); onViewAnalysis(track, v); }}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                              Voir la fiche d'analyse
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 2.5l4 3.5-4 3.5"/></svg>
+                            </button>
+                          )}
                         </div>
                       );
                     })}
