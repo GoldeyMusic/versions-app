@@ -73,9 +73,9 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
   const touchState = useRef({ idx: null, startY: 0, rowEls: [] });
   const listRef = useRef(null);
   const handleTouchStart = (idx, e) => {
+    e.preventDefault(); // Bloque le long-press iOS (menu contextuel / sélection)
     touchState.current.idx = idx;
     touchState.current.startY = e.touches[0].clientY;
-    // Capture row positions
     if (listRef.current) {
       touchState.current.rowEls = Array.from(listRef.current.querySelectorAll('.wh-track-row'));
     }

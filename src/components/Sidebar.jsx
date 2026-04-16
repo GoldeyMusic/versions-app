@@ -57,6 +57,7 @@ export default function Sidebar({
   const touchState = useRef({ idx: null, startY: 0, rowEls: [] });
   const listRef = useRef(null);
   const handleTouchStart = (idx, e) => {
+    e.preventDefault(); // Bloque le long-press iOS
     touchState.current.idx = idx;
     touchState.current.startY = e.touches[0].clientY;
     if (listRef.current) {

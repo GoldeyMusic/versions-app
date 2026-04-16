@@ -93,9 +93,19 @@ export default function MockupStyles() {
     width: 14px; flex-shrink: 0;
     color: var(--muted2); cursor: grab;
     opacity: 0.4; transition: opacity .15s, color .15s;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
   .sb-drag-handle:active { cursor: grabbing; }
   .track:hover .sb-drag-handle { opacity: 1; color: var(--muted); }
+  @media (max-width: 600px) {
+    .sb-drag-handle {
+      width: 24px; min-height: 32px;
+      opacity: 0.6;
+    }
+  }
 
   .sb-play-btn {
     width: 22px; height: 22px; border-radius: 50%;
