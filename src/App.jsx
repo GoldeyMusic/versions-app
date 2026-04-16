@@ -143,7 +143,7 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
       {/* Liste des titres — playlist */}
       {totalTracks > 0 && (
         <div className="wh-tracklist">
-          <div className="wh-section-title">Mes titres</div>
+          <div className="wh-section-title">Mes <em>titres</em></div>
           <div className="wh-tracklist-list">
             {tracks.map((track, idx) => {
               const latest = track.versions?.[track.versions.length - 1];

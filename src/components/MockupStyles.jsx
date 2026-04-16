@@ -771,8 +771,12 @@ export default function MockupStyles() {
   }
 
   .wh-section-title {
-    font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
-    text-transform: uppercase; color: var(--muted); margin-bottom: 14px;
+    font-family: var(--serif); font-size: 28px; font-weight: 400;
+    line-height: 1.15; letter-spacing: 0.3px;
+    color: var(--text); margin-bottom: 18px;
+  }
+  .wh-section-title em {
+    font-style: italic; color: var(--amber); font-weight: 400;
   }
 
   /* Tracklist homepage */
