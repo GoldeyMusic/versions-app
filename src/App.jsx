@@ -77,10 +77,11 @@ export default function VersionsApp() {
   const [playerState, setPlayerState] = useState(null);
   const resetKeyRef = useRef(0);
 
-  const play = (trackTitle, versionName, playlist, currentIdx, keepProgress) => {
+  const play = (trackTitle, versionName, storagePath, playlist, currentIdx, keepProgress) => {
+    if (!storagePath) return; // pas d'audio disponible
     if (!keepProgress) resetKeyRef.current += 1;
     setPlayerState({
-      trackTitle, versionName, isPlaying: true,
+      trackTitle, versionName, storagePath, isPlaying: true,
       playlist: playlist || [], currentIdx: currentIdx || 0,
       resetKey: resetKeyRef.current,
     });
@@ -98,6 +99,7 @@ export default function VersionsApp() {
     resetKeyRef.current += 1;
     setPlayerState({
       trackTitle: next.trackTitle, versionName: next.versionName,
+      storagePath: next.storagePath,
       isPlaying: true, playlist: playerState.playlist, currentIdx: nextIdx,
       resetKey: resetKeyRef.current,
     });
@@ -110,6 +112,7 @@ export default function VersionsApp() {
     resetKeyRef.current += 1;
     setPlayerState({
       trackTitle: prev.trackTitle, versionName: prev.versionName,
+      storagePath: prev.storagePath,
       isPlaying: true, playlist: playerState.playlist, currentIdx: prevIdx,
       resetKey: resetKeyRef.current,
     });
@@ -197,6 +200,10 @@ export default function VersionsApp() {
     setConfig({ title: track.title, version: v.name, daw: config?.daw || "Logic Pro" });
     setAnalysisResult(saved || v.analysisResult || null);
     setScreen("fiche");
+    // Auto-play si audio disponible
+    if (v.storagePath) {
+      play(track.title, v.name, v.storagePath);
+    }
   };
   const handleSidebarAddVersion = (track) => {
     setPrefillTitle(track.title);
@@ -373,6 +380,7 @@ export default function VersionsApp() {
             <BottomPlayer
               trackTitle={playerState?.trackTitle}
               versionName={playerState?.versionName}
+              storagePath={playerState?.storagePath}
               isPlaying={!!playerState?.isPlaying}
               onToggle={togglePlay}
               onNext={playNext}

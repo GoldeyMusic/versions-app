@@ -3,6 +3,7 @@ import T from '../constants/theme';
 import API from '../constants/api';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { hashAudioFile, findDuplicateAudio, loadTracks } from "../lib/storage";
+import { supabase } from "../lib/supabase";
 
 const TIPS = [
   "Faire des pauses régulières permet de conserver une écoute attentive et objective.",
@@ -104,6 +105,10 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           }
         }
 
+        // Récupère l'utilisateur courant pour l'upload Supabase Storage côté backend
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id || null;
+
         // Build FormData
         const formData = new FormData();
         if (config.file) formData.append("file", config.file);
@@ -111,6 +116,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
         formData.append("daw", config.daw || "Logic Pro");
         formData.append("title", config.title || "Titre inconnu");
         formData.append("version", config.version || "v1");
+        if (userId) formData.append("userId", userId);
         if (previousFiche) formData.append("previousFiche", JSON.stringify(previousFiche));
         if (durationSeconds) formData.append("durationSeconds", String(durationSeconds));
 
@@ -147,6 +153,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
               listening: job.listening || null,
               meta: job.meta,
               audioHash: config.audioHash,
+              storagePath: job.storagePath || null,
               _jobId: jobId,
               _stage: job.stage,
             });
@@ -158,6 +165,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
               listening: job.listening || null,
               meta: job.meta,
               audioHash: config.audioHash,
+              storagePath: job.storagePath || null,
               _jobId: jobId,
               _stage: "all_done",
             });

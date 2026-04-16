@@ -1,30 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import WaveSurfer from 'wavesurfer.js';
+import API from '../constants/api';
 
 /**
- * BottomPlayer — rendu fidèle à mockup-v3.html (.player).
- * Barre fixe de 68px en bas d'écran, avec prev / play-pause / next,
- * meta (titre serif + version mono), waveform cliquable et temps.
- *
- * TODO (pending): brancher un vrai audio Supabase + WaveSurfer.
- * Pour l'instant, on simule la progression.
+ * BottomPlayer — WaveSurfer-powered audio player.
+ * Barre fixe en bas, style VERSIONS (ambre/noir).
+ * Charge un MP3 depuis Supabase Storage via signed URL.
  */
-
-const WAVE_BARS = 120;
-
-const generateWaveform = () => {
-  const bars = [];
-  for (let i = 0; i < WAVE_BARS; i++) {
-    const pos = i / WAVE_BARS;
-    const envelope = Math.sin(pos * Math.PI) * 0.55 + 0.45;
-    const rand = 0.35 + Math.random() * 0.65;
-    bars.push(Math.min(1, rand * envelope));
-  }
-  return bars;
-};
 
 export default function BottomPlayer({
   trackTitle,
   versionName,
+  storagePath,
   isPlaying,
   onToggle,
   onNext,
@@ -34,42 +21,117 @@ export default function BottomPlayer({
   resetKey,
   idle,
 }) {
-  const [progress, setProgress] = useState(0);
-  const [waveform] = useState(() => generateWaveform());
-  const waveRef = useRef(null);
-  const lastResetKey = useRef(resetKey);
+  const containerRef = useRef(null);
+  const wsRef = useRef(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const loadedPathRef = useRef(null);
 
-  useEffect(() => {
-    if (!isPlaying) return;
-    const iv = setInterval(
-      () => setProgress((p) => {
-        if (p >= 100) { onNext && onNext(); return 0; }
-        return p + 0.15;
-      }),
-      100
-    );
-    return () => clearInterval(iv);
-  }, [isPlaying, onNext]);
-
-  useEffect(() => {
-    if (resetKey !== lastResetKey.current) {
-      setProgress(0);
-      lastResetKey.current = resetKey;
-    }
-  }, [resetKey]);
-
-  const handleWaveClick = (e) => {
-    if (!waveRef.current || idle) return;
-    const rect = waveRef.current.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    setProgress(pct);
+  const fmt = (s) => {
+    const sec = Math.floor(s);
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   };
 
-  const totalSec = 241;
-  const currentSec = Math.floor((progress / 100) * totalSec);
-  const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  // Create / destroy WaveSurfer instance
+  useEffect(() => {
+    if (!containerRef.current) return;
 
-  const headIdx = Math.round((progress / 100) * WAVE_BARS);
+    const ws = WaveSurfer.create({
+      container: containerRef.current,
+      waveColor: '#3a3a3e',
+      progressColor: '#f5b056',
+      cursorColor: '#f5b056',
+      cursorWidth: 1,
+      barWidth: 2,
+      barGap: 1,
+      barRadius: 2,
+      height: 36,
+      normalize: true,
+      backend: 'WebAudio',
+      interact: true,
+    });
+
+    ws.on('timeupdate', (t) => setCurrentTime(t));
+    ws.on('decode', (d) => setDuration(d));
+    ws.on('finish', () => {
+      if (onNext) onNext();
+    });
+    ws.on('loading', () => setLoading(true));
+    ws.on('ready', () => setLoading(false));
+
+    wsRef.current = ws;
+
+    return () => {
+      ws.destroy();
+      wsRef.current = null;
+    };
+  }, []);  // mount once
+
+  // Load audio when storagePath changes
+  useEffect(() => {
+    const ws = wsRef.current;
+    if (!ws || !storagePath) return;
+    if (storagePath === loadedPathRef.current) return;
+
+    loadedPathRef.current = storagePath;
+    setLoading(true);
+    setCurrentTime(0);
+    setDuration(0);
+
+    (async () => {
+      try {
+        const res = await fetch(`${API}/api/audio/signed-url?path=${encodeURIComponent(storagePath)}`);
+        const { url, error } = await res.json();
+        if (error || !url) {
+          console.error('[player] signed-url error:', error);
+          setLoading(false);
+          return;
+        }
+        ws.load(url);
+      } catch (err) {
+        console.error('[player] load error:', err.message);
+        setLoading(false);
+      }
+    })();
+  }, [storagePath]);
+
+  // Reset on track change (resetKey)
+  useEffect(() => {
+    const ws = wsRef.current;
+    if (!ws) return;
+    // If storagePath changed, loading handles it already.
+    // But if resetKey changed (prev/next), we might need to reload.
+    loadedPathRef.current = null;
+  }, [resetKey]);
+
+  // Sync play/pause state
+  useEffect(() => {
+    const ws = wsRef.current;
+    if (!ws || idle || loading) return;
+
+    try {
+      if (isPlaying && !ws.isPlaying()) {
+        ws.play();
+      } else if (!isPlaying && ws.isPlaying()) {
+        ws.pause();
+      }
+    } catch {}
+  }, [isPlaying, idle, loading]);
+
+  // Auto-play when ready
+  useEffect(() => {
+    const ws = wsRef.current;
+    if (!ws) return;
+
+    const onReady = () => {
+      if (isPlaying) {
+        try { ws.play(); } catch {}
+      }
+    };
+    ws.on('ready', onReady);
+    return () => ws.un('ready', onReady);
+  }, [isPlaying]);
 
   return (
     <div className="player" style={{ position: 'relative', padding: '0 24px', flexShrink: 0 }}>
@@ -132,30 +194,31 @@ export default function BottomPlayer({
               {trackTitle}
             </div>
             <div className="pl-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {versionName}
+              {versionName}{loading ? ' · chargement…' : ''}
             </div>
           </>
         )}
       </div>
 
-      {/* Waveform */}
-      <div className="pl-wave" ref={waveRef} onClick={handleWaveClick}>
-        {waveform.map((h, i) => {
-          const isPast = !idle && i < headIdx;
-          const isHead = !idle && i === headIdx;
-          const cls = isHead ? 'bar head' : isPast ? 'bar past' : 'bar';
-          return (
-            <div key={i} className={cls} style={{ height: `${Math.max(10, h * 100)}%` }} />
-          );
-        })}
-      </div>
+      {/* WaveSurfer container */}
+      <div
+        className="pl-wave"
+        ref={containerRef}
+        style={{
+          flex: 1,
+          minWidth: 0,
+          height: 36,
+          opacity: idle ? 0.25 : 1,
+          cursor: idle ? 'default' : 'pointer',
+        }}
+      />
 
       {/* Time */}
       <div className="pl-time">
-        {idle ? (
+        {idle || !duration ? (
           <span>—:— / —:—</span>
         ) : (
-          <><b>{fmt(currentSec)}</b> / {fmt(totalSec)}</>
+          <><b>{fmt(currentTime)}</b> / {fmt(duration)}</>
         )}
       </div>
     </div>
