@@ -1195,6 +1195,121 @@ export default function MockupStyles() {
   }
 
   /* ══════════════════════════════════════════════════════ */
+  /* MOBILE HAMBURGER MENU                                  */
+  /* ══════════════════════════════════════════════════════ */
+  .mobile-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(12,12,13,0.96);
+    backdrop-filter: blur(14px);
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .hamburger-btn {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; cursor: pointer;
+    background: transparent; border: none; padding: 0;
+  }
+  .hamburger-btn:hover { background: var(--s1); }
+
+  .hamburger-icon {
+    width: 20px; height: 14px; position: relative;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .hamburger-icon span {
+    display: block; width: 100%; height: 2px; border-radius: 1px;
+    background: var(--text); transition: all .25s ease;
+    transform-origin: center;
+  }
+  .hamburger-icon.open span:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+  }
+  .hamburger-icon.open span:nth-child(2) { opacity: 0; }
+  .hamburger-icon.open span:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+  }
+
+  .mobile-menu-backdrop {
+    position: fixed; inset: 0; z-index: 110;
+    background: rgba(0,0,0,0.5);
+    animation: fadein .2s ease;
+  }
+
+  .mobile-menu-panel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: 280px; max-width: 80vw;
+    background: var(--s1);
+    border-left: 1px solid var(--border);
+    z-index: 120;
+    display: flex; flex-direction: column;
+    transform: translateX(100%);
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+    box-shadow: -12px 0 40px rgba(0,0,0,0.5);
+  }
+  .mobile-menu-panel.open { transform: translateX(0); }
+
+  .mobile-menu-user {
+    display: flex; align-items: center; gap: 12px;
+    padding: 22px 20px 18px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .mobile-menu-user:active { background: var(--s2); }
+  .mobile-menu-avatar {
+    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--amber), #e88855);
+    display: flex; align-items: center; justify-content: center;
+    color: #000; font-family: var(--mono); font-weight: 600; font-size: 16px;
+    overflow: hidden;
+  }
+  .mobile-menu-who {
+    font-family: var(--body); font-size: 14px; font-weight: 500; color: var(--text);
+  }
+  .mobile-menu-plan {
+    font-family: var(--mono); font-size: 9px; color: var(--muted);
+    letter-spacing: 0.5px; margin-top: 2px;
+  }
+
+  .mobile-menu-nav {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 12px 10px; gap: 2px;
+  }
+  .mobile-menu-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 14px; border-radius: 10px;
+    background: transparent; border: none;
+    font-family: var(--body); font-size: 14px; font-weight: 300;
+    color: var(--soft); cursor: pointer; text-align: left;
+    transition: all .15s;
+  }
+  .mobile-menu-item:hover, .mobile-menu-item:active {
+    background: var(--s2);
+  }
+  .mobile-menu-item.active {
+    background: rgba(245,176,86,0.08); color: var(--amber);
+  }
+  .mobile-menu-icon {
+    font-size: 16px; width: 24px; text-align: center;
+  }
+
+  .mobile-menu-footer {
+    padding: 16px 20px 28px;
+    border-top: 1px solid var(--border);
+  }
+  .mobile-menu-signout {
+    width: 100%; padding: 12px 16px; border-radius: 10px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--red); font-family: var(--mono); font-size: 11px;
+    letter-spacing: 1px; text-transform: uppercase;
+    cursor: pointer; transition: all .2s;
+  }
+  .mobile-menu-signout:hover {
+    border-color: var(--red); background: rgba(239,107,107,.06);
+  }
+
+  /* ══════════════════════════════════════════════════════ */
   /* RESPONSIVE MOBILE                                      */
   /* ══════════════════════════════════════════════════════ */
   @media (max-width: 768px) {
@@ -1202,7 +1317,7 @@ export default function MockupStyles() {
     .app { grid-template-columns: 1fr; }
     .sidebar { display: none; }
     .player { padding-left: 24px; }
-    body { padding-bottom: 120px; }
+    body { padding-bottom: 68px; }
 
     /* Auth */
     .auth-screen { padding: 30px 20px; min-height: 100dvh; }

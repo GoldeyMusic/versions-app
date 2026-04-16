@@ -173,6 +173,74 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
 
 const SIDEBAR_WIDTH = 260;
 
+/* ── Mobile Hamburger Menu ────────────────────────────────── */
+function MobileMenu({ screen, onNavigate, onSignOut, user, userProfile }) {
+  const [open, setOpen] = useState(false);
+  const go = (target) => { setOpen(false); onNavigate(target); };
+  const avatarUrl = userProfile?.avatar_url || null;
+  const displayName = userProfile?.prenom || (user?.email ? user.email.split('@')[0] : 'utilisateur');
+  const initial = (userProfile?.prenom || user?.email || 'U').trim().charAt(0).toUpperCase();
+
+  return (
+    <>
+      {/* ── Top bar ── */}
+      <div className="mobile-topbar">
+        <div className="brand" onClick={() => go('welcome')} style={{ cursor: 'pointer', fontSize: 20, letterSpacing: 2, gap: 8 }}>
+          <img src="/logo-versions.svg" alt="" style={{ height: 22, width: 'auto' }} />
+          <span>{"VER"}<span className="accent">{"SI"}</span>{"ONS"}</span>
+        </div>
+        <button className="hamburger-btn" onClick={() => setOpen(!open)} aria-label="Menu">
+          <div className={`hamburger-icon${open ? ' open' : ''}`}>
+            <span /><span /><span />
+          </div>
+        </button>
+      </div>
+
+      {/* ── Overlay ── */}
+      {open && <div className="mobile-menu-backdrop" onClick={() => setOpen(false)} />}
+
+      {/* ── Slide panel ── */}
+      <div className={`mobile-menu-panel${open ? ' open' : ''}`}>
+        {/* User */}
+        <div className="mobile-menu-user" onClick={() => go('reglages')}>
+          <div className="mobile-menu-avatar">
+            {avatarUrl
+              ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+              : initial}
+          </div>
+          <div>
+            <div className="mobile-menu-who">{displayName}</div>
+            <div className="mobile-menu-plan">Premier</div>
+          </div>
+        </div>
+
+        {/* Nav items */}
+        <nav className="mobile-menu-nav">
+          <button className={`mobile-menu-item${screen === 'welcome' ? ' active' : ''}`} onClick={() => go('welcome')}>
+            <span className="mobile-menu-icon">🏠</span> Accueil
+          </button>
+          <button className={`mobile-menu-item${screen === 'input' || screen === 'loading' || screen === 'fiche' ? ' active' : ''}`} onClick={() => go('input')}>
+            <span className="mobile-menu-icon">＋</span> Nouvelle analyse
+          </button>
+          <button className={`mobile-menu-item${screen === 'versions' ? ' active' : ''}`} onClick={() => go('versions')}>
+            <span className="mobile-menu-icon">📁</span> Mes titres
+          </button>
+          <button className={`mobile-menu-item${screen === 'reglages' ? ' active' : ''}`} onClick={() => go('reglages')}>
+            <span className="mobile-menu-icon">⚙</span> Réglages
+          </button>
+        </nav>
+
+        {/* Sign out */}
+        <div className="mobile-menu-footer">
+          <button className="mobile-menu-signout" onClick={async () => { setOpen(false); if (onSignOut) await onSignOut(); }}>
+            Se déconnecter
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════ */
 /* APP                                                        */
 /* ═══════════════════════════════════════════════════════════ */
@@ -501,19 +569,19 @@ export default function VersionsApp() {
 
         {/* Main column */}
         <div style={showSidebar ? { display: "flex", flexDirection: "column", minWidth: 0 } : { marginLeft: contentMarginLeft, display: "flex", flexDirection: "column", minHeight: "100vh", transition: "margin-left .2s" }}>
-          {/* Header — mobile only (desktop logo is in the sidebar) */}
+          {/* Mobile hamburger menu */}
           {isMobile && (
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{ flex: 1 }}><Header onHome={goHome} /></div>
-              <button
-                onClick={() => setScreen("reglages")}
-                style={{
-                  background: 'none', border: 'none', color: 'var(--muted)',
-                  padding: '12px 16px', cursor: 'pointer', fontSize: 18,
-                }}
-                aria-label="Réglages"
-              >⚙</button>
-            </div>
+            <MobileMenu
+              screen={screen}
+              onNavigate={(target) => {
+                setAskOpen(false);
+                if (target === 'input') setPrefillTitle('');
+                setScreen(target);
+              }}
+              onSignOut={signOut}
+              user={user}
+              userProfile={userProfile}
+            />
           )}
 
           {/* Ask Modal */}
@@ -541,20 +609,7 @@ export default function VersionsApp() {
             />
           )}
 
-          {/* Bottom Nav — mobile only */}
-          {isMobile && (
-            <BottomNav
-              active={askOpen ? "ask" : screen === "input" || screen === "fiche" ? "input" : screen === "versions" ? "historique" : screen}
-              onChange={(id) => {
-                setAskOpen(false);
-                const target = id === "historique" ? "versions" : id;
-                // Clear prefill when user intentionally navigates to the input tab
-                if (target === "input") setPrefillTitle("");
-                setScreen(target);
-              }}
-              onAsk={() => setAskOpen(o => !o)}
-            />
-          )}
+          {/* BottomNav retiré — remplacé par le hamburger menu */}
         </div>
       </div>
     </LangContext.Provider>
