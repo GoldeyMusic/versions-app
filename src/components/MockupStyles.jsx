@@ -1609,13 +1609,14 @@ export default function MockupStyles() {
     .focus-arrow { display: none; }
     .mt-grid { grid-template-columns: 1fr; }
 
-    /* Chat mobile */
-    .chat-panel { width: 100%; max-width: 100vw; }
+    /* Chat mobile — doit passer au-dessus de la topbar (z-index: 100) */
+    .chat-panel { width: 100%; max-width: 100vw; z-index: 150; }
+    .chat-backdrop { z-index: 140; }
     .chat-head { padding: 14px 16px; }
     .chat-head .cclose {
-      width: 32px; height: 32px; border-radius: 8px;
+      width: 36px; height: 36px; border-radius: 8px;
       background: var(--s2); border: 1px solid var(--border);
-      font-size: 16px;
+      font-size: 18px;
     }
     .chat-fab { bottom: 82px; right: 16px; width: 44px; height: 44px; }
 
