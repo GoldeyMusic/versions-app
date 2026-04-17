@@ -1684,17 +1684,17 @@ export default function MockupStyles() {
     border-radius: 50%;
     padding: 0;
     background: linear-gradient(135deg, var(--amber), #e88855);
-    border: 1px solid rgba(245,176,86,0.35);
+    border: 1.5px solid rgba(255,255,255,0.85);
     display: flex; align-items: center; justify-content: center;
     overflow: hidden;
     cursor: pointer;
     transition: box-shadow .2s, transform .15s;
   }
   .mobile-avatar-btn:hover {
-    box-shadow: 0 0 0 2px rgba(245,176,86,0.3);
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.35);
   }
   .mobile-avatar-btn.open {
-    box-shadow: 0 0 0 2px var(--amber);
+    box-shadow: 0 0 0 2px #fff;
   }
   .mobile-avatar-btn img {
     width: 100%; height: 100%; object-fit: cover;
