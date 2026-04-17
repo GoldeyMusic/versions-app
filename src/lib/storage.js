@@ -150,8 +150,14 @@ export async function getAnalysis(trackId, versionId) {
   return data?.analysis_result || null;
 }
 
-/** Delete a version. If last one, delete the track too. */
+/** Delete a version. If last one, delete the track too. Also removes audio from Storage. */
 export async function deleteVersion(trackId, versionId) {
+  // Récupère le storage_path AVANT de supprimer la row
+  const { data: ver } = await supabase.from('versions').select('storage_path').eq('id', versionId).single();
+  if (ver?.storage_path) {
+    await supabase.storage.from('audio').remove([ver.storage_path]).catch((e) => console.warn('[storage] audio remove error:', e.message));
+  }
+
   const { error } = await supabase.from('versions').delete().eq('id', versionId);
   if (error) console.warn('[storage] delete version error:', error.message);
 
@@ -234,8 +240,15 @@ export function applyTrackOrder(tracks) {
   return ordered;
 }
 
-/** Delete a track and all its versions */
+/** Delete a track, all its versions, and their audio files from Storage */
 export async function deleteTrack(trackId) {
+  // Récupère tous les storage_path AVANT de supprimer
+  const { data: versions } = await supabase.from('versions').select('storage_path').eq('track_id', trackId);
+  const paths = (versions || []).map(v => v.storage_path).filter(Boolean);
+  if (paths.length > 0) {
+    await supabase.storage.from('audio').remove(paths).catch((e) => console.warn('[storage] audio remove error:', e.message));
+  }
+
   await supabase.from('versions').delete().eq('track_id', trackId);
   const { error } = await supabase.from('tracks').delete().eq('id', trackId);
   if (error) console.warn('[storage] deleteTrack error:', error.message);
