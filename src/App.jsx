@@ -709,8 +709,8 @@ function WhMenuItem({ label, onClick, danger }) {
 
 const SIDEBAR_WIDTH = 260;
 
-/* ── Mobile Hamburger Menu ────────────────────────────────── */
-function MobileMenu({ screen, onNavigate, onSignOut, user, userProfile }) {
+/* ── Mobile Avatar Menu ────────────────────────────────── */
+function MobileMenu({ onNavigate, onSignOut, user, userProfile }) {
   const [open, setOpen] = useState(false);
   const go = (target) => { setOpen(false); onNavigate(target); };
   const avatarUrl = userProfile?.avatar_url || null;
@@ -725,49 +725,50 @@ function MobileMenu({ screen, onNavigate, onSignOut, user, userProfile }) {
           <img src="/logo-versions.svg" alt="" style={{ height: 22, width: 'auto' }} />
           <span>{"VER"}<span className="accent">{"SI"}</span>{"ONS"}</span>
         </div>
-        <button className="hamburger-btn" onClick={() => setOpen(!open)} aria-label="Menu">
-          <div className={`hamburger-icon${open ? ' open' : ''}`}>
-            <span /><span /><span />
-          </div>
-        </button>
-      </div>
-
-      {/* ── Overlay ── */}
-      {open && <div className="mobile-menu-backdrop" onClick={() => setOpen(false)} />}
-
-      {/* ── Slide panel ── */}
-      <div className={`mobile-menu-panel${open ? ' open' : ''}`}>
-        {/* User */}
-        <div className="mobile-menu-user" onClick={() => go('reglages')}>
-          <div className="mobile-menu-avatar">
+        <div className="mobile-avatar-wrap">
+          <button
+            className={`mobile-avatar-btn${open ? ' open' : ''}`}
+            onClick={() => setOpen(!open)}
+            aria-label="Menu utilisateur"
+          >
             {avatarUrl
-              ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-              : initial}
-          </div>
-          <div>
-            <div className="mobile-menu-who">{displayName}</div>
-            <div className="mobile-menu-plan">Premier</div>
-          </div>
-        </div>
+              ? <img src={avatarUrl} alt="" />
+              : <span className="mobile-avatar-initial">{initial}</span>}
+          </button>
 
-        {/* Nav items */}
-        <nav className="mobile-menu-nav">
-          <button className={`mobile-menu-item${screen === 'welcome' ? ' active' : ''}`} onClick={() => go('welcome')}>
-            <span className="mobile-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></span> Accueil
-          </button>
-          <button className={`mobile-menu-item${screen === 'input' || screen === 'loading' || screen === 'fiche' ? ' active' : ''}`} onClick={() => go('input')}>
-            <span className="mobile-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg></span> Nouvelle analyse
-          </button>
-          <button className={`mobile-menu-item${screen === 'reglages' ? ' active' : ''}`} onClick={() => go('reglages')}>
-            <span className="mobile-menu-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span> Réglages
-          </button>
-        </nav>
-
-        {/* Sign out */}
-        <div className="mobile-menu-footer">
-          <button className="mobile-menu-signout" onClick={async () => { setOpen(false); if (onSignOut) await onSignOut(); }}>
-            Se déconnecter
-          </button>
+          {open && (
+            <>
+              <div className="mobile-avatar-backdrop" onClick={() => setOpen(false)} />
+              <div className="mobile-avatar-popover">
+                <div className="mobile-avatar-popover-user">
+                  <div className="mobile-avatar-popover-who">{displayName}</div>
+                  {user?.email && <div className="mobile-avatar-popover-mail">{user.email}</div>}
+                </div>
+                <button className="mobile-avatar-popover-item" onClick={() => go('reglages')}>
+                  <span className="mobile-menu-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="3"/>
+                      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                    </svg>
+                  </span>
+                  Réglages
+                </button>
+                <button
+                  className="mobile-avatar-popover-item danger"
+                  onClick={async () => { setOpen(false); if (onSignOut) await onSignOut(); }}
+                >
+                  <span className="mobile-menu-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                      <polyline points="16 17 21 12 16 7"/>
+                      <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                  </span>
+                  Se déconnecter
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>
@@ -1151,10 +1152,9 @@ export default function VersionsApp() {
 
         {/* Main column */}
         <div style={showSidebar ? { display: "flex", flexDirection: "column", minWidth: 0 } : { marginLeft: contentMarginLeft, display: "flex", flexDirection: "column", minHeight: "100vh", transition: "margin-left .2s" }}>
-          {/* Mobile hamburger menu */}
+          {/* Mobile top bar with avatar menu */}
           {isMobile && (
             <MobileMenu
-              screen={screen}
               onNavigate={(target) => {
                 setAskOpen(false);
                 if (target === 'input') setPrefillTitle('');

@@ -1664,7 +1664,7 @@ export default function MockupStyles() {
   }
 
   /* ══════════════════════════════════════════════════════ */
-  /* MOBILE HAMBURGER MENU                                  */
+  /* MOBILE TOPBAR + AVATAR MENU                            */
   /* ══════════════════════════════════════════════════════ */
   .mobile-topbar {
     display: flex; align-items: center; justify-content: space-between;
@@ -1675,107 +1675,93 @@ export default function MockupStyles() {
     position: sticky; top: 0; z-index: 100;
   }
 
-  .hamburger-btn {
+  .mobile-avatar-wrap {
+    position: relative;
+  }
+
+  .mobile-avatar-btn {
     width: 36px; height: 36px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 8px; cursor: pointer;
-    background: transparent; border: none; padding: 0;
-  }
-  .hamburger-btn:hover { background: var(--s1); }
-
-  .hamburger-icon {
-    width: 20px; height: 14px; position: relative;
-    display: flex; flex-direction: column; justify-content: space-between;
-  }
-  .hamburger-icon span {
-    display: block; width: 100%; height: 2px; border-radius: 1px;
-    background: var(--text); transition: all .25s ease;
-    transform-origin: center;
-  }
-  .hamburger-icon.open span:nth-child(1) {
-    transform: translateY(6px) rotate(45deg);
-  }
-  .hamburger-icon.open span:nth-child(2) { opacity: 0; }
-  .hamburger-icon.open span:nth-child(3) {
-    transform: translateY(-6px) rotate(-45deg);
-  }
-
-  .mobile-menu-backdrop {
-    position: fixed; inset: 0; z-index: 110;
-    background: rgba(0,0,0,0.5);
-    animation: fadein .2s ease;
-  }
-
-  .mobile-menu-panel {
-    position: fixed; top: 0; right: 0; bottom: 0;
-    width: 280px; max-width: 80vw;
-    background: var(--s1);
-    border-left: 1px solid var(--border);
-    z-index: 120;
-    display: flex; flex-direction: column;
-    transform: translateX(100%);
-    transition: transform .28s cubic-bezier(.4,0,.2,1);
-    box-shadow: -12px 0 40px rgba(0,0,0,0.5);
-  }
-  .mobile-menu-panel.open { transform: translateX(0); }
-
-  .mobile-menu-user {
-    display: flex; align-items: center; gap: 12px;
-    padding: 22px 20px 18px;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-  }
-  .mobile-menu-user:active { background: var(--s2); }
-  .mobile-menu-avatar {
-    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    border-radius: 50%;
+    padding: 0;
     background: linear-gradient(135deg, var(--amber), #e88855);
+    border: 1px solid rgba(245,176,86,0.35);
     display: flex; align-items: center; justify-content: center;
-    color: #000; font-family: var(--mono); font-weight: 600; font-size: 16px;
     overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow .2s, transform .15s;
   }
-  .mobile-menu-who {
-    font-family: var(--body); font-size: 14px; font-weight: 500; color: var(--text);
+  .mobile-avatar-btn:hover {
+    box-shadow: 0 0 0 2px rgba(245,176,86,0.3);
   }
-  .mobile-menu-plan {
-    font-family: var(--mono); font-size: 9px; color: var(--muted);
-    letter-spacing: 0.5px; margin-top: 2px;
+  .mobile-avatar-btn.open {
+    box-shadow: 0 0 0 2px var(--amber);
+  }
+  .mobile-avatar-btn img {
+    width: 100%; height: 100%; object-fit: cover;
+    border-radius: 50%;
+    display: block;
+  }
+  .mobile-avatar-initial {
+    font-family: var(--mono); font-weight: 600; font-size: 14px;
+    color: #000;
+    line-height: 1;
   }
 
-  .mobile-menu-nav {
-    flex: 1; display: flex; flex-direction: column;
-    padding: 12px 10px; gap: 2px;
+  .mobile-avatar-backdrop {
+    position: fixed; inset: 0; z-index: 110;
+    background: transparent;
   }
-  .mobile-menu-item {
-    display: flex; align-items: center; gap: 14px;
-    padding: 14px 14px; border-radius: 10px;
+
+  .mobile-avatar-popover {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 120;
+    min-width: 220px;
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.55);
+    animation: fadeup .15s ease;
+    display: flex; flex-direction: column;
+  }
+
+  .mobile-avatar-popover-user {
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mobile-avatar-popover-who {
+    font-family: var(--body); font-size: 13px; font-weight: 500; color: var(--text);
+  }
+  .mobile-avatar-popover-mail {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    margin-top: 3px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .mobile-avatar-popover-item {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%;
+    padding: 12px 14px;
     background: transparent; border: none;
-    font-family: var(--body); font-size: 14px; font-weight: 300;
-    color: var(--soft); cursor: pointer; text-align: left;
-    transition: all .15s;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--body); font-size: 13px; font-weight: 400;
+    color: var(--text);
+    cursor: pointer; text-align: left;
+    transition: background .12s;
   }
-  .mobile-menu-item:hover, .mobile-menu-item:active {
+  .mobile-avatar-popover-item:last-child { border-bottom: none; }
+  .mobile-avatar-popover-item:hover,
+  .mobile-avatar-popover-item:active {
     background: var(--s2);
   }
-  .mobile-menu-item.active {
-    background: rgba(245,176,86,0.08); color: var(--amber);
+  .mobile-avatar-popover-item.danger {
+    color: var(--red);
   }
-  .mobile-menu-icon {
-    font-size: 16px; width: 24px; text-align: center;
-  }
-
-  .mobile-menu-footer {
-    padding: 16px 20px 28px;
-    border-top: 1px solid var(--border);
-  }
-  .mobile-menu-signout {
-    width: 100%; padding: 12px 16px; border-radius: 10px;
-    background: transparent; border: 1px solid var(--border);
-    color: var(--red); font-family: var(--mono); font-size: 11px;
-    letter-spacing: 1px; text-transform: uppercase;
-    cursor: pointer; transition: all .2s;
-  }
-  .mobile-menu-signout:hover {
-    border-color: var(--red); background: rgba(239,107,107,.06);
+  .mobile-avatar-popover-item .mobile-menu-icon {
+    width: 18px; display: inline-flex; align-items: center; justify-content: center;
+    color: inherit; opacity: 0.85;
   }
 
   /* ══════════════════════════════════════════════════════ */
