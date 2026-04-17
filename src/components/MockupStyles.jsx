@@ -1202,10 +1202,11 @@ export default function MockupStyles() {
   .wh-gradient-4 { background: linear-gradient(135deg, #4a2a2a, #8a3f3f 60%, #c65b5b); }
   .wh-gradient-5 { background: linear-gradient(135deg, #24242c, #3a3a48 70%, #5a5a6e); }
 
-  @media (max-width: 600px) {
-    /* Sur mobile, on repasse à une vignette fixe (80×80) alignée en haut,
-       pour éviter que l'aspect-ratio 1/1 + stretch ne la rende énorme
-       (sinon elle prend la hauteur totale du header et cache les infos). */
+  /* Layout compact sur mobile (portrait OU paysage) : vignette figée à 80×80
+     alignée en haut, sinon l'aspect-ratio 1/1 + stretch la rend énorme et
+     cache les infos du projet. Le `max-height: 500px` attrape le mobile
+     paysage qui dépasse 600px de large mais reste court en hauteur. */
+  @media (max-width: 600px), (max-height: 500px) {
     .wh-acc-item.open .wh-acc-head {
       grid-template-columns: 80px 1fr;
       padding: 14px 14px 16px 12px;
