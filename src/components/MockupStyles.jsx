@@ -1203,13 +1203,21 @@ export default function MockupStyles() {
   .wh-gradient-5 { background: linear-gradient(135deg, #24242c, #3a3a48 70%, #5a5a6e); }
 
   @media (max-width: 600px) {
+    /* Sur mobile, on repasse à une vignette fixe (80×80) alignée en haut,
+       pour éviter que l'aspect-ratio 1/1 + stretch ne la rende énorme
+       (sinon elle prend la hauteur totale du header et cache les infos). */
     .wh-acc-item.open .wh-acc-head {
-      grid-template-columns: auto 1fr;
-      padding: 14px 14px 16px 8px;
+      grid-template-columns: 80px 1fr;
+      padding: 14px 14px 16px 12px;
+      align-items: flex-start;
     }
     .wh-acc-item.open .wh-acc-cover {
-      min-width: 72px;
-      min-height: 72px;
+      width: 80px;
+      height: 80px;
+      aspect-ratio: auto;
+      min-width: 0;
+      min-height: 0;
+      align-self: flex-start;
     }
     .wh-acc-item.open .wh-acc-name { font-size: 22px; }
     .wh-head-btn { font-size: 11px; padding: 7px 12px; }

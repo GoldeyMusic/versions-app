@@ -12,6 +12,7 @@ import {
 } from '../lib/storage';
 import { confirmDialog } from '../lib/confirm.jsx';
 import RenameModal from './RenameModal';
+import { assignProjectColors, PROJECT_COLOR_COUNT } from '../lib/projectColors';
 
 /**
  * Sidebar — accordéon de projets.
@@ -297,28 +298,33 @@ export default function Sidebar({
         <div className="section-label">Mes projets</div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '0 2px' }}>
-          {projects.map((project) => (
-            <ProjectAccordion
-              key={project.id}
-              project={project}
-              open={project.id === currentProjectId}
-              onToggle={() => toggleProject(project.id)}
-              onTrackClick={handleTrackClick}
-              onPlayTrack={handlePlayTrack}
-              onRenameTrack={handleRenameTrack}
-              onDeleteTrack={handleDeleteTrack}
-              onRenameProject={handleRenameProject}
-              onDeleteProject={handleDeleteProject}
-              onAddTrack={handleAddTrackToProject}
-              currentTrackTitle={currentTrackTitle}
-              playerState={playerState}
-              drag={drag}
-              setDrag={setDrag}
-              onDropTrackOnTrack={handleDropTrackOnTrack}
-              onDropTrackOnProject={handleDropTrackOnProject}
-              onDropProjectOnProject={handleDropProjectOnProject}
-            />
-          ))}
+          {(() => {
+            // Couleurs uniques par projet (même logique que la home).
+            const colorMap = assignProjectColors(projects);
+            return projects.map((project) => (
+              <ProjectAccordion
+                key={project.id}
+                project={project}
+                colorIndex={colorMap.get(project.id) ?? 0}
+                open={project.id === currentProjectId}
+                onToggle={() => toggleProject(project.id)}
+                onTrackClick={handleTrackClick}
+                onPlayTrack={handlePlayTrack}
+                onRenameTrack={handleRenameTrack}
+                onDeleteTrack={handleDeleteTrack}
+                onRenameProject={handleRenameProject}
+                onDeleteProject={handleDeleteProject}
+                onAddTrack={handleAddTrackToProject}
+                currentTrackTitle={currentTrackTitle}
+                playerState={playerState}
+                drag={drag}
+                setDrag={setDrag}
+                onDropTrackOnTrack={handleDropTrackOnTrack}
+                onDropTrackOnProject={handleDropTrackOnProject}
+                onDropProjectOnProject={handleDropProjectOnProject}
+              />
+            ));
+          })()}
 
           <button
             className="new-track"
@@ -383,6 +389,7 @@ export default function Sidebar({
 /* ─── Accordéon projet ─────────────────────────────────────── */
 function ProjectAccordion({
   project,
+  colorIndex = 0,
   open,
   onToggle,
   onTrackClick,
@@ -400,12 +407,12 @@ function ProjectAccordion({
   onDropTrackOnProject,
   onDropProjectOnProject,
 }) {
-  // Couleur projet : cover_gradient si défini (>0), sinon hash stable de l'id.
-  const gradient = GRADIENTS[
-    project.coverGradient
-      ? project.coverGradient % GRADIENTS.length
-      : hashToGradient(project.id || project.name || '')
-  ];
+  // Couleur projet : cover_gradient si défini (>0), sinon index unique
+  // calculé au niveau parent (garantit l'unicité entre projets).
+  const resolvedIdx = project.coverGradient
+    ? project.coverGradient % PROJECT_COLOR_COUNT
+    : colorIndex;
+  const gradient = GRADIENTS[resolvedIdx % GRADIENTS.length];
   const nTracks = project.tracks?.length || 0;
   const [hoverHead, setHoverHead] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -808,12 +815,3 @@ const GRADIENTS = [
   'linear-gradient(135deg, #24242c, #3a3a48 70%, #5a5a6e)', // 5 gris
 ];
 
-/** Hash stable d'une chaîne vers un index [0..5] de GRADIENTS.
- *  Utilisé comme fallback quand cover_gradient vaut 0 (défaut DB),
- *  pour qu'un projet = une couleur distincte sans migration. */
-function hashToGradient(key) {
-  const s = String(key || '');
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
-  return Math.abs(h) % GRADIENTS.length;
-}

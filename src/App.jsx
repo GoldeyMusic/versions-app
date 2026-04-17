@@ -17,6 +17,7 @@ import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
 
 import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject } from "./lib/storage";
+import { assignProjectColors, PROJECT_COLOR_COUNT } from "./lib/projectColors";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
@@ -41,16 +42,6 @@ const HOME_TIPS = [
   "Le silence entre les sessions est aussi important que le travail lui-même.",
   "Écouter à faible volume est le meilleur test : si le mix fonctionne bas, il fonctionnera fort.",
 ];
-
-/** Hash stable d'une chaîne vers un index de gradient [0..5].
- *  Permet d'attribuer une couleur déterministe à chaque titre sans champ DB.
- *  Même entrée → même sortie, donc la couleur ne bouge pas entre les sessions. */
-function hashToGradient(key) {
-  const s = String(key || '');
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
-  return Math.abs(h) % 6;
-}
 
 function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onPlay, onToggle, playerState, refreshKey, onMutate }) {
   const [projects, setProjects] = useState([]);
@@ -91,6 +82,11 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   // Liste à plat de tous les titres (pour le picker "À quel titre ?")
   const allTracks = projects.flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectName: p.name })));
+
+  // Map projectId → index de couleur. Garantit l'unicité tant que
+  // le nombre de projets ≤ PROJECT_COLOR_COUNT. Recalculée à chaque render,
+  // mais basée uniquement sur createdAt ⇒ stable quand on réordonne.
+  const projectColorMap = assignProjectColors(projects);
 
   const displayName = userProfile?.prenom || null;
 
@@ -360,12 +356,12 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
             {projects.map((project) => {
               const isOpen = project.id === currentProjectId;
               const nTracks = project.tracks?.length || 0;
-              // Couleur du projet : priorité à cover_gradient s'il est défini (>0),
-              // sinon fallback sur un hash stable de l'id projet pour garantir
-              // qu'un projet = une couleur (même si tous valent 0 en base).
+              // Couleur du projet : priorité à cover_gradient s'il est explicite (>0),
+              // sinon index unique issu de assignProjectColors (garanti distinct
+              // tant qu'on a ≤ PROJECT_COLOR_COUNT projets).
               const gradIdx = project.coverGradient
-                ? project.coverGradient % 6
-                : hashToGradient(project.id || project.name || '');
+                ? project.coverGradient % PROJECT_COLOR_COUNT
+                : (projectColorMap.get(project.id) ?? 0);
               const isProjectPlaying = !!(
                 playerState?.isPlaying &&
                 project.tracks?.some((t) => t.title === playerState.trackTitle)
