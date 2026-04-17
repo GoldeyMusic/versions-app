@@ -135,10 +135,6 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
       {/* Header */}
       <div className="wh-header">
         <div className="wh-greeting">{displayName ? `SALUT ${displayName.toUpperCase()} !` : "SALUT !"}</div>
-        <div className="wh-tip">
-          <div className="wh-tip-label">Le saviez-vous</div>
-          <div className="wh-tip-text">{tip}</div>
-        </div>
       </div>
 
       {/* Raccourcis */}
@@ -260,6 +256,12 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
           <div>Importe ton premier titre pour commencer l'aventure.</div>
         </div>
       )}
+
+      {/* Tip en bas */}
+      <div className="wh-tip">
+        <div className="wh-tip-label">Le saviez-vous</div>
+        <div className="wh-tip-text">{tip}</div>
+      </div>
     </div>
   );
 }
