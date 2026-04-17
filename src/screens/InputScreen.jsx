@@ -1,7 +1,146 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import T from '../constants/theme';
 import DAWS from '../constants/daws';
 import { IconWave, IconCheck } from '../components/Icons';
+import { loadProjects, createProject } from '../lib/storage';
+import RenameModal from '../components/RenameModal';
+
+/* ── PROJECT PICKER ─────────────────────────────────────── */
+const PROJECT_GRADIENTS = [
+  'linear-gradient(135deg, #4a3b2a, #8a6a3f 60%, #c6a15b)',
+  'linear-gradient(135deg, #2a3a4a, #3f6a8a 60%, #5ba1c6)',
+  'linear-gradient(135deg, #3a2a4a, #6a3f8a 60%, #a15bc6)',
+  'linear-gradient(135deg, #2a4a3a, #3f8a6a 60%, #5bc6a1)',
+  'linear-gradient(135deg, #4a2a2a, #8a3f3f 60%, #c65b5b)',
+  'linear-gradient(135deg, #24242c, #3a3a48 70%, #5a5a6e)',
+];
+
+function ProjectPicker({ projects, projectId, onChange, onCreateNew, locked = false }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onEsc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+
+  const current = projects.find(p => p.id === projectId) || projects[0];
+  if (!current) {
+    return (
+      <div ref={ref} style={{ position: 'relative' }}>
+        <button
+          type="button"
+          onClick={onCreateNew}
+          className="input-select"
+          style={{ textAlign: 'left', cursor: 'pointer', color: T.muted }}
+        >+ Crée ton premier projet</button>
+      </div>
+    );
+  }
+  const gradCurrent = PROJECT_GRADIENTS[(current.coverGradient ?? 0) % 6];
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => { if (!locked) setOpen((o) => !o); }}
+        disabled={locked}
+        title={locked ? 'Projet verrouillé — ce titre est déjà rattaché à un projet' : undefined}
+        className="input-select"
+        style={{
+          textAlign: 'left', cursor: locked ? 'default' : 'pointer',
+          display: 'flex', alignItems: 'center', gap: 10,
+          color: T.text,
+          borderColor: open ? `${T.amber}88` : undefined,
+          opacity: locked ? 0.85 : 1,
+        }}
+      >
+        <span style={{ width: 16, height: 16, borderRadius: 4, background: gradCurrent, flexShrink: 0 }} />
+        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {current.name}
+        </span>
+        <span style={{ color: T.muted, fontSize: 10 }}>
+          {(current.tracks?.length || 0)} titre{(current.tracks?.length || 0) > 1 ? 's' : ''}
+        </span>
+      </button>
+      <div className="input-select-arrow">
+        {locked ? (
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-label="verrouillé">
+            <rect x="3" y="5.5" width="6" height="4.5" rx="1" stroke="#7c7c80" strokeWidth="1.2" fill="none" />
+            <path d="M4.2 5.5 V 4 a 1.8 1.8 0 0 1 3.6 0 V 5.5" stroke="#7c7c80" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+          </svg>
+        ) : (
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 4 L6 8 L10 4" stroke={open ? T.amber : '#7c7c80'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </div>
+
+      {open && !locked && (
+        <div
+          style={{
+            position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 50,
+            background: '#141416', border: '1px solid #2a2a2e',
+            borderRadius: 10, padding: 6, boxShadow: '0 12px 32px rgba(0,0,0,.55)',
+            maxHeight: 280, overflowY: 'auto',
+          }}
+        >
+          {projects.map((p) => {
+            const grad = PROJECT_GRADIENTS[(p.coverGradient ?? 0) % 6];
+            const n = p.tracks?.length || 0;
+            const isCurrent = p.id === current.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => { onChange(p.id); setOpen(false); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  width: '100%', padding: '8px 10px', borderRadius: 8,
+                  background: isCurrent ? 'rgba(245,176,86,.08)' : 'transparent',
+                  border: 'none', cursor: 'pointer',
+                  fontFamily: 'Inter, sans-serif', fontSize: 13, color: T.text,
+                  textAlign: 'left',
+                }}
+                onMouseEnter={(e) => { if (!isCurrent) e.currentTarget.style.background = 'rgba(255,255,255,.04)'; }}
+                onMouseLeave={(e) => { if (!isCurrent) e.currentTarget.style.background = 'transparent'; }}
+              >
+                <span style={{ width: 16, height: 16, borderRadius: 4, background: grad, flexShrink: 0 }} />
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {p.name}
+                </span>
+                <span style={{ color: T.muted, fontSize: 10 }}>
+                  {n} titre{n > 1 ? 's' : ''}
+                </span>
+              </button>
+            );
+          })}
+          <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onCreateNew(); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              width: '100%', padding: '8px 10px', borderRadius: 8,
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              fontFamily: 'Inter, sans-serif', fontSize: 12, color: T.amber,
+              textAlign: 'left',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(245,176,86,.08)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          >+ Nouveau projet</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ── FILE DROP ZONE ─────────────────────────────────────── */
 const FileDropZone = ({ file, onFile }) => {
@@ -51,11 +190,29 @@ const FileDropZone = ({ file, onFile }) => {
 /* ═══════════════════════════════════════════════════════════ */
 /* INPUT SCREEN                                               */
 /* ═══════════════════════════════════════════════════════════ */
-const InputScreen = ({ onAnalyze, initialTitle = '' }) => {
+const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lockProject = false, onRefreshProjects }) => {
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState(initialTitle);
   const [version, setVersion] = useState('');
   const [daw, setDaw] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [projectId, setProjectId] = useState(initialProjectId);
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [newProjectValue, setNewProjectValue] = useState('');
+  const newProjectInputRef = useRef(null);
+
+  // Charge la liste des projets
+  useEffect(() => {
+    let alive = true;
+    loadProjects().then((p) => {
+      if (!alive) return;
+      setProjects(p || []);
+      // Si aucun projet n'est pré-sélectionné, on prend le premier disponible
+      if (!initialProjectId && p && p.length) setProjectId(p[0].id);
+    });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleMainFile = (f) => {
     if (!f) return;
@@ -69,15 +226,38 @@ const InputScreen = ({ onAnalyze, initialTitle = '' }) => {
     }
   };
 
-  const ok = !!file && !!daw && !!title && !!version;
+  const ok = !!file && !!daw && !!title && !!version && !!projectId;
 
   const handleAnalyze = () => {
     if (!ok) return;
-    onAnalyze({ file, title, version, daw, refFile: null });
+    onAnalyze({ file, title, version, daw, projectId, refFile: null });
   };
 
-  // Progress indicator
-  const filled = [!!file, !!title, !!version, !!daw].filter(Boolean).length;
+  // Progress indicator — 5 champs désormais (projet, fichier, titre, version, DAW)
+  const filled = [!!projectId, !!file, !!title, !!version, !!daw].filter(Boolean).length;
+
+  // Création rapide de projet depuis le picker
+  const handleCreateNewProject = () => {
+    setNewProjectValue('');
+    setNewProjectOpen(true);
+    setTimeout(() => newProjectInputRef.current?.focus(), 50);
+  };
+  const submitNewProject = async () => {
+    const name = newProjectValue.trim();
+    if (!name) return;
+    try {
+      const created = await createProject(name);
+      setNewProjectOpen(false);
+      setNewProjectValue('');
+      if (created?.id) {
+        // Recharge la liste et sélectionne le projet juste créé
+        const fresh = await loadProjects();
+        setProjects(fresh || []);
+        setProjectId(created.id);
+        if (onRefreshProjects) onRefreshProjects();
+      }
+    } catch (err) { console.warn('createProject failed', err); }
+  };
 
   return (
     <div className="input-screen">
@@ -89,11 +269,31 @@ const InputScreen = ({ onAnalyze, initialTitle = '' }) => {
 
       {/* Progress bar */}
       <div className="input-progress">
-        <div className="input-progress-bar" style={{ width: `${(filled / 4) * 100}%` }} />
+        <div className="input-progress-bar" style={{ width: `${(filled / 5) * 100}%` }} />
       </div>
 
       {/* Form */}
       <div className="input-form">
+
+        {/* ── PROJET ── */}
+        <div className="input-section">
+          <div className="input-section-label">
+            PROJET <div className="input-section-line" />
+            {projectId && <span style={{ color: '#7bd88f', fontSize: 9 }}>✓</span>}
+          </div>
+          <ProjectPicker
+            projects={projects}
+            projectId={projectId}
+            onChange={setProjectId}
+            onCreateNew={handleCreateNewProject}
+            locked={lockProject}
+          />
+          {lockProject && (
+            <div style={{ marginTop: 6, fontSize: 10, color: T.muted, fontFamily: 'IBM Plex Mono, monospace' }}>
+              Projet verrouillé — ce titre appartient déjà à ce projet.
+            </div>
+          )}
+        </div>
 
         {/* ── FILE DROP ── */}
         <div className="input-section">
@@ -162,10 +362,25 @@ const InputScreen = ({ onAnalyze, initialTitle = '' }) => {
           disabled={!ok}
           className={`input-cta${ok ? ' ready' : ''}`}
         >
-          {ok ? 'Analyser' : `${filled}/4 champs remplis`}
+          {ok ? 'Analyser' : `${filled}/5 champs remplis`}
         </button>
 
       </div>
+
+      {/* Modale nouveau projet (depuis le picker) */}
+      {newProjectOpen && (
+        <RenameModal
+          title="Nouveau projet"
+          placeholder="Nom du projet"
+          value={newProjectValue}
+          originalValue=""
+          inputRef={newProjectInputRef}
+          onChange={setNewProjectValue}
+          onCancel={() => setNewProjectOpen(false)}
+          onSubmit={submitNewProject}
+          confirmLabel="Créer"
+        />
+      )}
     </div>
   );
 };

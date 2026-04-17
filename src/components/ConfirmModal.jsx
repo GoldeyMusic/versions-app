@@ -48,16 +48,18 @@ export default function ConfirmModal({
           {message}
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
-          <button
-            onClick={onCancel}
-            style={{
-              padding: '8px 16px', fontSize: 12, borderRadius: 8,
-              background: 'transparent', border: '1px solid #2a2a2e',
-              color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            {cancelLabel}
-          </button>
+          {cancelLabel && (
+            <button
+              onClick={onCancel}
+              style={{
+                padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                background: 'transparent', border: '1px solid #2a2a2e',
+                color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {cancelLabel}
+            </button>
+          )}
           {tertiaryLabel && (
             <button
               onClick={onTertiary}

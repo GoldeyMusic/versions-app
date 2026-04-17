@@ -811,6 +811,15 @@ export default function MockupStyles() {
   }
   .wh-track-row.drag-over-above { border-top: 2px solid var(--amber); margin-top: -2px; }
   .wh-track-row.drag-over-below { border-bottom: 2px solid var(--amber); margin-bottom: -2px; }
+  /* Poignée de déplacement DnD (home) */
+  .wh-drag-handle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 20px; flex-shrink: 0;
+    cursor: grab; color: #c5c5c7;
+    transition: opacity .15s;
+    margin-right: -4px;
+  }
+  .wh-drag-handle:active { cursor: grabbing; }
   .wh-track-row:hover {
     border-color: rgba(245,176,86,0.3); background: rgba(245,176,86,0.04);
   }
@@ -1001,6 +1010,209 @@ export default function MockupStyles() {
   .input-mode-hint {
     text-align: center; font-family: var(--mono); font-size: 10px;
     color: var(--amber); opacity: 0.5; animation: fadeup .2s ease;
+  }
+
+  /* ── Accordion projets (Home "Mes projets") ── */
+  .wh-projects {
+    display: flex; flex-direction: column; gap: 10px;
+    width: 100%;
+  }
+  /* Teintes projet (valeurs RGB, alpha appliqué plus bas).
+     Correspondent à la couleur claire du gradient de chaque teinte. */
+  .wh-tint-0 { --project-tint: 198, 161, 91;  }  /* 0 ambre  */
+  .wh-tint-1 { --project-tint: 91, 161, 198;  }  /* 1 bleu   */
+  .wh-tint-2 { --project-tint: 161, 91, 198;  }  /* 2 violet */
+  .wh-tint-3 { --project-tint: 91, 198, 161;  }  /* 3 vert   */
+  .wh-tint-4 { --project-tint: 198, 91, 91;   }  /* 4 rouge  */
+  .wh-tint-5 { --project-tint: 140, 140, 160; }  /* 5 gris   */
+
+  .wh-acc-item {
+    /* Fond = teinte très douce (6%) superposée sur --s1 dark.
+       En mode fermé la teinte est légèrement visible sur la ligne projet. */
+    background:
+      linear-gradient(rgba(var(--project-tint, 255,255,255), 0.06),
+                      rgba(var(--project-tint, 255,255,255), 0.06)),
+      var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .wh-acc-item:hover { border-color: rgba(245,176,86,.25); }
+  .wh-acc-item.open {
+    /* En mode ouvert, teinte un poil plus marquée (9%) pour bien détacher
+       le cadre du background général sur toute la hauteur de la carte. */
+    background:
+      linear-gradient(rgba(var(--project-tint, 255,255,255), 0.09),
+                      rgba(var(--project-tint, 255,255,255), 0.09)),
+      var(--s1);
+    border-color: rgba(245,176,86,.4);
+    box-shadow: 0 8px 32px rgba(0,0,0,.25);
+  }
+  .wh-acc-head {
+    position: relative;
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 16px;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: padding 0.25s ease;
+  }
+  .wh-acc-item.open .wh-acc-head {
+    /* Colonne vignette = auto (largeur pilotée par aspect-ratio 1/1),
+       colonne titre = 1fr. Stretch pour que la vignette prenne la hauteur totale. */
+    grid-template-columns: auto 1fr;
+    padding: 18px 18px 20px 12px;
+    align-items: stretch;
+  }
+  .wh-acc-cover {
+    position: relative;
+    width: 64px; height: 64px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    transition: border-radius 0.25s ease, box-shadow 0.25s ease;
+  }
+  .wh-acc-item.open .wh-acc-cover {
+    /* Carré qui remplit la hauteur du header (titre + meta + actions).
+       aspect-ratio 1/1 + align-self stretch => largeur = hauteur. */
+    aspect-ratio: 1 / 1;
+    width: auto;
+    height: auto;
+    min-height: 96px;
+    min-width: 96px;
+    align-self: stretch;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+  }
+  .wh-acc-title { min-width: 0; overflow: hidden; }
+  .wh-acc-kicker {
+    display: none;
+    font-family: var(--mono); font-size: 9px;
+    letter-spacing: 2.5px; color: var(--amber);
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .wh-acc-item.open .wh-acc-kicker { display: block; }
+  .wh-acc-name {
+    font-family: var(--body); font-size: 15px; font-weight: 500;
+    color: var(--text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .wh-acc-item.open .wh-acc-name {
+    font-family: var(--serif); font-size: 28px; font-weight: 400;
+    letter-spacing: 0.3px; white-space: normal;
+    line-height: 1.1;
+  }
+  .wh-acc-meta {
+    font-family: var(--mono); font-size: 10px;
+    color: var(--muted); letter-spacing: 0.5px;
+    margin-top: 3px;
+  }
+  .wh-acc-item.open .wh-acc-meta { margin-top: 8px; }
+  /* Play projet centré sur la vignette, apparaît au hover de la vignette.
+     Fonctionne identiquement que le projet soit ouvert ou fermé. */
+  .wh-acc-play {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    transition: opacity .15s, background .15s, border-color .15s;
+    padding: 0; cursor: pointer;
+    z-index: 2;
+    backdrop-filter: blur(4px);
+  }
+  .wh-acc-cover:hover .wh-acc-play,
+  .wh-acc-play:focus-visible { opacity: 1; }
+  .wh-acc-play:hover {
+    background: rgba(0,0,0,0.7);
+    border-color: #fff;
+    color: #fff;
+  }
+  .wh-acc-play.playing {
+    opacity: 1;
+    background: rgba(245,176,86,0.2);
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  .wh-acc-body {
+    display: none;
+    padding: 0 18px 18px;
+  }
+  .wh-acc-item.open .wh-acc-body { display: block; }
+
+  .wh-head-actions {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    padding-top: 14px;
+    margin-top: 4px;
+    border-top: 1px solid var(--border);
+  }
+  .wh-head-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: 999px;
+    font-family: var(--body); font-size: 12px; font-weight: 500;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--soft); cursor: pointer;
+    transition: all .15s;
+  }
+  .wh-head-btn:hover {
+    border-color: rgba(245,176,86,.4); color: var(--amber);
+  }
+  .wh-head-btn.primary {
+    background: var(--amber); border-color: var(--amber); color: #000;
+  }
+  .wh-head-btn.primary:hover { background: #e88855; border-color: #e88855; color: #000; }
+  .wh-head-btn.ghost { color: var(--muted); }
+  .wh-head-btn.danger:hover { color: var(--red); border-color: var(--red); }
+
+  .wh-acc-tracklist {
+    margin-top: 16px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .wh-acc-empty {
+    padding: 24px 0; color: var(--muted); font-size: 12px;
+    font-style: italic; text-align: center;
+  }
+  .wh-acc-add-track {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    margin-top: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    font-family: var(--body); font-size: 12px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .wh-acc-add-track:hover {
+    border-color: var(--amber); color: var(--amber); background: rgba(245,176,86,0.04);
+  }
+
+  /* Gradients covers */
+  .wh-gradient-0 { background: linear-gradient(135deg, #4a3b2a, #8a6a3f 60%, #c6a15b); }
+  .wh-gradient-1 { background: linear-gradient(135deg, #2a3a4a, #3f6a8a 60%, #5ba1c6); }
+  .wh-gradient-2 { background: linear-gradient(135deg, #3a2a4a, #6a3f8a 60%, #a15bc6); }
+  .wh-gradient-3 { background: linear-gradient(135deg, #2a4a3a, #3f8a6a 60%, #5bc6a1); }
+  .wh-gradient-4 { background: linear-gradient(135deg, #4a2a2a, #8a3f3f 60%, #c65b5b); }
+  .wh-gradient-5 { background: linear-gradient(135deg, #24242c, #3a3a48 70%, #5a5a6e); }
+
+  @media (max-width: 600px) {
+    .wh-acc-item.open .wh-acc-head {
+      grid-template-columns: auto 1fr;
+      padding: 14px 14px 16px 8px;
+    }
+    .wh-acc-item.open .wh-acc-cover {
+      min-width: 72px;
+      min-height: 72px;
+    }
+    .wh-acc-item.open .wh-acc-name { font-size: 22px; }
+    .wh-head-btn { font-size: 11px; padding: 7px 12px; }
   }
 
   .wh-empty {

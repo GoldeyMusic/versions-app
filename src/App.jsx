@@ -16,11 +16,14 @@ import LoadingScreen from "./screens/LoadingScreen";
 import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
 
-import { saveAnalysis, getAnalysis, loadTracks, applyTrackOrder, saveTrackOrder } from "./lib/storage";
+import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject } from "./lib/storage";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
 import ReglagesScreen from "./screens/ReglagesScreen";
+import RenameModal from "./components/RenameModal";
+import OnboardingModal from "./components/OnboardingModal";
+import { confirmDialog } from "./lib/confirm.jsx";
 
 /* ── Font loader ────────────────────────────────────────── */
 const FontLink = () => (
@@ -39,74 +42,72 @@ const HOME_TIPS = [
   "Écouter à faible volume est le meilleur test : si le mix fonctionne bas, il fonctionnera fort.",
 ];
 
-function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVersion, onPlay, onToggle, playerState, refreshKey, onReorder }) {
-  const [tracks, setTracks] = useState([]);
+/** Hash stable d'une chaîne vers un index de gradient [0..5].
+ *  Permet d'attribuer une couleur déterministe à chaque titre sans champ DB.
+ *  Même entrée → même sortie, donc la couleur ne bouge pas entre les sessions. */
+function hashToGradient(key) {
+  const s = String(key || '');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return Math.abs(h) % 6;
+}
+
+function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onPlay, onToggle, playerState, refreshKey, onMutate }) {
+  const [projects, setProjects] = useState([]);
   const [tip] = useState(() => HOME_TIPS[Math.floor(Math.random() * HOME_TIPS.length)]);
+  const [localRefresh, setLocalRefresh] = useState(0);
   const [pickingTrack, setPickingTrack] = useState(false);
-  const [dragIdx, setDragIdx] = useState(null);
-  const [dragOverIdx, setDragOverIdx] = useState(null);
+  const pickerRef = useRef(null);
+
+  // Modales
+  const [renameProjectTarget, setRenameProjectTarget] = useState(null);
+  const [renameTrackTarget, setRenameTrackTarget] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [newProjectValue, setNewProjectValue] = useState('');
+  const renameInputRef = useRef(null);
+  const newProjectInputRef = useRef(null);
 
   useEffect(() => {
-    loadTracks().then((raw) => setTracks(applyTrackOrder(raw)));
-  }, [refreshKey]);
+    let alive = true;
+    loadProjects().then((p) => { if (alive) setProjects(p || []); });
+    return () => { alive = false; };
+  }, [refreshKey, localRefresh]);
 
-  // ── Drag & drop (desktop HTML5 + mobile touch) ──
-  const handleDragStart = (idx) => setDragIdx(idx);
-  const handleDragOver = (e, idx) => { e.preventDefault(); setDragOverIdx(idx); };
-  const handleDragEnd = () => { setDragIdx(null); setDragOverIdx(null); };
-  const commitDrop = (fromIdx, toIdx) => {
-    if (fromIdx === null || fromIdx === toIdx) { handleDragEnd(); return; }
-    const reordered = [...tracks];
-    const [moved] = reordered.splice(fromIdx, 1);
-    reordered.splice(toIdx, 0, moved);
-    setTracks(reordered);
-    saveTrackOrder(reordered.map(t => t.id));
-    handleDragEnd();
-    if (onReorder) onReorder();
-  };
-  const handleDrop = (idx) => commitDrop(dragIdx, idx);
-  const dragDir = dragIdx !== null && dragOverIdx !== null && dragOverIdx !== dragIdx
-    ? (dragOverIdx > dragIdx ? 'below' : 'above')
-    : null;
+  // Ferme le picker au clic extérieur / Escape
+  useEffect(() => {
+    if (!pickingTrack) return;
+    const onDown = (e) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) setPickingTrack(false);
+    };
+    const onEsc = (e) => { if (e.key === 'Escape') setPickingTrack(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [pickingTrack]);
 
-  // Touch reorder (mobile)
-  const touchState = useRef({ idx: null, startY: 0, rowEls: [] });
-  const listRef = useRef(null);
-  const handleTouchStart = (idx, e) => {
-    e.preventDefault(); // Bloque le long-press iOS (menu contextuel / sélection)
-    touchState.current.idx = idx;
-    touchState.current.startY = e.touches[0].clientY;
-    if (listRef.current) {
-      touchState.current.rowEls = Array.from(listRef.current.querySelectorAll('.wh-track-row'));
-    }
-    setDragIdx(idx);
-  };
-  const handleTouchMove = (e) => {
-    if (touchState.current.idx === null) return;
-    e.preventDefault();
-    const y = e.touches[0].clientY;
-    const rows = touchState.current.rowEls;
-    let overIdx = touchState.current.idx;
-    for (let i = 0; i < rows.length; i++) {
-      const rect = rows[i].getBoundingClientRect();
-      if (y >= rect.top && y <= rect.bottom) { overIdx = i; break; }
-    }
-    setDragOverIdx(overIdx);
-  };
-  const handleTouchEnd = () => {
-    if (touchState.current.idx !== null && dragOverIdx !== null) {
-      commitDrop(touchState.current.idx, dragOverIdx);
-    }
-    touchState.current.idx = null;
-    handleDragEnd();
-  };
+  // Liste à plat de tous les titres (pour le picker "À quel titre ?")
+  const allTracks = projects.flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectName: p.name })));
 
   const displayName = userProfile?.prenom || null;
-  const totalTracks = tracks.length;
 
-  // Construire la playlist (dernière version de chaque titre)
-  const buildPlaylist = () =>
-    tracks
+  // ── Helpers ──
+  const metaLine = (project) => {
+    const nTracks = project.tracks?.length || 0;
+    const nVersions = (project.tracks || []).reduce(
+      (sum, t) => sum + (t.versions?.length || 0),
+      0
+    );
+    const tLabel = `${nTracks} titre${nTracks > 1 ? 's' : ''}`;
+    const vLabel = `${nVersions} version${nVersions > 1 ? 's' : ''}`;
+    return `${tLabel} · ${vLabel}`;
+  };
+
+  const buildProjectPlaylist = (project) =>
+    (project.tracks || [])
       .map((t) => {
         const latest = t.versions?.[t.versions.length - 1];
         if (!latest?.storagePath) return null;
@@ -114,12 +115,31 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
       })
       .filter(Boolean);
 
-  const handlePlayTrack = (track) => {
-    // Si ce titre est déjà en lecture → toggle pause/play
-    const isThisTrack = playerState?.trackTitle === track.title;
-    if (isThisTrack && onToggle) { onToggle(); return; }
-    // Sinon, lancer la playlist depuis ce titre
-    const playlist = buildPlaylist();
+  // ── Handlers projets ──
+  const toggleProject = (projectId) => {
+    if (!onSetCurrentProject) return;
+    onSetCurrentProject(projectId === currentProjectId ? null : projectId);
+  };
+
+  const handlePlayProject = (e, project) => {
+    e.stopPropagation();
+    const playlist = buildProjectPlaylist(project);
+    if (!playlist.length || !onPlay) return;
+    // Toggle si déjà en lecture sur ce projet
+    const firstTitle = playlist[0].trackTitle;
+    if (playerState?.trackTitle && project.tracks?.some(t => t.title === playerState.trackTitle) && onToggle) {
+      onToggle();
+      return;
+    }
+    onPlay(playlist[0].trackTitle, playlist[0].versionName, playlist[0].storagePath, playlist, 0);
+    // Ouvre l'accordéon si fermé
+    if (project.id !== currentProjectId && onSetCurrentProject) onSetCurrentProject(project.id);
+    void firstTitle;
+  };
+
+  const handlePlayTrack = (track, project) => {
+    if (playerState?.trackTitle === track.title && onToggle) { onToggle(); return; }
+    const playlist = buildProjectPlaylist(project);
     const idx = playlist.findIndex((p) => p.trackTitle === track.title);
     if (idx < 0 || !onPlay) return;
     onPlay(playlist[idx].trackTitle, playlist[idx].versionName, playlist[idx].storagePath, playlist, idx);
@@ -130,6 +150,164 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
     if (latest && onSelectVersion) onSelectVersion(track, latest);
   };
 
+  const handleAddTrackToProject = (project) => {
+    if (onSetCurrentProject) onSetCurrentProject(project.id);
+    if (onNewTrack) onNewTrack();
+  };
+
+  // Renommer projet
+  const handleRenameProjectStart = (project) => {
+    setRenameProjectTarget(project);
+    setRenameValue(project.name);
+    setTimeout(() => renameInputRef.current?.select(), 50);
+  };
+  const submitRenameProject = async () => {
+    const next = renameValue.trim();
+    if (!next || next === renameProjectTarget?.name) { setRenameProjectTarget(null); return; }
+    try {
+      await renameProject(renameProjectTarget.id, next);
+      setLocalRefresh((n) => n + 1);
+      if (onMutate) onMutate();
+    } catch (err) { console.warn('renameProject failed', err); }
+    setRenameProjectTarget(null);
+  };
+
+  // Supprimer projet
+  const handleDeleteProject = async (project) => {
+    if (projects.length <= 1) {
+      await confirmDialog({
+        title: 'Impossible',
+        message: 'Au moins un projet est requis. Crée un autre projet avant de supprimer celui-ci.',
+        confirmLabel: 'OK',
+        cancelLabel: null,
+      });
+      return;
+    }
+    const nTracks = (project.tracks || []).length;
+    const msg = nTracks === 0
+      ? `Supprimer le projet "${project.name}" ?`
+      : `Supprimer le projet "${project.name}" et ses ${nTracks} titre${nTracks > 1 ? 's' : ''} (avec toutes leurs versions et fichiers audio) ? Cette action est définitive.`;
+    const ok = await confirmDialog({
+      title: 'Supprimer le projet ?',
+      message: msg,
+      confirmLabel: 'Supprimer',
+      cancelLabel: 'Annuler',
+      danger: true,
+    });
+    if (ok !== 'confirm') return;
+    try {
+      const res = await deleteProject(project.id);
+      if (res?.ok === false && res?.reason === 'last-project') {
+        await confirmDialog({
+          title: 'Impossible',
+          message: 'Au moins un projet est requis.',
+          confirmLabel: 'OK',
+          cancelLabel: null,
+        });
+        return;
+      }
+      setLocalRefresh((n) => n + 1);
+      if (onMutate) onMutate();
+    } catch (err) { console.warn('deleteProject failed', err); }
+  };
+
+  // Nouveau projet
+  const handleNewProject = () => {
+    setNewProjectValue('');
+    setNewProjectOpen(true);
+    setTimeout(() => newProjectInputRef.current?.focus(), 50);
+  };
+  const submitNewProject = async () => {
+    const name = newProjectValue.trim();
+    if (!name) return;
+    try {
+      const created = await createProject(name);
+      setNewProjectOpen(false);
+      setNewProjectValue('');
+      setLocalRefresh((n) => n + 1);
+      if (onMutate) onMutate();
+      if (created?.id && onSetCurrentProject) onSetCurrentProject(created.id);
+    } catch (err) { console.warn('createProject failed', err); }
+  };
+
+  // Renommer titre
+  const handleRenameTrackStart = (track) => {
+    setRenameTrackTarget(track);
+    setRenameValue(track.title);
+    setTimeout(() => renameInputRef.current?.select(), 50);
+  };
+  const submitRenameTrack = async () => {
+    const next = renameValue.trim();
+    if (!next || next === renameTrackTarget?.title) { setRenameTrackTarget(null); return; }
+    try {
+      await renameTrack(renameTrackTarget.id, next);
+      setLocalRefresh((n) => n + 1);
+      if (onMutate) onMutate();
+    } catch (err) { console.warn('renameTrack failed', err); }
+    setRenameTrackTarget(null);
+  };
+
+  // Supprimer titre
+  const handleDeleteTrack = async (track) => {
+    const n = (track.versions || []).length;
+    const ok = await confirmDialog({
+      title: 'Supprimer le titre ?',
+      message: `Supprimer "${track.title}" et ses ${n} version${n > 1 ? 's' : ''} ? Cette action est définitive.`,
+      confirmLabel: 'Supprimer',
+      cancelLabel: 'Annuler',
+      danger: true,
+    });
+    if (ok !== 'confirm') return;
+    try {
+      await deleteTrack(track.id);
+      setLocalRefresh((n2) => n2 + 1);
+      if (onMutate) onMutate();
+    } catch (err) { console.warn('deleteTrack failed', err); }
+  };
+
+  const totalProjects = projects.length;
+
+  /* ─── Drag & drop Home ──────────────────────────────── */
+  const [drag, setDrag] = useState(null);
+
+  const handleDropTrackOnTrack = async (sourceTrackId, sourceProjectId, targetTrackId, targetProjectId, position) => {
+    if (sourceTrackId === targetTrackId) return;
+    const targetProject = projects.find(p => p.id === targetProjectId);
+    if (!targetProject) return;
+    const targetOrder = (targetProject.tracks || []).map(t => t.id).filter(id => id !== sourceTrackId);
+    const targetIdx = targetOrder.findIndex(id => id === targetTrackId);
+    if (targetIdx < 0 && sourceProjectId === targetProjectId) return;
+    const insertAt = position === 'before' ? (targetIdx < 0 ? 0 : targetIdx) : (targetIdx < 0 ? targetOrder.length : targetIdx + 1);
+    targetOrder.splice(insertAt, 0, sourceTrackId);
+    try {
+      if (sourceProjectId !== targetProjectId) {
+        await moveTrackToProject(sourceTrackId, targetProjectId);
+        const sourceProject = projects.find(p => p.id === sourceProjectId);
+        if (sourceProject) {
+          const sourceOrder = (sourceProject.tracks || []).map(t => t.id).filter(id => id !== sourceTrackId);
+          if (sourceOrder.length) await reorderTracksInProject(sourceProjectId, sourceOrder);
+        }
+      }
+      await reorderTracksInProject(targetProjectId, targetOrder);
+      setLocalRefresh(n => n + 1);
+      if (onMutate) onMutate();
+    } catch (err) { console.warn('home drop track on track failed', err); }
+  };
+
+  const handleDropTrackOnProject = async (sourceTrackId, sourceProjectId, targetProjectId) => {
+    if (sourceProjectId === targetProjectId) return;
+    try {
+      await moveTrackToProject(sourceTrackId, targetProjectId);
+      const sourceProject = projects.find(p => p.id === sourceProjectId);
+      if (sourceProject) {
+        const sourceOrder = (sourceProject.tracks || []).map(t => t.id).filter(id => id !== sourceTrackId);
+        if (sourceOrder.length) await reorderTracksInProject(sourceProjectId, sourceOrder);
+      }
+      setLocalRefresh(n => n + 1);
+      if (onMutate) onMutate();
+    } catch (err) { console.warn('home drop track on project failed', err); }
+  };
+
   return (
     <div className="welcome-home">
       {/* Header */}
@@ -137,29 +315,35 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
         <div className="wh-greeting">{displayName ? `SALUT ${displayName.toUpperCase()} !` : "SALUT !"}</div>
       </div>
 
-      {/* Raccourcis */}
+      {/* Raccourcis : Nouveau projet + Ajouter une version */}
       <div className="wh-actions">
-        <button className="wh-action" onClick={onNewTrack}>
+        <button className="wh-action" onClick={handleNewProject}>
           <span className="wh-action-icon">+</span>
-          <span>Nouveau titre</span>
+          <span>Nouveau projet</span>
         </button>
-        {totalTracks > 0 && (
-          <div style={{ position: "relative", display: "flex" }}>
-            <button className="wh-action" style={{ flex: 1 }} onClick={() => setPickingTrack(!pickingTrack)}>
+        {allTracks.length > 0 && (
+          <div ref={pickerRef} style={{ position: "relative", display: "flex" }}>
+            <button
+              className="wh-action"
+              style={{ flex: 1 }}
+              onClick={() => setPickingTrack((v) => !v)}
+            >
               <span className="wh-action-icon">↻</span>
               <span>Ajouter une version</span>
             </button>
             {pickingTrack && (
               <div className="wh-track-picker">
                 <div className="wh-picker-label">À quel titre ?</div>
-                {tracks.map((t) => (
+                {allTracks.map((t) => (
                   <div
                     key={t.id}
                     className="wh-picker-item"
-                    onClick={() => { setPickingTrack(false); onAddVersion(t); }}
+                    onClick={() => { setPickingTrack(false); if (onAddVersion) onAddVersion(t); }}
                   >
                     {t.title}
-                    <span className="wh-picker-count">{t.versions?.length || 0} version{(t.versions?.length || 0) > 1 ? "s" : ""}</span>
+                    <span className="wh-picker-count">
+                      {t.versions?.length || 0} version{(t.versions?.length || 0) > 1 ? "s" : ""}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -168,80 +352,120 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
         )}
       </div>
 
-      {/* Liste des titres — playlist */}
-      {totalTracks > 0 && (
+      {/* Liste accordéon des projets */}
+      {totalProjects > 0 && (
         <div className="wh-tracklist">
-          <div className="wh-section-title">Mes <em>titres</em></div>
-          <div className="wh-tracklist-list" ref={listRef} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-            {tracks.map((track, idx) => {
-              const latest = track.versions?.[track.versions.length - 1];
-              const fiche = latest?.analysisResult?.fiche;
-              const hasFiche = !!fiche;
-              const dur = fiche?.duration_seconds;
-              const durStr = dur ? `${Math.floor(dur / 60)}:${String(Math.floor(dur % 60)).padStart(2, '0')}` : null;
-              // Date de la version (champ "date" formaté par storage.js, ex: "14 avr 2026")
-              const dateStr = latest?.date || null;
-              const isThisPlaying = playerState?.trackTitle === track.title && !!playerState?.isPlaying;
-              const isOver = dragOverIdx === idx;
-              const overClass = isOver && dragDir === 'above' ? ' drag-over-above' : isOver && dragDir === 'below' ? ' drag-over-below' : '';
+          <div className="wh-section-title">Mes <em>projets</em></div>
+          <div className="wh-projects">
+            {projects.map((project) => {
+              const isOpen = project.id === currentProjectId;
+              const nTracks = project.tracks?.length || 0;
+              // Couleur du projet : priorité à cover_gradient s'il est défini (>0),
+              // sinon fallback sur un hash stable de l'id projet pour garantir
+              // qu'un projet = une couleur (même si tous valent 0 en base).
+              const gradIdx = project.coverGradient
+                ? project.coverGradient % 6
+                : hashToGradient(project.id || project.name || '');
+              const isProjectPlaying = !!(
+                playerState?.isPlaying &&
+                project.tracks?.some((t) => t.title === playerState.trackTitle)
+              );
 
               return (
                 <div
-                  key={track.id}
-                  className={`wh-track-row${overClass}`}
-                  onDragOver={(e) => handleDragOver(e, idx)}
-                  onDrop={() => handleDrop(idx)}
-                  style={{ opacity: dragIdx === idx ? 0.4 : 1, transition: 'opacity .15s' }}
+                  key={project.id}
+                  className={`wh-acc-item wh-tint-${gradIdx}${isOpen ? ' open' : ''}`}
                 >
-                  {/* Poignée drag */}
-                  <span
-                    className="sb-drag-handle"
-                    draggable
-                    onDragStart={() => handleDragStart(idx)}
-                    onDragEnd={handleDragEnd}
-                    onTouchStart={(e) => handleTouchStart(idx, e)}
-                    onClick={(e) => e.stopPropagation()}
+                  {/* Header projet */}
+                  <div
+                    className="wh-acc-head"
+                    onClick={() => toggleProject(project.id)}
+                    onDragOver={(e) => {
+                      // Seul le drop d'un titre depuis un autre projet est accepté sur le header
+                      if (!drag || drag.type !== 'track') return;
+                      if (drag.sourceProjectId === project.id) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                      e.currentTarget.style.background = 'rgba(245,176,86,.08)';
+                    }}
+                    onDragLeave={(e) => { e.currentTarget.style.background = ''; }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const d = drag;
+                      e.currentTarget.style.background = '';
+                      setDrag(null);
+                      if (!d) return;
+                      if (d.type === 'track' && d.sourceProjectId !== project.id) {
+                        handleDropTrackOnProject(d.trackId, d.sourceProjectId, project.id);
+                      }
+                    }}
                   >
-                    <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
-                      <circle cx="2" cy="2" r="1.2"/><circle cx="6" cy="2" r="1.2"/>
-                      <circle cx="2" cy="7" r="1.2"/><circle cx="6" cy="7" r="1.2"/>
-                      <circle cx="2" cy="12" r="1.2"/><circle cx="6" cy="12" r="1.2"/>
-                    </svg>
-                  </span>
+                    <div className={`wh-acc-cover wh-gradient-${gradIdx}`}>
+                      {/* Play projet — apparaît au hover de la vignette, centré dessus */}
+                      <button
+                        className={`wh-acc-play${isProjectPlaying ? ' playing' : ''}`}
+                        onClick={(e) => handlePlayProject(e, project)}
+                        title={isProjectPlaying ? 'En lecture' : 'Lire le projet'}
+                      >
+                        {isProjectPlaying ? (
+                          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9-5.5z"/></svg>
+                        )}
+                      </button>
+                    </div>
 
-                  {/* Play */}
-                  <button
-                    className={`wh-track-play${isThisPlaying ? ' playing' : ''}`}
-                    onClick={() => handlePlayTrack(track)}
-                    title={isThisPlaying ? 'En lecture' : 'Écouter'}
-                  >
-                    {isThisPlaying ? (
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
-                    ) : (
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9-5.5z"/></svg>
-                    )}
-                  </button>
-
-                  {/* Info */}
-                  <div className="wh-track-info">
-                    <div className="wh-track-title">{track.title}</div>
-                    <div className="wh-track-meta">
-                      {durStr && <>{durStr} · </>}
-                      {track.versions?.length || 1} version{(track.versions?.length || 1) > 1 ? 's' : ''}
+                    <div className="wh-acc-title">
+                      <div className="wh-acc-kicker">Projet</div>
+                      <div className="wh-acc-name">{project.name}</div>
+                      <div className="wh-acc-meta">{metaLine(project)}</div>
+                      {isOpen && (
+                        <div className="wh-head-actions">
+                          <button
+                            className="wh-head-btn primary"
+                            onClick={(e) => { e.stopPropagation(); handleAddTrackToProject(project); }}
+                          >+ Nouveau titre</button>
+                          <button
+                            className="wh-head-btn"
+                            onClick={(e) => { e.stopPropagation(); handleRenameProjectStart(project); }}
+                          >Renommer</button>
+                          <button
+                            className="wh-head-btn danger ghost"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteProject(project); }}
+                          >Supprimer</button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Date à droite, avant le bouton Analyse */}
-                  {dateStr && <span className="wh-track-date">{dateStr}</span>}
-
-                  {/* Voir analyse — CTA visible */}
-                  {hasFiche && (
-                    <button className="wh-track-fiche" onClick={() => handleViewFiche(track)}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                      <span>Analyse</span>
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3.5 2l3.5 3-3.5 3"/></svg>
-                    </button>
-                  )}
+                  {/* Body : liste des titres */}
+                  <div className="wh-acc-body">
+                    {nTracks > 0 ? (
+                      <div className="wh-acc-tracklist">
+                        {project.tracks.map((track) => (
+                          <WhTrackRow
+                            key={track.id}
+                            track={track}
+                            project={project}
+                            playerState={playerState}
+                            onPlay={() => handlePlayTrack(track, project)}
+                            onViewFiche={() => handleViewFiche(track)}
+                            onRename={() => handleRenameTrackStart(track)}
+                            onDelete={() => handleDeleteTrack(track)}
+                            drag={drag}
+                            setDrag={setDrag}
+                            onDropTrackOnTrack={handleDropTrackOnTrack}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="wh-acc-empty">Aucun titre pour l'instant.</div>
+                    )}
+                    <button
+                      className="wh-acc-add-track"
+                      onClick={() => handleAddTrackToProject(project)}
+                    >+ Nouveau titre</button>
+                  </div>
                 </div>
               );
             })}
@@ -250,10 +474,10 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
       )}
 
       {/* Empty state */}
-      {totalTracks === 0 && (
+      {totalProjects === 0 && (
         <div className="wh-empty">
           <img src="/logo-versions.svg" alt="" style={{ height: 60, width: "auto", opacity: 0.3 }} />
-          <div>Importe ton premier titre pour commencer l'aventure.</div>
+          <div>Crée ton premier projet pour commencer l'aventure.</div>
         </div>
       )}
 
@@ -262,7 +486,228 @@ function WelcomeHome({ user, userProfile, onNewTrack, onAddVersion, onSelectVers
         <div className="wh-tip-label">Le saviez-vous</div>
         <div className="wh-tip-text">{tip}</div>
       </div>
+
+      {/* Modale renommer titre */}
+      {renameTrackTarget && (
+        <RenameModal
+          title="Renommer le titre"
+          placeholder="Nom du titre"
+          value={renameValue}
+          originalValue={renameTrackTarget.title}
+          inputRef={renameInputRef}
+          onChange={setRenameValue}
+          onCancel={() => setRenameTrackTarget(null)}
+          onSubmit={submitRenameTrack}
+          confirmLabel="Renommer"
+        />
+      )}
+
+      {/* Modale renommer projet */}
+      {renameProjectTarget && (
+        <RenameModal
+          title="Renommer le projet"
+          placeholder="Nom du projet"
+          value={renameValue}
+          originalValue={renameProjectTarget.name}
+          inputRef={renameInputRef}
+          onChange={setRenameValue}
+          onCancel={() => setRenameProjectTarget(null)}
+          onSubmit={submitRenameProject}
+          confirmLabel="Renommer"
+        />
+      )}
+
+      {/* Modale nouveau projet */}
+      {newProjectOpen && (
+        <RenameModal
+          title="Nouveau projet"
+          placeholder="Nom du projet"
+          value={newProjectValue}
+          originalValue=""
+          inputRef={newProjectInputRef}
+          onChange={setNewProjectValue}
+          onCancel={() => setNewProjectOpen(false)}
+          onSubmit={submitNewProject}
+          confirmLabel="Créer"
+        />
+      )}
     </div>
+  );
+}
+
+/* ─── Ligne titre dans Home (accordéon ouvert) ─────────────────────── */
+function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename, onDelete, drag, setDrag, onDropTrackOnTrack }) {
+  const [hover, setHover] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dropOver, setDropOver] = useState(null);
+  const menuRef = useRef(null);
+  const btnRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const h = (e) => {
+      if (menuRef.current?.contains(e.target) || btnRef.current?.contains(e.target)) return;
+      setMenuOpen(false);
+    };
+    const esc = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('mousedown', h);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', h);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [menuOpen]);
+
+  const latest = track.versions?.[track.versions.length - 1];
+  const fiche = latest?.analysisResult?.fiche;
+  const hasFiche = !!fiche;
+  const dur = fiche?.duration_seconds;
+  const durStr = dur ? `${Math.floor(dur / 60)}:${String(Math.floor(dur % 60)).padStart(2, '0')}` : null;
+  const dateStr = latest?.date || null;
+  const isThisPlaying = playerState?.trackTitle === track.title && !!playerState?.isPlaying;
+  const showDots = hover || menuOpen;
+
+  return (
+    <div
+      className="wh-track-row"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onDragOver={(e) => {
+        if (!drag || drag.type !== 'track') return;
+        if (drag.trackId === track.id) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'move';
+        const rect = e.currentTarget.getBoundingClientRect();
+        const isAbove = (e.clientY - rect.top) < rect.height / 2;
+        setDropOver(isAbove ? 'before' : 'after');
+      }}
+      onDragLeave={() => setDropOver(null)}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const d = drag;
+        const rect = e.currentTarget.getBoundingClientRect();
+        setDropOver(null);
+        if (setDrag) setDrag(null);
+        if (!d || d.type !== 'track' || d.trackId === track.id) return;
+        const isAbove = (e.clientY - rect.top) < rect.height / 2;
+        onDropTrackOnTrack?.(d.trackId, d.sourceProjectId, track.id, project?.id, isAbove ? 'before' : 'after');
+      }}
+      style={{
+        position: 'relative',
+        boxShadow: dropOver === 'before' ? 'inset 0 2px 0 0 #f5b056' : (dropOver === 'after' ? 'inset 0 -2px 0 0 #f5b056' : 'none'),
+        transition: 'box-shadow .1s',
+      }}
+    >
+      {/* Poignée de déplacement titre */}
+      <span
+        className="wh-drag-handle"
+        draggable={true}
+        onClick={(e) => e.stopPropagation()}
+        onDragStart={(e) => {
+          e.stopPropagation();
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('application/x-versions-dnd', 'track');
+          const row = e.currentTarget.closest('.wh-track-row');
+          if (row) e.dataTransfer.setDragImage(row, 10, 10);
+          if (setDrag) setDrag({ type: 'track', trackId: track.id, sourceProjectId: project?.id });
+        }}
+        onDragEnd={() => { if (setDrag) setDrag(null); setDropOver(null); }}
+        title="Glisser pour déplacer le titre"
+        aria-label="Déplacer le titre"
+        style={{ opacity: hover ? 0.55 : 0 }}
+      >
+        <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor" aria-hidden>
+          <circle cx="3" cy="3" r="1.1"/><circle cx="7" cy="3" r="1.1"/>
+          <circle cx="3" cy="7" r="1.1"/><circle cx="7" cy="7" r="1.1"/>
+          <circle cx="3" cy="11" r="1.1"/><circle cx="7" cy="11" r="1.1"/>
+        </svg>
+      </span>
+
+      {/* Play */}
+      <button
+        className={`wh-track-play${isThisPlaying ? ' playing' : ''}`}
+        onClick={onPlay}
+        title={isThisPlaying ? 'En lecture' : 'Écouter'}
+      >
+        {isThisPlaying ? (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9-5.5z"/></svg>
+        )}
+      </button>
+
+      {/* Info */}
+      <div className="wh-track-info">
+        <div className="wh-track-title">{track.title}</div>
+        <div className="wh-track-meta">
+          {durStr && <>{durStr} · </>}
+          {track.versions?.length || 1} version{(track.versions?.length || 1) > 1 ? 's' : ''}
+        </div>
+      </div>
+
+      {/* Date */}
+      {dateStr && <span className="wh-track-date">{dateStr}</span>}
+
+      {/* Voir analyse */}
+      {hasFiche && (
+        <button className="wh-track-fiche" onClick={onViewFiche}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>Analyse</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3.5 2l3.5 3-3.5 3"/></svg>
+        </button>
+      )}
+
+      {/* Menu ⋯ */}
+      {showDots && (
+        <button
+          ref={btnRef}
+          onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
+          title="Options"
+          style={{
+            width: 26, height: 26, borderRadius: 6,
+            background: menuOpen ? 'rgba(245,176,86,.15)' : 'transparent',
+            border: 'none', color: '#c5c5c7', cursor: 'pointer',
+            padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 14, lineHeight: 1, marginLeft: 4,
+          }}
+        >⋯</button>
+      )}
+
+      {menuOpen && (
+        <div
+          ref={menuRef}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 100,
+            minWidth: 180, background: '#141416', border: '1px solid #2a2a2e',
+            borderRadius: 10, padding: 6, boxShadow: '0 12px 32px rgba(0,0,0,.55)',
+          }}
+        >
+          <WhMenuItem label="Renommer" onClick={() => { setMenuOpen(false); onRename(); }} />
+          <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
+          <WhMenuItem label="Supprimer" danger onClick={() => { setMenuOpen(false); onDelete(); }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WhMenuItem({ label, onClick, danger }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'block', width: '100%', textAlign: 'left',
+        padding: '8px 12px', borderRadius: 6, border: 'none',
+        background: 'transparent', cursor: 'pointer',
+        fontFamily: 'Inter, sans-serif', fontSize: 12,
+        color: danger ? '#ef6b6b' : '#c5c5c7',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = danger ? 'rgba(239,107,107,.08)' : 'rgba(245,176,86,.06)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+    >{label}</button>
   );
 }
 
@@ -351,6 +796,9 @@ export default function VersionsApp() {
   const [autoSelectTrackTitle, setAutoSelectTrackTitle] = useState("");
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
   const [homeRefreshKey, setHomeRefreshKey] = useState(0);
+  // Projet courant — synchronise l'accordéon Sidebar ↔ Home, et sert de scope
+  // à la playlist du player. null = aucun projet explicitement ouvert.
+  const [currentProjectId, setCurrentProjectId] = useState(null);
 
   // ── User profile (avatar, prénom…) ──
   const [userProfile, setUserProfile] = useState(null);
@@ -365,16 +813,41 @@ export default function VersionsApp() {
       .catch(() => {});
   }, [user]);
 
+  // ── Onboarding gate : true si user connecté mais sans projet ──
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+
   // ── Preload first track audio on login (kills the 5s first-play delay) ──
+  // Au passage, détecte si l'utilisateur n'a aucun projet → onboarding bloquant.
   useEffect(() => {
-    if (!user) return;
-    loadTracks().then((tracks) => {
-      const ordered = applyTrackOrder(tracks);
-      const first = ordered[0];
-      const latest = first?.versions?.[first.versions.length - 1];
+    if (!user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNeedsOnboarding(false);
+      return;
+    }
+    loadProjects().then((projects) => {
+      if (!projects || projects.length === 0) {
+        setNeedsOnboarding(true);
+        return;
+      }
+      setNeedsOnboarding(false);
+      const firstProject = projects[0];
+      const firstTrack = firstProject?.tracks?.[0];
+      const latest = firstTrack?.versions?.[firstTrack.versions.length - 1];
       if (latest?.storagePath) resolveAudio(latest.storagePath).catch(() => {});
-    });
-  }, [user]);
+      // Mémorise aussi le projet par défaut pour l'accordéon
+      if (firstProject?.id) setCurrentProjectId(firstProject.id);
+    }).catch(() => {});
+  }, [user, sidebarRefreshKey]);
+
+  const handleOnboardingCreate = async (name) => {
+    const created = await createProject(name);
+    if (!created?.id) throw new Error('La création a échoué, réessaye.');
+    setCurrentProjectId(created.id);
+    setNeedsOnboarding(false);
+    // Force la sidebar et la home à recharger leurs projets
+    setSidebarRefreshKey((k) => k + 1);
+    setHomeRefreshKey((k) => k + 1);
+  };
 
   // ── Language ──
   const [lang, setLangState] = useState("fr");
@@ -497,7 +970,9 @@ export default function VersionsApp() {
 
   // ── Handlers ──
   const handleAnalyze = (cfg) => {
-    setConfig(cfg);
+    // Injecte le projet cible (choisi explicitement dans InputScreen ou déduit du contexte)
+    const cfgWithProject = { ...cfg, projectId: cfg.projectId || currentProjectId || null };
+    setConfig(cfgWithProject);
     setAnalysisResult(null);
     savedRef.current = false;
     setScreen("loading");
@@ -544,16 +1019,18 @@ export default function VersionsApp() {
     setAnalysisResult(saved || v.analysisResult || null);
     setScreen("fiche");
   };
-  const handleSidebarAddVersion = (track) => {
-    setPrefillTitle(track.title);
-    setAutoSelectTrackTitle(track.title);
+  const handleSidebarNewTrack = () => {
+    setPrefillTitle("");
+    setAutoSelectTrackTitle("");
     setAnalysisResult(null);
     setConfig(null);
     setScreen("input");
   };
-  const handleSidebarNewTrack = () => {
-    setPrefillTitle("");
-    setAutoSelectTrackTitle("");
+  const handleAddVersionFromPicker = (track) => {
+    // Pré-sélectionne le projet du titre pour que l'upload y atterrisse
+    if (track?.projectId) setCurrentProjectId(track.projectId);
+    setPrefillTitle(track.title);
+    setAutoSelectTrackTitle(track.title);
     setAnalysisResult(null);
     setConfig(null);
     setScreen("input");
@@ -565,20 +1042,21 @@ export default function VersionsApp() {
       case "welcome":
         return (
           <WelcomeHome
-            user={user}
             userProfile={userProfile}
+            currentProjectId={currentProjectId}
+            onSetCurrentProject={setCurrentProjectId}
             onNewTrack={handleSidebarNewTrack}
-            onAddVersion={handleSidebarAddVersion}
+            onAddVersion={handleAddVersionFromPicker}
             onSelectVersion={handleSidebarSelectVersion}
             onPlay={play}
             onToggle={togglePlay}
             playerState={playerState}
             refreshKey={homeRefreshKey}
-            onReorder={() => setSidebarRefreshKey(k => k + 1)}
+            onMutate={() => setSidebarRefreshKey(k => k + 1)}
           />
         );
       case "input":
-        return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialTitle={prefillTitle} />;
+        return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialTitle={prefillTitle} initialProjectId={currentProjectId} lockProject={!!prefillTitle} onRefreshProjects={() => setSidebarRefreshKey(k => k + 1)} />;
       case "loading":
         return <LoadingScreen config={config} onDone={handleLoaded} onBackToInput={handleSidebarNewTrack} />;
       case "fiche":
@@ -589,26 +1067,14 @@ export default function VersionsApp() {
             onSelectVersion={handleSidebarSelectVersion}
             onGoHome={goHome}
             refreshKey={sidebarRefreshKey}
-            onAddVersion={(track) => {
-              setPrefillTitle(track.title);
-              setAutoSelectTrackTitle(track.title);
-              setAnalysisResult(null);
-              setConfig(null);
-              setScreen("input");
-            }}
+            onAddVersion={handleAddVersionFromPicker}
           />
         );
       case "versions":
         return (
           <VersionsScreen
             onViewAnalysis={handleSidebarSelectVersion}
-            onAddVersion={(track) => {
-              setPrefillTitle(track.title);
-              setAutoSelectTrackTitle(track.title);
-              setAnalysisResult(null);
-              setConfig(null);
-              setScreen("input");
-            }}
+            onAddVersion={handleAddVersionFromPicker}
             autoSelectTrackTitle={autoSelectTrackTitle}
             onAutoSelectConsumed={() => setAutoSelectTrackTitle("")}
             onPlay={play}
@@ -620,7 +1086,7 @@ export default function VersionsApp() {
       case "reglages":
         return <ReglagesScreen onSignOut={signOut} onGoHome={goHome} onProfileUpdate={setUserProfile} />;
       default:
-        return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} />;
+        return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialProjectId={currentProjectId} onRefreshProjects={() => setSidebarRefreshKey(k => k + 1)} />;
     }
   };
 
@@ -656,20 +1122,27 @@ export default function VersionsApp() {
       <FontLink />
       <GlobalStyles />
       <MockupStyles />
+      {needsOnboarding && (
+        <OnboardingModal
+          displayName={userProfile?.prenom || null}
+          onCreate={handleOnboardingCreate}
+        />
+      )}
       <div className={showSidebar ? "app" : "dapp"}>
         {/* Desktop Sidebar */}
         {showSidebar && (
           <Sidebar
             currentTrackTitle={config?.title}
             currentVersionName={config?.version}
+            currentProjectId={currentProjectId}
+            onSetCurrentProject={setCurrentProjectId}
             onSelectVersion={handleSidebarSelectVersion}
-            onAddVersion={handleSidebarAddVersion}
             onNewTrack={handleSidebarNewTrack}
             onGoReglages={() => setScreen("reglages")}
             onAskOpen={() => setAskOpen(true)}
             onPlay={play}
             onToggle={togglePlay}
-            onReorder={() => { setHomeRefreshKey(k => k + 1); }}
+            onMutate={() => { setHomeRefreshKey(k => k + 1); }}
             onStop={stopPlay}
             playerState={playerState}
             user={user}

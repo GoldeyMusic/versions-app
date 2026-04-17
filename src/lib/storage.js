@@ -22,7 +22,7 @@ export async function loadTracks() {
 
   const { data: tracks, error } = await supabase
     .from('tracks')
-    .select('id, title, created_at, versions(id, name, date, bpm, key, lufs, is_main, analysis_result, storage_path, created_at)')
+    .select('id, title, project_id, created_at, versions(id, name, date, bpm, key, lufs, is_main, analysis_result, storage_path, created_at)')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -34,6 +34,7 @@ export async function loadTracks() {
   return (tracks || []).map(t => ({
     id: t.id,
     title: t.title,
+    projectId: t.project_id,
     createdAt: t.created_at,
     versions: (t.versions || [])
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
@@ -65,18 +66,40 @@ export async function saveAnalysis(config, analysisResult, storagePath = null) {
   const title = (config?.title || analysisResult?.meta?.title || 'Sans titre').trim();
   const versionName = (config?.version || 'v1').trim();
 
-  // Find existing track (case-insensitive)
+  // Resolve target project : explicit via config, or user's default
+  const projectId = config?.projectId || await getOrCreateDefaultProjectId(user.id);
+  if (!projectId) {
+    console.warn('[storage] saveAnalysis: could not resolve a project');
+    return null;
+  }
+
+  // Find existing track in the same project (case-insensitive title)
   const { data: existingTracks } = await supabase
     .from('tracks')
     .select('id, title')
+    .eq('project_id', projectId)
     .ilike('title', title);
 
   let track = existingTracks?.find(t => t.title.toLowerCase() === title.toLowerCase());
 
   if (!track) {
+    // Append at the end of the project
+    const { data: last } = await supabase
+      .from('tracks')
+      .select('position_in_project')
+      .eq('project_id', projectId)
+      .order('position_in_project', { ascending: false })
+      .limit(1);
+    const nextPos = (last?.[0]?.position_in_project ?? -1) + 1;
+
     const { data: newTrack, error: insertErr } = await supabase
       .from('tracks')
-      .insert({ user_id: user.id, title })
+      .insert({
+        user_id: user.id,
+        title,
+        project_id: projectId,
+        position_in_project: nextPos,
+      })
       .select()
       .single();
     if (insertErr) {
@@ -322,4 +345,240 @@ export async function getOrCreateComparison(trackId, versionA, versionB) {
   }).then(({ error }) => { if (error) console.warn('[compare] cache save failed:', error.message); });
 
   return result;
+}
+
+// =============================================================
+// PROJECTS (Phase 2)
+// =============================================================
+
+/**
+ * Return the user's default project id (first by position, then by created_at).
+ * If the user has zero projects, create "Mon premier projet" and return its id.
+ */
+async function getOrCreateDefaultProjectId(userId) {
+  const { data: existing } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('user_id', userId)
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true })
+    .limit(1);
+  if (existing?.[0]) return existing[0].id;
+
+  const { data: created, error } = await supabase
+    .from('projects')
+    .insert({ user_id: userId, name: 'Mon premier projet', cover_gradient: 0, position: 0 })
+    .select('id')
+    .single();
+  if (error) {
+    console.warn('[storage] getOrCreateDefaultProjectId error:', error.message);
+    return null;
+  }
+  return created.id;
+}
+
+/** Load all projects for the current user, with nested tracks and versions. */
+export async function loadProjects() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('projects')
+    .select(`
+      id,
+      name,
+      cover_gradient,
+      position,
+      created_at,
+      tracks(
+        id,
+        title,
+        created_at,
+        position_in_project,
+        versions(id, name, date, bpm, key, lufs, is_main, analysis_result, storage_path, created_at)
+      )
+    `)
+    .eq('user_id', user.id)
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.warn('[storage] loadProjects error:', error.message);
+    return [];
+  }
+
+  return (data || []).map(p => ({
+    id: p.id,
+    name: p.name,
+    coverGradient: p.cover_gradient,
+    position: p.position,
+    createdAt: p.created_at,
+    tracks: (p.tracks || [])
+      .slice()
+      .sort((a, b) => (a.position_in_project ?? 0) - (b.position_in_project ?? 0))
+      .map(t => ({
+        id: t.id,
+        title: t.title,
+        projectId: p.id,
+        createdAt: t.created_at,
+        positionInProject: t.position_in_project,
+        versions: (t.versions || [])
+          .slice()
+          .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+          .map(v => ({
+            id: v.id,
+            name: v.name,
+            date: v.date,
+            bpm: v.bpm,
+            key: v.key,
+            lufs: v.lufs,
+            main: v.is_main,
+            analysisResult: v.analysis_result,
+            storagePath: v.storage_path,
+          })),
+      })),
+  }));
+}
+
+/** Create a new project. Appends at the end of the user's project list. */
+export async function createProject(name, coverGradient = 0) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: last } = await supabase
+    .from('projects')
+    .select('position')
+    .eq('user_id', user.id)
+    .order('position', { ascending: false })
+    .limit(1);
+  const nextPos = (last?.[0]?.position ?? -1) + 1;
+
+  const { data: project, error } = await supabase
+    .from('projects')
+    .insert({
+      user_id: user.id,
+      name: (name || '').trim() || 'Nouveau projet',
+      cover_gradient: coverGradient,
+      position: nextPos,
+    })
+    .select()
+    .single();
+  if (error) {
+    console.warn('[storage] createProject error:', error.message);
+    return null;
+  }
+  return {
+    id: project.id,
+    name: project.name,
+    coverGradient: project.cover_gradient,
+    position: project.position,
+    createdAt: project.created_at,
+    tracks: [],
+  };
+}
+
+/** Rename a project. Returns true on success. */
+export async function renameProject(projectId, newName) {
+  const clean = (newName || '').trim();
+  if (!clean) return false;
+  const { error } = await supabase
+    .from('projects')
+    .update({ name: clean })
+    .eq('id', projectId);
+  if (error) console.warn('[storage] renameProject error:', error.message);
+  return !error;
+}
+
+/**
+ * Delete a project — removes audio files from Storage, then the row
+ * (DB cascade deletes tracks + versions).
+ * Refuses to delete the user's last remaining project.
+ * Returns { ok, reason? } so the UI can react to the "last project" case.
+ */
+export async function deleteProject(projectId) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, reason: 'no-user' };
+
+  const { count } = await supabase
+    .from('projects')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+  if ((count ?? 0) <= 1) {
+    return { ok: false, reason: 'last-project' };
+  }
+
+  const { data: tracks } = await supabase
+    .from('tracks')
+    .select('id, versions(storage_path)')
+    .eq('project_id', projectId);
+
+  const storagePaths = (tracks || [])
+    .flatMap(t => (t.versions || []).map(v => v.storage_path))
+    .filter(Boolean);
+
+  if (storagePaths.length > 0) {
+    await supabase.storage
+      .from('audio')
+      .remove(storagePaths)
+      .catch(e => console.warn('[storage] audio remove error:', e.message));
+  }
+
+  const { error } = await supabase
+    .from('projects')
+    .delete()
+    .eq('id', projectId);
+  if (error) {
+    console.warn('[storage] deleteProject error:', error.message);
+    return { ok: false, reason: error.message };
+  }
+  return { ok: true };
+}
+
+/** Persist the order of projects. `orderedIds` is the new [id, id, ...] order. */
+export async function reorderProjects(orderedIds) {
+  const updates = orderedIds.map((id, idx) =>
+    supabase.from('projects').update({ position: idx }).eq('id', id)
+  );
+  const results = await Promise.all(updates);
+  const firstErr = results.find(r => r.error)?.error;
+  if (firstErr) console.warn('[storage] reorderProjects error:', firstErr.message);
+  return !firstErr;
+}
+
+/**
+ * Move a track to another project. Appends at the end of the target project
+ * unless `newPosition` (integer) is specified.
+ */
+export async function moveTrackToProject(trackId, projectId, newPosition = null) {
+  let pos = newPosition;
+  if (pos == null) {
+    const { data: last } = await supabase
+      .from('tracks')
+      .select('position_in_project')
+      .eq('project_id', projectId)
+      .order('position_in_project', { ascending: false })
+      .limit(1);
+    pos = (last?.[0]?.position_in_project ?? -1) + 1;
+  }
+  const { error } = await supabase
+    .from('tracks')
+    .update({ project_id: projectId, position_in_project: pos })
+    .eq('id', trackId);
+  if (error) console.warn('[storage] moveTrackToProject error:', error.message);
+  return !error;
+}
+
+/** Persist the order of tracks within a project. */
+export async function reorderTracksInProject(projectId, orderedTrackIds) {
+  const updates = orderedTrackIds.map((id, idx) =>
+    supabase
+      .from('tracks')
+      .update({ position_in_project: idx })
+      .eq('id', id)
+      .eq('project_id', projectId)
+  );
+  const results = await Promise.all(updates);
+  const firstErr = results.find(r => r.error)?.error;
+  if (firstErr) console.warn('[storage] reorderTracksInProject error:', firstErr.message);
+  return !firstErr;
 }
