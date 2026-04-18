@@ -98,17 +98,29 @@ function HeroWaveform({ storagePath, isActive }) {
     };
   }, [storagePath]);
 
-  // Sync manuel du curseur : raf indépendant du timer interne de WaveSurfer.
-  // Deux instances WS qui partagent le même <audio> ne voient pas toujours
-  // leur timer raf interne tourner en parallèle — on force la progression ici.
+  // Sync manuel du curseur : on manipule directement le shadow DOM de WaveSurfer
+  // (contourne renderer.renderProgress qui peut être minifié/indisponible en prod).
+  // Coût : ~3 writes DOM par frame, négligeable.
   useEffect(() => {
     const tick = () => {
+      const hero = containerRef.current;
+      const holder = hero?.firstElementChild;
+      const shadow = holder?.shadowRoot;
       const ws = wsRef.current;
-      const audio = audioRef.current;
-      if (ws && ws.renderer && audio && audio.duration) {
-        try {
-          ws.renderer.renderProgress(audio.currentTime / audio.duration, !audio.paused);
-        } catch { /* noop */ }
+      const audio = (ws && typeof ws.getMediaElement === 'function')
+        ? ws.getMediaElement()
+        : audioRef.current;
+      if (shadow && audio && audio.duration) {
+        const ratio = Math.max(0, Math.min(1, audio.currentTime / audio.duration));
+        const pct = ratio * 100;
+        const cursor = shadow.querySelector('.cursor');
+        const progress = shadow.querySelector('.progress');
+        const canvases = shadow.querySelector('.canvases');
+        if (cursor) cursor.style.left = `${pct}%`;
+        if (progress) progress.style.width = `${pct}%`;
+        if (canvases) {
+          canvases.style.clipPath = `polygon(${pct}% 0%, 100% 0%, 100% 100%, ${pct}% 100%)`;
+        }
       }
       rafRef.current = requestAnimationFrame(tick);
     };
