@@ -360,6 +360,16 @@ function HeroWaveform({ storagePath, isActive }) {
 
 function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onOpenFiche, onPlay, onToggle, playerState, refreshKey, onMutate }) {
   const [projects, setProjects] = useState([]);
+  // Gate le rendu du bon branchement (populated vs onboarding). Sans ce flag,
+  // au premier render `projects` est [] (default useState) → on affiche la
+  // page d'onboarding le temps que loadProjects résolve, d'où le flash.
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
+  // Hint optimiste basé sur la session précédente : si on sait que l'user
+  // a déjà du contenu, on rend immédiatement la home remplie (la liste des
+  // projets se peuplera dès que loadProjects répond). Évite le flash.
+  const [optimisticHasContent] = useState(() => {
+    try { return localStorage.getItem('versions_known_has_content') === '1'; } catch { return false; }
+  });
   // Rotation des conseils : un tip distinct à chaque ouverture, sans répétition consécutive
   const [tip] = useState(() => pickTip(SAVIEZ_VOUS_TIPS, 'versions_tip_saviez'));
   const [prochainPasTip] = useState(() => pickTip(PROCHAIN_PAS_TIPS, 'versions_tip_prochain'));
@@ -389,7 +399,16 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   useEffect(() => {
     let alive = true;
-    loadProjects().then((p) => { if (alive) setProjects(p || []); });
+    loadProjects().then((p) => {
+      if (!alive) return;
+      const list = p || [];
+      setProjects(list);
+      setProjectsLoaded(true);
+      try {
+        const hasAny = list.some((pr) => (pr.tracks?.length || 0) > 0);
+        localStorage.setItem('versions_known_has_content', hasAny ? '1' : '0');
+      } catch { /* ignore */ }
+    });
     return () => { alive = false; };
   }, [refreshKey, localRefresh]);
 
@@ -1249,7 +1268,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           {mobileEmpty}
           {tipBlock}
         </>
-      ) : hasContent ? (
+      ) : (hasContent || (!projectsLoaded && optimisticHasContent)) ? (
         <>
           {desktopHero}
           {desktopStats}
@@ -1262,7 +1281,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
             </div>
           </div>
         </>
-      ) : (
+      ) : projectsLoaded ? (
         <>
           {desktopOnboarding}
           <div className="wh-cols">
@@ -1270,7 +1289,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
             {editorialSidebar}
           </div>
         </>
-      )}
+      ) : null /* chargement initial sans hint — on ne montre rien plutôt que flasher l'écran d'onboarding */}
 
       {modalsSlot}
     </div>
