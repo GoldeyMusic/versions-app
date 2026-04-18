@@ -811,7 +811,7 @@ export default function MockupStyles() {
   .wh-tagline-hero {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 14px; text-align: center;
-    padding: 48px 20px 36px;
+    padding: 96px 20px 84px;
   }
   .wh-tagline-salut {
     font-family: var(--mono); font-size: 11px; letter-spacing: 3px;

@@ -1130,7 +1130,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       {/* Header */}
       {!isMobile ? (
         <div className="wh-tagline-hero">
-          <div className="wh-tagline-text">{homeTagline}</div>
+          <div className="wh-tagline-text">« {homeTagline} »</div>
         </div>
       ) : (
         <div className="wh-header">
