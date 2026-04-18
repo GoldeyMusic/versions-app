@@ -838,7 +838,8 @@ export default function MockupStyles() {
     text-transform: uppercase; color: var(--amber);
   }
   .wh-hero-title {
-    font-family: var(--display); font-size: 40px; letter-spacing: 1px; line-height: 1;
+    font-family: var(--serif); font-size: 38px; font-weight: 400;
+    line-height: 1.1; letter-spacing: 0.3px;
     margin: 4px 0 6px; color: var(--text);
   }
   .wh-hero-meta {
@@ -857,7 +858,7 @@ export default function MockupStyles() {
   }
   .wh-hero-score { display: flex; align-items: baseline; gap: 8px; }
   .wh-hero-score .num {
-    font-family: var(--display); font-size: 42px; letter-spacing: 1px;
+    font-family: var(--serif); font-size: 44px; font-weight: 400;
     color: var(--amber); line-height: 1;
   }
   .wh-hero-score .lbl {
@@ -891,7 +892,7 @@ export default function MockupStyles() {
     text-transform: uppercase; color: var(--muted);
   }
   .wh-stat-value {
-    font-family: var(--display); font-size: 32px; letter-spacing: 1px;
+    font-family: var(--serif); font-size: 34px; font-weight: 400;
     margin-top: 8px; line-height: 1; color: var(--text);
   }
   .wh-stat-hint {
