@@ -334,10 +334,6 @@ export default function Sidebar({
         </div>
       </div>
 
-      <div className="footer">
-        <button onClick={onGoReglages}>⚙ Réglages</button>
-      </div>
-
       {/* Modale renommer titre */}
       {renameTrackTarget && (
         <RenameModal
