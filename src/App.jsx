@@ -49,6 +49,11 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const [localRefresh, setLocalRefresh] = useState(0);
   const [pickingTrack, setPickingTrack] = useState(false);
   const pickerRef = useRef(null);
+  const [pickingProject, setPickingProject] = useState(false);
+  const projectPickerRef = useRef(null);
+  // true si l'utilisateur a cliqué "+ Nouveau projet" depuis le picker "Nouveau titre"
+  // → après création on enchaîne directement sur la saisie du titre.
+  const pendingNewTrackRef = useRef(false);
 
   // Modales
   const [renameProjectTarget, setRenameProjectTarget] = useState(null);
@@ -79,6 +84,21 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       document.removeEventListener('keydown', onEsc);
     };
   }, [pickingTrack]);
+
+  // Même logique pour le picker "Nouveau titre → dans quel projet ?"
+  useEffect(() => {
+    if (!pickingProject) return;
+    const onDown = (e) => {
+      if (projectPickerRef.current && !projectPickerRef.current.contains(e.target)) setPickingProject(false);
+    };
+    const onEsc = (e) => { if (e.key === 'Escape') setPickingProject(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [pickingProject]);
 
   // Liste à plat de tous les titres (pour le picker "À quel titre ?")
   const allTracks = projects.flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectName: p.name })));
@@ -223,6 +243,12 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       setLocalRefresh((n) => n + 1);
       if (onMutate) onMutate();
       if (created?.id && onSetCurrentProject) onSetCurrentProject(created.id);
+      // Si l'utilisateur venait du bouton "Nouveau titre", on enchaîne
+      // directement sur la saisie du titre dans ce projet fraîchement créé.
+      if (pendingNewTrackRef.current) {
+        pendingNewTrackRef.current = false;
+        if (onNewTrack) onNewTrack();
+      }
     } catch (err) { console.warn('createProject failed', err); }
   };
 
@@ -311,12 +337,62 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         <div className="wh-greeting">{displayName ? `SALUT ${displayName.toUpperCase()} !` : "SALUT !"}</div>
       </div>
 
-      {/* Raccourcis : Nouveau projet + Ajouter une version */}
+      {/* Raccourcis : Nouveau projet + Nouveau titre + Ajouter une version */}
       <div className="wh-actions">
         <button className="wh-action" onClick={handleNewProject}>
           <span className="wh-action-icon">+</span>
           <span>Nouveau projet</span>
         </button>
+        <div ref={projectPickerRef} style={{ position: "relative", display: "flex" }}>
+          <button
+            className="wh-action"
+            style={{ flex: 1 }}
+            onClick={() => {
+              // Pas encore de projet → créer d'abord, puis chaîner sur le titre
+              if (totalProjects === 0) {
+                pendingNewTrackRef.current = true;
+                handleNewProject();
+                return;
+              }
+              setPickingProject((v) => !v);
+            }}
+          >
+            <span className="wh-action-icon">+</span>
+            <span>Nouveau titre</span>
+          </button>
+          {pickingProject && (
+            <div className="wh-track-picker">
+              <div className="wh-picker-label">Dans quel projet ?</div>
+              {projects.map((p) => (
+                <div
+                  key={p.id}
+                  className="wh-picker-item"
+                  onClick={() => {
+                    setPickingProject(false);
+                    if (onSetCurrentProject) onSetCurrentProject(p.id);
+                    if (onNewTrack) onNewTrack();
+                  }}
+                >
+                  {p.name}
+                  <span className="wh-picker-count">
+                    {metaLine(p)}
+                  </span>
+                </div>
+              ))}
+              <div
+                className="wh-picker-item wh-picker-create"
+                onClick={() => {
+                  setPickingProject(false);
+                  pendingNewTrackRef.current = true;
+                  handleNewProject();
+                }}
+              >
+                <span className="wh-action-icon">+</span>
+                <span>Nouveau projet</span>
+              </div>
+            </div>
+          )}
+        </div>
         {allTracks.length > 0 && (
           <div ref={pickerRef} style={{ position: "relative", display: "flex" }}>
             <button

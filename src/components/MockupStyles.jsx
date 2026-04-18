@@ -889,6 +889,16 @@ export default function MockupStyles() {
   .wh-picker-count {
     font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 0.5px;
   }
+  .wh-picker-create {
+    justify-content: flex-start; gap: 8px;
+    margin-top: 4px; padding-top: 12px;
+    border-top: 1px solid var(--border); border-radius: 0 0 8px 8px;
+    color: var(--text);
+  }
+  .wh-picker-create .wh-action-icon {
+    font-size: 14px; line-height: 1; color: var(--amber); font-weight: 500;
+  }
+  .wh-picker-create:hover { color: var(--amber); }
 
   /* ── Input Screen ── */
   .input-screen {
