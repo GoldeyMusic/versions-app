@@ -52,6 +52,8 @@ const HOME_TIPS = [
 function HeroWaveform({ storagePath, isActive }) {
   const containerRef = useRef(null);
   const wsRef = useRef(null);
+  const audioRef = useRef(null);
+  const rafRef = useRef(null);
   const lastPathRef = useRef(null);
 
   useEffect(() => {
@@ -84,6 +86,7 @@ function HeroWaveform({ storagePath, isActive }) {
           media: audio,
         });
         wsRef.current = ws;
+        audioRef.current = audio;
         lastPathRef.current = storagePath;
       } catch (err) {
         console.warn('[hero wave] load error:', err?.message || err);
@@ -95,6 +98,27 @@ function HeroWaveform({ storagePath, isActive }) {
     };
   }, [storagePath]);
 
+  // Sync manuel du curseur : raf indépendant du timer interne de WaveSurfer.
+  // Deux instances WS qui partagent le même <audio> ne voient pas toujours
+  // leur timer raf interne tourner en parallèle — on force la progression ici.
+  useEffect(() => {
+    const tick = () => {
+      const ws = wsRef.current;
+      const audio = audioRef.current;
+      if (ws && ws.renderer && audio && audio.duration) {
+        try {
+          ws.renderer.renderProgress(audio.currentTime / audio.duration, !audio.paused);
+        } catch { /* noop */ }
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+  }, []);
+
   // Nettoie l'instance quand le composant disparaît (changement d'écran)
   useEffect(() => {
     return () => {
@@ -103,6 +127,7 @@ function HeroWaveform({ storagePath, isActive }) {
         wsRef.current = null;
         lastPathRef.current = null;
       }
+      audioRef.current = null;
     };
   }, []);
 
