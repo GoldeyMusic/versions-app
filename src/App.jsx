@@ -1091,6 +1091,7 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
       className="wh-track-row"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onClick={hasFiche ? onViewFiche : undefined}
       onDragOver={(e) => {
         if (!drag || drag.type !== 'track') return;
         if (drag.trackId === track.id) return;
@@ -1115,6 +1116,7 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
       }}
       style={{
         position: 'relative',
+        cursor: hasFiche ? 'pointer' : 'default',
         boxShadow: dropOver === 'before' ? 'inset 0 2px 0 0 #f5b056' : (dropOver === 'after' ? 'inset 0 -2px 0 0 #f5b056' : 'none'),
         transition: 'box-shadow .1s',
       }}
@@ -1147,7 +1149,7 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
       {/* Play */}
       <button
         className={`wh-track-play${isThisPlaying ? ' playing' : ''}`}
-        onClick={onPlay}
+        onClick={(e) => { e.stopPropagation(); onPlay?.(e); }}
         title={isThisPlaying ? 'En lecture' : 'Écouter'}
       >
         {isThisPlaying ? (
@@ -1171,7 +1173,7 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
 
       {/* Voir analyse */}
       {hasFiche && (
-        <button className="wh-track-fiche" onClick={onViewFiche}>
+        <button className="wh-track-fiche" onClick={(e) => { e.stopPropagation(); onViewFiche?.(e); }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           <span>Analyse</span>
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3.5 2l3.5 3-3.5 3"/></svg>
