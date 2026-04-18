@@ -45,24 +45,25 @@ export default function MockupStyles() {
     display: flex; flex-direction: column; gap: 18px;
     position: sticky; top: 0; height: 100vh; overflow-y: auto;
   }
-  .brand { display: flex; align-items: center; gap: 10px; font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 3px; color: var(--text); }
+  .brand { display: flex; align-items: center; gap: 12px; font-family: 'Bebas Neue', sans-serif; font-size: 34px; letter-spacing: 3px; color: var(--text); line-height: 1; }
   .brand .accent { color: var(--amber); font-style: normal; }
   .user-pill {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 10px;
-    border-radius: 10px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 14px;
+    border-radius: 12px;
     background: var(--s1);
     border: 1px solid var(--border);
     cursor: pointer;
   }
   .user-pill .avatar {
-    width: 26px; height: 26px; border-radius: 50%;
+    width: 40px; height: 40px; border-radius: 50%;
     background: linear-gradient(135deg, var(--amber), #e88855);
     display: flex; align-items: center; justify-content: center;
-    color: #000; font-family: var(--mono); font-weight: 600; font-size: 12px;
+    color: #000; font-family: var(--mono); font-weight: 600; font-size: 16px;
+    flex-shrink: 0;
   }
-  .user-pill .who { font-size: 12px; color: var(--text); font-weight: 500; }
-  .user-pill .plan { font-family: var(--mono); font-size: 9px; color: var(--muted); margin-top: 1px; }
+  .user-pill .who { font-size: 14px; color: var(--text); font-weight: 500; }
+  .user-pill .plan { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
 
   .new-track {
     padding: 9px 12px; border-radius: 8px;
