@@ -846,12 +846,18 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.5px;
   }
   .wh-hero-wave {
-    height: 48px; display: flex; align-items: center; gap: 3px;
-    margin: 8px 0;
+    width: 100%; height: 56px; margin: 8px 0;
+    cursor: pointer; overflow: hidden;
   }
-  .wh-hero-wave span {
-    display: inline-block; width: 3px; background: var(--amber);
-    border-radius: 2px; flex-shrink: 0;
+  .wh-hero-wave-empty {
+    background:
+      repeating-linear-gradient(
+        90deg,
+        rgba(255,255,255,0.06) 0 2px,
+        transparent 2px 5px
+      );
+    border-radius: 3px;
+    cursor: default;
   }
   .wh-hero-bottom {
     display: flex; justify-content: space-between; align-items: center; gap: 16px;

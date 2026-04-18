@@ -8,6 +8,7 @@ import GlobalStyles from "./components/GlobalStyles";
 import MockupStyles from "./components/MockupStyles";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
+import WaveSurfer from 'wavesurfer.js';
 import BottomPlayer, { resolveAudio } from "./components/BottomPlayer";
 import AskModal from "./components/AskModal";
 import Sidebar from "./components/Sidebar";
@@ -42,6 +43,78 @@ const HOME_TIPS = [
   "Le silence entre les sessions est aussi important que le travail lui-même.",
   "Écouter à faible volume est le meilleur test : si le mix fonctionne bas, il fonctionnera fort.",
 ];
+
+/* ── Hero waveform ────────────────────────────────────────
+   WaveSurfer attachée au même HTMLAudioElement (audioPool) que le
+   BottomPlayer : play/pause/seek sont synchrones entre les deux vues,
+   sans double décodage coûteux puisque WaveSurfer partage le media.
+*/
+function HeroWaveform({ storagePath, isActive }) {
+  const containerRef = useRef(null);
+  const wsRef = useRef(null);
+  const lastPathRef = useRef(null);
+
+  useEffect(() => {
+    if (!storagePath || !containerRef.current) return;
+    if (lastPathRef.current === storagePath && wsRef.current) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const audio = await resolveAudio(storagePath);
+        if (cancelled || !containerRef.current) return;
+
+        if (wsRef.current) {
+          try { wsRef.current.destroy(); } catch { /* noop */ }
+          wsRef.current = null;
+        }
+
+        const ws = WaveSurfer.create({
+          container: containerRef.current,
+          waveColor: 'rgba(255,255,255,0.18)',
+          progressColor: '#f5b056',
+          cursorColor: 'rgba(245,176,86,0.85)',
+          cursorWidth: 1,
+          barWidth: 2,
+          barGap: 2,
+          barRadius: 2,
+          height: 56,
+          normalize: true,
+          interact: true,
+          media: audio,
+        });
+        wsRef.current = ws;
+        lastPathRef.current = storagePath;
+      } catch (err) {
+        console.warn('[hero wave] load error:', err?.message || err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [storagePath]);
+
+  // Nettoie l'instance quand le composant disparaît (changement d'écran)
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        try { wsRef.current.destroy(); } catch { /* noop */ }
+        wsRef.current = null;
+        lastPathRef.current = null;
+      }
+    };
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="wh-hero-wave"
+      style={{ opacity: isActive ? 1 : 0.75 }}
+      aria-label="Forme d'onde du titre"
+    />
+  );
+}
 
 function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onPlay, onToggle, playerState, refreshKey, onMutate }) {
   const [projects, setProjects] = useState([]);
@@ -704,17 +777,14 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
             {heroLatestVersion?.date ? ` · ${heroLatestVersion.date}` : ''}
           </div>
         </div>
-        <div className="wh-hero-wave" aria-hidden>
-          {Array.from({ length: 40 }, (_, i) => (
-            <span
-              key={i}
-              style={{
-                height: `${22 + ((i * 7 + 11) % 70)}%`,
-                opacity: 0.35 + (((i * 13) % 55) / 100),
-              }}
-            />
-          ))}
-        </div>
+        {heroLatestVersion?.storagePath ? (
+          <HeroWaveform
+            storagePath={heroLatestVersion.storagePath}
+            isActive={heroIsPlaying}
+          />
+        ) : (
+          <div className="wh-hero-wave wh-hero-wave-empty" aria-hidden />
+        )}
         <div className="wh-hero-bottom">
           {typeof heroScore === 'number' ? (
             <div className="wh-hero-score">
