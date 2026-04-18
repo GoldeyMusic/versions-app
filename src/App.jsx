@@ -94,6 +94,32 @@ const POURQUOI_VERSIONS_TIPS = [
   { title: "Garder l'historique", body: "Tes versions restent rangées par projet et datées. Plus besoin de chercher 'quelle est la dernière bonne' dans un dossier." },
 ];
 
+const HOME_TAGLINES = [
+  "L'assistant studio qui suit tes mix.",
+  "La meilleure version de ton mix commence ici.",
+  "Un avis extérieur disponible à toute heure.",
+  "Ton oreille, mais reposée.",
+  "Le regard neuf que ton mix attend.",
+  "Des heures de recul, en quelques secondes.",
+  "Une écoute attentive, sans jugement.",
+  "La patience d'un studio, la rapidité d'un clic.",
+  "Pour que tes choix ne reposent plus sur la fatigue.",
+  "Un second avis, aussi juste qu'une nuit de sommeil.",
+  "Tes versions, lues à froid.",
+  "L'assistant qui ne se lasse jamais de ton mix.",
+  "Parce que le meilleur mix est celui qu'on a comparé.",
+  "Ton copilote quand tu ne sais plus si tu avances.",
+  "Le point de repère qui manque à ta session.",
+  "Pour sortir de la boucle V2, V3, V4 sans jamais trancher.",
+  "Une écoute professionnelle, sans louer de studio.",
+  "Écouter mieux, pas plus longtemps.",
+  "Le second souffle de ton mix.",
+  "Chaque version mérite une écoute neuve.",
+  "Le recul que l'heure tardive t'enlève.",
+  "Quand tes oreilles saturent, l'analyse, elle, reste fraîche.",
+  "Avance sur ton mix sans tourner en rond.",
+];
+
 const CONSEIL_TIPS = [
   { title: "Commence simple", body: "Pas besoin d'un master commercial — même un bounce rapide depuis Logic ou Ableton suffit pour un premier tour. Tu peux aussi tester sur une référence que tu aimes pour calibrer ton oreille." },
   { title: "Trois versions suffisent", body: "Tu n'as pas besoin de 10 versions pour voir le progrès. Une V1 (brute), une V2 (retravaillée), une V3 (mix presque final) suffisent pour lire l'évolution." },
@@ -238,6 +264,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const [conseilTip] = useState(() => pickTip(CONSEIL_TIPS, 'versions_tip_conseil'));
   const [progressionNoScoreTip] = useState(() => pickTip(PROGRESSION_TIPS_NO_SCORE, 'versions_tip_progression_noscore'));
   const [progressionWithScoreTip] = useState(() => pickTip(PROGRESSION_TIPS_WITH_SCORE, 'versions_tip_progression_score'));
+  const [homeTagline] = useState(() => pickTip(HOME_TAGLINES, 'versions_tip_tagline'));
   const [localRefresh, setLocalRefresh] = useState(0);
   const [pickingTrack, setPickingTrack] = useState(false);
   const pickerRef = useRef(null);
@@ -1101,9 +1128,18 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   return (
     <div className={`welcome-home${!isMobile ? ' wh-desktop' : ''}`}>
       {/* Header */}
-      <div className="wh-header">
-        <div className="wh-greeting">{displayName ? `SALUT ${displayName.toUpperCase()} !` : "SALUT !"}</div>
-      </div>
+      {!isMobile ? (
+        <div className="wh-tagline-hero">
+          <div className="wh-tagline-salut">
+            {displayName ? `Salut ${displayName}` : 'Bienvenue'}
+          </div>
+          <div className="wh-tagline-text">{homeTagline}</div>
+        </div>
+      ) : (
+        <div className="wh-header">
+          <div className="wh-greeting">{displayName ? `SALUT ${displayName.toUpperCase()} !` : "SALUT !"}</div>
+        </div>
+      )}
 
       {isMobile ? (
         <>

@@ -804,6 +804,25 @@ export default function MockupStyles() {
   .wh-desktop .wh-tracklist { max-width: none; margin: 0; }
   .wh-desktop .wh-section-title { font-size: 22px; margin-bottom: 14px; }
 
+  /* ── Tagline hero (desktop only) ─────────────────────────
+     Grande baseline éditoriale en haut de la home. Tourne à
+     chaque ouverture via pickTip() / HOME_TAGLINES.
+  */
+  .wh-tagline-hero {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; text-align: center;
+    padding: 48px 20px 36px;
+  }
+  .wh-tagline-salut {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 3px;
+    color: var(--amber); text-transform: uppercase;
+  }
+  .wh-tagline-text {
+    font-family: var(--serif); font-style: italic; font-size: 34px;
+    line-height: 1.25; color: var(--text); max-width: 760px;
+    font-weight: 400;
+  }
+
   /* ── Hero "Reprends où tu étais" ── */
   .wh-hero {
     display: grid; grid-template-columns: 280px 1fr; gap: 22px; align-items: stretch;
