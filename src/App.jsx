@@ -1417,6 +1417,16 @@ export default function VersionsApp() {
   const isHashSyncRef = useRef(false);
   const routeInitRef = useRef(false);
   const prevScreenRef = useRef(null);
+  const scrollContentRef = useRef(null);
+
+  // À chaque changement d'écran, on remonte tout en haut du container de contenu
+  // (sinon on garde la position de scroll de l'écran précédent — gênant quand on
+  // revient sur la home alors qu'on avait scrollé dans une fiche).
+  useEffect(() => {
+    if (scrollContentRef.current) {
+      scrollContentRef.current.scrollTop = 0;
+    }
+  }, [screen]);
   const [config, setConfig] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [askOpen, setAskOpen] = useState(false);
@@ -1889,7 +1899,7 @@ export default function VersionsApp() {
           {askOpen && <AskModal onClose={() => setAskOpen(false)} />}
 
           {/* Content */}
-          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: screen === "welcome" ? 0 : 80 }}>
+          <div ref={scrollContentRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: screen === "welcome" ? 0 : 80 }}>
             {renderContent()}
           </div>
 
