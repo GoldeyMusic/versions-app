@@ -908,13 +908,17 @@ export default function MockupStyles() {
   }
   .wh-stat-spark { margin-top: auto; }
 
-  /* ── 2-col layout ── */
+  /* ── 2-col layout ──
+     Colonne gauche plus étroite (la liste de projets n'a pas besoin
+     d'être très large) pour laisser plus de place à la colonne droite
+     où s'empilent 6 cartes éditoriales — moins de scroll vertical.
+  */
   .wh-cols {
-    display: grid; grid-template-columns: 1fr 320px; gap: 22px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 22px;
     align-items: start;
   }
-  .wh-col-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-  .wh-col-right { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px; }
+  .wh-col-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; max-width: 640px; }
+  .wh-col-right { display: flex; flex-direction: column; gap: 12px; }
 
   /* ── Editorial cards ── */
   .wh-card {
