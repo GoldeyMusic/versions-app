@@ -1784,26 +1784,28 @@ export default function VersionsApp() {
           {askOpen && <AskModal onClose={() => setAskOpen(false)} />}
 
           {/* Content */}
-          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: 80 }}>
+          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: screen === "welcome" ? 0 : 80 }}>
             {renderContent()}
           </div>
 
-          {/* Persistent Bottom Player — toujours visible */}
-          <BottomPlayer
-            trackTitle={playerState?.trackTitle}
-            versionName={playerState?.versionName}
-            storagePath={playerState?.storagePath}
-            isPlaying={!!playerState?.isPlaying}
-            onToggle={togglePlay}
-            onNext={playNext}
-            onPrev={playPrev}
-            hasNext={hasNext}
-            hasPrev={hasPrev}
-            resetKey={playerState?.resetKey || 0}
-            idle={!playerState}
-            playlist={playerState?.playlist}
-            currentIdx={playerState?.currentIdx}
-          />
+          {/* Bottom Player — masqué sur la home (doublon avec le hero) */}
+          {screen !== "welcome" && (
+            <BottomPlayer
+              trackTitle={playerState?.trackTitle}
+              versionName={playerState?.versionName}
+              storagePath={playerState?.storagePath}
+              isPlaying={!!playerState?.isPlaying}
+              onToggle={togglePlay}
+              onNext={playNext}
+              onPrev={playPrev}
+              hasNext={hasNext}
+              hasPrev={hasPrev}
+              resetKey={playerState?.resetKey || 0}
+              idle={!playerState}
+              playlist={playerState?.playlist}
+              currentIdx={playerState?.currentIdx}
+            />
+          )}
 
           {/* BottomNav retiré — remplacé par le hamburger menu */}
         </div>
