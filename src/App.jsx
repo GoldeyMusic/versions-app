@@ -440,6 +440,10 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   // Score de la dernière analyse du héros (pour badge + CTA "Voir la fiche")
   const heroLatestVersion = heroInfo?.track?.versions?.[heroInfo.track.versions.length - 1];
   const heroScore = heroLatestVersion?.analysisResult?.fiche?.globalScore;
+  // Waveform = version réellement jouée si c'est le titre en cours, sinon la dernière
+  const heroWaveStoragePath = (
+    heroInfo && playerState?.trackTitle === heroInfo.track.title && playerState?.storagePath
+  ) ? playerState.storagePath : heroLatestVersion?.storagePath;
 
   /* ─── Drag & drop Home ──────────────────────────────── */
   const [drag, setDrag] = useState(null);
@@ -777,9 +781,9 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
             {heroLatestVersion?.date ? ` · ${heroLatestVersion.date}` : ''}
           </div>
         </div>
-        {heroLatestVersion?.storagePath ? (
+        {heroWaveStoragePath ? (
           <HeroWaveform
-            storagePath={heroLatestVersion.storagePath}
+            storagePath={heroWaveStoragePath}
             isActive={heroIsPlaying}
           />
         ) : (
