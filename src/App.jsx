@@ -937,13 +937,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     </div>
   ) : null;
 
-  const tipBlock = (
-    <div className="wh-tip">
-      <div className="wh-tip-label">Le saviez-vous</div>
-      <div className="wh-tip-text">{tip}</div>
-    </div>
-  );
-
   const modalsSlot = (
     <>
       {renameTrackTarget && (
@@ -1216,23 +1209,19 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   return (
     <div className={`welcome-home${!isMobile ? ' wh-desktop' : ''}`}>
-      {/* Header */}
-      {!isMobile ? (
-        <div className="wh-tagline-hero">
-          <div className="wh-tagline-text">« {renderTagline(homeTagline)} »</div>
-        </div>
-      ) : (
-        <div className="wh-header">
-          <div className="wh-greeting">{displayName ? `SALUT ${displayName.toUpperCase()} !` : "SALUT !"}</div>
-        </div>
-      )}
+      {/* Header — même tagline desktop/mobile, avec mot en orange */}
+      <div className="wh-tagline-hero">
+        <div className="wh-tagline-text">« {renderTagline(homeTagline)} »</div>
+      </div>
 
       {isMobile ? (
         <>
           {actionsBar}
           {projectsAccordion}
           {mobileEmpty}
-          {tipBlock}
+          {/* Tips et cartes pédagogiques (rotation à chaque ouverture) */}
+          {tipsBlock}
+          {pedagoBlock}
         </>
       ) : hasContent ? (
         <>

@@ -2047,6 +2047,12 @@ export default function MockupStyles() {
     .wh-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .wh-tracklist { max-width: 100%; }
     .wh-action { justify-content: center; padding: 12px 10px; font-size: 12px; }
+    /* Tagline hero — version compacte mobile (padding + font réduits) */
+    .wh-tagline-hero { padding: 24px 4px 32px; gap: 10px; }
+    .wh-tagline-text { font-size: 22px; line-height: 1.3; max-width: 100%; }
+    /* Cartes pédago hors .wh-col-right sur mobile : espacement vertical */
+    .welcome-home > .wh-card + .wh-card { margin-top: 12px; }
+    .welcome-home > .wh-card:first-of-type { margin-top: 16px; }
 
     /* Versions Screen */
     .versions-screen { padding: 30px 20px 120px; max-width: 100%; }
