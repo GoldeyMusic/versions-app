@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import STRINGS from "./constants/strings";
 import T from "./constants/theme";
 import API from "./constants/api";
@@ -358,18 +358,7 @@ function HeroWaveform({ storagePath, isActive }) {
   );
 }
 
-function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onOpenFiche, onPlay, onToggle, playerState, refreshKey, onMutate }) {
-  const [projects, setProjects] = useState([]);
-  // Gate le rendu du bon branchement (populated vs onboarding). Sans ce flag,
-  // au premier render `projects` est [] (default useState) → on affiche la
-  // page d'onboarding le temps que loadProjects résolve, d'où le flash.
-  const [projectsLoaded, setProjectsLoaded] = useState(false);
-  // Hint optimiste basé sur la session précédente : si on sait que l'user
-  // a déjà du contenu, on rend immédiatement la home remplie (la liste des
-  // projets se peuplera dès que loadProjects répond). Évite le flash.
-  const [optimisticHasContent] = useState(() => {
-    try { return localStorage.getItem('versions_known_has_content') === '1'; } catch { return false; }
-  });
+function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onOpenFiche, onPlay, onToggle, playerState, projects = [], projectsLoaded = false, onMutate }) {
   // Rotation des conseils : un tip distinct à chaque ouverture, sans répétition consécutive
   const [tip] = useState(() => pickTip(SAVIEZ_VOUS_TIPS, 'versions_tip_saviez'));
   const [prochainPasTip] = useState(() => pickTip(PROCHAIN_PAS_TIPS, 'versions_tip_prochain'));
@@ -379,7 +368,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const [progressionNoScoreTip] = useState(() => pickTip(PROGRESSION_TIPS_NO_SCORE, 'versions_tip_progression_noscore'));
   const [progressionWithScoreTip] = useState(() => pickTip(PROGRESSION_TIPS_WITH_SCORE, 'versions_tip_progression_score'));
   const [homeTagline] = useState(() => pickTip(HOME_TAGLINES, 'versions_tip_tagline'));
-  const [localRefresh, setLocalRefresh] = useState(0);
   const [pickingTrack, setPickingTrack] = useState(false);
   const pickerRef = useRef(null);
   const [pickingProject, setPickingProject] = useState(false);
@@ -396,21 +384,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const [newProjectValue, setNewProjectValue] = useState('');
   const renameInputRef = useRef(null);
   const newProjectInputRef = useRef(null);
-
-  useEffect(() => {
-    let alive = true;
-    loadProjects().then((p) => {
-      if (!alive) return;
-      const list = p || [];
-      setProjects(list);
-      setProjectsLoaded(true);
-      try {
-        const hasAny = list.some((pr) => (pr.tracks?.length || 0) > 0);
-        localStorage.setItem('versions_known_has_content', hasAny ? '1' : '0');
-      } catch { /* ignore */ }
-    });
-    return () => { alive = false; };
-  }, [refreshKey, localRefresh]);
 
   // Ferme le picker au clic extérieur / Escape
   useEffect(() => {
@@ -526,7 +499,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     if (!next || next === renameProjectTarget?.name) { setRenameProjectTarget(null); return; }
     try {
       await renameProject(renameProjectTarget.id, next);
-      setLocalRefresh((n) => n + 1);
       if (onMutate) onMutate();
     } catch (err) { console.warn('renameProject failed', err); }
     setRenameProjectTarget(null);
@@ -566,7 +538,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         });
         return;
       }
-      setLocalRefresh((n) => n + 1);
       if (onMutate) onMutate();
     } catch (err) { console.warn('deleteProject failed', err); }
   };
@@ -584,7 +555,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       const created = await createProject(name);
       setNewProjectOpen(false);
       setNewProjectValue('');
-      setLocalRefresh((n) => n + 1);
       if (onMutate) onMutate();
       if (created?.id && onSetCurrentProject) onSetCurrentProject(created.id);
       // Si l'utilisateur venait du bouton "Nouveau titre", on enchaîne
@@ -607,7 +577,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     if (!next || next === renameTrackTarget?.title) { setRenameTrackTarget(null); return; }
     try {
       await renameTrack(renameTrackTarget.id, next);
-      setLocalRefresh((n) => n + 1);
       if (onMutate) onMutate();
     } catch (err) { console.warn('renameTrack failed', err); }
     setRenameTrackTarget(null);
@@ -626,7 +595,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     if (ok !== 'confirm') return;
     try {
       await deleteTrack(track.id);
-      setLocalRefresh((n2) => n2 + 1);
       if (onMutate) onMutate();
     } catch (err) { console.warn('deleteTrack failed', err); }
   };
@@ -738,7 +706,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         }
       }
       await reorderTracksInProject(targetProjectId, targetOrder);
-      setLocalRefresh(n => n + 1);
       if (onMutate) onMutate();
     } catch (err) { console.warn('home drop track on track failed', err); }
   };
@@ -752,7 +719,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         const sourceOrder = (sourceProject.tracks || []).map(t => t.id).filter(id => id !== sourceTrackId);
         if (sourceOrder.length) await reorderTracksInProject(sourceProjectId, sourceOrder);
       }
-      setLocalRefresh(n => n + 1);
       if (onMutate) onMutate();
     } catch (err) { console.warn('home drop track on project failed', err); }
   };
@@ -1268,7 +1234,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           {mobileEmpty}
           {tipBlock}
         </>
-      ) : (hasContent || (!projectsLoaded && optimisticHasContent)) ? (
+      ) : hasContent ? (
         <>
           {desktopHero}
           {desktopStats}
@@ -1289,7 +1255,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
             {editorialSidebar}
           </div>
         </>
-      ) : null /* chargement initial sans hint — on ne montre rien plutôt que flasher l'écran d'onboarding */}
+      ) : null /* première session sans cache — on ne montre rien plutôt que flasher l'écran d'onboarding */}
 
       {modalsSlot}
     </div>
@@ -1601,8 +1567,30 @@ export default function VersionsApp() {
   // and, after analysis completes, auto-open that track's folder in Versions tab
   const [prefillTitle, setPrefillTitle] = useState("");
   const [autoSelectTrackTitle, setAutoSelectTrackTitle] = useState("");
-  const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
-  const [homeRefreshKey, setHomeRefreshKey] = useState(0);
+  // ── Projets : état centralisé au niveau App ──
+  // Une seule requête loadProjects() par mutation, distribuée à Sidebar
+  // et WelcomeHome en props. Évite la triple fetch qu'on avait avant
+  // (Sidebar + Home + App pour l'onboarding gate).
+  //
+  // Cache localStorage pour un rendu instantané : au mount, on lit la
+  // dernière liste connue et on l'affiche direct. La requête live met
+  // à jour silencieusement derrière (stale-while-revalidate).
+  const [projects, setProjects] = useState(() => {
+    try {
+      const raw = localStorage.getItem('versions_projects_cache');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch { /* ignore */ }
+    return [];
+  });
+  const [projectsLoaded, setProjectsLoaded] = useState(() => {
+    try { return !!localStorage.getItem('versions_projects_cache'); } catch { return false; }
+  });
+  const [projectsRefreshKey, setProjectsRefreshKey] = useState(0);
+  const refreshProjects = useCallback(() => setProjectsRefreshKey((k) => k + 1), []);
+
   // Projet courant — synchronise l'accordéon Sidebar ↔ Home, et sert de scope
   // à la playlist du player. null = aucun projet explicitement ouvert.
   const [currentProjectId, setCurrentProjectId] = useState(null);
@@ -1690,37 +1678,45 @@ export default function VersionsApp() {
   // ── Onboarding gate : true si user connecté mais sans projet ──
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
-  // ── Preload first track audio on login (kills the 5s first-play delay) ──
-  // Au passage, détecte si l'utilisateur n'a aucun projet → onboarding bloquant.
+  // ── Chargement des projets + onboarding gate + preload premier audio ──
+  // Une seule requête par mutation grâce à projectsRefreshKey centralisé.
+  // Alimente projects/projectsLoaded, met à jour le cache localStorage,
+  // déclenche l'onboarding bloquant et pré-charge le premier audio pour
+  // éliminer le délai de première lecture.
   useEffect(() => {
     if (!user) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProjects([]);
+      setProjectsLoaded(false);
       setNeedsOnboarding(false);
       return;
     }
-    loadProjects().then((projects) => {
-      if (!projects || projects.length === 0) {
+    let alive = true;
+    loadProjects().then((list) => {
+      if (!alive) return;
+      const next = list || [];
+      setProjects(next);
+      setProjectsLoaded(true);
+      try { localStorage.setItem('versions_projects_cache', JSON.stringify(next)); } catch { /* ignore */ }
+      if (next.length === 0) {
         setNeedsOnboarding(true);
         return;
       }
       setNeedsOnboarding(false);
-      const firstProject = projects[0];
+      const firstProject = next[0];
       const firstTrack = firstProject?.tracks?.[0];
       const latest = firstTrack?.versions?.[firstTrack.versions.length - 1];
       if (latest?.storagePath) resolveAudio(latest.storagePath).catch(() => {});
-      // Mémorise aussi le projet par défaut pour l'accordéon
-      if (firstProject?.id) setCurrentProjectId(firstProject.id);
+      if (firstProject?.id) setCurrentProjectId((cur) => cur ?? firstProject.id);
     }).catch(() => {});
-  }, [user, sidebarRefreshKey]);
+    return () => { alive = false; };
+  }, [user, projectsRefreshKey]);
 
   const handleOnboardingCreate = async (name) => {
     const created = await createProject(name);
     if (!created?.id) throw new Error('La création a échoué, réessaye.');
     setCurrentProjectId(created.id);
     setNeedsOnboarding(false);
-    // Force la sidebar et la home à recharger leurs projets
-    setSidebarRefreshKey((k) => k + 1);
-    setHomeRefreshKey((k) => k + 1);
+    refreshProjects();
   };
 
   // ── Language ──
@@ -1829,7 +1825,7 @@ export default function VersionsApp() {
             setAnalysisResult(prev => {
               const full = { ...prev, fiche: job.fiche || prev?.fiche, listening: job.listening || prev?.listening, storagePath: job.storagePath || prev?.storagePath || null, _stage: "all_done" };
               saveAnalysis(config, full, job.storagePath || prev?.storagePath || null)
-                .then(() => setSidebarRefreshKey(k => k + 1))
+                .then(() => refreshProjects())
                 .catch(e => console.warn("saveAnalysis failed:", e));
               return full;
             });
@@ -1866,7 +1862,7 @@ export default function VersionsApp() {
         // Analysis completed in one shot — save immediately
         savedRef.current = true;
         saveAnalysis(cfgWithHash, merged, merged.storagePath || null)
-          .then(() => setSidebarRefreshKey(k => k + 1))
+          .then(() => refreshProjects())
           .catch(e => console.warn("saveAnalysis failed:", e));
       }
     }
@@ -1944,12 +1940,13 @@ export default function VersionsApp() {
             onPlay={play}
             onToggle={togglePlay}
             playerState={playerState}
-            refreshKey={homeRefreshKey}
-            onMutate={() => setSidebarRefreshKey(k => k + 1)}
+            projects={projects}
+            projectsLoaded={projectsLoaded}
+            onMutate={refreshProjects}
           />
         );
       case "input":
-        return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialTitle={prefillTitle} initialProjectId={currentProjectId} lockProject={!!prefillTitle} onRefreshProjects={() => setSidebarRefreshKey(k => k + 1)} />;
+        return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialTitle={prefillTitle} initialProjectId={currentProjectId} lockProject={!!prefillTitle} onRefreshProjects={refreshProjects} />;
       case "loading":
         return <LoadingScreen config={config} onDone={handleLoaded} onBackToInput={handleSidebarNewTrack} />;
       case "fiche":
@@ -1959,7 +1956,7 @@ export default function VersionsApp() {
             analysisResult={analysisResult}
             onSelectVersion={handleSidebarSelectVersion}
             onGoHome={goHome}
-            refreshKey={sidebarRefreshKey}
+            refreshKey={projectsRefreshKey}
             onAddVersion={handleAddVersionFromPicker}
           />
         );
@@ -1979,7 +1976,7 @@ export default function VersionsApp() {
       case "reglages":
         return <ReglagesScreen onSignOut={signOut} onGoHome={goHome} onProfileUpdate={setUserProfile} />;
       default:
-        return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialProjectId={currentProjectId} onRefreshProjects={() => setSidebarRefreshKey(k => k + 1)} />;
+        return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialProjectId={currentProjectId} onRefreshProjects={refreshProjects} />;
     }
   };
 
@@ -2035,14 +2032,15 @@ export default function VersionsApp() {
             onAskOpen={() => setAskOpen(true)}
             onPlay={play}
             onToggle={togglePlay}
-            onMutate={() => { setHomeRefreshKey(k => k + 1); }}
+            onMutate={refreshProjects}
             onStop={stopPlay}
             playerState={playerState}
             user={user}
             userProfile={userProfile}
             onSignOut={signOut}
             onGoHome={goHome}
-            refreshKey={sidebarRefreshKey}
+            projects={projects}
+            projectsLoaded={projectsLoaded}
           />
         )}
 

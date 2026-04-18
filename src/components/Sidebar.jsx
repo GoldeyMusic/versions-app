@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  loadProjects,
   createProject,
   renameProject,
   deleteProject,
@@ -32,12 +31,11 @@ export default function Sidebar({
   playerState,
   user,
   userProfile,
-  refreshKey,
+  projects = [],
+  // projectsLoaded non utilisé ici — la sidebar ne différencie pas "chargé / pas chargé"
+  // puisqu'un cache localStorage fournit les projets dès le premier render
   onMutate,
 }) {
-  const [projects, setProjects] = useState([]);
-  const [localRefresh, setLocalRefresh] = useState(0);
-
   // Modales
   const [renameProjectTarget, setRenameProjectTarget] = useState(null);
   const [renameTrackTarget, setRenameTrackTarget] = useState(null);
@@ -46,12 +44,6 @@ export default function Sidebar({
   const [newProjectValue, setNewProjectValue] = useState('');
   const renameInputRef = useRef(null);
   const newProjectInputRef = useRef(null);
-
-  useEffect(() => {
-    let alive = true;
-    loadProjects().then((p) => { if (alive) setProjects(p || []); });
-    return () => { alive = false; };
-  }, [refreshKey, localRefresh]);
 
   // Si le projet courant n'existe plus (après suppression), ouvre le 1er dispo.
   // `null` = volontairement replié → on le laisse tel quel.
@@ -96,7 +88,6 @@ export default function Sidebar({
     if (!next || next === renameTrackTarget?.title) { setRenameTrackTarget(null); return; }
     try {
       await renameTrack(renameTrackTarget.id, next);
-      setLocalRefresh((n) => n + 1);
       if (onMutate) onMutate();
     } catch (err) { console.warn('renameTrack failed', err); }
     setRenameTrackTarget(null);
@@ -115,7 +106,6 @@ export default function Sidebar({
     if (ok !== 'confirm') return;
     try {
       await deleteTrack(track.id);
-      setLocalRefresh((n2) => n2 + 1);
       if (onMutate) onMutate();
     } catch (err) { console.warn('deleteTrack failed', err); }
   };
@@ -138,7 +128,6 @@ export default function Sidebar({
     if (!next || next === renameProjectTarget?.name) { setRenameProjectTarget(null); return; }
     try {
       await renameProject(renameProjectTarget.id, next);
-      setLocalRefresh((n) => n + 1);
       if (onMutate) onMutate();
     } catch (err) { console.warn('renameProject failed', err); }
     setRenameProjectTarget(null);
@@ -178,7 +167,6 @@ export default function Sidebar({
         });
         return;
       }
-      setLocalRefresh((n) => n + 1);
       if (onMutate) onMutate();
     } catch (err) { console.warn('deleteProject failed', err); }
   };
@@ -196,7 +184,6 @@ export default function Sidebar({
       const created = await createProject(name);
       setNewProjectOpen(false);
       setNewProjectValue('');
-      setLocalRefresh((n) => n + 1);
       if (onMutate) onMutate();
       if (created?.id && onSetCurrentProject) onSetCurrentProject(created.id);
     } catch (err) { console.warn('createProject failed', err); }
@@ -236,7 +223,6 @@ export default function Sidebar({
         }
       }
       await reorderTracksInProject(targetProjectId, targetOrder);
-      setLocalRefresh(n => n + 1);
       if (onMutate) onMutate();
     } catch (err) { console.warn('drop track on track failed', err); }
   };
@@ -251,7 +237,6 @@ export default function Sidebar({
         const sourceOrder = (sourceProject.tracks || []).map(t => t.id).filter(id => id !== sourceTrackId);
         if (sourceOrder.length) await reorderTracksInProject(sourceProjectId, sourceOrder);
       }
-      setLocalRefresh(n => n + 1);
       if (onMutate) onMutate();
     } catch (err) { console.warn('drop track on project failed', err); }
   };
@@ -265,7 +250,6 @@ export default function Sidebar({
     order.splice(insertAt, 0, sourceProjectId);
     try {
       await reorderProjects(order);
-      setLocalRefresh(n => n + 1);
       if (onMutate) onMutate();
     } catch (err) { console.warn('drop project failed', err); }
   };
