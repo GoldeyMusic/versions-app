@@ -51,6 +51,25 @@ const SAVIEZ_VOUS_TIPS = [
   "Ton premier jet de mix contient souvent une vérité que tu perds en peaufinant trop.",
   "Un mix qui tient en mono tient presque toujours en stéréo.",
   "La meilleure compression est souvent celle qu'on n'entend pas.",
+  "Les ingénieurs pros changent d'enceintes toutes les 30 minutes pour ne pas s'habituer à une seule couleur.",
+  "Le cerveau « moyenne » ce qu'il entend : après 20 minutes sur un passage, tu n'entends plus les défauts.",
+  "La fatigue auditive touche d'abord les aigus — c'est pour ça qu'on a tendance à ajouter du haut, tard le soir.",
+  "Écouter ton mix en marchant te fait remarquer des choses que le studio assis cache.",
+  "Un bon mix doit fonctionner sur un téléphone posé sur la table — c'est l'épreuve du feu.",
+  "La corrélation stéréo t'indique si ton mix s'effondre quand il est lu en mono.",
+  "La dynamique perçue dépend du contexte : -10 LUFS peut sonner fort en stream et faible en vinyle.",
+  "Un master trop fort masque les erreurs — quand on baisse, elles ressortent.",
+  "Le cerveau adore la nouveauté : écouter une référence avant ton mix te le rend plus « neuf ».",
+  "Un casque fermé exagère le bas, un casque ouvert exagère le haut. Croise les deux.",
+  "Les 200 premières millisecondes d'un son définissent son impact perçu — c'est là qu'il faut être précis.",
+  "Tes décisions sont meilleures le matin — le cerveau est moins biaisé par la fatigue cognitive.",
+  "Boire régulièrement de l'eau améliore réellement la clarté auditive.",
+  "L'acoustique d'une pièce change avec l'heure : une pièce chauffée n'a pas la même réponse qu'une pièce froide.",
+  "Les pros écoutent leurs mix sur des enceintes médiocres pour repérer ce qui tient malgré tout.",
+  "Le silence absolu n'existe pas en studio : ton plancher de bruit fait partie de ton écoute.",
+  "Un niveau de monitoring constant d'une session à l'autre t'évite de remixer les mêmes choses.",
+  "Si tu bouges la tête pendant l'écoute, tu corriges naturellement les colorations de ta pièce.",
+  "Le kick et la voix principale occupent souvent la même plage d'énergie : leur équilibre fait un mix.",
 ];
 
 const PROCHAIN_PAS_TIPS = [
@@ -62,6 +81,17 @@ const PROCHAIN_PAS_TIPS = [
   { title: "Imprime puis oublie", body: "Exporte ton bounce, ferme la session, écoute-le plus tard ailleurs. Tu l'entendras comme un auditeur." },
   { title: "Vérifie la dynamique", body: "Regarde ton crest factor : trop plat, le mix fatigue ; trop dynamique, il peine à sortir du lecteur." },
   { title: "Écoute en voiture", body: "L'habitacle révèle les basses qui traînent et les médiums agressifs. Un vrai révélateur." },
+  { title: "Isole kick + basse", body: "Solo ton kick et ta basse : leur relation fondamentale définit le groove et l'assise de ton mix." },
+  { title: "Test du téléphone", body: "Sors ton téléphone, pose-le sur la table, joue ton mix. C'est le test le plus honnête côté public." },
+  { title: "Coupe le bas", body: "Passe un high-pass à 150 Hz sur ton master : ce qui reste t'indique si les médiums et aigus tiennent seuls." },
+  { title: "Ferme les yeux", body: "Écoute une minute les yeux fermés, sans regarder le DAW. Tu entendras ce que l'œil cachait à l'oreille." },
+  { title: "Marche pendant l'écoute", body: "Lance ton mix à bas volume et marche dans la pièce — les problèmes de balance sautent aux oreilles." },
+  { title: "Passage à l'autre", body: "Enchaîne ton mix avec un titre commercial. Le « saut » de qualité t'indique précisément où travailler." },
+  { title: "Écoute demain matin", body: "Ferme la session, dors dessus, réécoute au petit déjeuner sans toucher au mix. Ta vraie opinion apparaît là." },
+  { title: "Vise la médiane", body: "Cherche ce qui fonctionne partout (voiture, casque, enceintes), pas ce qui brille seulement dans ton studio." },
+  { title: "Coupe la voix lead", body: "Écoute le mix sans la voix principale : si l'instru ne tient pas, tu masquais un problème derrière elle." },
+  { title: "Re-compresse ta musique", body: "Fais un MP3 160 kbps de ton bounce et écoute-le. Les 2/3 des auditeurs t'entendront comme ça." },
+  { title: "Teste à volume réaliste", body: "Règle ton monitoring à la hauteur d'une conversation normale. Si ça passe là, ça passe partout." },
 ];
 
 const PROGRESSION_TIPS_NO_SCORE = [
@@ -70,6 +100,11 @@ const PROGRESSION_TIPS_NO_SCORE = [
   "Chaque titre ajouté affine ton oreille et te donne une référence pour les suivants.",
   "Commence par analyser un morceau que tu connais bien — tu valideras l'analyse contre ta perception.",
   "Ajoute d'abord ta V1 brute : elle servira de repère pour voir l'évolution.",
+  "Une fiche par titre suffit pour voir apparaître les forces et les manques de ton mix.",
+  "Analyse d'abord un titre maîtrisé : tu confronteras ton ressenti aux mesures objectives.",
+  "Tu peux importer une référence commerciale — elle te servira d'étalon pour tes propres bounces.",
+  "Trois titres, c'est déjà assez pour que des tendances apparaissent dans tes choix de mix.",
+  "Tes premières analyses sont aussi celles qui t'apprennent le plus : chaque fiche te donne un nouveau repère.",
 ];
 
 const PROGRESSION_TIPS_WITH_SCORE = [
@@ -78,6 +113,11 @@ const PROGRESSION_TIPS_WITH_SCORE = [
   "Le score évolue avec tes choix : équilibre fréquentiel, dynamique, clarté stéréo.",
   "Regarde les tendances plus que les valeurs absolues : deux versions écartées de 5 points, c'est déjà significatif.",
   "Si le score baisse d'une version à l'autre, c'est peut-être le bon signal pour revenir en arrière.",
+  "Note tes versions avec un commentaire : tu verras ensuite quels gestes font vraiment bouger le score.",
+  "Un score stable sur trois versions indique que tu tournes en rond — change d'angle d'attaque.",
+  "Compare deux versions côte à côte plutôt que de les juger séparément : l'écart est plus parlant.",
+  "Le score n'est qu'un repère : c'est la fiche détaillée qui te dit pourquoi.",
+  "Si une version très retravaillée score moins que la précédente, fais-toi confiance et reviens en arrière.",
 ];
 
 const A_QUOI_CA_SERT_TIPS = [
@@ -85,6 +125,12 @@ const A_QUOI_CA_SERT_TIPS = [
   { title: "Des métriques lisibles", body: "VERSIONS traduit les mesures techniques (LUFS, crest factor, corrélation stéréo) en commentaires compréhensibles. Pas besoin d'être ingé son pour savoir quoi ajuster." },
   { title: "Un second avis fiable", body: "L'écoute IA commente ton mix section par section et t'indique où ton oreille a peut-être fatigué. Un regard extérieur disponible à toute heure." },
   { title: "Une fiche claire", body: "Chaque analyse te livre une fiche structurée : forces, points à retravailler, niveaux, dynamique. Pas d'interprétation, juste des repères." },
+  { title: "Repérer la fatigue d'oreille", body: "VERSIONS écoute avec la même fraîcheur quelle que soit l'heure. Elle détecte ce que ton oreille surcompense après plusieurs heures de session." },
+  { title: "Sortir de la boucle V2/V3", body: "Quand on hésite entre deux versions, l'analyse comparative tranche objectivement : tu sais laquelle tient mieux, et pourquoi." },
+  { title: "Un cahier de bord auditif", body: "Chaque analyse est archivée et datée. Tu peux revenir en arrière, voir l'évolution d'un titre et identifier quand un mix a commencé à dériver." },
+  { title: "Un regard sans ego", body: "VERSIONS n'a pas d'intérêt à flatter ton mix ni à le démonter. Elle te dit ce qui est, tel quel, avec les mots qu'il faut." },
+  { title: "Préparer le master", body: "Avant d'envoyer ton mix au mastering, VERSIONS te signale les zones à nettoyer. Tu arrives au studio avec un mix propre, pas avec du travail en moins pour l'ingé master." },
+  { title: "Gagner des heures d'écoute", body: "Une analyse de 2 minutes remplace des dizaines d'allers-retours entre enceintes, casque et voiture. Tu cibles direct ce qui coince." },
 ];
 
 const POURQUOI_VERSIONS_TIPS = [
@@ -92,32 +138,68 @@ const POURQUOI_VERSIONS_TIPS = [
   { title: "Voir la progression", body: "Chaque version est datée et scorée. Tu vois d'un coup d'œil si la V3 est réellement meilleure que la V2 — ou s'il faut revenir en arrière." },
   { title: "Défaire l'intuition trompeuse", body: "Parfois on pense qu'un mix s'améliore alors qu'il perd en clarté. VERSIONS objective ce ressenti et te donne des points de repère stables." },
   { title: "Garder l'historique", body: "Tes versions restent rangées par projet et datées. Plus besoin de chercher 'quelle est la dernière bonne' dans un dossier." },
+  { title: "Un studio de poche", body: "Le recul d'un ingénieur son disponible à n'importe quelle heure, sans rendez-vous, sans coût de studio, sans attente de retour par mail." },
+  { title: "Rompre la solitude du home-studio", body: "Quand on mixe seul, on perd l'œil extérieur. VERSIONS remplit ce rôle — un avis tangible, étayé, qui relance ton écoute." },
+  { title: "Confirmer ses choix", body: "Parfois on sait ce qui cloche mais on n'ose pas trancher. VERSIONS confirme (ou infirme) ton intuition avec des données à l'appui." },
+  { title: "Apprendre en mixant", body: "Chaque fiche est aussi une leçon : tu apprends à nommer ce que tu entends et à reconnaître les patterns d'un bon mix." },
+  { title: "Arrêter de douter à 3h du matin", body: "Tard le soir, l'oreille ment. VERSIONS te donne un point de repère stable quand la fatigue rend tes décisions incertaines." },
+  { title: "Sortir du perfectionnisme stérile", body: "VERSIONS t'indique quand un mix est bon — pour couper le cycle infini des ajustements et oser le clore." },
 ];
 
+/* HOME_TAGLINES
+   Utilise des crochets [mot] pour marquer le mot-clé qui sera mis en
+   orange via renderTagline(). Un seul mot par tagline pour garder
+   l'accent visuel.
+*/
 const HOME_TAGLINES = [
-  "L'assistant studio qui suit tes mix.",
-  "La meilleure version de ton mix commence ici.",
-  "Un avis extérieur disponible à toute heure.",
-  "Ton oreille, mais reposée.",
-  "Le regard neuf que ton mix attend.",
-  "Des heures de recul, en quelques secondes.",
-  "Une écoute attentive, sans jugement.",
-  "La patience d'un studio, la rapidité d'un clic.",
-  "Pour que tes choix ne reposent plus sur la fatigue.",
-  "Un second avis, aussi juste qu'une nuit de sommeil.",
-  "Tes versions, lues à froid.",
-  "L'assistant qui ne se lasse jamais de ton mix.",
-  "Parce que le meilleur mix est celui qu'on a comparé.",
-  "Ton copilote quand tu ne sais plus si tu avances.",
-  "Le point de repère qui manque à ta session.",
-  "Pour sortir de la boucle V2, V3, V4 sans jamais trancher.",
-  "Une écoute professionnelle, sans louer de studio.",
-  "Écouter mieux, pas plus longtemps.",
-  "Le second souffle de ton mix.",
-  "Chaque version mérite une écoute neuve.",
-  "Le recul que l'heure tardive t'enlève.",
-  "Quand tes oreilles saturent, l'analyse, elle, reste fraîche.",
-  "Avance sur ton mix sans tourner en rond.",
+  "L'[assistant] studio qui suit tes mix.",
+  "La meilleure [version] de ton mix commence ici.",
+  "Un avis [extérieur] disponible à toute heure.",
+  "Ton oreille, mais [reposée].",
+  "Le regard [neuf] que ton mix attend.",
+  "Des heures de [recul], en quelques secondes.",
+  "Une écoute [attentive], sans jugement.",
+  "La [patience] d'un studio, la rapidité d'un clic.",
+  "Pour que tes choix ne reposent plus sur la [fatigue].",
+  "Un second avis, aussi [juste] qu'une nuit de sommeil.",
+  "Tes versions, lues à [froid].",
+  "L'assistant qui ne se [lasse] jamais de ton mix.",
+  "Parce que le meilleur mix est celui qu'on a [comparé].",
+  "Ton [copilote] quand tu ne sais plus si tu avances.",
+  "Le point de [repère] qui manque à ta session.",
+  "Pour sortir de la [boucle] V2, V3, V4 sans jamais trancher.",
+  "Une écoute [professionnelle], sans louer de studio.",
+  "Écouter [mieux], pas plus longtemps.",
+  "Le second [souffle] de ton mix.",
+  "Chaque version mérite une écoute [neuve].",
+  "Le recul que l'heure [tardive] t'enlève.",
+  "Quand tes oreilles saturent, l'analyse, elle, reste [fraîche].",
+  "[Avance] sur ton mix sans tourner en rond.",
+  "Ton studio [silencieux], à toute heure.",
+  "L'oreille que tu n'as plus à la fin de la [session].",
+  "Un regard qui ne [juge] pas, qui éclaire.",
+  "La [clarté] qui manque quand tu as trop écouté.",
+  "Le [sparring partner] de ton mix.",
+  "Ce que ton oreille [fatiguée] ne te dit plus.",
+  "L'écoute [stable] dont ta session manquait.",
+  "[Respire] — VERSIONS écoute pour toi.",
+  "Quand le doute s'installe, VERSIONS [tranche].",
+  "Parce que mixer seul n'est pas mixer [aveuglément].",
+  "Moins de [doutes], plus de décisions.",
+  "Ton [oreille témoin], toujours fraîche.",
+  "Un œil [extérieur] qui ne dort jamais.",
+  "Sors du tunnel de la [V7] qui sonne comme la V3.",
+  "[Trancher] ne devrait plus prendre trois soirées.",
+  "L'[objectivité] que la fatigue t'enlève.",
+  "Le vrai [recul], pas celui de 2h du matin.",
+  "Un filet de [sécurité] avant le master.",
+  "Le [calme] d'une écoute qui n'a pas d'ego.",
+  "Pour avancer sans [tourner] autour du mix.",
+  "Ton mix vaut une écoute [neuve] — chaque fois.",
+  "L'écoute [pro] sans l'agenda d'un pro.",
+  "Une oreille de plus, [patiente] et précise.",
+  "Ta [boussole] quand tu ne sais plus où est le nord.",
+  "[Finir] un mix, enfin.",
 ];
 
 const CONSEIL_TIPS = [
@@ -126,6 +208,13 @@ const CONSEIL_TIPS = [
   { title: "Note chaque version", body: "Ajoute un commentaire court à chaque upload : 'passe de comp', 'EQ plus nette', 'low cut sur les claviers'. Ça te permet de relier le score aux choix que tu fais." },
   { title: "Teste la référence", body: "Balance dans VERSIONS un titre commercial que tu aimes et regarde son profil. Ça te donne un étalon réaliste pour tes propres mix." },
   { title: "Analyse à froid", body: "Uploade une version et ne lis la fiche que le lendemain. Les commentaires te sauteront aux yeux avec une oreille reposée." },
+  { title: "Un titre par projet au départ", body: "Ne commence pas par uploader ton catalogue entier. Prends un seul titre, travaille-le jusqu'à comprendre la fiche, puis élargis." },
+  { title: "Mix puis pause puis fiche", body: "Termine ta session, exporte, sors marcher 30 minutes, reviens lire la fiche. Ton cerveau sera beaucoup plus réceptif à la critique." },
+  { title: "Ne corrige pas tout d'un coup", body: "Si la fiche signale cinq points, choisis-en un ou deux pour la version suivante. Corriger tout en bloc brouille la lecture." },
+  { title: "Garde la V1 brute", body: "Ne jette jamais ton bounce initial. C'est ton zéro, ta référence. Sans lui, tu ne sauras plus si tu as vraiment progressé." },
+  { title: "Importe aussi tes vieux mix", body: "Uploader un mix qui a six mois te montre ce que ton oreille a gagné depuis. Précieux pour calibrer tes exigences." },
+  { title: "Lis la fiche dans l'ordre", body: "Commence par les forces, puis les points à retravailler, puis les mesures techniques. C'est ainsi que tu gardes une lecture équilibrée du mix." },
+  { title: "Imprime tes fiches importantes", body: "Pour les titres clés, exporte ou garde un PDF de la fiche. Tu y reviendras avant le master pour valider les gestes finaux." },
 ];
 
 function pickTip(pool, storageKey) {
@@ -143,6 +232,21 @@ function pickTip(pool, storageKey) {
   }
   try { localStorage.setItem(storageKey, String(next)); } catch { /* ignore */ }
   return pool[next];
+}
+
+/* renderTagline(text)
+   Parse les marqueurs [mot] dans une tagline et retourne un tableau
+   de nœuds React où les parties entre crochets sont colorées en orange
+   (var(--amber)). Le reste est rendu tel quel en blanc.
+*/
+function renderTagline(text) {
+  if (!text) return null;
+  const parts = text.split(/\[(.+?)\]/);
+  return parts.map((part, i) =>
+    i % 2 === 1
+      ? <span key={i} style={{ color: 'var(--amber)' }}>{part}</span>
+      : part
+  );
 }
 
 /* ── Hero waveform ────────────────────────────────────────
@@ -1130,7 +1234,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       {/* Header */}
       {!isMobile ? (
         <div className="wh-tagline-hero">
-          <div className="wh-tagline-text">« {homeTagline} »</div>
+          <div className="wh-tagline-text">« {renderTagline(homeTagline)} »</div>
         </div>
       ) : (
         <div className="wh-header">
