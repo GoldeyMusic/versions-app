@@ -32,8 +32,13 @@ const FontLink = () => (
   <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap');`}</style>
 );
 
-/* ── Welcome Home Screen ───────────────────────────────── */
-const HOME_TIPS = [
+/* ── Welcome Home Screen ─────────────────────────────────
+   Les cartes "conseil" / "pédago" tournent à chaque ouverture de la Home.
+   Pour éviter de voir deux fois de suite le même tip, on mémorise le
+   dernier index affiché par pool dans localStorage et on tire au hasard
+   un index différent à chaque render initial.
+*/
+const SAVIEZ_VOUS_TIPS = [
   "Faire des pauses régulières permet de conserver une écoute attentive et objective.",
   "Tes oreilles se fatiguent après 45 min — une pause de 10 min te fait gagner 2h de travail.",
   "Écouter ton mix dans un autre contexte (voiture, écouteurs) révèle ce que le studio cache.",
@@ -42,7 +47,77 @@ const HOME_TIPS = [
   "Comparer régulièrement avec une référence recalibre ton oreille et tes choix.",
   "Le silence entre les sessions est aussi important que le travail lui-même.",
   "Écouter à faible volume est le meilleur test : si le mix fonctionne bas, il fonctionnera fort.",
+  "Le bas du spectre se juge mieux debout qu'assis — tu sens mieux les sub.",
+  "Ton premier jet de mix contient souvent une vérité que tu perds en peaufinant trop.",
+  "Un mix qui tient en mono tient presque toujours en stéréo.",
+  "La meilleure compression est souvent celle qu'on n'entend pas.",
 ];
+
+const PROCHAIN_PAS_TIPS = [
+  { title: "Écoute à bas volume", body: "Monitorer à faible volume révèle les déséquilibres de balance. Si le mix fonctionne bas, il fonctionnera fort." },
+  { title: "Change d'environnement", body: "Écoute ton mix en voiture ou au casque : les défauts invisibles en studio deviennent évidents ailleurs." },
+  { title: "Fais une pause de 24h", body: "Reviens sur ton mix après 24h de recul — ton oreille neuve te dira plus que 2h de travail d'affilée." },
+  { title: "Compare avec une référence", body: "Prends un morceau que tu aimes, cale son volume, et alterne. Tu verras ce qui te manque ou ce qui dépasse." },
+  { title: "Travaille en mono", body: "Bascule ton mix en mono pour détecter les annulations de phase et vérifier la solidité du bas." },
+  { title: "Imprime puis oublie", body: "Exporte ton bounce, ferme la session, écoute-le plus tard ailleurs. Tu l'entendras comme un auditeur." },
+  { title: "Vérifie la dynamique", body: "Regarde ton crest factor : trop plat, le mix fatigue ; trop dynamique, il peine à sortir du lecteur." },
+  { title: "Écoute en voiture", body: "L'habitacle révèle les basses qui traînent et les médiums agressifs. Un vrai révélateur." },
+];
+
+const PROGRESSION_TIPS_NO_SCORE = [
+  "Dès que tu as deux versions d'un même titre, VERSIONS compare les mix et met en lumière ce qui a bougé.",
+  "Importe un premier bounce : l'analyse fréquentielle et dynamique se fait en moins d'une minute.",
+  "Chaque titre ajouté affine ton oreille et te donne une référence pour les suivants.",
+  "Commence par analyser un morceau que tu connais bien — tu valideras l'analyse contre ta perception.",
+  "Ajoute d'abord ta V1 brute : elle servira de repère pour voir l'évolution.",
+];
+
+const PROGRESSION_TIPS_WITH_SCORE = [
+  "Continue à comparer tes versions pour affiner l'évaluation. Chaque analyse précise la lecture de ton mix.",
+  "Un score ne juge pas ton mix — il pointe ce qui pourrait être amélioré.",
+  "Le score évolue avec tes choix : équilibre fréquentiel, dynamique, clarté stéréo.",
+  "Regarde les tendances plus que les valeurs absolues : deux versions écartées de 5 points, c'est déjà significatif.",
+  "Si le score baisse d'une version à l'autre, c'est peut-être le bon signal pour revenir en arrière.",
+];
+
+const A_QUOI_CA_SERT_TIPS = [
+  { title: "Analyser comme un pro", body: "Chaque titre que tu importes passe par une analyse objective — équilibre fréquentiel, dynamique, stéréo, saturation — puis par une écoute IA détaillée. Tu obtiens une fiche claire qui pointe ce qui marche et ce qui coince." },
+  { title: "Des métriques lisibles", body: "VERSIONS traduit les mesures techniques (LUFS, crest factor, corrélation stéréo) en commentaires compréhensibles. Pas besoin d'être ingé son pour savoir quoi ajuster." },
+  { title: "Un second avis fiable", body: "L'écoute IA commente ton mix section par section et t'indique où ton oreille a peut-être fatigué. Un regard extérieur disponible à toute heure." },
+  { title: "Une fiche claire", body: "Chaque analyse te livre une fiche structurée : forces, points à retravailler, niveaux, dynamique. Pas d'interprétation, juste des repères." },
+];
+
+const POURQUOI_VERSIONS_TIPS = [
+  { title: "Comparer tes mix entre eux", body: "Uploade plusieurs versions d'un même titre : VERSIONS met en évidence ce qui a progressé, ce qui régresse, et les zones à retravailler." },
+  { title: "Voir la progression", body: "Chaque version est datée et scorée. Tu vois d'un coup d'œil si la V3 est réellement meilleure que la V2 — ou s'il faut revenir en arrière." },
+  { title: "Défaire l'intuition trompeuse", body: "Parfois on pense qu'un mix s'améliore alors qu'il perd en clarté. VERSIONS objective ce ressenti et te donne des points de repère stables." },
+  { title: "Garder l'historique", body: "Tes versions restent rangées par projet et datées. Plus besoin de chercher 'quelle est la dernière bonne' dans un dossier." },
+];
+
+const CONSEIL_TIPS = [
+  { title: "Commence simple", body: "Pas besoin d'un master commercial — même un bounce rapide depuis Logic ou Ableton suffit pour un premier tour. Tu peux aussi tester sur une référence que tu aimes pour calibrer ton oreille." },
+  { title: "Trois versions suffisent", body: "Tu n'as pas besoin de 10 versions pour voir le progrès. Une V1 (brute), une V2 (retravaillée), une V3 (mix presque final) suffisent pour lire l'évolution." },
+  { title: "Note chaque version", body: "Ajoute un commentaire court à chaque upload : 'passe de comp', 'EQ plus nette', 'low cut sur les claviers'. Ça te permet de relier le score aux choix que tu fais." },
+  { title: "Teste la référence", body: "Balance dans VERSIONS un titre commercial que tu aimes et regarde son profil. Ça te donne un étalon réaliste pour tes propres mix." },
+  { title: "Analyse à froid", body: "Uploade une version et ne lis la fiche que le lendemain. Les commentaires te sauteront aux yeux avec une oreille reposée." },
+];
+
+function pickTip(pool, storageKey) {
+  if (!pool?.length) return null;
+  let lastIdx = -1;
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (raw != null) lastIdx = Number(raw);
+  } catch { /* ignore */ }
+  let next;
+  if (pool.length <= 1) {
+    next = 0;
+  } else {
+    do { next = Math.floor(Math.random() * pool.length); } while (next === lastIdx);
+  }
+  try { localStorage.setItem(storageKey, String(next)); } catch { /* ignore */ }
+  return pool[next];
+}
 
 /* ── Hero waveform ────────────────────────────────────────
    WaveSurfer attachée au même HTMLAudioElement (audioPool) que le
@@ -155,7 +230,14 @@ function HeroWaveform({ storagePath, isActive }) {
 
 function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onOpenFiche, onPlay, onToggle, playerState, refreshKey, onMutate }) {
   const [projects, setProjects] = useState([]);
-  const [tip] = useState(() => HOME_TIPS[Math.floor(Math.random() * HOME_TIPS.length)]);
+  // Rotation des conseils : un tip distinct à chaque ouverture, sans répétition consécutive
+  const [tip] = useState(() => pickTip(SAVIEZ_VOUS_TIPS, 'versions_tip_saviez'));
+  const [prochainPasTip] = useState(() => pickTip(PROCHAIN_PAS_TIPS, 'versions_tip_prochain'));
+  const [aQuoiTip] = useState(() => pickTip(A_QUOI_CA_SERT_TIPS, 'versions_tip_aquoi'));
+  const [pourquoiTip] = useState(() => pickTip(POURQUOI_VERSIONS_TIPS, 'versions_tip_pourquoi'));
+  const [conseilTip] = useState(() => pickTip(CONSEIL_TIPS, 'versions_tip_conseil'));
+  const [progressionNoScoreTip] = useState(() => pickTip(PROGRESSION_TIPS_NO_SCORE, 'versions_tip_progression_noscore'));
+  const [progressionWithScoreTip] = useState(() => pickTip(PROGRESSION_TIPS_WITH_SCORE, 'versions_tip_progression_score'));
   const [localRefresh, setLocalRefresh] = useState(0);
   const [pickingTrack, setPickingTrack] = useState(false);
   const pickerRef = useRef(null);
@@ -905,9 +987,9 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     </div>
   );
 
-  /* ─── Desktop-only : colonne éditoriale droite ────────── */
-  const editorialSidebar = (
-    <div className="wh-col-right">
+  /* ─── Cartes conseils (colonne droite) : saviez-vous / progression / prochain pas ──── */
+  const tipsBlock = (
+    <>
       <div className="wh-card amber">
         <div className="wh-card-kicker">Le saviez-vous</div>
         <div className="wh-card-body">{tip}</div>
@@ -918,19 +1000,44 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           {avgScore != null ? `Score moyen ${avgScore}/100` : 'Lance ta première analyse'}
         </div>
         <div className="wh-card-body">
-          {avgScore != null
-            ? "Continue à comparer tes versions pour affiner l'évaluation. Chaque analyse précise la lecture de ton mix."
-            : "Dès que tu as deux versions d'un même titre, VERSIONS compare les mix et met en lumière ce qui a bougé."}
+          {avgScore != null ? progressionWithScoreTip : progressionNoScoreTip}
         </div>
       </div>
       <div className="wh-card">
         <div className="wh-card-kicker">Prochain pas</div>
-        <div className="wh-card-title">Écoute à bas volume</div>
-        <div className="wh-card-body">
-          Monitorer à faible volume révèle les déséquilibres de balance. Si le mix fonctionne bas, il fonctionnera fort.
-        </div>
+        <div className="wh-card-title">{prochainPasTip?.title}</div>
+        <div className="wh-card-body">{prochainPasTip?.body}</div>
       </div>
+    </>
+  );
+  const editorialSidebar = (
+    <div className="wh-col-right">
+      {tipsBlock}
     </div>
+  );
+
+  /* ─── Bloc pédagogique (À quoi ça sert / Pourquoi / Conseil) ────
+     Visible sur la home compte neuf ET sur la home avec contenu
+     (David veut garder ces repères en permanence, avec rotation).
+  */
+  const pedagoBlock = (
+    <>
+      <div className="wh-card">
+        <div className="wh-card-kicker">À quoi ça sert</div>
+        <div className="wh-card-title">{aQuoiTip?.title}</div>
+        <div className="wh-card-body">{aQuoiTip?.body}</div>
+      </div>
+      <div className="wh-card">
+        <div className="wh-card-kicker">Pourquoi « Versions »</div>
+        <div className="wh-card-title">{pourquoiTip?.title}</div>
+        <div className="wh-card-body">{pourquoiTip?.body}</div>
+      </div>
+      <div className="wh-card">
+        <div className="wh-card-kicker">Conseil</div>
+        <div className="wh-card-title">{conseilTip?.title}</div>
+        <div className="wh-card-body">{conseilTip?.body}</div>
+      </div>
+    </>
   );
 
   /* ─── Desktop-only : hero d'onboarding (compte neuf) ──── */
@@ -987,33 +1094,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   const onboardingColumnLeft = (
     <div className="wh-col-left">
-      <div className="wh-card">
-        <div className="wh-card-kicker">À quoi ça sert</div>
-        <div className="wh-card-title">Analyser comme un pro</div>
-        <div className="wh-card-body">
-          Chaque titre que tu importes passe par une analyse objective —
-          équilibre fréquentiel, dynamique, stéréo, saturation — puis par une
-          écoute IA détaillée. Tu obtiens une fiche claire qui pointe ce qui
-          marche et ce qui coince.
-        </div>
-      </div>
-      <div className="wh-card">
-        <div className="wh-card-kicker">Pourquoi « Versions »</div>
-        <div className="wh-card-title">Comparer tes mix entre eux</div>
-        <div className="wh-card-body">
-          Uploade plusieurs versions d'un même titre : VERSIONS met en évidence
-          ce qui a progressé, ce qui régresse, et les zones à retravailler.
-        </div>
-      </div>
-      <div className="wh-card">
-        <div className="wh-card-kicker">Conseil</div>
-        <div className="wh-card-title">Commence simple</div>
-        <div className="wh-card-body">
-          Pas besoin d'un master commercial — même un bounce rapide depuis Logic
-          ou Ableton suffit pour un premier tour. Tu peux aussi tester sur une
-          référence que tu aimes pour calibrer ton oreille.
-        </div>
-      </div>
+      {pedagoBlock}
     </div>
   );
 
@@ -1038,7 +1119,10 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           {actionsBar}
           <div className="wh-cols">
             <div className="wh-col-left">{projectsAccordion}</div>
-            {editorialSidebar}
+            <div className="wh-col-right">
+              {tipsBlock}
+              {pedagoBlock}
+            </div>
           </div>
         </>
       ) : (
