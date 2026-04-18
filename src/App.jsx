@@ -1130,9 +1130,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       {/* Header */}
       {!isMobile ? (
         <div className="wh-tagline-hero">
-          <div className="wh-tagline-salut">
-            {displayName ? `Salut ${displayName}` : 'Bienvenue'}
-          </div>
           <div className="wh-tagline-text">{homeTagline}</div>
         </div>
       ) : (
