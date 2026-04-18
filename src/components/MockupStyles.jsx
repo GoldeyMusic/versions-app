@@ -609,6 +609,12 @@ export default function MockupStyles() {
   .focus { bottom: 68px; }
   .sidebar { height: calc(100vh - 68px); }
 
+  /* Sur la home (welcome), le BottomPlayer est masqué : on retire la réserve
+     de 68px pour que la sidebar et le contenu descendent jusqu'en bas. */
+  body.no-bottom-player { padding-bottom: 0; }
+  body.no-bottom-player .focus { bottom: 0; }
+  body.no-bottom-player .sidebar { height: 100vh; }
+
   /* ── Chat panneau ouvert — overlay glissant ──────── */
   .chat-backdrop {
     position: fixed; inset: 0 0 68px 0;

@@ -1564,6 +1564,17 @@ export default function VersionsApp() {
       scrollContentRef.current.scrollTop = 0;
     }
   }, [screen]);
+
+  // Sur la home (welcome), le BottomPlayer est masqué : on retire la réserve
+  // de 68px appliquée globalement (padding-bottom du body + height de la
+  // sidebar) pour que la sidebar descende jusqu'en bas. Les autres écrans
+  // conservent la réserve, puisque le player y est toujours présent.
+  useEffect(() => {
+    const cls = 'no-bottom-player';
+    if (screen === 'welcome') document.body.classList.add(cls);
+    else document.body.classList.remove(cls);
+    return () => { document.body.classList.remove(cls); };
+  }, [screen]);
   const [config, setConfig] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [askOpen, setAskOpen] = useState(false);
