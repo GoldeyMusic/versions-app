@@ -789,6 +789,205 @@ export default function MockupStyles() {
     font-size: 16px; line-height: 1;
   }
 
+  /* ══════════════════════════════════════════════════════ */
+  /* WELCOME HOME — variante DESKTOP (max-width 1200, 2 col) */
+  /* ══════════════════════════════════════════════════════ */
+  .welcome-home.wh-desktop {
+    max-width: 1200px;
+    padding: 36px 40px 120px;
+    gap: 24px;
+  }
+  .wh-desktop .wh-header { margin-bottom: 4px; align-items: flex-start; }
+  .wh-desktop .wh-greeting { font-size: 28px; letter-spacing: 2.5px; text-align: left; }
+  .wh-desktop .wh-actions { justify-content: flex-start; flex-wrap: wrap; }
+  .wh-desktop .wh-tracklist { max-width: none; margin: 0; }
+  .wh-desktop .wh-section-title { font-size: 22px; margin-bottom: 14px; }
+
+  /* ── Hero "Reprends où tu étais" ── */
+  .wh-hero {
+    display: grid; grid-template-columns: 280px 1fr; gap: 22px; align-items: stretch;
+    background: linear-gradient(180deg, rgba(245,176,86,0.04) 0%, rgba(245,176,86,0) 100%), var(--s1);
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 22px; position: relative; overflow: hidden;
+  }
+  .wh-hero-cover {
+    aspect-ratio: 1/1; border-radius: 12px; overflow: hidden;
+    background: linear-gradient(135deg, rgba(245,176,86,0.25), rgba(232,136,85,0.35));
+    position: relative; display: flex; align-items: center; justify-content: center;
+  }
+  .wh-hero-cover.tint-0 { background: linear-gradient(135deg, #2a3850, #4a6ba8); }
+  .wh-hero-cover.tint-1 { background: linear-gradient(135deg, #3b2a4a, #7a5aa8); }
+  .wh-hero-cover.tint-2 { background: linear-gradient(135deg, #2a4a3d, #4aa88a); }
+  .wh-hero-cover.tint-3 { background: linear-gradient(135deg, #4a2a30, #b85a4a); }
+  .wh-hero-cover.tint-4 { background: linear-gradient(135deg, #4a4030, #b89055); }
+  .wh-hero-cover.tint-5 { background: linear-gradient(135deg, #2a2a38, #4a4a5a); }
+  .wh-hero-play {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: rgba(255,255,255,0.92); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: #0a0a0b;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+    transition: transform .15s;
+  }
+  .wh-hero-play:hover { transform: scale(1.06); }
+  .wh-hero-info {
+    display: flex; flex-direction: column; justify-content: space-between;
+    gap: 16px; min-width: 0;
+  }
+  .wh-hero-kicker {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--amber);
+  }
+  .wh-hero-title {
+    font-family: var(--display); font-size: 40px; letter-spacing: 1px; line-height: 1;
+    margin: 4px 0 6px; color: var(--text);
+  }
+  .wh-hero-meta {
+    font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.5px;
+  }
+  .wh-hero-wave {
+    height: 48px; display: flex; align-items: center; gap: 3px;
+    margin: 8px 0;
+  }
+  .wh-hero-wave span {
+    display: inline-block; width: 3px; background: var(--amber);
+    border-radius: 2px; flex-shrink: 0;
+  }
+  .wh-hero-bottom {
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  }
+  .wh-hero-score { display: flex; align-items: baseline; gap: 8px; }
+  .wh-hero-score .num {
+    font-family: var(--display); font-size: 42px; letter-spacing: 1px;
+    color: var(--amber); line-height: 1;
+  }
+  .wh-hero-score .lbl {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px;
+    color: var(--muted); text-transform: uppercase;
+  }
+  .wh-hero-ctas { display: flex; gap: 10px; }
+  .wh-btn {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1.2px;
+    text-transform: uppercase; padding: 10px 16px; border-radius: 8px;
+    background: transparent; border: 1px solid var(--border); color: var(--text);
+    cursor: pointer; transition: all .15s;
+  }
+  .wh-btn:hover { border-color: var(--amber); color: var(--amber); }
+  .wh-btn-primary {
+    background: var(--amber); border-color: var(--amber); color: #0a0a0b; font-weight: 500;
+  }
+  .wh-btn-primary:hover { background: #ffca7a; border-color: #ffca7a; color: #0a0a0b; }
+
+  /* ── Stats row ── */
+  .wh-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+  }
+  .wh-stat {
+    background: var(--s1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 18px; min-height: 110px;
+    display: flex; flex-direction: column;
+  }
+  .wh-stat-label {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .wh-stat-value {
+    font-family: var(--display); font-size: 32px; letter-spacing: 1px;
+    margin-top: 8px; line-height: 1; color: var(--text);
+  }
+  .wh-stat-hint {
+    font-family: var(--mono); font-size: 10px; color: var(--amber);
+    margin-top: auto; letter-spacing: 0.5px;
+  }
+  .wh-stat-spark { margin-top: auto; }
+
+  /* ── 2-col layout ── */
+  .wh-cols {
+    display: grid; grid-template-columns: 1fr 320px; gap: 22px;
+    align-items: start;
+  }
+  .wh-col-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .wh-col-right { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px; }
+
+  /* ── Editorial cards ── */
+  .wh-card {
+    background: var(--s1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .wh-card.amber {
+    background: rgba(245,176,86,0.06); border-color: rgba(245,176,86,0.22);
+  }
+  .wh-card-kicker {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--amber); margin-bottom: 8px;
+  }
+  .wh-card-title {
+    font-family: var(--serif); font-style: italic; font-size: 20px;
+    margin-bottom: 8px; color: var(--text);
+  }
+  .wh-card-body {
+    font-size: 13px; line-height: 1.55; color: var(--soft); font-weight: 300;
+  }
+  .wh-card-link {
+    display: inline-block; margin-top: 10px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--amber);
+    background: transparent; border: none; padding: 0; cursor: pointer;
+  }
+  .wh-card-link:hover { color: #ffca7a; }
+
+  /* ── Checklist ── */
+  .wh-checklist { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .wh-check-item {
+    display: flex; align-items: center; gap: 10px; padding: 6px 0;
+    font-size: 13px;
+  }
+  .wh-check-box {
+    width: 16px; height: 16px; border-radius: 4px;
+    border: 1.5px solid var(--muted); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: transparent;
+  }
+  .wh-check-item.done .wh-check-box {
+    background: var(--amber); border-color: var(--amber); color: #0a0a0b;
+  }
+  .wh-check-item.done .wh-check-label {
+    color: var(--muted); text-decoration: line-through;
+  }
+  .wh-check-label { color: var(--soft); }
+
+  /* ── Onboarding hero (état vide) ── */
+  .wh-onboarding {
+    background: linear-gradient(135deg, rgba(245,176,86,0.10) 0%, rgba(245,176,86,0.02) 100%);
+    border: 1px solid rgba(245,176,86,0.22);
+    border-radius: 20px;
+    padding: 36px 40px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center;
+  }
+  .wh-ob-welcome {
+    font-family: var(--display); font-size: 46px; line-height: 1;
+    letter-spacing: 2px; margin-bottom: 12px; color: var(--text);
+  }
+  .wh-ob-tagline {
+    font-family: var(--serif); font-style: italic; font-size: 20px;
+    color: var(--soft); margin-bottom: 22px;
+  }
+  .wh-ob-ctas { display: flex; gap: 10px; flex-wrap: wrap; }
+  .wh-ob-checklist {
+    background: var(--s1); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 22px;
+  }
+  .wh-ob-progress {
+    height: 6px; background: rgba(255,255,255,0.06); border-radius: 4px;
+    overflow: hidden; margin: 12px 0 14px;
+  }
+  .wh-ob-progress-fill {
+    height: 100%; background: var(--amber); transition: width .3s;
+  }
+
+  /* ── Le layout hérite des règles mobile existantes via media query.  */
+  /* ── Sur mobile on ne rend pas la variante desktop, donc pas de     */
+  /* ── conflit à gérer.                                               */
+
   .wh-section-title {
     font-family: var(--serif); font-size: 28px; font-weight: 400;
     line-height: 1.15; letter-spacing: 0.3px;

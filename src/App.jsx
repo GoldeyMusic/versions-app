@@ -288,6 +288,85 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   };
 
   const totalProjects = projects.length;
+  const isMobile = useMobile();
+  const hasContent = totalProjects > 0 && allTracks.length > 0;
+
+  // ── Calculs pour la home desktop (hero + stats) ──
+  // Ne servent qu'en version desktop ; mobile les ignore entièrement.
+  const trackLastDateMs = (t) => {
+    const latest = t?.versions?.[t.versions.length - 1];
+    const src = latest?.date || latest?.createdAt || t?.createdAt;
+    return src ? new Date(src).getTime() : 0;
+  };
+
+  const heroInfo = (() => {
+    // 1) Titre en cours de lecture dans le player (fil d'Ariane naturel)
+    if (playerState?.trackTitle) {
+      for (const p of projects) {
+        const found = p.tracks?.find((t) => t.title === playerState.trackTitle);
+        if (found) {
+          const gradIdx = p.coverGradient
+            ? p.coverGradient % PROJECT_COLOR_COUNT
+            : (projectColorMap.get(p.id) ?? 0);
+          return { track: found, project: p, gradIdx };
+        }
+      }
+    }
+    // 2) Sinon : titre le plus récemment analysé
+    let best = null;
+    for (const p of projects) {
+      for (const t of p.tracks || []) {
+        const ts = trackLastDateMs(t);
+        if (!best || ts > best.ts) {
+          const gradIdx = p.coverGradient
+            ? p.coverGradient % PROJECT_COLOR_COUNT
+            : (projectColorMap.get(p.id) ?? 0);
+          best = { track: t, project: p, gradIdx, ts };
+        }
+      }
+    }
+    return best;
+  })();
+
+  const nTitres = allTracks.length;
+  const nVersions = allTracks.reduce((s, t) => s + (t.versions?.length || 0), 0);
+  const allScores = allTracks
+    .map((t) => t.versions?.[t.versions.length - 1]?.analysisResult?.fiche?.globalScore)
+    .filter((x) => typeof x === 'number');
+  const avgScore = allScores.length
+    ? Math.round(allScores.reduce((s, x) => s + x, 0) / allScores.length)
+    : null;
+
+  // Derniers scores chronologiques pour le sparkline
+  const sparkScores = allTracks
+    .flatMap((t) => (t.versions || []).map((v) => ({
+      score: v.analysisResult?.fiche?.globalScore,
+      ts: new Date(v.date || v.createdAt || 0).getTime(),
+    })))
+    .filter((e) => typeof e.score === 'number')
+    .sort((a, b) => a.ts - b.ts)
+    .slice(-8)
+    .map((e) => e.score);
+
+  // Date de la dernière activité (version la plus récente toutes confondues)
+  const lastActivityMs = Math.max(0, ...allTracks.map(trackLastDateMs));
+  const formatRelative = (ms) => {
+    if (!ms) return '—';
+    // Label informatif "il y a X" — l'impureté de Date.now() est tolérée ici
+    // car la valeur n'influence pas l'arbre (pas de condition de rendu).
+    // eslint-disable-next-line react-hooks/purity
+    const diff = Date.now() - ms;
+    const day = 86400000;
+    if (diff < day) return "aujourd'hui";
+    if (diff < 2 * day) return 'hier';
+    if (diff < 7 * day) return `il y a ${Math.floor(diff / day)}j`;
+    if (diff < 30 * day) return `il y a ${Math.floor(diff / (7 * day))}sem`;
+    return `il y a ${Math.floor(diff / (30 * day))} mois`;
+  };
+
+  // Score de la dernière analyse du héros (pour badge + CTA "Voir la fiche")
+  const heroLatestVersion = heroInfo?.track?.versions?.[heroInfo.track.versions.length - 1];
+  const heroScore = heroLatestVersion?.analysisResult?.fiche?.globalScore;
 
   /* ─── Drag & drop Home ──────────────────────────────── */
   const [drag, setDrag] = useState(null);
@@ -330,236 +409,229 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     } catch (err) { console.warn('home drop track on project failed', err); }
   };
 
-  return (
-    <div className="welcome-home">
-      {/* Header */}
-      <div className="wh-header">
-        <div className="wh-greeting">{displayName ? `SALUT ${displayName.toUpperCase()} !` : "SALUT !"}</div>
-      </div>
-
-      {/* Raccourcis : Nouveau projet + Nouveau titre + Ajouter une version */}
-      <div className="wh-actions">
-        <button className="wh-action" onClick={handleNewProject}>
+  /* ─── JSX réutilisables (mobile + desktop) ─────────────── */
+  const actionsBar = (
+    <div className="wh-actions">
+      <button className="wh-action" onClick={handleNewProject}>
+        <span className="wh-action-icon">+</span>
+        <span>Nouveau projet</span>
+      </button>
+      <div ref={projectPickerRef} style={{ position: "relative", display: "flex" }}>
+        <button
+          className="wh-action"
+          style={{ flex: 1 }}
+          onClick={() => {
+            // Pas encore de projet → créer d'abord, puis chaîner sur le titre
+            if (totalProjects === 0) {
+              pendingNewTrackRef.current = true;
+              handleNewProject();
+              return;
+            }
+            setPickingProject((v) => !v);
+          }}
+        >
           <span className="wh-action-icon">+</span>
-          <span>Nouveau projet</span>
+          <span>Nouveau titre</span>
         </button>
-        <div ref={projectPickerRef} style={{ position: "relative", display: "flex" }}>
-          <button
-            className="wh-action"
-            style={{ flex: 1 }}
-            onClick={() => {
-              // Pas encore de projet → créer d'abord, puis chaîner sur le titre
-              if (totalProjects === 0) {
-                pendingNewTrackRef.current = true;
-                handleNewProject();
-                return;
-              }
-              setPickingProject((v) => !v);
-            }}
-          >
-            <span className="wh-action-icon">+</span>
-            <span>Nouveau titre</span>
-          </button>
-          {pickingProject && (
-            <div className="wh-track-picker">
-              <div className="wh-picker-label">Dans quel projet ?</div>
-              {projects.map((p) => (
-                <div
-                  key={p.id}
-                  className="wh-picker-item"
-                  onClick={() => {
-                    setPickingProject(false);
-                    if (onSetCurrentProject) onSetCurrentProject(p.id);
-                    if (onNewTrack) onNewTrack();
-                  }}
-                >
-                  {p.name}
-                  <span className="wh-picker-count">
-                    {metaLine(p)}
-                  </span>
-                </div>
-              ))}
+        {pickingProject && (
+          <div className="wh-track-picker">
+            <div className="wh-picker-label">Dans quel projet ?</div>
+            {projects.map((p) => (
               <div
-                className="wh-picker-item wh-picker-create"
+                key={p.id}
+                className="wh-picker-item"
                 onClick={() => {
                   setPickingProject(false);
-                  pendingNewTrackRef.current = true;
-                  handleNewProject();
+                  if (onSetCurrentProject) onSetCurrentProject(p.id);
+                  if (onNewTrack) onNewTrack();
                 }}
               >
-                <span className="wh-action-icon">+</span>
-                <span>Nouveau projet</span>
+                {p.name}
+                <span className="wh-picker-count">{metaLine(p)}</span>
               </div>
-            </div>
-          )}
-        </div>
-        {allTracks.length > 0 && (
-          <div ref={pickerRef} style={{ position: "relative", display: "flex" }}>
-            <button
-              className="wh-action"
-              style={{ flex: 1 }}
-              onClick={() => setPickingTrack((v) => !v)}
+            ))}
+            <div
+              className="wh-picker-item wh-picker-create"
+              onClick={() => {
+                setPickingProject(false);
+                pendingNewTrackRef.current = true;
+                handleNewProject();
+              }}
             >
-              <span className="wh-action-icon">↻</span>
-              <span>Ajouter une version</span>
-            </button>
-            {pickingTrack && (
-              <div className="wh-track-picker">
-                <div className="wh-picker-label">À quel titre ?</div>
-                {allTracks.map((t) => (
-                  <div
-                    key={t.id}
-                    className="wh-picker-item"
-                    onClick={() => { setPickingTrack(false); if (onAddVersion) onAddVersion(t); }}
-                  >
-                    {t.title}
-                    <span className="wh-picker-count">
-                      {t.versions?.length || 0} version{(t.versions?.length || 0) > 1 ? "s" : ""}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+              <span className="wh-action-icon">+</span>
+              <span>Nouveau projet</span>
+            </div>
           </div>
         )}
       </div>
-
-      {/* Liste accordéon des projets */}
-      {totalProjects > 0 && (
-        <div className="wh-tracklist">
-          <div className="wh-section-title">Mes <em>projets</em></div>
-          <div className="wh-projects">
-            {projects.map((project) => {
-              const isOpen = project.id === currentProjectId;
-              const nTracks = project.tracks?.length || 0;
-              // Couleur du projet : priorité à cover_gradient s'il est explicite (>0),
-              // sinon index unique issu de assignProjectColors (garanti distinct
-              // tant qu'on a ≤ PROJECT_COLOR_COUNT projets).
-              const gradIdx = project.coverGradient
-                ? project.coverGradient % PROJECT_COLOR_COUNT
-                : (projectColorMap.get(project.id) ?? 0);
-              const isProjectPlaying = !!(
-                playerState?.isPlaying &&
-                project.tracks?.some((t) => t.title === playerState.trackTitle)
-              );
-
-              return (
+      {allTracks.length > 0 && (
+        <div ref={pickerRef} style={{ position: "relative", display: "flex" }}>
+          <button
+            className="wh-action"
+            style={{ flex: 1 }}
+            onClick={() => setPickingTrack((v) => !v)}
+          >
+            <span className="wh-action-icon">↻</span>
+            <span>Ajouter une version</span>
+          </button>
+          {pickingTrack && (
+            <div className="wh-track-picker">
+              <div className="wh-picker-label">À quel titre ?</div>
+              {allTracks.map((t) => (
                 <div
-                  key={project.id}
-                  className={`wh-acc-item wh-tint-${gradIdx}${isOpen ? ' open' : ''}`}
+                  key={t.id}
+                  className="wh-picker-item"
+                  onClick={() => { setPickingTrack(false); if (onAddVersion) onAddVersion(t); }}
                 >
-                  {/* Header projet */}
-                  <div
-                    className="wh-acc-head"
-                    onClick={() => toggleProject(project.id)}
-                    onDragOver={(e) => {
-                      // Seul le drop d'un titre depuis un autre projet est accepté sur le header
-                      if (!drag || drag.type !== 'track') return;
-                      if (drag.sourceProjectId === project.id) return;
-                      e.preventDefault();
-                      e.dataTransfer.dropEffect = 'move';
-                      e.currentTarget.style.background = 'rgba(245,176,86,.08)';
-                    }}
-                    onDragLeave={(e) => { e.currentTarget.style.background = ''; }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const d = drag;
-                      e.currentTarget.style.background = '';
-                      setDrag(null);
-                      if (!d) return;
-                      if (d.type === 'track' && d.sourceProjectId !== project.id) {
-                        handleDropTrackOnProject(d.trackId, d.sourceProjectId, project.id);
-                      }
-                    }}
-                  >
-                    <div className={`wh-acc-cover wh-gradient-${gradIdx}`}>
-                      {/* Play projet — apparaît au hover de la vignette, centré dessus */}
-                      <button
-                        className={`wh-acc-play${isProjectPlaying ? ' playing' : ''}`}
-                        onClick={(e) => handlePlayProject(e, project)}
-                        title={isProjectPlaying ? 'En lecture' : 'Lire le projet'}
-                      >
-                        {isProjectPlaying ? (
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
-                        ) : (
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9-5.5z"/></svg>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="wh-acc-title">
-                      <div className="wh-acc-kicker">Projet</div>
-                      <div className="wh-acc-name">{project.name}</div>
-                      <div className="wh-acc-meta">{metaLine(project)}</div>
-                      {isOpen && (
-                        <div className="wh-head-actions">
-                          <button
-                            className="wh-head-btn primary"
-                            onClick={(e) => { e.stopPropagation(); handleAddTrackToProject(project); }}
-                          >+ Nouveau titre</button>
-                          <button
-                            className="wh-head-btn"
-                            onClick={(e) => { e.stopPropagation(); handleRenameProjectStart(project); }}
-                          >Renommer</button>
-                          <button
-                            className="wh-head-btn danger ghost"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteProject(project); }}
-                          >Supprimer</button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Body : liste des titres */}
-                  <div className="wh-acc-body">
-                    {nTracks > 0 ? (
-                      <div className="wh-acc-tracklist">
-                        {project.tracks.map((track) => (
-                          <WhTrackRow
-                            key={track.id}
-                            track={track}
-                            project={project}
-                            playerState={playerState}
-                            onPlay={() => handlePlayTrack(track, project)}
-                            onViewFiche={() => handleViewFiche(track)}
-                            onRename={() => handleRenameTrackStart(track)}
-                            onDelete={() => handleDeleteTrack(track)}
-                            drag={drag}
-                            setDrag={setDrag}
-                            onDropTrackOnTrack={handleDropTrackOnTrack}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="wh-acc-empty">Aucun titre pour l'instant.</div>
-                    )}
-                    <button
-                      className="wh-acc-add-track"
-                      onClick={() => handleAddTrackToProject(project)}
-                    >+ Nouveau titre</button>
-                  </div>
+                  {t.title}
+                  <span className="wh-picker-count">
+                    {t.versions?.length || 0} version{(t.versions?.length || 0) > 1 ? "s" : ""}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
 
-      {/* Empty state */}
-      {totalProjects === 0 && (
-        <div className="wh-empty">
-          <img src="/logo-versions.svg" alt="" style={{ height: 60, width: "auto", opacity: 0.3 }} />
-          <div>Crée ton premier projet pour commencer l'aventure.</div>
-        </div>
-      )}
+  const projectsAccordion = totalProjects > 0 ? (
+    <div className="wh-tracklist">
+      <div className="wh-section-title">Mes <em>projets</em></div>
+      <div className="wh-projects">
+        {projects.map((project) => {
+          const isOpen = project.id === currentProjectId;
+          const nTracks = project.tracks?.length || 0;
+          // Couleur du projet : priorité à cover_gradient s'il est explicite (>0),
+          // sinon index unique issu de assignProjectColors (garanti distinct
+          // tant qu'on a ≤ PROJECT_COLOR_COUNT projets).
+          const gradIdx = project.coverGradient
+            ? project.coverGradient % PROJECT_COLOR_COUNT
+            : (projectColorMap.get(project.id) ?? 0);
+          const isProjectPlaying = !!(
+            playerState?.isPlaying &&
+            project.tracks?.some((t) => t.title === playerState.trackTitle)
+          );
 
-      {/* Tip en bas */}
-      <div className="wh-tip">
-        <div className="wh-tip-label">Le saviez-vous</div>
-        <div className="wh-tip-text">{tip}</div>
+          return (
+            <div
+              key={project.id}
+              className={`wh-acc-item wh-tint-${gradIdx}${isOpen ? ' open' : ''}`}
+            >
+              {/* Header projet */}
+              <div
+                className="wh-acc-head"
+                onClick={() => toggleProject(project.id)}
+                onDragOver={(e) => {
+                  // Seul le drop d'un titre depuis un autre projet est accepté sur le header
+                  if (!drag || drag.type !== 'track') return;
+                  if (drag.sourceProjectId === project.id) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  e.currentTarget.style.background = 'rgba(245,176,86,.08)';
+                }}
+                onDragLeave={(e) => { e.currentTarget.style.background = ''; }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const d = drag;
+                  e.currentTarget.style.background = '';
+                  setDrag(null);
+                  if (!d) return;
+                  if (d.type === 'track' && d.sourceProjectId !== project.id) {
+                    handleDropTrackOnProject(d.trackId, d.sourceProjectId, project.id);
+                  }
+                }}
+              >
+                <div className={`wh-acc-cover wh-gradient-${gradIdx}`}>
+                  {/* Play projet — apparaît au hover de la vignette, centré dessus */}
+                  <button
+                    className={`wh-acc-play${isProjectPlaying ? ' playing' : ''}`}
+                    onClick={(e) => handlePlayProject(e, project)}
+                    title={isProjectPlaying ? 'En lecture' : 'Lire le projet'}
+                  >
+                    {isProjectPlaying ? (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9-5.5z"/></svg>
+                    )}
+                  </button>
+                </div>
+
+                <div className="wh-acc-title">
+                  <div className="wh-acc-kicker">Projet</div>
+                  <div className="wh-acc-name">{project.name}</div>
+                  <div className="wh-acc-meta">{metaLine(project)}</div>
+                  {isOpen && (
+                    <div className="wh-head-actions">
+                      <button
+                        className="wh-head-btn primary"
+                        onClick={(e) => { e.stopPropagation(); handleAddTrackToProject(project); }}
+                      >+ Nouveau titre</button>
+                      <button
+                        className="wh-head-btn"
+                        onClick={(e) => { e.stopPropagation(); handleRenameProjectStart(project); }}
+                      >Renommer</button>
+                      <button
+                        className="wh-head-btn danger ghost"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteProject(project); }}
+                      >Supprimer</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Body : liste des titres */}
+              <div className="wh-acc-body">
+                {nTracks > 0 ? (
+                  <div className="wh-acc-tracklist">
+                    {project.tracks.map((track) => (
+                      <WhTrackRow
+                        key={track.id}
+                        track={track}
+                        project={project}
+                        playerState={playerState}
+                        onPlay={() => handlePlayTrack(track, project)}
+                        onViewFiche={() => handleViewFiche(track)}
+                        onRename={() => handleRenameTrackStart(track)}
+                        onDelete={() => handleDeleteTrack(track)}
+                        drag={drag}
+                        setDrag={setDrag}
+                        onDropTrackOnTrack={handleDropTrackOnTrack}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="wh-acc-empty">Aucun titre pour l'instant.</div>
+                )}
+                <button
+                  className="wh-acc-add-track"
+                  onClick={() => handleAddTrackToProject(project)}
+                >+ Nouveau titre</button>
+              </div>
+            </div>
+          );
+        })}
       </div>
+    </div>
+  ) : null;
 
-      {/* Modale renommer titre */}
+  const mobileEmpty = totalProjects === 0 ? (
+    <div className="wh-empty">
+      <img src="/logo-versions.svg" alt="" style={{ height: 60, width: "auto", opacity: 0.3 }} />
+      <div>Crée ton premier projet pour commencer l'aventure.</div>
+    </div>
+  ) : null;
+
+  const tipBlock = (
+    <div className="wh-tip">
+      <div className="wh-tip-label">Le saviez-vous</div>
+      <div className="wh-tip-text">{tip}</div>
+    </div>
+  );
+
+  const modalsSlot = (
+    <>
       {renameTrackTarget && (
         <RenameModal
           title="Renommer le titre"
@@ -573,8 +645,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           confirmLabel="Renommer"
         />
       )}
-
-      {/* Modale renommer projet */}
       {renameProjectTarget && (
         <RenameModal
           title="Renommer le projet"
@@ -588,8 +658,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           confirmLabel="Renommer"
         />
       )}
-
-      {/* Modale nouveau projet */}
       {newProjectOpen && (
         <RenameModal
           title="Nouveau projet"
@@ -603,6 +671,274 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           confirmLabel="Créer"
         />
       )}
+    </>
+  );
+
+  /* ─── Desktop-only : hero "Reprends où tu étais" ───────── */
+  const heroIsPlaying = !!(
+    heroInfo && playerState?.isPlaying &&
+    playerState?.trackTitle === heroInfo.track.title
+  );
+  const desktopHero = heroInfo && (
+    <div className="wh-hero">
+      <div className={`wh-hero-cover tint-${heroInfo.gradIdx}`}>
+        <button
+          className="wh-hero-play"
+          onClick={() => handlePlayTrack(heroInfo.track, heroInfo.project)}
+          title={heroIsPlaying ? 'En lecture' : 'Écouter'}
+          aria-label={heroIsPlaying ? 'Mettre en pause' : 'Lire ce titre'}
+        >
+          {heroIsPlaying ? (
+            <svg width="22" height="22" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9-5.5z"/></svg>
+          )}
+        </button>
+      </div>
+      <div className="wh-hero-info">
+        <div>
+          <div className="wh-hero-kicker">Reprends où tu étais</div>
+          <div className="wh-hero-title">{heroInfo.track.title}</div>
+          <div className="wh-hero-meta">
+            {heroInfo.project.name} · {heroInfo.track.versions?.length || 0} version{(heroInfo.track.versions?.length || 0) > 1 ? 's' : ''}
+            {heroLatestVersion?.date ? ` · ${heroLatestVersion.date}` : ''}
+          </div>
+        </div>
+        <div className="wh-hero-wave" aria-hidden>
+          {Array.from({ length: 40 }, (_, i) => (
+            <span
+              key={i}
+              style={{
+                height: `${22 + ((i * 7 + 11) % 70)}%`,
+                opacity: 0.35 + (((i * 13) % 55) / 100),
+              }}
+            />
+          ))}
+        </div>
+        <div className="wh-hero-bottom">
+          {typeof heroScore === 'number' ? (
+            <div className="wh-hero-score">
+              <span className="num">{Math.round(heroScore)}</span>
+              <span className="lbl">Score du mix</span>
+            </div>
+          ) : <div />}
+          <div className="wh-hero-ctas">
+            <button className="wh-btn wh-btn-primary" onClick={() => handleViewFiche(heroInfo.track)}>
+              Voir la fiche
+            </button>
+            <button className="wh-btn" onClick={() => { if (onAddVersion) onAddVersion(heroInfo.track); }}>
+              Nouvelle version
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ─── Desktop-only : ligne de stats (4 tuiles) ─────────── */
+  const sparkPath = (() => {
+    if (sparkScores.length < 2) return null;
+    const w = 120, h = 24;
+    const min = Math.min(...sparkScores);
+    const max = Math.max(...sparkScores);
+    const range = max - min || 1;
+    return sparkScores
+      .map((s, i) => {
+        const x = (i / (sparkScores.length - 1)) * w;
+        const y = h - ((s - min) / range) * h;
+        return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+      })
+      .join(' ');
+  })();
+
+  const desktopStats = (
+    <div className="wh-stats">
+      <div className="wh-stat">
+        <div className="wh-stat-label">Titres</div>
+        <div className="wh-stat-value">{nTitres}</div>
+        <div className="wh-stat-hint">{totalProjects} projet{totalProjects > 1 ? 's' : ''}</div>
+      </div>
+      <div className="wh-stat">
+        <div className="wh-stat-label">Versions</div>
+        <div className="wh-stat-value">{nVersions}</div>
+        <div className="wh-stat-hint">{formatRelative(lastActivityMs)}</div>
+      </div>
+      <div className="wh-stat">
+        <div className="wh-stat-label">Score moyen</div>
+        <div className="wh-stat-value">{avgScore != null ? avgScore : '—'}</div>
+        <div className="wh-stat-hint">
+          {allScores.length
+            ? `sur ${allScores.length} analyse${allScores.length > 1 ? 's' : ''}`
+            : 'aucune analyse'}
+        </div>
+      </div>
+      <div className="wh-stat">
+        <div className="wh-stat-label">Progression</div>
+        <div className="wh-stat-spark">
+          {sparkPath ? (
+            <svg width="100%" height="38" viewBox="0 0 120 24" preserveAspectRatio="none" aria-hidden>
+              <path d={sparkPath} fill="none" stroke="var(--amber)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          ) : (
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', marginTop: 8, letterSpacing: 0.5 }}>
+              Analyse quelques titres pour voir ta courbe.
+            </div>
+          )}
+        </div>
+        <div className="wh-stat-hint">
+          {sparkScores.length >= 2 ? `${sparkScores.length} dernières analyses` : 'courbe en construction'}
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ─── Desktop-only : colonne éditoriale droite ────────── */
+  const editorialSidebar = (
+    <div className="wh-col-right">
+      <div className="wh-card amber">
+        <div className="wh-card-kicker">Le saviez-vous</div>
+        <div className="wh-card-body">{tip}</div>
+      </div>
+      <div className="wh-card">
+        <div className="wh-card-kicker">Ta progression</div>
+        <div className="wh-card-title">
+          {avgScore != null ? `Score moyen ${avgScore}/100` : 'Lance ta première analyse'}
+        </div>
+        <div className="wh-card-body">
+          {avgScore != null
+            ? "Continue à comparer tes versions pour affiner l'évaluation. Chaque analyse précise la lecture de ton mix."
+            : "Dès que tu as deux versions d'un même titre, VERSIONS compare les mix et met en lumière ce qui a bougé."}
+        </div>
+      </div>
+      <div className="wh-card">
+        <div className="wh-card-kicker">Prochain pas</div>
+        <div className="wh-card-title">Écoute à bas volume</div>
+        <div className="wh-card-body">
+          Monitorer à faible volume révèle les déséquilibres de balance. Si le mix fonctionne bas, il fonctionnera fort.
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ─── Desktop-only : hero d'onboarding (compte neuf) ──── */
+  const onboardingChecks = [
+    { label: 'Créer ton premier projet', done: totalProjects > 0 },
+    { label: 'Analyser un premier titre', done: allTracks.length > 0 },
+    { label: 'Comparer deux versions', done: nVersions > 1 },
+    { label: 'Explorer les questions au chat', done: false },
+  ];
+  const doneCount = onboardingChecks.filter((c) => c.done).length;
+  const onboardingProgress = Math.round((doneCount / onboardingChecks.length) * 100);
+
+  const desktopOnboarding = (
+    <div className="wh-onboarding">
+      <div>
+        <div className="wh-ob-welcome">
+          {displayName ? `Bienvenue, ${displayName}` : 'Bienvenue'}
+        </div>
+        <div className="wh-ob-tagline">
+          VERSIONS analyse tes mix et compare tes versions entre elles.
+          Commençons par un premier titre.
+        </div>
+        <div className="wh-ob-ctas">
+          <button
+            className="wh-btn wh-btn-primary"
+            onClick={() => {
+              if (totalProjects === 0) {
+                pendingNewTrackRef.current = true;
+                handleNewProject();
+              } else if (onNewTrack) {
+                onNewTrack();
+              }
+            }}
+          >+ Mon premier titre</button>
+          <button className="wh-btn" onClick={handleNewProject}>Nouveau projet</button>
+        </div>
+      </div>
+      <div className="wh-ob-checklist">
+        <div className="wh-card-kicker">Mise en route</div>
+        <div className="wh-ob-progress">
+          <div className="wh-ob-progress-fill" style={{ width: `${onboardingProgress}%` }} />
+        </div>
+        <div className="wh-checklist">
+          {onboardingChecks.map((c, i) => (
+            <div key={i} className={`wh-check-item${c.done ? ' done' : ''}`}>
+              <span className="wh-check-box">✓</span>
+              <span className="wh-check-label">{c.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const onboardingColumnLeft = (
+    <div className="wh-col-left">
+      <div className="wh-card">
+        <div className="wh-card-kicker">À quoi ça sert</div>
+        <div className="wh-card-title">Analyser comme un pro</div>
+        <div className="wh-card-body">
+          Chaque titre que tu importes passe par une analyse objective —
+          équilibre fréquentiel, dynamique, stéréo, saturation — puis par une
+          écoute IA détaillée. Tu obtiens une fiche claire qui pointe ce qui
+          marche et ce qui coince.
+        </div>
+      </div>
+      <div className="wh-card">
+        <div className="wh-card-kicker">Pourquoi « Versions »</div>
+        <div className="wh-card-title">Comparer tes mix entre eux</div>
+        <div className="wh-card-body">
+          Uploade plusieurs versions d'un même titre : VERSIONS met en évidence
+          ce qui a progressé, ce qui régresse, et les zones à retravailler.
+        </div>
+      </div>
+      <div className="wh-card">
+        <div className="wh-card-kicker">Conseil</div>
+        <div className="wh-card-title">Commence simple</div>
+        <div className="wh-card-body">
+          Pas besoin d'un master commercial — même un bounce rapide depuis Logic
+          ou Ableton suffit pour un premier tour. Tu peux aussi tester sur une
+          référence que tu aimes pour calibrer ton oreille.
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={`welcome-home${!isMobile ? ' wh-desktop' : ''}`}>
+      {/* Header */}
+      <div className="wh-header">
+        <div className="wh-greeting">{displayName ? `SALUT ${displayName.toUpperCase()} !` : "SALUT !"}</div>
+      </div>
+
+      {isMobile ? (
+        <>
+          {actionsBar}
+          {projectsAccordion}
+          {mobileEmpty}
+          {tipBlock}
+        </>
+      ) : hasContent ? (
+        <>
+          {desktopHero}
+          {desktopStats}
+          {actionsBar}
+          <div className="wh-cols">
+            <div className="wh-col-left">{projectsAccordion}</div>
+            {editorialSidebar}
+          </div>
+        </>
+      ) : (
+        <>
+          {desktopOnboarding}
+          <div className="wh-cols">
+            {onboardingColumnLeft}
+            {editorialSidebar}
+          </div>
+        </>
+      )}
+
+      {modalsSlot}
     </div>
   );
 }
