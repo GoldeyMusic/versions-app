@@ -914,10 +914,10 @@ export default function MockupStyles() {
      où s'empilent 6 cartes éditoriales — moins de scroll vertical.
   */
   .wh-cols {
-    display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 22px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 520px; gap: 22px;
     align-items: start;
   }
-  .wh-col-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; max-width: 640px; }
+  .wh-col-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; max-width: 560px; }
   .wh-col-right { display: flex; flex-direction: column; gap: 12px; }
 
   /* ── Editorial cards ── */
