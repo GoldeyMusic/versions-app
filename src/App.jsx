@@ -851,6 +851,27 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile }) {
   );
 }
 
+/* ── Hash routing (permet "Précédent/Suivant" navigateur) ──
+   On utilise des hashs (#/…) : un reload retombe toujours sur index.html
+   et Vercel n'a pas besoin de règle de rewrite côté serveur. */
+const SCREEN_HASH = {
+  welcome: '#/',
+  input: '#/nouveau',
+  loading: '#/analyse',
+  fiche: '#/fiche',
+  versions: '#/versions',
+  reglages: '#/reglages',
+};
+const HASH_SCREEN = {
+  '': 'welcome',
+  '#/': 'welcome',
+  '#/nouveau': 'input',
+  '#/analyse': 'loading',
+  '#/fiche': 'fiche',
+  '#/versions': 'versions',
+  '#/reglages': 'reglages',
+};
+
 /* ═══════════════════════════════════════════════════════════ */
 /* APP                                                        */
 /* ═══════════════════════════════════════════════════════════ */
@@ -860,6 +881,9 @@ export default function VersionsApp() {
   const isDesktop = !isMobile;
   // On desktop, default = "welcome" (neutral empty state); on mobile, old default = "input"
   const [screen, setScreen] = useState("welcome");
+  const isHashSyncRef = useRef(false);
+  const routeInitRef = useRef(false);
+  const prevScreenRef = useRef(null);
   const [config, setConfig] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [askOpen, setAskOpen] = useState(false);
@@ -885,6 +909,73 @@ export default function VersionsApp() {
       .then(({ data }) => { if (data) setUserProfile(data); })
       .catch(() => {});
   }, [user]);
+
+  // ── Hash routing : lecture initiale de l'URL ─────────────
+  // Quand l'utilisateur est connecté, on aligne l'écran sur le hash courant.
+  // Les écrans qui dépendent d'un state en mémoire (loading, fiche) retombent
+  // sur welcome si on y arrive directement (refresh, lien entrant).
+  useEffect(() => {
+    if (!user || routeInitRef.current) return;
+    routeInitRef.current = true;
+    const current = window.location.hash || '#/';
+    const target = HASH_SCREEN[current] || 'welcome';
+    const safe = (target === 'fiche' || target === 'loading') ? 'welcome' : target;
+    const targetHash = SCREEN_HASH[safe];
+    if (window.location.hash !== targetHash) {
+      window.history.replaceState({ screen: safe }, '', targetHash);
+    }
+    if (safe !== screen) {
+      isHashSyncRef.current = true;
+      setScreen(safe);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // ── Hash routing : screen → URL ──────────────────────────
+  // Chaque changement d'écran pousse une nouvelle entrée dans l'historique,
+  // sauf quand c'est nous-mêmes qui venons de le setter en réaction à popstate.
+  useEffect(() => {
+    if (!user) return;
+    if (isHashSyncRef.current) {
+      isHashSyncRef.current = false;
+      prevScreenRef.current = screen;
+      return;
+    }
+    const nextHash = SCREEN_HASH[screen] || '#/';
+    if (window.location.hash !== nextHash) {
+      // loading → fiche : on remplace l'entrée "loading" par "fiche" pour que
+      // "Précédent" depuis la fiche saute directement avant l'analyse au lieu
+      // de repasser sur l'écran de chargement.
+      const shouldReplace = prevScreenRef.current === 'loading' && screen === 'fiche';
+      if (shouldReplace) {
+        window.history.replaceState({ screen }, '', nextHash);
+      } else {
+        window.history.pushState({ screen }, '', nextHash);
+      }
+    }
+    prevScreenRef.current = screen;
+  }, [screen, user]);
+
+  // ── Hash routing : URL → screen (Précédent/Suivant) ──────
+  useEffect(() => {
+    const onPop = () => {
+      const current = window.location.hash || '#/';
+      const target = HASH_SCREEN[current] || 'welcome';
+      // Si on revient sur une vue qui a besoin de state volatil et qu'on ne l'a
+      // plus (recharge après précédent), on retombe proprement sur welcome.
+      const safe =
+        (target === 'fiche' && !analysisResult) ? 'welcome'
+        : (target === 'loading' && !config) ? 'welcome'
+        : target;
+      if (safe !== target) {
+        window.history.replaceState({ screen: safe }, '', SCREEN_HASH[safe]);
+      }
+      isHashSyncRef.current = true;
+      setScreen(safe);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [config, analysisResult]);
 
   // ── Onboarding gate : true si user connecté mais sans projet ──
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
