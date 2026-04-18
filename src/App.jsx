@@ -153,7 +153,7 @@ function HeroWaveform({ storagePath, isActive }) {
   );
 }
 
-function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onPlay, onToggle, playerState, refreshKey, onMutate }) {
+function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onOpenFiche, onPlay, onToggle, playerState, refreshKey, onMutate }) {
   const [projects, setProjects] = useState([]);
   const [tip] = useState(() => HOME_TIPS[Math.floor(Math.random() * HOME_TIPS.length)]);
   const [localRefresh, setLocalRefresh] = useState(0);
@@ -273,7 +273,9 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   const handleViewFiche = (track) => {
     const latest = track.versions?.[track.versions.length - 1];
-    if (latest && onSelectVersion) onSelectVersion(track, latest);
+    if (!latest) return;
+    if (onOpenFiche) onOpenFiche(track, latest);
+    else if (onSelectVersion) onSelectVersion(track, latest);
   };
 
   const handleAddTrackToProject = (project) => {
@@ -1091,7 +1093,6 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
       className="wh-track-row"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onClick={hasFiche ? onViewFiche : undefined}
       onDragOver={(e) => {
         if (!drag || drag.type !== 'track') return;
         if (drag.trackId === track.id) return;
@@ -1116,7 +1117,6 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
       }}
       style={{
         position: 'relative',
-        cursor: hasFiche ? 'pointer' : 'default',
         boxShadow: dropOver === 'before' ? 'inset 0 2px 0 0 #f5b056' : (dropOver === 'after' ? 'inset 0 -2px 0 0 #f5b056' : 'none'),
         transition: 'box-shadow .1s',
       }}
@@ -1618,6 +1618,9 @@ export default function VersionsApp() {
   };
 
   // Sidebar handlers
+  // Focus uniquement : charge l'audio dans le player et met à jour config/analysisResult,
+  // SANS basculer sur l'écran fiche (David: seuls les boutons "Analyse" et "Voir la fiche"
+  // ouvrent la fiche d'analyse).
   const handleSidebarSelectVersion = async (track, v) => {
     // Charger l'audio EN PREMIER (avant l'await) pour éviter la coupure
     if (v.storagePath) {
@@ -1630,6 +1633,21 @@ export default function VersionsApp() {
     const saved = await getAnalysis(track.id, v.id);
     setConfig({ title: track.title, version: v.name, daw: config?.daw || "Logic Pro" });
     setAnalysisResult(saved || v.analysisResult || null);
+    // Si on est déjà dans la fiche (Timeline), on y reste. Sinon on ne change pas d'écran.
+  };
+
+  // Ouvrir la fiche d'analyse : réservé aux boutons "Analyse" / "Voir la fiche".
+  const handleOpenFiche = async (track, v) => {
+    if (v?.storagePath) {
+      if (playerState?.isPlaying) {
+        play(track.title, v.name, v.storagePath);
+      } else {
+        loadPlayer(track.title, v.name, v.storagePath);
+      }
+    }
+    const saved = v ? await getAnalysis(track.id, v.id) : null;
+    setConfig({ title: track.title, version: v?.name, daw: config?.daw || "Logic Pro" });
+    setAnalysisResult(saved || v?.analysisResult || null);
     setScreen("fiche");
   };
   const handleSidebarNewTrack = () => {
@@ -1661,6 +1679,7 @@ export default function VersionsApp() {
             onNewTrack={handleSidebarNewTrack}
             onAddVersion={handleAddVersionFromPicker}
             onSelectVersion={handleSidebarSelectVersion}
+            onOpenFiche={handleOpenFiche}
             onPlay={play}
             onToggle={togglePlay}
             playerState={playerState}
@@ -1686,7 +1705,7 @@ export default function VersionsApp() {
       case "versions":
         return (
           <VersionsScreen
-            onViewAnalysis={handleSidebarSelectVersion}
+            onViewAnalysis={handleOpenFiche}
             onAddVersion={handleAddVersionFromPicker}
             autoSelectTrackTitle={autoSelectTrackTitle}
             onAutoSelectConsumed={() => setAutoSelectTrackTitle("")}
