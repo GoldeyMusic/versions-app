@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  createProject,
   renameProject,
   deleteProject,
   deleteTrack,
@@ -23,7 +22,6 @@ export default function Sidebar({
   currentProjectId,
   onSetCurrentProject,
   onSelectVersion,
-  onNewTrack,       // ancien: "Nouveau titre global" — réutilisé pour "Nouveau titre dans ce projet" (Phase 4 y ajoutera le projectId)
   onGoReglages,
   onGoHome,
   onPlay,
@@ -40,10 +38,7 @@ export default function Sidebar({
   const [renameProjectTarget, setRenameProjectTarget] = useState(null);
   const [renameTrackTarget, setRenameTrackTarget] = useState(null);
   const [renameValue, setRenameValue] = useState('');
-  const [newProjectOpen, setNewProjectOpen] = useState(false);
-  const [newProjectValue, setNewProjectValue] = useState('');
   const renameInputRef = useRef(null);
-  const newProjectInputRef = useRef(null);
 
   // Si le projet courant n'existe plus (après suppression), ouvre le 1er dispo.
   // `null` = volontairement replié → on le laisse tel quel.
@@ -171,33 +166,6 @@ export default function Sidebar({
     } catch (err) { console.warn('deleteProject failed', err); }
   };
 
-  const handleNewProject = () => {
-    setNewProjectValue('');
-    setNewProjectOpen(true);
-    setTimeout(() => newProjectInputRef.current?.focus(), 50);
-  };
-
-  const submitNewProject = async () => {
-    const name = newProjectValue.trim();
-    if (!name) return;
-    try {
-      const created = await createProject(name);
-      setNewProjectOpen(false);
-      setNewProjectValue('');
-      if (onMutate) onMutate();
-      if (created?.id && onSetCurrentProject) onSetCurrentProject(created.id);
-    } catch (err) { console.warn('createProject failed', err); }
-  };
-
-  const handleAddTrackToProject = (e, project) => {
-    e.stopPropagation();
-    // Phase 4 : on passera le projectId au flux d'upload.
-    // Pour l'instant, on marque le projet comme "courant" (sera utilisé par
-    // saveAnalysis en 4a) et on déclenche le flux "Nouveau titre".
-    if (onSetCurrentProject) onSetCurrentProject(project.id);
-    if (onNewTrack) onNewTrack();
-  };
-
   /* ─── Drag & drop ─────────────────────────────────────────── */
   // drag = { type: 'track'|'project', trackId?, sourceProjectId?, projectId? } | null
   const [drag, setDrag] = useState(null);
@@ -298,7 +266,6 @@ export default function Sidebar({
                 onDeleteTrack={handleDeleteTrack}
                 onRenameProject={handleRenameProject}
                 onDeleteProject={handleDeleteProject}
-                onAddTrack={handleAddTrackToProject}
                 currentTrackTitle={currentTrackTitle}
                 playerState={playerState}
                 drag={drag}
@@ -309,12 +276,6 @@ export default function Sidebar({
               />
             ));
           })()}
-
-          <button
-            className="new-track"
-            onClick={handleNewProject}
-            style={{ marginTop: 10 }}
-          >+ Nouveau projet</button>
         </div>
       </div>
 
@@ -348,20 +309,6 @@ export default function Sidebar({
         />
       )}
 
-      {/* Modale nouveau projet */}
-      {newProjectOpen && (
-        <RenameModal
-          title="Nouveau projet"
-          placeholder="Nom du projet"
-          value={newProjectValue}
-          originalValue=""
-          inputRef={newProjectInputRef}
-          onChange={setNewProjectValue}
-          onCancel={() => setNewProjectOpen(false)}
-          onSubmit={submitNewProject}
-          confirmLabel="Créer"
-        />
-      )}
     </aside>
   );
 }
@@ -378,7 +325,6 @@ function ProjectAccordion({
   onDeleteTrack,
   onRenameProject,
   onDeleteProject,
-  onAddTrack,
   currentTrackTitle,
   playerState,
   drag,
@@ -562,8 +508,6 @@ function ProjectAccordion({
               borderRadius: 10, padding: 6, boxShadow: '0 12px 32px rgba(0,0,0,.55)',
             }}
           >
-            <SbMenuItem label="+ Nouveau titre" onClick={(e) => { setMenuOpen(false); onAddTrack(e, project); }} />
-            <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
             <SbMenuItem label="Renommer" onClick={(e) => { setMenuOpen(false); onRenameProject(e, project); }} />
             <SbMenuItem label="Supprimer" danger onClick={(e) => { setMenuOpen(false); onDeleteProject(e, project); }} />
           </div>
@@ -598,24 +542,6 @@ function ProjectAccordion({
               Aucun titre pour l'instant
             </div>
           )}
-          <button
-            onClick={(e) => onAddTrack(e, project)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              width: '100%',
-              padding: '8px 10px',
-              marginTop: 2,
-              background: 'transparent',
-              border: '1px dashed #2a2a2e',
-              borderRadius: 8,
-              color: '#8a8a95',
-              fontSize: 12,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3a3a44'; e.currentTarget.style.color = '#c5c5c7'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2e'; e.currentTarget.style.color = '#8a8a95'; }}
-          >+ Nouveau titre</button>
         </div>
       )}
     </div>
