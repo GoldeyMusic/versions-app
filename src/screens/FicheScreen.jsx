@@ -995,7 +995,7 @@ function QualitativeSection({ listening }) {
   const hasAny = impression || points.length || aTravailler.length || espace || dynamique || potentiel;
   if (!hasAny) return null;
 
-  const hasDeploy = espace || dynamique;
+  const hasDeploy = potentiel || espace || dynamique;
 
   return (
     <section className={`row-qualitative${expanded ? ' expanded' : ''}`}>
@@ -1005,15 +1005,15 @@ function QualitativeSection({ listening }) {
 
         <div className="impression-summary">
           {impression && <p>{renderWithEmphasis(impression)}</p>}
+        </div>
+
+        <div className="impression-full">
           {potentiel && (
             <>
               <div className="subq-title">Potentiel</div>
               <p>{renderWithEmphasis(potentiel)}</p>
             </>
           )}
-        </div>
-
-        <div className="impression-full">
           {espace && (
             <>
               <div className="subq-title">Espace</div>
