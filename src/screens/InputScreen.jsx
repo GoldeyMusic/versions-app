@@ -293,158 +293,171 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
         <div className="input-progress-bar" style={{ width: `${(filled / totalSteps) * 100}%` }} />
       </div>
 
-      {/* Form */}
-      <div className="input-form">
+      {/* Body — 2 colonnes sur desktop (≥ 1100px) : fichier + type à gauche,
+          métadonnées + CTA à droite. Mono-colonne sur mobile, ordre logique. */}
+      <div className="input-body">
 
-        {/* ── PROJET ── */}
-        <div className="input-section">
-          <div className="input-section-label">
-            PROJET <div className="input-section-line" />
-            {projectId && <span style={{ color: '#7bd88f', fontSize: 9 }}>✓</span>}
+        {/* ══ Colonne principale (gauche) : fichier + type de titre ══ */}
+        <div className="input-col-main">
+
+          {/* ── FILE DROP ── */}
+          <div className="input-section input-section-file">
+            <div className="input-section-label">
+              TON MIX <div className="input-section-line" />
+              {file && <span style={{ color: '#7bd88f', fontSize: 9 }}>✓</span>}
+            </div>
+            <FileDropZone file={file} onFile={handleMainFile} />
           </div>
-          <ProjectPicker
-            projects={projects}
-            projectId={projectId}
-            onChange={setProjectId}
-            onCreateNew={handleCreateNewProject}
-            locked={lockProject}
-          />
-          {lockProject && (
-            <div style={{ marginTop: 6, fontSize: 10, color: T.muted, fontFamily: 'IBM Plex Mono, monospace' }}>
-              Projet verrouillé — ce titre appartient déjà à ce projet.
+
+          {/* ── TYPE DE TITRE (nouveau titre uniquement) ── */}
+          {file && askVocal && (
+            <div className="input-section" style={{ animation: 'fadeup .25s ease' }}>
+              <div className="input-section-label">
+                TYPE DE TITRE <div className="input-section-line" />
+                {vocalOk && <span style={{ color: '#7bd88f', fontSize: 9 }}>✓</span>}
+              </div>
+
+              {/* Étape 1 : chanté ou instrumental ? */}
+              <div className="input-vkind">
+                <button
+                  type="button"
+                  className={`input-vpill${vocalKind === 'vocal' ? ' on' : ''}`}
+                  onClick={() => { setVocalKind('vocal'); setFinalInstru(null); }}
+                >
+                  Chanté
+                </button>
+                <button
+                  type="button"
+                  className={`input-vpill${vocalKind === 'instrumental' ? ' on' : ''}`}
+                  onClick={() => setVocalKind('instrumental')}
+                >
+                  Instrumental
+                </button>
+              </div>
+
+              {/* Étape 2 : si instrumental, voix à venir ou définitif ? */}
+              {vocalKind === 'instrumental' && (
+                <div style={{ marginTop: 10, animation: 'fadeup .2s ease' }}>
+                  <div style={{ fontSize: 10, color: T.muted, marginBottom: 6, fontFamily: T.mono, letterSpacing: 1 }}>
+                    VOIX SUR CE TITRE ?
+                  </div>
+                  <div className="input-vkind">
+                    <button
+                      type="button"
+                      className={`input-vpill small${finalInstru === false ? ' on' : ''}`}
+                      onClick={() => setFinalInstru(false)}
+                      title="Tu prévois d'ajouter des voix sur une prochaine version"
+                    >
+                      À venir
+                    </button>
+                    <button
+                      type="button"
+                      className={`input-vpill small${finalInstru === true ? ' on' : ''}`}
+                      onClick={() => setFinalInstru(true)}
+                      title="Œuvre purement instrumentale, pas de voix prévue"
+                    >
+                      Instrumental définitif
+                    </button>
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 10, color: T.muted, fontFamily: T.mono, lineHeight: 1.5 }}>
+                    {finalInstru === null && 'Ce choix évite que l\'absence de voix soit notée comme un défaut à tort.'}
+                    {finalInstru === false && 'L\'analyse traitera la voix comme une étape à franchir.'}
+                    {finalInstru === true && 'La section voix sera ignorée dans l\'analyse et le score.'}
+                  </div>
+                </div>
+              )}
             </div>
           )}
+
         </div>
 
-        {/* ── FILE DROP ── */}
-        <div className="input-section">
-          <div className="input-section-label">
-            TON MIX <div className="input-section-line" />
-            {file && <span style={{ color: '#7bd88f', fontSize: 9 }}>✓</span>}
-          </div>
-          <FileDropZone file={file} onFile={handleMainFile} />
-        </div>
+        {/* ══ Colonne secondaire (droite) : métadonnées + CTA ══ */}
+        <div className="input-col-side">
 
-        {/* ── TITLE + VERSION (appear after file) ── */}
-        {file && (
-          <div className="input-fields" style={{ animation: 'fadeup .25s ease' }}>
-            <div className="input-field">
-              <label className="input-label">TITRE</label>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Nom du morceau"
-                className="input-input"
-                style={{ borderColor: title ? '#7bd88f66' : undefined }}
-              />
-            </div>
-            <div className="input-field">
-              <label className="input-label">VERSION</label>
-              <input
-                value={version}
-                onChange={(e) => setVersion(e.target.value)}
-                placeholder="ex: Mix v3, Demo, Master…"
-                className="input-input"
-                style={{ borderColor: version ? '#7bd88f66' : undefined }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* ── TYPE DE TITRE (nouveau titre uniquement) ── */}
-        {file && askVocal && (
-          <div className="input-section" style={{ animation: 'fadeup .25s ease' }}>
+          {/* ── PROJET ── */}
+          <div className="input-section">
             <div className="input-section-label">
-              TYPE DE TITRE <div className="input-section-line" />
-              {vocalOk && <span style={{ color: '#7bd88f', fontSize: 9 }}>✓</span>}
+              PROJET <div className="input-section-line" />
+              {projectId && <span style={{ color: '#7bd88f', fontSize: 9 }}>✓</span>}
             </div>
-
-            {/* Étape 1 : chanté ou instrumental ? */}
-            <div className="input-vkind">
-              <button
-                type="button"
-                className={`input-vpill${vocalKind === 'vocal' ? ' on' : ''}`}
-                onClick={() => { setVocalKind('vocal'); setFinalInstru(null); }}
-              >
-                Chanté
-              </button>
-              <button
-                type="button"
-                className={`input-vpill${vocalKind === 'instrumental' ? ' on' : ''}`}
-                onClick={() => setVocalKind('instrumental')}
-              >
-                Instrumental
-              </button>
-            </div>
-
-            {/* Étape 2 : si instrumental, voix à venir ou définitif ? */}
-            {vocalKind === 'instrumental' && (
-              <div style={{ marginTop: 10, animation: 'fadeup .2s ease' }}>
-                <div style={{ fontSize: 10, color: T.muted, marginBottom: 6, fontFamily: T.mono, letterSpacing: 1 }}>
-                  VOIX SUR CE TITRE ?
-                </div>
-                <div className="input-vkind">
-                  <button
-                    type="button"
-                    className={`input-vpill small${finalInstru === false ? ' on' : ''}`}
-                    onClick={() => setFinalInstru(false)}
-                    title="Tu prévois d'ajouter des voix sur une prochaine version"
-                  >
-                    À venir
-                  </button>
-                  <button
-                    type="button"
-                    className={`input-vpill small${finalInstru === true ? ' on' : ''}`}
-                    onClick={() => setFinalInstru(true)}
-                    title="Œuvre purement instrumentale, pas de voix prévue"
-                  >
-                    Instrumental définitif
-                  </button>
-                </div>
-                <div style={{ marginTop: 8, fontSize: 10, color: T.muted, fontFamily: T.mono, lineHeight: 1.5 }}>
-                  {finalInstru === null && 'Ce choix évite que l\'absence de voix soit notée comme un défaut à tort.'}
-                  {finalInstru === false && 'L\'analyse traitera la voix comme une étape à franchir.'}
-                  {finalInstru === true && 'La section voix sera ignorée dans l\'analyse et le score.'}
-                </div>
+            <ProjectPicker
+              projects={projects}
+              projectId={projectId}
+              onChange={setProjectId}
+              onCreateNew={handleCreateNewProject}
+              locked={lockProject}
+            />
+            {lockProject && (
+              <div style={{ marginTop: 6, fontSize: 10, color: T.muted, fontFamily: 'IBM Plex Mono, monospace' }}>
+                Projet verrouillé — ce titre appartient déjà à ce projet.
               </div>
             )}
           </div>
-        )}
 
-        {/* ── DAW ── */}
-        <div className="input-section">
-          <div className="input-section-label">
-            TON DAW <div className="input-section-line" />
-            {daw && <span style={{ color: '#7bd88f', fontSize: 9 }}>✓</span>}
-          </div>
-          <div style={{ position: 'relative' }}>
-            <select
-              value={daw || ''}
-              onChange={(e) => setDaw(e.target.value || null)}
-              className="input-select"
-              style={{ borderColor: daw ? `${T.amber}88` : undefined, color: daw ? T.text : undefined }}
-            >
-              <option value="">Sélectionne ton DAW…</option>
-              {DAWS.map((d) => (
-                <option key={d} value={d}>{d}</option>
-              ))}
-            </select>
-            <div className="input-select-arrow">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M2 4 L6 8 L10 4" stroke={daw ? T.amber : '#7c7c80'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+          {/* ── TITLE + VERSION (appear after file) ── */}
+          {file && (
+            <div className="input-section" style={{ animation: 'fadeup .25s ease' }}>
+              <div className="input-fields">
+                <div className="input-field">
+                  <label className="input-label">TITRE</label>
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Nom du morceau"
+                    className="input-input"
+                    style={{ borderColor: title ? '#7bd88f66' : undefined }}
+                  />
+                </div>
+                <div className="input-field">
+                  <label className="input-label">VERSION</label>
+                  <input
+                    value={version}
+                    onChange={(e) => setVersion(e.target.value)}
+                    placeholder="ex: Mix v3, Demo, Master…"
+                    className="input-input"
+                    style={{ borderColor: version ? '#7bd88f66' : undefined }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── DAW ── */}
+          <div className="input-section">
+            <div className="input-section-label">
+              TON DAW <div className="input-section-line" />
+              {daw && <span style={{ color: '#7bd88f', fontSize: 9 }}>✓</span>}
+            </div>
+            <div style={{ position: 'relative' }}>
+              <select
+                value={daw || ''}
+                onChange={(e) => setDaw(e.target.value || null)}
+                className="input-select"
+                style={{ borderColor: daw ? `${T.amber}88` : undefined, color: daw ? T.text : undefined }}
+              >
+                <option value="">Sélectionne ton DAW…</option>
+                {DAWS.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+              <div className="input-select-arrow">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 4 L6 8 L10 4" stroke={daw ? T.amber : '#7c7c80'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* ── CTA ── */}
-        <button
-          onClick={handleAnalyze}
-          disabled={!ok}
-          className={`input-cta${ok ? ' ready' : ''}`}
-        >
-          {ok ? 'Analyser' : `${filled}/${totalSteps} champs remplis`}
-        </button>
+          {/* ── CTA ── */}
+          <button
+            onClick={handleAnalyze}
+            disabled={!ok}
+            className={`input-cta${ok ? ' ready' : ''}`}
+          >
+            {ok ? 'Analyser' : `${filled}/${totalSteps} champs remplis`}
+          </button>
+
+        </div>
 
       </div>
 

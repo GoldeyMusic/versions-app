@@ -1968,7 +1968,7 @@ export default function MockupStyles() {
 
   /* ── Input Screen ── */
   .input-screen {
-    width: 100%; max-width: 520px; margin: 0 auto;
+    width: 100%; max-width: 1200px; margin: 0 auto;
     padding: 50px 40px 80px; box-sizing: border-box;
     display: flex; flex-direction: column; gap: 28px;
     animation: fadeup .35s ease;
@@ -1999,6 +1999,32 @@ export default function MockupStyles() {
 
   .input-form {
     display: flex; flex-direction: column; gap: 16px;
+  }
+
+  /* Body en 2 colonnes sur desktop (fichier+type à gauche, metadonnees+CTA à droite).
+     Par défaut : mono-colonne. La grille 2-col s'active via le media query ≥1100px. */
+  .input-body {
+    display: flex; flex-direction: column; gap: 16px;
+    max-width: 520px; margin: 0 auto; width: 100%;
+  }
+  .input-col-main,
+  .input-col-side {
+    display: flex; flex-direction: column; gap: 16px;
+    min-width: 0;
+  }
+
+  /* À partir de 1100px, on bascule le body en grille 2 colonnes.
+     Ratio 1.2fr / 1fr : le fichier (colonne principale) a un peu plus de poids
+     visuel que les métadonnées. align-items:start pour éviter que la colonne
+     la plus courte ne soit étirée. */
+  @media (min-width: 1100px) {
+    .input-body {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 24px;
+      align-items: start;
+      max-width: 1100px;
+    }
   }
 
   .input-section {
