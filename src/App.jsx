@@ -1029,7 +1029,10 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         <div className="wh-hero-bottom">
           {typeof heroScore === 'number' ? (
             <div className="wh-hero-score">
-              <span className="num">{Math.round(heroScore)}</span>
+              <span className="num">
+                {Math.round(heroScore)}
+                <span className="num-suffix">/100</span>
+              </span>
               <span className="lbl">Score du mix</span>
             </div>
           ) : <div />}
