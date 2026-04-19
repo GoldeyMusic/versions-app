@@ -967,12 +967,15 @@ export default function MockupStyles() {
   .wh-stat-spark { margin-top: auto; }
 
   /* ── 2-col layout ──
-     Colonne gauche plus étroite (la liste de projets n'a pas besoin
-     d'être très large) pour laisser plus de place à la colonne droite
-     où s'empilent 6 cartes éditoriales — moins de scroll vertical.
+     Les deux colonnes sont fractionnaires pour rester équilibrées
+     quand la fenêtre grandit : un léger avantage à la gauche
+     (hero + stats + projets) mais la droite suit le resize au
+     lieu de rester figée à 520px.
   */
   .wh-cols {
-    display: grid; grid-template-columns: minmax(0, 1fr) 520px; gap: 22px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(380px, 1fr);
+    gap: 22px;
     align-items: start;
   }
   .wh-col-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; max-width: 560px; }
