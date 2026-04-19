@@ -820,6 +820,176 @@ function VersionChat({ config, analysisResult, open, onClose, anchored = false }
   );
 }
 
+// ── Helpers durée / delta ─────────────────────────────────
+
+function fmtDuration(sec) {
+  if (sec == null || !isFinite(sec)) return '—';
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+function fmtScoreDelta(cur, prev) {
+  if (cur == null || prev == null) return null;
+  const d = cur - prev;
+  if (d === 0) return '= v. préc.';
+  return `${d > 0 ? '+' : '−'}${Math.abs(Math.round(d))} pts`;
+}
+function fmtDurationDelta(cur, prev) {
+  if (cur == null || prev == null) return null;
+  const d = Math.round(cur - prev);
+  if (d === 0) return '= v. préc.';
+  return `${d > 0 ? '+' : '−'}${Math.abs(d)}s`;
+}
+function scoreTier(v) {
+  if (v == null) return 'mid';
+  if (v < 60) return 'low';
+  if (v < 75) return 'mid';
+  return 'high';
+}
+
+// ── EvolutionPanel (sparkline + 2 stats) ──────────────────
+
+function EvolutionPanel({ versionScores, currentVersionName, currentScore, currentDuration, prevScore, prevDuration }) {
+  const scores = versionScores.map((v) => v.score).filter((s) => typeof s === 'number');
+  const hasMultiple = scores.length >= 2;
+  const maxScore = scores.length ? Math.max(...scores, 100) : 100;
+  const firstName = versionScores[0]?.name;
+  const lastName = versionScores[versionScores.length - 1]?.name;
+  const deltaLabel = fmtScoreDelta(currentScore, prevScore);
+
+  return (
+    <div className="evolution-panel">
+      <div className="vr-title">
+        {hasMultiple ? `Évolution ${firstName} → ${lastName}` : 'Évolution'}
+      </div>
+
+      <div className="spark">
+        {versionScores.length === 0 ? (
+          <div className="spark-empty">—</div>
+        ) : versionScores.map((v, i) => {
+          const s = typeof v.score === 'number' ? v.score : 0;
+          const h = Math.max(6, (s / maxScore) * 100);
+          const tier = scoreTier(v.score);
+          return (
+            <div
+              key={i}
+              className={`bar ${tier}`}
+              style={{ height: `${h}%` }}
+              title={`${v.name} · ${typeof v.score === 'number' ? v.score : '—'}`}
+            />
+          );
+        })}
+      </div>
+
+      {hasMultiple && (
+        <div className="evo-label">
+          <span>{firstName} · {versionScores[0]?.score ?? '—'}</span>
+          {deltaLabel && <span className={`delta ${currentScore - prevScore >= 0 ? 'up' : 'down'}`}>{deltaLabel}</span>}
+          <span>{lastName} · {versionScores[versionScores.length - 1]?.score ?? '—'}</span>
+        </div>
+      )}
+
+      <div className="stats-grid">
+        <div className="stat">
+          <div className="k">Version active</div>
+          <div className="v" title={currentVersionName || ''}>{currentVersionName || '—'}</div>
+          <div className="d">
+            {prevScore != null && currentScore != null
+              ? (fmtScoreDelta(currentScore, prevScore) || `${currentScore} pts`)
+              : (currentScore != null ? `${currentScore} pts` : '—')}
+          </div>
+        </div>
+        <div className="stat">
+          <div className="k">Durée</div>
+          <div className="v">{fmtDuration(currentDuration)}</div>
+          <div className="d">
+            {fmtDurationDelta(currentDuration, prevDuration) || '—'}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── QualitativeSection v2 (2 colonnes : impression toggle | forts+travail) ──
+
+function QualitativeSection({ listening }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!listening) return null;
+
+  const impression = listening?.impression;
+  const points = Array.isArray(listening?.points_forts) ? listening.points_forts : [];
+  const aTravailler = Array.isArray(listening?.a_travailler) ? listening.a_travailler : [];
+  const espace = listening?.espace;
+  const dynamique = listening?.dynamique;
+  const potentiel = listening?.potentiel;
+
+  const hasAny = impression || points.length || aTravailler.length || espace || dynamique || potentiel;
+  if (!hasAny) return null;
+
+  const hasDeploy = espace || dynamique;
+
+  return (
+    <section className={`row-qualitative${expanded ? ' expanded' : ''}`}>
+      {/* Colonne gauche : Impression (+ Potentiel) → déploie Espace + Dynamique */}
+      <div className="q-block impression">
+        <div className="q-title"><span className="dot" />Impression</div>
+
+        <div className="impression-summary">
+          {impression && <p>{renderWithEmphasis(impression)}</p>}
+          {potentiel && (
+            <>
+              <div className="subq-title">Potentiel</div>
+              <p>{renderWithEmphasis(potentiel)}</p>
+            </>
+          )}
+        </div>
+
+        <div className="impression-full">
+          {espace && (
+            <>
+              <div className="subq-title">Espace</div>
+              <p>{renderWithEmphasis(espace)}</p>
+            </>
+          )}
+          {dynamique && (
+            <>
+              <div className="subq-title">Dynamique</div>
+              <p>{renderWithEmphasis(dynamique)}</p>
+            </>
+          )}
+        </div>
+
+        {hasDeploy && (
+          <button className="impression-toggle" onClick={() => setExpanded((v) => !v)}>
+            {expanded ? '− Réduire' : "+ Voir l\u2019écoute complète"}
+          </button>
+        )}
+      </div>
+
+      {/* Colonne droite : Points forts + À travailler empilés */}
+      <div className="q-stack">
+        {points.length > 0 && (
+          <div className="q-block forts">
+            <div className="q-title"><span className="dot" />Points forts</div>
+            <ul>
+              {points.map((p, i) => <li key={i}>{renderWithEmphasis(p)}</li>)}
+            </ul>
+          </div>
+        )}
+        {aTravailler.length > 0 && (
+          <div className="q-block travail">
+            <div className="q-title"><span className="dot" />À travailler</div>
+            <ul>
+              {aTravailler.map((p, i) => <li key={i}>{renderWithEmphasis(p)}</li>)}
+            </ul>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ── FicheScreen (principal) ────────────────────────────────
 
 export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onTrackDeleted, onTrackRenamed, onGoHome, refreshKey }) {
@@ -880,6 +1050,26 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   const plan = fiche?.plan || [];
   const elements = fiche?.elements || [];
   const score = typeof fiche?.globalScore === 'number' ? fiche.globalScore : null;
+
+  // ── Données pour EvolutionPanel (sparkline + stats) ──
+  const allVersions = currentTrack?.versions || [];
+  const currentIdx = allVersions.findIndex((v) => v.name === config?.version);
+  const versionScores = allVersions.map((v, i) => ({
+    name: v.name,
+    // la version courante peut être en cours d'analyse → utiliser le `score` en mémoire plutôt que l'ancien analysisResult
+    score: i === currentIdx && score != null
+      ? score
+      : (typeof v.analysisResult?.fiche?.globalScore === 'number' ? v.analysisResult.fiche.globalScore : null),
+  }));
+  const currentDuration =
+    (currentIdx >= 0 && allVersions[currentIdx]?.analysisResult?.fiche?.duration_seconds) ??
+    fiche?.duration_seconds ??
+    null;
+  const prevVersion = currentIdx > 0 ? allVersions[currentIdx - 1] : null;
+  const prevScore = typeof prevVersion?.analysisResult?.fiche?.globalScore === 'number'
+    ? prevVersion.analysisResult.fiche.globalScore
+    : null;
+  const prevDuration = prevVersion?.analysisResult?.fiche?.duration_seconds ?? null;
 
   const toggleCat = (i) => setOpenCat((prev) => (prev === i ? null : i));
 
@@ -954,116 +1144,134 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             <AnalyzingState stage={stage} />
           ) : (
           <>
-          {/* 1 · Verdict */}
-          <section className="verdict">
-            {score != null && <ScoreRingBig value={score} />}
-            <div className="verdict-text">
-              {(() => {
-                // Priorité : verdict (phrase accrocheuse) pour le titre, summary pour le paragraphe.
-                // Si un seul des deux existe → on découpe en 1ʳᵉ phrase (titre) + reste (paragraphe).
-                const vText = fiche?.verdict || fiche?.summary || '';
-                if (!vText) return <h1>Analyse en cours…</h1>;
-                if (fiche?.verdict && fiche?.summary && fiche.verdict !== fiche.summary) {
+          {/* 1 · Verdict + Évolution (2 colonnes) */}
+          <section className="row-verdict">
+            <div className="rv-left">
+              {score != null && <ScoreRingBig value={score} />}
+              <div className="verdict-text">
+                {(() => {
+                  // Priorité : verdict (phrase accrocheuse) pour le titre, summary pour le paragraphe.
+                  // Si un seul des deux existe → on découpe en 1ʳᵉ phrase (titre) + reste (paragraphe).
+                  const vText = fiche?.verdict || fiche?.summary || '';
+                  if (!vText) return <h1>Analyse en cours…</h1>;
+                  if (fiche?.verdict && fiche?.summary && fiche.verdict !== fiche.summary) {
+                    return (
+                      <>
+                        <h1>{renderWithEmphasis(fiche.verdict)}</h1>
+                        <p>{fiche.summary}</p>
+                      </>
+                    );
+                  }
+                  const { headline, rest } = splitVerdict(vText);
                   return (
                     <>
-                      <h1>{renderWithEmphasis(fiche.verdict)}</h1>
-                      <p>{fiche.summary}</p>
+                      <h1>{renderWithEmphasis(headline)}</h1>
+                      {rest && <p>{rest}</p>}
                     </>
                   );
-                }
-                const { headline, rest } = splitVerdict(vText);
-                return (
-                  <>
-                    <h1>{renderWithEmphasis(headline)}</h1>
-                    {rest && <p>{rest}</p>}
-                  </>
-                );
-              })()}
+                })()}
+              </div>
+            </div>
+            <div className="rv-right">
+              <EvolutionPanel
+                versionScores={versionScores}
+                currentVersionName={config?.version}
+                currentScore={score}
+                currentDuration={currentDuration}
+                prevScore={prevScore}
+                prevDuration={prevDuration}
+              />
             </div>
           </section>
 
-          {/* 2 · Écoute qualitative (Gemini + Claude) */}
-          {listening && <ListeningSection listening={listening} />}
+          {/* 2 · Écoute qualitative (2 cols : Impression | Points forts + À travailler) */}
+          <QualitativeSection listening={listening} />
 
-          {/* 3 · Plan d'action */}
-          {plan.length > 0 && (
-            <>
-              <div className="section-head">
-                <span className="t">Plan d'action</span>
-                <span className="line" />
-                <span className="count">{plan.length} ajustement{plan.length > 1 ? 's' : ''}</span>
-              </div>
-              <div className="priority-list">
-                {plan.map((p, i) => {
-                  const key = `${i}::${(p.task || '').slice(0, 60)}`;
-                  const done = resolved.has(key);
-                  const prio = (p.p || '').toLowerCase();
-                  return (
-                    <div key={i} className={`priority${done ? ' done' : ''}`} onClick={() => setFocusIdx(i)}>
-                      <span className={`pbadge ${prio}`}>{(p.p || '').toUpperCase()}</span>
-                      <span className="ptitle">{p.task}</span>
-                      <div
-                        className="pcheck"
-                        onClick={(e) => { e.stopPropagation(); toggleResolved(key); }}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 12 12" fill="none" style={{ display: done ? 'block' : 'none' }}>
-                          <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </div>
-                      <span className="parrow">→</span>
+          {/* 3 · Diagnostic (gauche) + Plan d'action (droite) */}
+          {(elements.length > 0 || plan.length > 0) && (
+            <div className="row-two">
+              <div className="col-diag">
+                {elements.length > 0 && (
+                  <>
+                    <div className="section-head">
+                      <span className="t">Diagnostic par éléments</span>
+                      <span className="line" />
+                      <span className="count">{elements.length} catégorie{elements.length > 1 ? 's' : ''}</span>
                     </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {/* 3 · Diagnostic */}
-          {elements.length > 0 && (
-            <>
-              <div className="section-head">
-                <span className="t">Diagnostic par éléments</span>
-                <span className="line" />
-                <span className="count">{elements.length} catégorie{elements.length > 1 ? 's' : ''}</span>
-              </div>
-              {elements.map((el, idx) => {
-                const open = openCat === idx;
-                const count = el.items?.length || 0;
-                const scores = (el.items || []).map((it) => it.score).filter((s) => typeof s === 'number');
-                const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
-                return (
-                  <div key={el.id || el.cat || idx} className={`diag-cat${open ? ' open' : ''}`}>
-                    <div className="diag-cat-head" onClick={() => toggleCat(idx)}>
-                      <span className="chev">
-                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                          <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                      <span className="name">{el.cat}</span>
-                      <span className="count">
-                        {count} élément{count > 1 ? 's' : ''}{avg != null ? ` · moy. ${avg.toFixed(1).replace(/\.0$/, '')}` : ''}
-                      </span>
-                    </div>
-                    <div className="diag-cat-body">
-                      {(el.items || []).map((it, i) => (
-                        <div key={it.id || i} className="diag-item">
-                          <ScoreRingSmall value={it.score} />
-                          <div className="di-body">
-                            <div className="di-name">{it.label}</div>
-                            {it.detail && <div className="di-detail">{it.detail}</div>}
-                            {Array.isArray(it.tools) && it.tools.length > 0 && (
-                              <div className="di-tools">
-                                {it.tools.map((t) => <span key={t}>{t}</span>)}
+                    {elements.map((el, idx) => {
+                      const open = openCat === idx;
+                      const count = el.items?.length || 0;
+                      const scores = (el.items || []).map((it) => it.score).filter((s) => typeof s === 'number');
+                      const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+                      return (
+                        <div key={el.id || el.cat || idx} className={`diag-cat${open ? ' open' : ''}`}>
+                          <div className="diag-cat-head" onClick={() => toggleCat(idx)}>
+                            <span className="chev">
+                              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            </span>
+                            <span className="name">{el.cat}</span>
+                            <span className="count">
+                              {count} élément{count > 1 ? 's' : ''}{avg != null ? ` · moy. ${avg.toFixed(1).replace(/\.0$/, '')}` : ''}
+                            </span>
+                          </div>
+                          <div className="diag-cat-body">
+                            {(el.items || []).map((it, i) => (
+                              <div key={it.id || i} className="diag-item">
+                                <ScoreRingSmall value={it.score} />
+                                <div className="di-body">
+                                  <div className="di-name">{it.label}</div>
+                                  {it.detail && <div className="di-detail">{it.detail}</div>}
+                                  {Array.isArray(it.tools) && it.tools.length > 0 && (
+                                    <div className="di-tools">
+                                      {it.tools.map((t) => <span key={t}>{t}</span>)}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            )}
+                            ))}
                           </div>
                         </div>
-                      ))}
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+              <div className="col-plan">
+                {plan.length > 0 && (
+                  <>
+                    <div className="section-head">
+                      <span className="t">Plan d'action</span>
+                      <span className="line" />
+                      <span className="count">{plan.length} ajustement{plan.length > 1 ? 's' : ''}</span>
                     </div>
-                  </div>
-                );
-              })}
-            </>
+                    <div className="priority-list">
+                      {plan.map((p, i) => {
+                        const key = `${i}::${(p.task || '').slice(0, 60)}`;
+                        const done = resolved.has(key);
+                        const prio = (p.p || '').toLowerCase();
+                        return (
+                          <div key={i} className={`priority${done ? ' done' : ''}`} onClick={() => setFocusIdx(i)}>
+                            <span className={`pbadge ${prio}`}>{(p.p || '').toUpperCase()}</span>
+                            <span className="ptitle">{p.task}</span>
+                            <div
+                              className="pcheck"
+                              onClick={(e) => { e.stopPropagation(); toggleResolved(key); }}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 12 12" fill="none" style={{ display: done ? 'block' : 'none' }}>
+                                <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            </div>
+                            <span className="parrow">→</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           )}
           </>
           )}
