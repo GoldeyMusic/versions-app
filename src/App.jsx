@@ -1253,7 +1253,21 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   return (
     <div className={`welcome-home${!isMobile ? ' wh-desktop' : ''}`}>
-      {/* Header — même tagline desktop/mobile, avec mot en orange */}
+      {/* Bouton Ajouter desktop : fixe en haut à droite de la page
+          pour rester en évidence, quel que soit le scroll. */}
+      {!isMobile && (
+        <button
+          className="wh-action wh-action-primary wh-add-floating"
+          onClick={() => setAddModalOpen(true)}
+          aria-label="Ajouter"
+        >
+          <span className="wh-action-icon">+</span>
+          <span>Ajouter</span>
+        </button>
+      )}
+
+      {/* Header — même tagline desktop/mobile, avec mot en orange.
+          En desktop, masquée ici et réinsérée sous les stats. */}
       <div className="wh-tagline-hero">
         <div className="wh-tagline-text">« {renderTagline(homeTagline)} »</div>
       </div>
@@ -1271,7 +1285,11 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         <>
           {desktopHero}
           {desktopStats}
-          {actionsBar}
+          {/* Tagline éditoriale sous les 4 stats — respire avec du padding
+              vertical pour rester lisible. */}
+          <div className="wh-tagline-mid">
+            <div className="wh-tagline-text">« {renderTagline(homeTagline)} »</div>
+          </div>
           <div className="wh-cols">
             <div className="wh-col-left">{projectsAccordion}</div>
             <div className="wh-col-right">

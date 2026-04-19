@@ -829,6 +829,28 @@ export default function MockupStyles() {
   /* Tagline éditoriale masquée sur desktop (trop d'air avant le hero) ;
      conservée sur mobile où elle reste utile. */
   .wh-desktop .wh-tagline-hero { display: none; }
+
+  /* Tagline ré-insérée sous les 4 cadres de stats : padding vertical
+     pour respirer, mêmes glyphes que la version haute. */
+  .wh-tagline-mid {
+    display: flex; align-items: center; justify-content: center;
+    text-align: center;
+    padding: 28px 24px 24px;
+  }
+  .wh-tagline-mid .wh-tagline-text {
+    font-family: var(--serif); font-style: italic; font-size: 28px;
+    line-height: 1.3; color: var(--text); max-width: 820px;
+    font-weight: 400;
+  }
+
+  /* Bouton Ajouter flottant en haut à droite (desktop uniquement).
+     Fixed pour rester visible quel que soit le scroll. */
+  .wh-add-floating {
+    position: fixed;
+    top: 16px;
+    right: 24px;
+    z-index: 20;
+  }
   .wh-desktop .wh-header { margin-bottom: 4px; align-items: flex-start; }
   .wh-desktop .wh-greeting { font-size: 28px; letter-spacing: 2.5px; text-align: left; }
   .wh-desktop .wh-actions { justify-content: flex-start; flex-wrap: wrap; }
