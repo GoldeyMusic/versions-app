@@ -757,7 +757,7 @@ export default function MockupStyles() {
   }
   .fiche-chat-side {
     position: fixed;
-    top: 60px;            /* juste sous la timeline sticky */
+    top: 88px;            /* sous la timeline sticky, avec marge pour voir "Discussion" */
     right: 16px;
     bottom: 84px;         /* 68px player + 16px respiration */
     width: 384px;
