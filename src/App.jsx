@@ -1033,7 +1033,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 {Math.round(heroScore)}
                 <span className="num-suffix">/100</span>
               </span>
-              <span className="lbl">Score du mix</span>
+              <span className="lbl">— Score du mix</span>
             </div>
           ) : <div />}
           <div className="wh-hero-ctas">
