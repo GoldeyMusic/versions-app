@@ -1276,9 +1276,10 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           {actionsBar}
           {projectsAccordion}
           {mobileEmpty}
-          {/* Tips et cartes pédagogiques (rotation à chaque ouverture) */}
-          {tipsBlock}
-          {pedagoBlock}
+          {/* Tips masqués jusqu'à ce que les projets soient connus — évite
+              l'affichage tips-avant-projets quand il n'y a pas encore de cache */}
+          {projectsLoaded && tipsBlock}
+          {projectsLoaded && pedagoBlock}
         </>
       ) : hasContent ? (
         <>
@@ -1777,6 +1778,11 @@ function VersionsAppAuthed() {
   // déclenche l'onboarding bloquant et pré-charge le premier audio pour
   // éliminer le délai de première lecture.
   useEffect(() => {
+    // Auth pas encore stabilisée : on garde le state initialisé depuis le cache
+    // localStorage sans le réinitialiser à []. Sans ce guard, le !user ci-dessous
+    // s'exécute avec user=null pendant le chargement auth et efface le cache →
+    // tips visibles un instant avant que les projets réapparaissent (layout shift).
+    if (authLoading) return;
     if (!user) {
       setProjects([]);
       setProjectsLoaded(false);
@@ -1802,7 +1808,7 @@ function VersionsAppAuthed() {
       if (firstProject?.id) setCurrentProjectId((cur) => cur ?? firstProject.id);
     }).catch(() => {});
     return () => { alive = false; };
-  }, [user, projectsRefreshKey]);
+  }, [user, projectsRefreshKey, authLoading]);
 
   const handleOnboardingCreate = async (name) => {
     const created = await createProject(name);
