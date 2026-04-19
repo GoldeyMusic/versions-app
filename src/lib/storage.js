@@ -388,6 +388,7 @@ export async function loadProjects() {
       id,
       name,
       cover_gradient,
+      cover_image_url,
       position,
       created_at,
       tracks(
@@ -411,6 +412,7 @@ export async function loadProjects() {
     id: p.id,
     name: p.name,
     coverGradient: p.cover_gradient,
+    coverImageUrl: p.cover_image_url || null,
     position: p.position,
     createdAt: p.created_at,
     tracks: (p.tracks || [])
@@ -490,6 +492,68 @@ export async function renameProject(projectId, newName) {
 }
 
 /**
+ * Upload / replace a project cover image.
+ * Bucket `project-covers` (public). Path = `{user_id}/{project_id}.{ext}`.
+ * Renvoie l'URL publique, ou null en cas d'échec.
+ */
+export async function setProjectCoverImage(projectId, file) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !file) return null;
+
+  const ext = (file.name || '').split('.').pop()?.toLowerCase() || 'jpg';
+  const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) ? ext : 'jpg';
+  const path = `${user.id}/${projectId}.${safeExt}`;
+
+  const { error: uploadErr } = await supabase.storage
+    .from('project-covers')
+    .upload(path, file, { upsert: true, contentType: file.type || `image/${safeExt}` });
+  if (uploadErr) {
+    console.warn('[storage] setProjectCoverImage upload error:', uploadErr.message);
+    return null;
+  }
+
+  const { data: urlData } = supabase.storage.from('project-covers').getPublicUrl(path);
+  // On ajoute un cache-buster pour forcer le navigateur à recharger
+  // après remplacement d'une image existante (même path → même URL).
+  const publicUrl = urlData?.publicUrl ? `${urlData.publicUrl}?v=${Date.now()}` : null;
+  if (!publicUrl) return null;
+
+  const { error: updateErr } = await supabase
+    .from('projects')
+    .update({ cover_image_url: publicUrl })
+    .eq('id', projectId);
+  if (updateErr) {
+    console.warn('[storage] setProjectCoverImage update error:', updateErr.message);
+    return null;
+  }
+  return publicUrl;
+}
+
+/**
+ * Clear a project's cover image — supprime le fichier du bucket et met
+ * cover_image_url à null en base.
+ */
+export async function clearProjectCoverImage(projectId) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  // On essaie de supprimer toutes les extensions possibles (upsert précédent
+  // peut en avoir laissé plusieurs si l'utilisateur a changé de format).
+  const paths = ['jpg', 'jpeg', 'png', 'webp', 'gif'].map(ext => `${user.id}/${projectId}.${ext}`);
+  await supabase.storage.from('project-covers').remove(paths).catch(() => {});
+
+  const { error } = await supabase
+    .from('projects')
+    .update({ cover_image_url: null })
+    .eq('id', projectId);
+  if (error) {
+    console.warn('[storage] clearProjectCoverImage update error:', error.message);
+    return false;
+  }
+  return true;
+}
+
+/**
  * Delete a project — removes audio files from Storage, then the row
  * (DB cascade deletes tracks + versions).
  * Refuses to delete the user's last remaining project.
@@ -522,6 +586,11 @@ export async function deleteProject(projectId) {
       .remove(storagePaths)
       .catch(e => console.warn('[storage] audio remove error:', e.message));
   }
+
+  // Nettoie aussi une éventuelle cover image du projet
+  const coverPaths = ['jpg', 'jpeg', 'png', 'webp', 'gif']
+    .map(ext => `${user.id}/${projectId}.${ext}`);
+  await supabase.storage.from('project-covers').remove(coverPaths).catch(() => {});
 
   const { error } = await supabase
     .from('projects')

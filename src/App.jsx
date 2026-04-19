@@ -17,7 +17,7 @@ import LoadingScreen from "./screens/LoadingScreen";
 import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
 
-import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject } from "./lib/storage";
+import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage } from "./lib/storage";
 import { assignProjectColors, PROJECT_COLOR_COUNT } from "./lib/projectColors";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./hooks/useAuth";
@@ -371,6 +371,8 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const [homeTagline] = useState(() => pickTip(HOME_TAGLINES, 'versions_tip_tagline'));
   // Modale unifiée "Ajouter" (remplace les 3 boutons nouveau projet / titre / version)
   const [addModalOpen, setAddModalOpen] = useState(false);
+  // Menu 3-points ouvert pour un projet donné (null = aucun)
+  const [openProjectMenuId, setOpenProjectMenuId] = useState(null);
   // true si l'utilisateur a cliqué "+ Nouveau projet" depuis le picker "Nouveau titre"
   // → après création on enchaîne directement sur la saisie du titre.
   const pendingNewTrackRef = useRef(false);
@@ -383,6 +385,21 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const [newProjectValue, setNewProjectValue] = useState('');
   const renameInputRef = useRef(null);
   const newProjectInputRef = useRef(null);
+
+  // Ferme le menu 3-points au clic extérieur / Escape
+  useEffect(() => {
+    if (!openProjectMenuId) return;
+    const onDown = (e) => {
+      if (!e.target.closest?.('.wh-acc-menu, .wh-acc-menu-btn')) setOpenProjectMenuId(null);
+    };
+    const onEsc = (e) => { if (e.key === 'Escape') setOpenProjectMenuId(null); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [openProjectMenuId]);
 
   // Liste à plat de tous les titres (pour le picker "À quel titre ?")
   const allTracks = projects.flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectName: p.name })));
@@ -509,6 +526,33 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       }
       if (onMutate) onMutate();
     } catch (err) { console.warn('deleteProject failed', err); }
+  };
+
+  // Changer l'image de cover du projet (file input caché, déclenché via menu)
+  const coverFileInputRef = useRef(null);
+  const [coverUploadTarget, setCoverUploadTarget] = useState(null);
+  const handleChangeCoverStart = (project) => {
+    setCoverUploadTarget(project);
+    // on relance systématiquement la value pour autoriser le re-upload du même fichier
+    if (coverFileInputRef.current) coverFileInputRef.current.value = '';
+    coverFileInputRef.current?.click();
+  };
+  const handleCoverFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    const target = coverUploadTarget;
+    e.target.value = '';
+    if (!file || !target) { setCoverUploadTarget(null); return; }
+    try {
+      await setProjectCoverImage(target.id, file);
+      if (onMutate) onMutate();
+    } catch (err) { console.warn('setProjectCoverImage failed', err); }
+    setCoverUploadTarget(null);
+  };
+  const handleClearCover = async (project) => {
+    try {
+      await clearProjectCoverImage(project.id);
+      if (onMutate) onMutate();
+    } catch (err) { console.warn('clearProjectCoverImage failed', err); }
   };
 
   // Nouveau projet
@@ -752,7 +796,14 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                   }
                 }}
               >
-                <div className={`wh-acc-cover wh-gradient-${gradIdx}`}>
+                <div
+                  className={`wh-acc-cover wh-gradient-${gradIdx}${project.coverImageUrl ? ' has-image' : ''}`}
+                  style={project.coverImageUrl ? {
+                    backgroundImage: `url("${project.coverImageUrl}")`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  } : undefined}
+                >
                   {/* Play projet — apparaît au hover de la vignette, centré dessus */}
                   <button
                     className={`wh-acc-play${isProjectPlaying ? ' playing' : ''}`}
@@ -771,23 +822,46 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                   <div className="wh-acc-kicker">Projet</div>
                   <div className="wh-acc-name">{project.name}</div>
                   <div className="wh-acc-meta">{metaLine(project)}</div>
-                  {isOpen && (
-                    <div className="wh-head-actions">
-                      <button
-                        className="wh-head-btn primary"
-                        onClick={(e) => { e.stopPropagation(); handleAddTrackToProject(project); }}
-                      >+ Nouveau titre</button>
-                      <button
-                        className="wh-head-btn"
-                        onClick={(e) => { e.stopPropagation(); handleRenameProjectStart(project); }}
-                      >Renommer</button>
-                      <button
-                        className="wh-head-btn danger ghost"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteProject(project); }}
-                      >Supprimer</button>
-                    </div>
-                  )}
                 </div>
+
+                {/* Menu 3-points en haut à droite de la carte projet */}
+                <button
+                  className="wh-acc-menu-btn"
+                  aria-label="Options du projet"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenProjectMenuId((cur) => (cur === project.id ? null : project.id));
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                    <circle cx="8" cy="3" r="1.5" />
+                    <circle cx="8" cy="8" r="1.5" />
+                    <circle cx="8" cy="13" r="1.5" />
+                  </svg>
+                </button>
+                {openProjectMenuId === project.id && (
+                  <div className="wh-acc-menu" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className="wh-acc-menu-item"
+                      onClick={() => { setOpenProjectMenuId(null); handleRenameProjectStart(project); }}
+                    >Renommer</button>
+                    <button
+                      className="wh-acc-menu-item"
+                      onClick={() => { setOpenProjectMenuId(null); handleChangeCoverStart(project); }}
+                    >{project.coverImageUrl ? "Remplacer l'image" : "Changer l'image"}</button>
+                    {project.coverImageUrl && (
+                      <button
+                        className="wh-acc-menu-item"
+                        onClick={() => { setOpenProjectMenuId(null); handleClearCover(project); }}
+                      >Retirer l'image</button>
+                    )}
+                    <div className="wh-acc-menu-sep" />
+                    <button
+                      className="wh-acc-menu-item danger"
+                      onClick={() => { setOpenProjectMenuId(null); handleDeleteProject(project); }}
+                    >Supprimer</button>
+                  </div>
+                )}
               </div>
 
               {/* Body : liste des titres */}
@@ -834,6 +908,14 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   const modalsSlot = (
     <>
+      {/* File input caché — déclenché via le menu "Changer l'image" */}
+      <input
+        ref={coverFileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        style={{ display: 'none' }}
+        onChange={handleCoverFileChange}
+      />
       {renameTrackTarget && (
         <RenameModal
           title="Renommer le titre"
@@ -902,7 +984,14 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   );
   const desktopHero = heroInfo && (
     <div className="wh-hero">
-      <div className={`wh-hero-cover tint-${heroInfo.gradIdx}`}>
+      <div
+        className={`wh-hero-cover tint-${heroInfo.gradIdx}${heroInfo.project?.coverImageUrl ? ' has-image' : ''}`}
+        style={heroInfo.project?.coverImageUrl ? {
+          backgroundImage: `url("${heroInfo.project.coverImageUrl}")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        } : undefined}
+      >
         <button
           className="wh-hero-play"
           onClick={() => handlePlayTrack(heroInfo.track, heroInfo.project)}

@@ -1462,6 +1462,57 @@ export default function MockupStyles() {
   .wh-gradient-3 { background: linear-gradient(135deg, #2a4a3a, #3f8a6a 60%, #5bc6a1); }
   .wh-gradient-4 { background: linear-gradient(135deg, #4a2a2a, #8a3f3f 60%, #c65b5b); }
   .wh-gradient-5 { background: linear-gradient(135deg, #24242c, #3a3a48 70%, #5a5a6e); }
+  /* Quand une image custom est présente, on neutralise le gradient de fond
+     (le style inline place l'image en background-image + cover). */
+  .wh-acc-cover.has-image,
+  .wh-hero-cover.has-image {
+    background-color: #141416;
+  }
+
+  /* ── Menu 3-points sur la card projet (home) ───────────────
+     Bouton discret en haut à droite de la carte, dropdown avec
+     Renommer / Changer l'image / (Retirer l'image) / Supprimer. */
+  .wh-acc-menu-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 28px; height: 28px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; border: none; border-radius: 8px;
+    color: var(--muted); cursor: pointer;
+    transition: background .15s, color .15s;
+    z-index: 3;
+  }
+  .wh-acc-menu-btn:hover {
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+  }
+  .wh-acc-menu {
+    position: absolute;
+    top: 40px; right: 10px;
+    min-width: 180px;
+    background: #141416; border: 1px solid #2a2a2e;
+    border-radius: 10px; padding: 6px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.55);
+    z-index: 10;
+    animation: fadeup .15s ease;
+  }
+  .wh-acc-menu-item {
+    display: block; width: 100%;
+    padding: 8px 12px; text-align: left;
+    background: transparent; border: none; border-radius: 6px;
+    color: var(--soft); font-family: var(--body); font-size: 13px; font-weight: 300;
+    cursor: pointer; transition: all .12s;
+  }
+  .wh-acc-menu-item:hover {
+    background: rgba(245,176,86,0.08); color: var(--amber);
+  }
+  .wh-acc-menu-item.danger { color: #d06a6a; }
+  .wh-acc-menu-item.danger:hover {
+    background: rgba(208,106,106,0.10); color: #e87a7a;
+  }
+  .wh-acc-menu-sep {
+    height: 1px; background: #2a2a2e; margin: 4px 2px;
+  }
 
   /* Layout compact sur mobile (portrait OU paysage) : vignette figée a 80x80
      alignee en haut, sinon aspect-ratio 1/1 + stretch la rend enorme et

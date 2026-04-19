@@ -458,7 +458,9 @@ function ProjectAccordion({
           aria-hidden
           style={{
             width: 16, height: 16, borderRadius: 5,
-            background: gradient,
+            background: project.coverImageUrl
+              ? `#141416 center/cover no-repeat url("${project.coverImageUrl}")`
+              : gradient,
             flexShrink: 0,
             boxShadow: open ? '0 2px 6px rgba(0,0,0,.4)' : 'none',
           }}
