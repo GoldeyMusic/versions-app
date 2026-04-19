@@ -912,11 +912,11 @@ export default function MockupStyles() {
   .wh-hero-score .num {
     font-family: var(--serif); font-size: 44px; font-weight: 400;
     color: var(--amber); line-height: 1;
-    display: inline-flex; align-items: baseline; gap: 2px;
+    display: inline-flex; align-items: baseline; gap: 4px;
   }
   .wh-hero-score .num-suffix {
-    font-family: var(--serif); font-size: 22px; letter-spacing: 0;
-    color: var(--muted); font-weight: 400;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px;
+    color: var(--muted); text-transform: uppercase; font-weight: 400;
   }
   .wh-hero-score .lbl {
     font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px;
