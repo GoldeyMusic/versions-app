@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 
+const QUERY = "(max-width: 768px)";
+
 const useMobile = () => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  // Lazy initializer : évalué une seule fois, synchrone, identique au CSS
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia(QUERY).matches);
 
   useEffect(() => {
-    const fn = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", fn);
-    return () => window.removeEventListener("resize", fn);
+    const mql = window.matchMedia(QUERY);
+    const fn = (e) => setIsMobile(e.matches);
+    mql.addEventListener("change", fn);
+    return () => mql.removeEventListener("change", fn);
   }, []);
 
   return isMobile;

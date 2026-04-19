@@ -3067,7 +3067,8 @@ export default function MockupStyles() {
 
     /* Welcome Home */
     /* gap: 12px ≈ wh-projects gap (10px) → rythme uniforme au scroll */
-    .welcome-home { padding: 24px 20px 80px; max-width: 100%; gap: 12px; }
+    /* animation: none — supprime le fadeup (opacity 0→1 sur 350ms) qui crée le flash */
+    .welcome-home { padding: 24px 20px 80px; max-width: 100%; gap: 12px; animation: none; }
     .wh-greeting { font-size: 28px; letter-spacing: 2px; }
     /* Bouton Ajouter déplacé dans le menu avatar sur mobile */
     .wh-actions { display: none; }
