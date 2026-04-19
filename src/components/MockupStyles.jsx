@@ -245,11 +245,18 @@ export default function MockupStyles() {
 
   .versions-block {
     display: flex; align-items: center; gap: 10px;
+    /* Le push-droite est désormais porté par .fiche-head-actions
+       (margin-left: auto). Fallback ici si les boutons n'apparaissent pas. */
     margin-left: auto;
     padding: 10px 10px 8px 14px;
     border: 1px solid var(--border);
     border-radius: 12px;
     background: rgba(255,255,255,0.02);
+  }
+  /* Quand les boutons sont présents, ils portent déjà le margin-left: auto —
+     on neutralise celui de .versions-block pour que les deux soient collés. */
+  .fiche-head-actions + .versions-block {
+    margin-left: 0;
   }
   .versions-label {
     font-family: var(--mono); font-size: 9px; letter-spacing: 2px;
@@ -3092,16 +3099,14 @@ export default function MockupStyles() {
     .public-fiche-main { padding: 20px 0 48px; }
   }
 
-  /* Actions Partager / Exporter PDF dans le header de la fiche,
-     à droite de la stage label "Version actuelle", juste avant
-     les chips de versions. Plus découvrable que le menu ⋯ d'une VChip. */
+  /* Actions Partager / Exporter PDF dans le header de la fiche.
+     Sibling direct de la timeline — poussé à droite par margin-left: auto
+     pour atterrir juste avant le bloc des chips de versions. */
   .fiche-head-actions {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    margin-left: 10px;
-    padding-left: 12px;
-    border-left: 1px solid var(--border);
+    margin-left: auto;
     align-self: center;
   }
   .fiche-head-btn {
