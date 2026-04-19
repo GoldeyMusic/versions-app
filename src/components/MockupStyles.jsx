@@ -461,6 +461,46 @@ export default function MockupStyles() {
   .q-block.forts ul li::before { background: var(--green); }
   .q-block.travail ul li::before { background: var(--red); }
 
+  /* Collapsibles (Points forts / À travailler) — compact par défaut, clic pour déployer */
+  .q-block.collapsible {
+    padding: 0;
+    overflow: hidden;
+  }
+  .q-block.collapsible .q-head {
+    all: unset;
+    display: flex; align-items: center; gap: 12px;
+    width: 100%; box-sizing: border-box;
+    padding: 14px 18px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .q-block.collapsible .q-head:hover { background: var(--s2); }
+  .q-block.collapsible .q-title { margin-bottom: 0; flex: 1; }
+  .q-block.collapsible .q-count {
+    font-family: var(--mono); font-size: 11px; color: var(--muted2);
+    padding: 2px 8px; border-radius: 10px; background: var(--s3);
+    min-width: 22px; text-align: center;
+  }
+  .q-block.forts.collapsible .q-count { background: #5dd0a022; color: var(--green); }
+  .q-block.travail.collapsible .q-count { background: #ef6b6b22; color: var(--red); }
+  .q-block.collapsible .q-chev {
+    color: var(--muted);
+    display: flex; align-items: center;
+    transition: transform .18s ease;
+  }
+  .q-block.collapsible.open .q-chev { transform: rotate(90deg); }
+
+  .q-block.collapsible .q-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .22s ease, padding .22s ease;
+    padding: 0 18px;
+  }
+  .q-block.collapsible.open .q-body {
+    max-height: 1000px;
+    padding: 4px 18px 18px;
+  }
+
   .subq-title {
     font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px;
     color: var(--muted); text-transform: uppercase;

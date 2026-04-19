@@ -915,6 +915,8 @@ function EvolutionPanel({ versionScores, currentVersionName, currentScore, curre
 
 function QualitativeSection({ listening }) {
   const [expanded, setExpanded] = useState(false);
+  const [fortsOpen, setFortsOpen] = useState(false);
+  const [travailOpen, setTravailOpen] = useState(false);
   if (!listening) return null;
 
   const impression = listening?.impression;
@@ -967,22 +969,52 @@ function QualitativeSection({ listening }) {
         )}
       </div>
 
-      {/* Colonne droite : Points forts + À travailler empilés */}
+      {/* Colonne droite : Points forts + À travailler (collapsés par défaut, clic pour déployer) */}
       <div className="q-stack">
         {points.length > 0 && (
-          <div className="q-block forts">
-            <div className="q-title"><span className="dot" />Points forts</div>
-            <ul>
-              {points.map((p, i) => <li key={i}>{renderWithEmphasis(p)}</li>)}
-            </ul>
+          <div className={`q-block forts collapsible${fortsOpen ? ' open' : ''}`}>
+            <button
+              type="button"
+              className="q-head"
+              onClick={() => setFortsOpen((v) => !v)}
+              aria-expanded={fortsOpen}
+            >
+              <span className="q-title"><span className="dot" />Points forts</span>
+              <span className="q-count">{points.length}</span>
+              <span className="q-chev" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            </button>
+            <div className="q-body">
+              <ul>
+                {points.map((p, i) => <li key={i}>{renderWithEmphasis(p)}</li>)}
+              </ul>
+            </div>
           </div>
         )}
         {aTravailler.length > 0 && (
-          <div className="q-block travail">
-            <div className="q-title"><span className="dot" />À travailler</div>
-            <ul>
-              {aTravailler.map((p, i) => <li key={i}>{renderWithEmphasis(p)}</li>)}
-            </ul>
+          <div className={`q-block travail collapsible${travailOpen ? ' open' : ''}`}>
+            <button
+              type="button"
+              className="q-head"
+              onClick={() => setTravailOpen((v) => !v)}
+              aria-expanded={travailOpen}
+            >
+              <span className="q-title"><span className="dot" />À travailler</span>
+              <span className="q-count">{aTravailler.length}</span>
+              <span className="q-chev" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            </button>
+            <div className="q-body">
+              <ul>
+                {aTravailler.map((p, i) => <li key={i}>{renderWithEmphasis(p)}</li>)}
+              </ul>
+            </div>
           </div>
         )}
       </div>
