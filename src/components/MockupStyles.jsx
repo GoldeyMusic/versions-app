@@ -3121,6 +3121,7 @@ export default function MockupStyles() {
     }
     .track-title { font-size: 18px; }
     .versions-block { max-width: 100%; width: 100%; }
+    .versions-row { padding-left: 20px; scroll-padding-left: 20px; }
     .vchip { padding: 6px 8px; min-width: 46px; }
     .vchip .vname { font-size: 10px; }
     .vchip .vscore { font-size: 16px; }
