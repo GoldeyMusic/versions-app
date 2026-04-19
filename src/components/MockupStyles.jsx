@@ -280,6 +280,11 @@ export default function MockupStyles() {
   }
   .score-ring .big {
     font-family: var(--serif); font-size: 58px; line-height: 1; color: var(--text);
+    display: inline-flex; align-items: flex-start; gap: 2px;
+  }
+  .score-ring .big-suffix {
+    font-family: var(--mono); font-size: 13px; color: var(--muted);
+    letter-spacing: 0.5px; font-weight: 400; margin-top: 6px;
   }
   .score-ring .unit { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 4px; }
 
@@ -2150,6 +2155,7 @@ export default function MockupStyles() {
     .verdict { flex-direction: column; gap: 24px; text-align: center; }
     .score-ring { width: 110px; height: 110px; }
     .score-ring .big { font-size: 38px; }
+    .score-ring .big-suffix { font-size: 10px; margin-top: 4px; }
     .score-ring .unit { font-size: 8px; letter-spacing: 0.5px; margin-top: 2px; }
     .verdict-text h1 { font-size: 26px; }
     .verdict-text p { font-size: 14px; }
@@ -2182,6 +2188,7 @@ export default function MockupStyles() {
     }
     .score-ring { width: 110px; height: 110px; }
     .score-ring .big { font-size: 38px; }
+    .score-ring .big-suffix { font-size: 10px; margin-top: 4px; }
     .score-ring .unit { font-size: 8px; letter-spacing: 0.5px; margin-top: 2px; }
     .verdict-text h1 { font-size: 24px; }
     .verdict-text p { font-size: 13px; }
