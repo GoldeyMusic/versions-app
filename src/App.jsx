@@ -256,16 +256,22 @@ function renderTagline(text) {
    BottomPlayer : play/pause/seek sont synchrones entre les deux vues,
    sans double décodage coûteux puisque WaveSurfer partage le media.
 */
-function HeroWaveform({ storagePath, isActive }) {
+function HeroWaveform({ storagePath, isActive, resetKey = 0 }) {
   const containerRef = useRef(null);
   const wsRef = useRef(null);
   const audioRef = useRef(null);
   const rafRef = useRef(null);
   const lastPathRef = useRef(null);
+  // Ref miroir pour lire l'état le plus récent d'isActive depuis l'async loader
+  // (évite de devoir re-déclencher l'effet à chaque toggle play/pause)
+  const isActiveRef = useRef(isActive);
+  useEffect(() => { isActiveRef.current = isActive; }, [isActive]);
 
+  // Charge audio + WaveSurfer. Sur changement de storagePath OU resetKey
+  // (relance du même titre), on remet currentTime=0 et on lance si actif.
+  // Sur la home, le BottomPlayer est masqué : c'est ici qu'on pilote le play().
   useEffect(() => {
     if (!storagePath || !containerRef.current) return;
-    if (lastPathRef.current === storagePath && wsRef.current) return;
 
     let cancelled = false;
     (async () => {
@@ -273,28 +279,43 @@ function HeroWaveform({ storagePath, isActive }) {
         const audio = await resolveAudio(storagePath);
         if (cancelled || !containerRef.current) return;
 
-        if (wsRef.current) {
-          try { wsRef.current.destroy(); } catch { /* noop */ }
-          wsRef.current = null;
+        const samePath = lastPathRef.current === storagePath;
+        const prev = audioRef.current;
+        if (prev && prev !== audio) {
+          try { prev.pause(); } catch { /* noop */ }
         }
 
-        const ws = WaveSurfer.create({
-          container: containerRef.current,
-          waveColor: 'rgba(255,255,255,0.18)',
-          progressColor: '#f5b056',
-          cursorColor: 'rgba(245,176,86,0.85)',
-          cursorWidth: 1,
-          barWidth: 2,
-          barGap: 2,
-          barRadius: 2,
-          height: 56,
-          normalize: true,
-          interact: true,
-          media: audio,
-        });
-        wsRef.current = ws;
+        // Toujours reset au début quand la clé change (nouveau titre ou replay)
+        try { audio.currentTime = 0; } catch { /* noop */ }
+
+        if (!samePath || !wsRef.current) {
+          if (wsRef.current) {
+            try { wsRef.current.destroy(); } catch { /* noop */ }
+            wsRef.current = null;
+          }
+          const ws = WaveSurfer.create({
+            container: containerRef.current,
+            waveColor: 'rgba(255,255,255,0.18)',
+            progressColor: '#f5b056',
+            cursorColor: 'rgba(245,176,86,0.85)',
+            cursorWidth: 1,
+            barWidth: 2,
+            barGap: 2,
+            barRadius: 2,
+            height: 56,
+            normalize: true,
+            interact: true,
+            media: audio,
+          });
+          wsRef.current = ws;
+        }
         audioRef.current = audio;
         lastPathRef.current = storagePath;
+
+        // Si on doit être en lecture (heroIsPlaying), on lance maintenant
+        if (isActiveRef.current) {
+          try { await audio.play(); } catch { /* autoplay bloqué, user-gesture requis */ }
+        }
       } catch (err) {
         console.warn('[hero wave] load error:', err?.message || err);
       }
@@ -303,7 +324,19 @@ function HeroWaveform({ storagePath, isActive }) {
     return () => {
       cancelled = true;
     };
-  }, [storagePath]);
+  }, [storagePath, resetKey]);
+
+  // Sync isActive → play/pause sur l'audio actif (toggle sans reload)
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isActive && audio.paused) {
+      const p = audio.play();
+      if (p && typeof p.catch === 'function') p.catch(() => { /* noop */ });
+    } else if (!isActive && !audio.paused) {
+      try { audio.pause(); } catch { /* noop */ }
+    }
+  }, [isActive]);
 
   // Sync manuel du curseur : on manipule directement le shadow DOM de WaveSurfer
   // (contourne renderer.renderProgress qui peut être minifié/indisponible en prod).
@@ -1022,6 +1055,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           <HeroWaveform
             storagePath={heroWaveStoragePath}
             isActive={heroIsPlaying}
+            resetKey={playerState?.resetKey || 0}
           />
         ) : (
           <div className="wh-hero-wave wh-hero-wave-empty" aria-hidden />
