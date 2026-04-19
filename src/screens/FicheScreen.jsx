@@ -4,7 +4,7 @@ import API from '../constants/api';
 import VChip from '../components/VChip';
 import ExportPdfModal from '../components/ExportPdfModal';
 import ShareLinkModal from '../components/ShareLinkModal';
-import { loadTracks, saveVersionNotes } from '../lib/storage';
+import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory } from '../lib/storage';
 import { exportFicheToPdf } from '../lib/exportPdf';
 import { renderWithEmphasis, formatAnalyzedAt, splitVerdict } from '../lib/ficheHelpers.jsx';
 import useMobile from '../hooks/useMobile';
@@ -715,16 +715,30 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
 
 // ── VersionChat (panneau glissant) ─────────────────────────
 
-function VersionChat({ config, analysisResult, open, onClose, anchored = false }) {
+function VersionChat({ versionId, config, analysisResult, open, onClose, anchored = false }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const controllerRef = useRef(null);
   const textareaRef = useRef(null);
+
+  // Charge l'historique persisté quand la version change — chat scopé par versionId.
+  // Si versionId n'est pas encore en DB (__pending_v__) le helper retourne []
+  // et on démarre avec une conversation vierge (sauvegardée plus tard quand l'ID existera).
+  useEffect(() => {
+    let alive = true;
+    if (!versionId) { setMessages([]); return; }
+    loadChatHistory(versionId).then((hist) => {
+      if (alive) setMessages(hist);
+    });
+    return () => { alive = false; };
+  }, [versionId]);
+
   const send = async () => {
     if (!input.trim() || loading) return;
     const userMsg = { role: 'user', content: input.trim() };
-    setMessages((m) => [...m, userMsg]);
+    const withUser = [...messages, userMsg];
+    setMessages(withUser);
     setInput('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setLoading(true);
@@ -738,7 +752,7 @@ function VersionChat({ config, analysisResult, open, onClose, anchored = false }
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
         body: JSON.stringify({
-          messages: [...messages, userMsg],
+          messages: withUser,
           title: config?.title || '',
           version: config?.version || '',
           daw: config?.daw || 'Logic Pro',
@@ -748,10 +762,15 @@ function VersionChat({ config, analysisResult, open, onClose, anchored = false }
       });
       clearTimeout(timeout);
       const json = await res.json();
-      setMessages((m) => [...m, { role: 'assistant', content: json.reply || '…' }]);
+      const next = [...withUser, { role: 'assistant', content: json.reply || '…' }];
+      setMessages(next);
+      // Fire-and-forget : on ne bloque pas l'UI, les erreurs sont logguées côté helper.
+      saveChatHistory(versionId, next);
     } catch (e) {
       if (e.name !== 'AbortError') {
-        setMessages((m) => [...m, { role: 'assistant', content: 'Erreur de connexion.' }]);
+        const next = [...withUser, { role: 'assistant', content: 'Erreur de connexion.' }];
+        setMessages(next);
+        saveChatHistory(versionId, next);
       }
     } finally { setLoading(false); controllerRef.current = null; }
   };
@@ -1560,6 +1579,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
         {!chatAsDrawer && fiche && (
           <aside className="fiche-chat-side">
             <VersionChat
+              versionId={versionInDb?.id || null}
               config={config}
               analysisResult={analysisResult}
               open={true}
@@ -1637,6 +1657,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             </svg>
           </button>
           <VersionChat
+            versionId={versionInDb?.id || null}
             config={config}
             analysisResult={analysisResult}
             open={chatOpen}

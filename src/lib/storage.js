@@ -198,6 +198,45 @@ export async function saveVersionNotes(versionId, notes) {
   if (writeErr) console.warn('[storage] saveVersionNotes write error:', writeErr.message);
 }
 
+// ── Historique de chat par version ─────────────────────────
+// Stocké dans la colonne dédiée `versions.chat_history` (jsonb).
+// Pas dans `analysis_result` pour que la fiche publique ne l'expose pas
+// (la RPC get_public_fiche ne lit que analysis_result).
+
+/**
+ * Lit l'historique du chat d'une version.
+ * Retourne un tableau de messages { role, content } — ou [] si pas de chat
+ * / version non encore persistée / erreur RLS.
+ */
+export async function loadChatHistory(versionId) {
+  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return [];
+  const { data, error } = await supabase
+    .from('versions')
+    .select('chat_history')
+    .eq('id', versionId)
+    .single();
+  if (error) {
+    console.warn('[storage] loadChatHistory error:', error.message);
+    return [];
+  }
+  return Array.isArray(data?.chat_history) ? data.chat_history : [];
+}
+
+/**
+ * Réécrit tout l'historique du chat d'une version.
+ * Simple full-replace : on écrit le tableau complet à chaque échange —
+ * trafic négligeable pour un chat (quelques Ko par save). Fire-and-forget.
+ */
+export async function saveChatHistory(versionId, messages) {
+  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return;
+  const safe = Array.isArray(messages) ? messages : [];
+  const { error } = await supabase
+    .from('versions')
+    .update({ chat_history: safe })
+    .eq('id', versionId);
+  if (error) console.warn('[storage] saveChatHistory error:', error.message);
+}
+
 // ── Lien public (lecture seule) ────────────────────────────
 // Génère un token 128 bits base64url. Utilisé pour les liens partageables.
 // On reste côté client : pas besoin de faire un round-trip pour créer un
