@@ -4,6 +4,7 @@ import API from '../constants/api';
 import VChip from '../components/VChip';
 import ExportPdfModal from '../components/ExportPdfModal';
 import ShareLinkModal from '../components/ShareLinkModal';
+import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
 import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType } from '../lib/storage';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
@@ -1473,6 +1474,16 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             <AnalyzingState stage={stage} />
           ) : (
           <>
+          {/* 0 · Bandeau « voix détectée » : propose de basculer le vocal_type
+                  en « chanté » quand le titre est encore marqué « voix à venir »
+                  mais que Gemini a entendu du chant sur la version courante. */}
+          <VocalTypeSuggestionBanner
+            track={currentTrack}
+            versionId={versionInDb?.id}
+            listening={listening}
+            onRefresh={() => loadTracks().then(setTracks)}
+          />
+
           {/* 1 · Verdict + Évolution (2 colonnes) */}
           <section className="row-verdict">
             <div className="rv-left">

@@ -346,6 +346,87 @@ export default function MockupStyles() {
     opacity: .85;
   }
 
+  /* ── VocalTypeSuggestionBanner ──
+     Bandeau affiché sur la fiche quand Gemini a détecté de la voix sur une
+     version alors que le titre est encore marqué "voix à venir". Registre
+     visuel ambré (cohérent avec la pill instrumental_pending), cliquable
+     au clavier, disparaît sans animation brutale. */
+  .vocal-suggest {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: rgba(245,166,35,0.06);
+    border: 1px solid rgba(245,166,35,0.35);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    color: var(--text);
+    animation: fadeup .25s ease;
+  }
+  .vocal-suggest .vs-icon {
+    flex: 0 0 auto;
+    color: var(--amber);
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(245,166,35,0.1);
+    margin-top: 1px;
+  }
+  .vocal-suggest .vs-body {
+    flex: 1 1 auto; min-width: 0;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .vocal-suggest .vs-title {
+    font-family: var(--body); font-size: 14px; font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.1px;
+  }
+  .vocal-suggest .vs-text {
+    font-family: var(--body); font-size: 13px; font-weight: 300;
+    color: var(--textSoft, #b8bdc7);
+    line-height: 1.4;
+  }
+  .vocal-suggest .vs-actions {
+    flex: 0 0 auto;
+    display: flex; gap: 8px; align-items: center;
+    margin-left: 8px;
+  }
+  .vocal-suggest .vs-btn {
+    font-family: var(--body); font-size: 12.5px; font-weight: 500;
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;
+    white-space: nowrap;
+  }
+  .vocal-suggest .vs-btn:disabled { opacity: .6; cursor: progress; }
+  .vocal-suggest .vs-btn-primary {
+    background: var(--amber);
+    border: 1px solid var(--amber);
+    color: #1a1a1e;
+  }
+  .vocal-suggest .vs-btn-primary:hover:not(:disabled) {
+    background: #f5c056;
+    border-color: #f5c056;
+  }
+  .vocal-suggest .vs-btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--textSoft, #b8bdc7);
+  }
+  .vocal-suggest .vs-btn-ghost:hover:not(:disabled) {
+    border-color: rgba(255,255,255,0.2);
+    color: var(--text);
+  }
+
+  /* Mobile : pile les actions sous le texte pour éviter la compression. */
+  @media (max-width: 768px) {
+    .vocal-suggest { flex-wrap: wrap; }
+    .vocal-suggest .vs-actions {
+      margin-left: 0;
+      width: 100%;
+      justify-content: flex-start;
+    }
+  }
+
   .versions-block {
     display: flex; align-items: center; gap: 10px;
     /* Le push-droite est désormais porté par .fiche-head-actions
