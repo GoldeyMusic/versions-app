@@ -742,26 +742,27 @@ export default function MockupStyles() {
     box-sizing: border-box;
   }
 
-  /* ── Chat ancré en colonne droite (fiche desktop) ── */
+  /* ── Chat ancré en colonne droite (fiche desktop) ──
+     Colonne fixe contre le bord droit de la fenêtre,
+     entre la timeline sticky (haut) et le BottomPlayer (bas).
+     La page réserve la largeur du chat via padding-right. */
   .fiche-layout {
     display: block;
     width: 100%;
     box-sizing: border-box;
+    position: relative;
   }
   .fiche-layout.has-chat {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
-    gap: 24px;
-    align-items: start;
-    padding-right: 24px;
+    padding-right: 416px;
   }
-  .fiche-layout.has-chat > .page { padding-right: 8px; }
   .fiche-chat-side {
-    position: sticky;
-    top: 76px;
-    height: calc(100vh - 76px - 68px);
-    min-height: 480px;
-    align-self: start;
+    position: fixed;
+    top: 60px;            /* juste sous la timeline sticky */
+    right: 16px;
+    bottom: 84px;         /* 68px player + 16px respiration */
+    width: 384px;
+    z-index: 8;
+    display: flex;
   }
   .chat-panel.chat-panel-anchored {
     position: relative;
@@ -771,12 +772,14 @@ export default function MockupStyles() {
     bottom: auto;
     width: 100%;
     height: 100%;
+    flex: 1;
     transform: none !important;
     transition: none;
-    box-shadow: none;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.25);
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--s1);
+    overflow: hidden;     /* pour que le border-radius clippe bien */
   }
   .chat-panel.chat-panel-anchored .chat-head { padding: 12px 16px; }
   .chat-panel.chat-panel-anchored .chat-body { padding: 16px 14px; }
