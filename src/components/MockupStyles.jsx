@@ -479,14 +479,12 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 9px; color: var(--muted); margin-left: 2px;
     font-weight: 400;
   }
-  .vchip.current-badge::after {
-    content: "EN COURS"; pointer-events: none;
-    position: absolute;
-    top: -7px; left: 50%; transform: translateX(-50%);
-    font-family: var(--mono); font-size: 7px; letter-spacing: 1.5px;
+  .vchip-badge {
+    font-family: var(--mono); font-size: 6px; letter-spacing: 1.5px;
     background: var(--amber); color: #000;
-    padding: 2px 6px; border-radius: 3px;
-    white-space: nowrap;
+    padding: 2px 5px; border-radius: 3px;
+    white-space: nowrap; pointer-events: none;
+    margin-bottom: 3px;
   }
   .vsep {
     color: var(--muted2); font-size: 14px; padding: 0 2px;
@@ -3121,7 +3119,6 @@ export default function MockupStyles() {
     }
     .track-title { font-size: 18px; }
     .versions-block { max-width: 100%; width: 100%; }
-    .versions-row { padding-left: 20px; scroll-padding-left: 20px; }
     .vchip { padding: 6px 8px; min-width: 46px; }
     .vchip .vname { font-size: 10px; }
     .vchip .vscore { font-size: 16px; }

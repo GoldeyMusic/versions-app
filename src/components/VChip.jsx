@@ -83,12 +83,13 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
 
   return (
     <div
-      className={`vchip${isActive ? ' active current-badge' : ''}`}
+      className={`vchip${isActive ? ' active' : ''}`}
       onClick={() => { console.log("[vchip] clicked", version.name); onSelect?.(track, version); }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{ position: 'relative' }}
     >
+      {isActive && <span className="vchip-badge">EN COURS</span>}
       <span className="vname">V{idx + 1}</span>
       <span className="vscore">
         {typeof score === 'number' ? Math.round(score) : '—'}
