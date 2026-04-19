@@ -742,6 +742,46 @@ export default function MockupStyles() {
     box-sizing: border-box;
   }
 
+  /* ── Chat ancré en colonne droite (fiche desktop) ── */
+  .fiche-layout {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .fiche-layout.has-chat {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+    gap: 24px;
+    align-items: start;
+    padding-right: 24px;
+  }
+  .fiche-layout.has-chat > .page { padding-right: 8px; }
+  .fiche-chat-side {
+    position: sticky;
+    top: 76px;
+    height: calc(100vh - 76px - 68px);
+    min-height: 480px;
+    align-self: start;
+  }
+  .chat-panel.chat-panel-anchored {
+    position: relative;
+    inset: auto;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    height: 100%;
+    transform: none !important;
+    transition: none;
+    box-shadow: none;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--s1);
+  }
+  .chat-panel.chat-panel-anchored .chat-head { padding: 12px 16px; }
+  .chat-panel.chat-panel-anchored .chat-body { padding: 16px 14px; }
+  .chat-panel.chat-panel-anchored .chat-input { padding: 10px 12px 12px; }
+
   /* ── Chat overlay bubble ──────────────────────── */
   .chat-fab {
     position: fixed; bottom: 90px; right: 28px;

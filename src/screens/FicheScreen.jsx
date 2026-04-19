@@ -4,6 +4,7 @@ import API from '../constants/api';
 import VChip from '../components/VChip';
 import { loadTracks, deleteTrack, renameTrack } from '../lib/storage';
 import { confirmDialog } from '../lib/confirm.jsx';
+import useMobile from '../hooks/useMobile';
 
 /**
  * FicheScreen — rendu fidèle à mockup-v3.html.
@@ -728,7 +729,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
 
 // ── VersionChat (panneau glissant) ─────────────────────────
 
-function VersionChat({ config, analysisResult, open, onClose }) {
+function VersionChat({ config, analysisResult, open, onClose, anchored = false }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -771,11 +772,11 @@ function VersionChat({ config, analysisResult, open, onClose }) {
 
   return (
     <>
-      <div className="chat-backdrop" onClick={onClose} />
-      <aside className="chat-panel">
+      {!anchored && <div className="chat-backdrop" onClick={onClose} />}
+      <aside className={`chat-panel${anchored ? ' chat-panel-anchored' : ''}`}>
         <div className="chat-head">
           <span className="ctitle">Discussion</span>
-          <button className="cclose" onClick={onClose}>✕</button>
+          {!anchored && <button className="cclose" onClick={onClose}>✕</button>}
         </div>
         <div className="chat-body">
           {messages.length === 0 && (
@@ -827,6 +828,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   const [focusIdx, setFocusIdx] = useState(null);
   const [resolved, setResolved] = useState(new Set());
   const [chatOpen, setChatOpen] = useState(false);
+  const isMobile = useMobile();
 
   useEffect(() => {
     let alive = true;
@@ -946,6 +948,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           />
         )}
 
+        <div className={`fiche-layout${!isMobile && fiche ? ' has-chat' : ''}`}>
         <div className="page">
           {!fiche ? (
             <AnalyzingState stage={stage} />
@@ -1065,6 +1068,18 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           </>
           )}
         </div>
+        {!isMobile && fiche && (
+          <aside className="fiche-chat-side">
+            <VersionChat
+              config={config}
+              analysisResult={analysisResult}
+              open={true}
+              onClose={() => {}}
+              anchored
+            />
+          </aside>
+        )}
+        </div>
       </main>
 
       {/* Focus modal */}
@@ -1083,18 +1098,22 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
         }}
       />
 
-      {/* Chat — bulle + panneau */}
-      <button className="chat-fab" onClick={() => setChatOpen(true)} title="Discussion">
-        <svg width="22" height="22" viewBox="0 0 16 16" fill="none">
-          <path d="M2 3h12v8H7l-3 3v-3H2V3z" stroke="#000" strokeWidth="1.5" strokeLinejoin="round" />
-        </svg>
-      </button>
-      <VersionChat
-        config={config}
-        analysisResult={analysisResult}
-        open={chatOpen}
-        onClose={() => setChatOpen(false)}
-      />
+      {/* Chat — bulle + panneau (mobile uniquement) */}
+      {isMobile && (
+        <>
+          <button className="chat-fab" onClick={() => setChatOpen(true)} title="Discussion">
+            <svg width="22" height="22" viewBox="0 0 16 16" fill="none">
+              <path d="M2 3h12v8H7l-3 3v-3H2V3z" stroke="#000" strokeWidth="1.5" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <VersionChat
+            config={config}
+            analysisResult={analysisResult}
+            open={chatOpen}
+            onClose={() => setChatOpen(false)}
+          />
+        </>
+      )}
     </>
   );
 }
