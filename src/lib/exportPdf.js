@@ -390,10 +390,92 @@ function drawPlan(doc, cursor, plan) {
   });
 }
 
+// Les notes perso sont rendues via un canvas plutôt que via doc.text(),
+// parce que la police helvetica embarquée dans jsPDF est WinAnsi et ne
+// peut pas dessiner d'emojis (ni la plupart des symboles non Latin-1).
+// Le canvas, lui, hérite du rendu de texte du navigateur : il utilise
+// Apple Color Emoji / Segoe UI Emoji / Noto Color Emoji en fallback,
+// donc les emojis apparaissent en couleur dans le PDF final.
 function drawNotes(doc, cursor, notes) {
   if (!notes || !notes.trim()) return;
   sectionTitle(doc, cursor, 'Mes notes');
-  paragraph(doc, cursor, notes);
+
+  // Échelle de rendu canvas → PDF (8 px/mm ≈ 200 DPI, compromis qualité/poids).
+  const PX_PER_MM = 8;
+  const FONT_PX = 22;
+  const LH_PX = 30;
+  const PAD_X = 4;
+  const WIDTH_MM = CONTENT_W;
+  const WIDTH_PX = Math.round(WIDTH_MM * PX_PER_MM);
+  const LH_MM = LH_PX / PX_PER_MM;
+
+  // Chaîne de fallback : d'abord la police UI, puis chaque police emoji
+  // cross-plateforme. Le navigateur prend celle qui couvre chaque glyphe.
+  const FONT = `${FONT_PX}px "Inter","-apple-system","Segoe UI","Helvetica Neue","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+
+  // 1) Wrap en lignes (mesure via canvas hors écran)
+  const measure = document.createElement('canvas').getContext('2d');
+  measure.font = FONT;
+  const maxTextWidth = WIDTH_PX - PAD_X * 2;
+  const lines = [];
+  for (const p of String(notes).split(/\n/)) {
+    if (!p) { lines.push(''); continue; }
+    const words = p.match(/\S+\s*/g) || [p];
+    let line = '';
+    for (const w of words) {
+      const test = line + w;
+      if (measure.measureText(test).width > maxTextWidth && line) {
+        lines.push(line.replace(/\s+$/, ''));
+        line = w;
+      } else {
+        line = test;
+      }
+    }
+    if (line) lines.push(line.replace(/\s+$/, ''));
+  }
+  if (!lines.length) return;
+
+  // 2) Rendu complet dans un canvas unique
+  const totalHeightPx = lines.length * LH_PX;
+  const big = document.createElement('canvas');
+  big.width = WIDTH_PX;
+  big.height = totalHeightPx;
+  const ctx = big.getContext('2d');
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, WIDTH_PX, totalHeightPx);
+  ctx.font = FONT;
+  ctx.fillStyle = '#141416';
+  ctx.textBaseline = 'top';
+  lines.forEach((line, i) => {
+    if (line) ctx.fillText(line, PAD_X, i * LH_PX + 2);
+  });
+
+  // 3) Découpage en tranches qui tiennent sur les pages restantes
+  let sliceStart = 0;
+  while (sliceStart < lines.length) {
+    const availableMm = (PAGE.h - MARGIN.bottom) - cursor.y;
+    if (availableMm < LH_MM * 1.5) {
+      doc.addPage();
+      cursor.y = MARGIN.top;
+      drawPageHeader(doc);
+      continue;
+    }
+    const linesThatFit = Math.max(1, Math.floor(availableMm / LH_MM));
+    const end = Math.min(lines.length, sliceStart + linesThatFit);
+    const sliceHeightPx = (end - sliceStart) * LH_PX;
+    const srcY = sliceStart * LH_PX;
+    const slice = document.createElement('canvas');
+    slice.width = WIDTH_PX;
+    slice.height = sliceHeightPx;
+    const sctx = slice.getContext('2d');
+    sctx.fillStyle = '#FFFFFF';
+    sctx.fillRect(0, 0, WIDTH_PX, sliceHeightPx);
+    sctx.drawImage(big, 0, srcY, WIDTH_PX, sliceHeightPx, 0, 0, WIDTH_PX, sliceHeightPx);
+    const sliceHeightMm = sliceHeightPx / PX_PER_MM;
+    doc.addImage(slice.toDataURL('image/png'), 'PNG', MARGIN.left, cursor.y, WIDTH_MM, sliceHeightMm);
+    cursor.y += sliceHeightMm + 1;
+    sliceStart = end;
+  }
 }
 
 function drawFooter(doc) {

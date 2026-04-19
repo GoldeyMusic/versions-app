@@ -485,6 +485,39 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
             <b>{currentVersionName || current.name}</b>
           </span>
         )}
+        {current && (onShareVersion || onExportVersion) && (
+          <span className="fiche-head-actions">
+            {onShareVersion && (
+              <button
+                type="button"
+                className="fiche-head-btn"
+                onClick={() => onShareVersion(track, current)}
+                disabled={!current?.id || current.id === '__pending_v__'}
+                title={!current?.id || current.id === '__pending_v__' ? 'Enregistrement en cours…' : 'Générer un lien public lecture seule'}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M6.5 9.5l3-3M5 11L3.5 12.5a2.12 2.12 0 01-3-3L3 7m8 2l1.5-1.5a2.12 2.12 0 000-3 2.12 2.12 0 00-3 0L8 6"
+                        stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="fhb-label">Partager un lien</span>
+              </button>
+            )}
+            {onExportVersion && (
+              <button
+                type="button"
+                className="fiche-head-btn"
+                onClick={() => onExportVersion(track, current)}
+                title="Générer un PDF partageable de cette version"
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12v1.5A1.5 1.5 0 004.5 15h7A1.5 1.5 0 0013 13.5V12"
+                        stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="fhb-label">Exporter en PDF</span>
+              </button>
+            )}
+          </span>
+        )}
       </div>
 
       <div className="versions-block">
@@ -1289,44 +1322,6 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             <AnalyzingState stage={stage} />
           ) : (
           <>
-          {/* Barre d'actions (Partager / Exporter PDF) — cible la version affichée.
-              Doublonne volontairement le menu ⋯ de la VChip pour la découvrabilité. */}
-          <div className="fiche-actions">
-            <button
-              type="button"
-              className="fiche-action-btn"
-              onClick={() => {
-                const v = currentTrack?.versions?.find((x) => x.name === config?.version);
-                if (v) handleShareVersion(currentTrack, v);
-              }}
-              disabled={!versionInDb || versionInDb.id === '__pending_v__'}
-              title={!versionInDb ? 'Enregistrement en cours…' : 'Générer un lien public lecture seule'}
-            >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M6.5 9.5l3-3M5 11L3.5 12.5a2.12 2.12 0 01-3-3L3 7m8 2l1.5-1.5a2.12 2.12 0 000-3 2.12 2.12 0 00-3 0L8 6"
-                      stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Partager un lien
-            </button>
-            <button
-              type="button"
-              className="fiche-action-btn"
-              onClick={() => {
-                const v = currentTrack?.versions?.find((x) => x.name === config?.version)
-                  || { id: '__current__', name: config?.version || 'V1', analysisResult };
-                handleExportVersion(currentTrack, v);
-              }}
-              disabled={!fiche}
-              title="Générer un PDF partageable de cette version"
-            >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12v1.5A1.5 1.5 0 004.5 15h7A1.5 1.5 0 0013 13.5V12"
-                      stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Exporter en PDF
-            </button>
-          </div>
-
           {/* 1 · Verdict + Évolution (2 colonnes) */}
           <section className="row-verdict">
             <div className="rv-left">

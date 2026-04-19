@@ -3092,58 +3092,73 @@ export default function MockupStyles() {
     .public-fiche-main { padding: 20px 0 48px; }
   }
 
-  /* Barre d'actions au-dessus du verdict : Partager / Exporter PDF.
-     Visible en premier coup d'œil pour éviter que l'utilisateur
-     fouille dans le menu ⋯ d'une VChip pour trouver ces actions. */
-  .fiche-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-  }
-  .fiche-action-btn {
+  /* Actions Partager / Exporter PDF dans le header de la fiche,
+     à droite de la stage label "Version actuelle", juste avant
+     les chips de versions. Plus découvrable que le menu ⋯ d'une VChip. */
+  .fiche-head-actions {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    padding: 7px 12px;
+    gap: 8px;
+    margin-left: 10px;
+    padding-left: 12px;
+    border-left: 1px solid var(--border);
+    align-self: center;
+  }
+  .fiche-head-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
     background: rgba(245, 176, 86, 0.06);
     border: 1px solid rgba(245, 176, 86, 0.28);
     border-radius: 8px;
     color: #e0c389;
     font-family: 'Inter', sans-serif;
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     letter-spacing: 0.1px;
+    line-height: 1;
     transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
   }
-  .fiche-action-btn:hover:not(:disabled) {
+  .fiche-head-btn:hover:not(:disabled) {
     background: rgba(245, 176, 86, 0.14);
     border-color: rgba(245, 176, 86, 0.55);
     color: #f5b056;
   }
-  .fiche-action-btn:active:not(:disabled) {
+  .fiche-head-btn:active:not(:disabled) {
     transform: translateY(1px);
   }
-  .fiche-action-btn:disabled {
+  .fiche-head-btn:disabled {
     opacity: 0.42;
     cursor: not-allowed;
   }
-  .fiche-action-btn svg {
+  .fiche-head-btn svg {
     flex-shrink: 0;
     opacity: 0.9;
   }
 
+  /* En desktop étroit (< 1200px) on masque les labels pour garder
+     juste les icônes — évite de comprimer le titre du morceau. */
+  @media (max-width: 1199px) {
+    .fiche-head-btn .fhb-label { display: none; }
+    .fiche-head-btn { padding: 6px 8px; }
+  }
+
+  /* Sur mobile la Timeline bascule en colonne (voir règles plus haut) :
+     on ré-étire les boutons pour qu'ils soient confortables au doigt. */
   @media (max-width: 720px) {
-    .fiche-actions {
-      justify-content: stretch;
-      gap: 8px;
+    .fiche-head-actions {
+      margin-left: 0;
+      padding-left: 0;
+      border-left: 0;
+      width: 100%;
+      justify-content: flex-end;
     }
-    .fiche-action-btn {
-      flex: 1;
-      justify-content: center;
-      font-size: 12px;
+    .fiche-head-btn .fhb-label { display: inline; }
+    .fiche-head-btn {
+      padding: 8px 12px;
+      font-size: 12.5px;
     }
   }
 `}</style>
