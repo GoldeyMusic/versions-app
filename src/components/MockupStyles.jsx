@@ -820,15 +820,23 @@ export default function MockupStyles() {
   /* WELCOME HOME — variante DESKTOP (max-width 1200, 2 col) */
   /* ══════════════════════════════════════════════════════ */
   .welcome-home.wh-desktop {
-    max-width: 1200px;
-    padding: 36px 40px 120px;
-    gap: 24px;
+    /* Plein écran : on colle à la sidebar à gauche et au bord droit
+       pour une home immersive, sans grosse marge de chaque côté. */
+    max-width: none;
+    padding: 18px 24px 80px;
+    gap: 20px;
   }
+  /* Tagline éditoriale masquée sur desktop (trop d'air avant le hero) ;
+     conservée sur mobile où elle reste utile. */
+  .wh-desktop .wh-tagline-hero { display: none; }
   .wh-desktop .wh-header { margin-bottom: 4px; align-items: flex-start; }
   .wh-desktop .wh-greeting { font-size: 28px; letter-spacing: 2.5px; text-align: left; }
   .wh-desktop .wh-actions { justify-content: flex-start; flex-wrap: wrap; }
   .wh-desktop .wh-tracklist { max-width: none; margin: 0; }
   .wh-desktop .wh-section-title { font-size: 22px; margin-bottom: 14px; }
+  /* Colonne gauche sans cap : elle occupe toute la largeur disponible,
+     les tips à droite s'étaleront moins en hauteur. */
+  .wh-desktop .wh-col-left { max-width: none; }
 
   /* ── Tagline hero (desktop only) ─────────────────────────
      Grande baseline éditoriale en haut de la home. Tourne à
