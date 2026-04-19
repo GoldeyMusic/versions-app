@@ -1262,6 +1262,21 @@ export default function MockupStyles() {
     color: var(--muted); cursor: pointer;
   }
   .chat-head .cclose:hover { color: var(--text); background: var(--s2); }
+  .chat-head-actions {
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .chat-head .cclear {
+    width: 26px; height: 26px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); cursor: pointer;
+    background: transparent; border: 0;
+    transition: color 0.12s ease, background 0.12s ease;
+  }
+  .chat-head .cclear:hover:not(:disabled) {
+    color: var(--red-soft, #ef6b6b);
+    background: rgba(239, 107, 107, 0.08);
+  }
+  .chat-head .cclear:disabled { opacity: 0.4; cursor: not-allowed; }
   .chat-body {
     flex: 1; overflow-y: auto; padding: 20px 18px;
     display: flex; flex-direction: column; gap: 14px;

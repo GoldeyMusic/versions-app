@@ -5,6 +5,7 @@ import VChip from '../components/VChip';
 import ExportPdfModal from '../components/ExportPdfModal';
 import ShareLinkModal from '../components/ShareLinkModal';
 import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory } from '../lib/storage';
+import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
 import { renderWithEmphasis, formatAnalyzedAt, splitVerdict } from '../lib/ficheHelpers.jsx';
 import useMobile from '../hooks/useMobile';
@@ -775,13 +776,46 @@ function VersionChat({ versionId, config, analysisResult, open, onClose, anchore
     } finally { setLoading(false); controllerRef.current = null; }
   };
 
+  // Efface l'historique (local + DB) après confirmation. Le helper
+  // saveChatHistory gere le cas versionId non persiste : no-op silencieux.
+  const handleClear = async () => {
+    if (!messages.length || loading) return;
+    const res = await confirmDialog({
+      title: 'Effacer la conversation ?',
+      message: 'La conversation de cette version sera supprimée définitivement.',
+      confirmLabel: 'Effacer',
+      cancelLabel: 'Annuler',
+      danger: true,
+    });
+    if (res !== 'confirm') return;
+    setMessages([]);
+    saveChatHistory(versionId, []);
+  };
+
   return (
     <>
       {!anchored && <div className="chat-backdrop" onClick={onClose} />}
       <aside className={`chat-panel${anchored ? ' chat-panel-anchored' : ''}`}>
         <div className="chat-head">
           <span className="ctitle">Discussion</span>
-          {!anchored && <button className="cclose" onClick={onClose}>✕</button>}
+          <div className="chat-head-actions">
+            {messages.length > 0 && (
+              <button
+                type="button"
+                className="cclear"
+                onClick={handleClear}
+                disabled={loading}
+                title="Effacer la conversation"
+                aria-label="Effacer la conversation"
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M3 4h10M6.5 4V2.5a1 1 0 011-1h1a1 1 0 011 1V4m-5 0v9a1.5 1.5 0 001.5 1.5h4a1.5 1.5 0 001.5-1.5V4"
+                        stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
+            {!anchored && <button className="cclose" onClick={onClose}>✕</button>}
+          </div>
         </div>
         <div className="chat-body">
           {messages.length === 0 && (
