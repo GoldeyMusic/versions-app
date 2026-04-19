@@ -379,10 +379,13 @@ export default function MockupStyles() {
   .score-ring .ring-tooltip {
     position: absolute;
     top: calc(100% + 10px);
-    left: 50%;
-    transform: translate(-50%, -4px);
+    /* Aligné à gauche de l'anneau → le tooltip s'étend vers la DROITE,
+       dans la zone de contenu, pour ne jamais aller derrière la sidebar
+       (qui est position:sticky et crée son propre stacking context). */
+    left: 0;
+    transform: translateY(-4px);
     width: 300px;
-    max-width: 90vw;
+    max-width: min(300px, calc(100vw - 40px));
     background: var(--s1);
     border: 1px solid var(--s4);
     border-radius: 10px;
@@ -391,12 +394,14 @@ export default function MockupStyles() {
     opacity: 0;
     pointer-events: none;
     transition: opacity .16s ease, transform .16s ease;
-    z-index: 40;
+    /* z-index élevé pour passer au-dessus du stacking context de la
+       sidebar sticky et des sections sticky de la fiche (timeline, etc.). */
+    z-index: 200;
   }
   .score-ring:hover .ring-tooltip,
   .score-ring.tip-open .ring-tooltip {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translateY(0);
     pointer-events: auto;
   }
   .ring-tooltip .rt-head {
