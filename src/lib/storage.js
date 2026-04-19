@@ -351,6 +351,25 @@ export async function renameTrack(trackId, newTitle) {
   return loadTracks();
 }
 
+/**
+ * Change le type vocal d'un titre existant (étape 5 de la feature vocal-type).
+ * Accepte 'vocal', 'instrumental_pending', 'instrumental_final'. Retourne la
+ * nouvelle liste de tracks pour mettre à jour l'état immédiatement.
+ */
+export async function updateTrackVocalType(trackId, newVocalType) {
+  const allowed = ['vocal', 'instrumental_pending', 'instrumental_final'];
+  if (!allowed.includes(newVocalType)) {
+    console.warn('[storage] updateTrackVocalType: invalid type', newVocalType);
+    return loadTracks();
+  }
+  const { error } = await supabase
+    .from('tracks')
+    .update({ vocal_type: newVocalType })
+    .eq('id', trackId);
+  if (error) console.warn('[storage] updateTrackVocalType error:', error.message);
+  return loadTracks();
+}
+
 /** Set a version as main, unset others in the same track */
 export async function setMainVersion(trackId, versionId) {
   await supabase.from('versions').update({ is_main: false }).eq('track_id', trackId);

@@ -243,7 +243,7 @@ export default function MockupStyles() {
     letter-spacing: 1.5px;
   }
 
-  /* Badge type vocal (affiché à côté du titre pour les titres instrumentaux) */
+  /* Badge type vocal — legacy (conservé pour rétrocompat, remplacé par .vocal-pill) */
   .vocal-badge {
     font-family: var(--mono);
     font-size: 9.5px;
@@ -267,6 +267,83 @@ export default function MockupStyles() {
     border-color: rgba(245,166,35,.35);
     color: var(--amber);
     background: rgba(245,166,35,.06);
+  }
+
+  /* VocalTypePill — contrôle cliquable pour changer le type vocal après coup. */
+  .vocal-pill-wrap {
+    position: relative;
+    display: inline-flex;
+    align-self: center;
+  }
+  .vocal-pill {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+    color: var(--textSoft, #b8bdc7);
+    white-space: nowrap;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease, color .15s ease;
+  }
+  .vocal-pill:hover:not(:disabled) { border-color: rgba(255,255,255,0.2); }
+  .vocal-pill:disabled { opacity: .6; cursor: progress; }
+  .vocal-pill .vp-caret { flex: 0 0 auto; opacity: .7; }
+  .vocal-pill.instrumental_final {
+    border-color: rgba(30,207,176,.35);
+    color: var(--teal);
+    background: rgba(30,207,176,.06);
+  }
+  .vocal-pill.instrumental_pending {
+    border-color: rgba(245,166,35,.35);
+    color: var(--amber);
+    background: rgba(245,166,35,.06);
+  }
+
+  .vocal-pill-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 40;
+    min-width: 180px;
+    background: var(--bg, #0e1018);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .vocal-pill-menu .vpm-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: transparent;
+    border: 0;
+    color: var(--text, #e8eaf0);
+    font-family: var(--body);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: background .12s ease;
+  }
+  .vocal-pill-menu .vpm-item:hover:not(:disabled) { background: rgba(255,255,255,0.05); }
+  .vocal-pill-menu .vpm-item.active { color: var(--accent, #f5a623); }
+  .vocal-pill-menu .vpm-item:disabled { opacity: .6; cursor: progress; }
+  .vocal-pill-menu .vpm-check {
+    font-size: 12px;
+    opacity: .85;
   }
 
   .versions-block {

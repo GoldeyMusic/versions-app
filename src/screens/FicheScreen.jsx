@@ -4,7 +4,7 @@ import API from '../constants/api';
 import VChip from '../components/VChip';
 import ExportPdfModal from '../components/ExportPdfModal';
 import ShareLinkModal from '../components/ShareLinkModal';
-import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory } from '../lib/storage';
+import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType } from '../lib/storage';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
 import { renderWithEmphasis, formatAnalyzedAt, splitVerdict, applyVocalTypeToFiche, isVoiceCategory } from '../lib/ficheHelpers.jsx';
@@ -420,6 +420,80 @@ function AnalyzingState({ stage }) {
   );
 }
 
+// ── VocalTypePill (contrôle pour changer le type vocal d'un titre après coup) ──
+// Montre l'état courant du titre (Chanté / Voix à venir / Instrumental) et permet
+// à l'utilisateur de le changer. Utile si on s'est trompé à l'import, ou si un
+// instrumental temporaire devient définitif.
+function VocalTypePill({ track, onRefresh }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const ref = useRef(null);
+  const current = track?.vocalType || 'vocal';
+  const LABELS = {
+    vocal: 'Chanté',
+    instrumental_pending: 'Voix à venir',
+    instrumental_final: 'Instrumental',
+  };
+  const TITLES = {
+    vocal: 'Morceau chanté — la voix est évaluée',
+    instrumental_pending: 'Voix à venir sur les prochaines versions',
+    instrumental_final: 'Œuvre purement instrumentale — la voix n\'est pas évaluée',
+  };
+
+  // Ferme le popover au clic extérieur
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const handleChange = async (next) => {
+    if (next === current || busy || !track?.id) { setOpen(false); return; }
+    setBusy(true);
+    try {
+      await updateTrackVocalType(track.id, next);
+      if (onRefresh) await onRefresh();
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
+  };
+
+  return (
+    <span className={`vocal-pill-wrap ${current}`} ref={ref}>
+      <button
+        type="button"
+        className={`vocal-pill ${current}`}
+        onClick={() => setOpen((v) => !v)}
+        disabled={busy}
+        title={TITLES[current]}
+      >
+        <span className="vp-label">{LABELS[current]}</span>
+        <svg className="vp-caret" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+          <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="vocal-pill-menu">
+          {(['vocal', 'instrumental_pending', 'instrumental_final']).map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              className={`vpm-item ${opt === current ? 'active' : ''}`}
+              onClick={() => handleChange(opt)}
+              disabled={busy}
+            >
+              <span className="vpm-label">{LABELS[opt]}</span>
+              {opt === current && <span className="vpm-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
 // ── Timeline (sticky bar avec chips versions) ──────────────
 
 function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onShareVersion, onExportVersion, onTracksRefresh, onGoHome }) {
@@ -479,18 +553,10 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
             </button>
           )}
           <span><TrackTitleText title={track.title} /></span>
-          {/* Badge type vocal : seulement pour les titres instrumentaux.
-              'vocal' (défaut) → pas de badge, UX identique à avant. */}
-          {track?.vocalType === 'instrumental_final' && (
-            <span className="vocal-badge final" title="Œuvre purement instrumentale — la voix n'est pas évaluée">
-              Instrumental
-            </span>
-          )}
-          {track?.vocalType === 'instrumental_pending' && (
-            <span className="vocal-badge pending" title="Voix à venir sur les prochaines versions">
-              Voix à venir
-            </span>
-          )}
+          {/* Contrôle type vocal : toujours visible, cliquable pour changer après coup
+              (étape 5 de la feature). L'état "vocal" (chanté) est affiché pour permettre
+              aussi de basculer un titre chanté en instrumental si besoin. */}
+          <VocalTypePill track={track} onRefresh={onTracksRefresh} />
         </span>
         {current && (
           <span className="vsub">
