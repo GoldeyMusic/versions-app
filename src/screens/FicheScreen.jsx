@@ -3,9 +3,10 @@ import API from '../constants/api';
 // import CompareButton from '../components/CompareButton'; // mis en sommeil
 import VChip from '../components/VChip';
 import ExportPdfModal from '../components/ExportPdfModal';
-import { loadTracks, deleteTrack, renameTrack, saveVersionNotes } from '../lib/storage';
+import ShareLinkModal from '../components/ShareLinkModal';
+import { loadTracks, saveVersionNotes } from '../lib/storage';
 import { exportFicheToPdf } from '../lib/exportPdf';
-import { confirmDialog } from '../lib/confirm.jsx';
+import { renderWithEmphasis, formatAnalyzedAt, splitVerdict } from '../lib/ficheHelpers.jsx';
 import useMobile from '../hooks/useMobile';
 import useNarrowDesktop from '../hooks/useNarrowDesktop';
 
@@ -39,7 +40,7 @@ function TrackTitleText({ title }) {
 }
 
 // Anneau de score 140x140 — formule identique à la maquette : dasharray=276
-function ScoreRingBig({ value, prevScore = null }) {
+export function ScoreRingBig({ value, prevScore = null }) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
   const offset = 276 - (276 * v) / 100;
   const color = v < 50 ? '#ef6b6b' : v < 75 ? '#f5b056' : '#7bd88f';
@@ -107,7 +108,7 @@ function ScoreRingBig({ value, prevScore = null }) {
 }
 
 // Anneau 32x32 (items diag) — dasharray=82 ; couleur par seuil
-function ScoreRingSmall({ value }) {
+export function ScoreRingSmall({ value }) {
   if (typeof value !== 'number') return null;
   const v = Math.max(0, Math.min(10, value));
   const offset = 82 - (82 * v) / 10;
@@ -130,51 +131,6 @@ function ScoreRingSmall({ value }) {
 
 // Parse un texte avec des marqueurs *...* et retourne du JSX avec <em>
 // pour les passages italiques (mis en ambre via la règle CSS .verdict-text h1 em).
-function renderWithEmphasis(text) {
-  if (!text) return null;
-  const parts = text.split(/(\*[^*]+\*)/g);
-  return parts.map((p, i) =>
-    p.startsWith('*') && p.endsWith('*') && p.length > 2
-      ? <em key={i}>{p.slice(1, -1)}</em>
-      : <span key={i}>{p}</span>
-  );
-}
-
-// Formate un timestamp en texte humain : "il y a N jours" / "hier" / "le X avril".
-// Retourne null si la date n'est pas interprétable.
-function formatAnalyzedAt(input) {
-  if (!input) return null;
-  const d = new Date(input);
-  if (Number.isNaN(d.getTime())) return null;
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMin = Math.round(diffMs / 60000);
-  if (diffMin < 1) return 'Analysé à l\u2019instant';
-  if (diffMin < 60) return `Analysé il y a ${diffMin} min`;
-  const diffH = Math.round(diffMin / 60);
-  if (diffH < 24) return `Analysé il y a ${diffH} h`;
-  const diffD = Math.round(diffH / 24);
-  if (diffD === 1) return 'Analysé hier';
-  if (diffD < 30) return `Analysé il y a ${diffD} jours`;
-  // Au-delà : date formatée en français "le 3 avril 2026"
-  try {
-    const f = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-    return `Analysé le ${f.format(d)}`;
-  } catch {
-    return `Analysé le ${d.toLocaleDateString('fr-FR')}`;
-  }
-}
-
-// Sépare un texte en (1ʳᵉ phrase → titre) + (reste → paragraphe).
-// Retourne { headline, rest } ; rest peut être vide.
-function splitVerdict(text) {
-  if (!text) return { headline: '', rest: '' };
-  // Découpe à la première ponctuation forte suivie d'espace (ou fin de texte).
-  const m = text.match(/^([^.!?]*[.!?])\s+(.*)$/s);
-  if (m) return { headline: m[1].trim(), rest: m[2].trim() };
-  return { headline: text.trim(), rest: '' };
-}
-
 // ── ListeningSection (écoute qualitative) ─────────────────
 
 /**
@@ -463,84 +419,9 @@ function AnalyzingState({ stage }) {
   );
 }
 
-// ── Menu contextuel du titre (⋯) ───────────────────────────
-
-function TrackMenu({ track, onRename, onDelete, onExport }) {
-  const [open, setOpen] = useState(false);
-  const btnRef = useRef(null);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const h = (e) => {
-      if (menuRef.current?.contains(e.target) || btnRef.current?.contains(e.target)) return;
-      setOpen(false);
-    };
-    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('mousedown', h);
-    document.addEventListener('keydown', esc);
-    return () => {
-      document.removeEventListener('mousedown', h);
-      document.removeEventListener('keydown', esc);
-    };
-  }, [open]);
-
-  return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
-      <button
-        ref={btnRef}
-        onClick={() => setOpen((o) => !o)}
-        title="Options du titre"
-        style={{
-          width: 28, height: 28, borderRadius: 8,
-          background: open ? 'rgba(245,176,86,.12)' : 'transparent',
-          border: `1px solid ${open ? '#f5b05655' : '#2a2a2e'}`,
-          color: '#7c7c80', cursor: 'pointer', padding: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 16, letterSpacing: 1, lineHeight: 1,
-        }}
-      >⋯</button>
-      {open && (
-        <div
-          ref={menuRef}
-          style={{
-            position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50,
-            minWidth: 200, background: '#141416', border: '1px solid #2a2a2e',
-            borderRadius: 10, padding: 6, boxShadow: '0 12px 40px rgba(0,0,0,.5)',
-            animation: 'popin .12s ease',
-          }}
-        >
-          <MenuItem label="Renommer" onClick={() => { setOpen(false); onRename?.(track); }} />
-          <MenuItem label="Exporter en PDF" onClick={() => { setOpen(false); onExport?.(track); }} />
-          <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
-          <MenuItem label="Supprimer le titre" danger onClick={() => { setOpen(false); onDelete?.(track); }} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MenuItem({ label, onClick, danger }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'block', width: '100%', textAlign: 'left',
-        padding: '8px 12px', borderRadius: 6, border: 'none',
-        background: 'transparent', cursor: 'pointer',
-        fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 400,
-        color: danger ? '#ef6b6b' : '#c5c5c7',
-        transition: 'background .1s',
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = danger ? 'rgba(239,107,107,.08)' : 'rgba(245,176,86,.06)'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-    >{label}</button>
-  );
-}
-
 // ── Timeline (sticky bar avec chips versions) ──────────────
 
-function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onRenameTrack, onDeleteTrack, onExportTrack, onTracksRefresh, onGoHome }) {
+function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onShareVersion, onExportVersion, onTracksRefresh, onGoHome }) {
   const scrollRef = useRef(null);
   const [showFadeRight, setShowFadeRight] = useState(false);
   const [showFadeLeft, setShowFadeLeft] = useState(false);
@@ -632,7 +513,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
                       {delta > 0 ? '↑' : delta < 0 ? '↓' : ''}{Math.abs(delta)}
                     </span>
                   )}
-                  <VChip track={track} version={v} idx={idx} isActive={isActive} score={score} onSelect={onSelectVersion} onRefresh={onTracksRefresh} onDeleted={(deleted) => { if (deleted.name === currentVersionName && versions.length > 1) { const next = versions.find(x => x.id !== deleted.id); if (next) onSelectVersion?.(track, next); } }} />
+                  <VChip track={track} version={v} idx={idx} isActive={isActive} score={score} onSelect={onSelectVersion} onRefresh={onTracksRefresh} onShare={onShareVersion} onExport={onExportVersion} onDeleted={(deleted) => { if (deleted.name === currentVersionName && versions.length > 1) { const next = versions.find(x => x.id !== deleted.id); if (next) onSelectVersion?.(track, next); } }} />
                 </span>
               );
             })}
@@ -1021,7 +902,7 @@ function blocksToBullets(blocks) {
   return bullets;
 }
 
-function QualitativeSection({ listening }) {
+export function QualitativeSection({ listening }) {
   const [expanded, setExpanded] = useState(false);
   const [fortsOpen, setFortsOpen] = useState(false);
   const [travailOpen, setTravailOpen] = useState(false);
@@ -1252,14 +1133,15 @@ function NotesSection({ versionId, initialNotes }) {
 
 // ── FicheScreen (principal) ────────────────────────────────
 
-export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onTrackDeleted, onTrackRenamed, onGoHome, refreshKey }) {
+export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onGoHome, refreshKey }) {
   const [tracks, setTracks] = useState([]);
   const [openCat, setOpenCat] = useState(0); // un seul accordéon ouvert à la fois
   const [openPlanIdx, setOpenPlanIdx] = useState(null);
   const [resolved, setResolved] = useState(new Set());
   const [hideResolved, setHideResolved] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [exportTarget, setExportTarget] = useState(null); // track ouvert dans la modale d'export PDF
+  const [exportTarget, setExportTarget] = useState(null); // { track, version } ouverts dans la modale d'export PDF
+  const [shareTarget, setShareTarget] = useState(null);   // { track, version } ouverts dans la modale de partage
   const isMobile = useMobile();
   const isNarrow = useNarrowDesktop(1200);
   const chatAsDrawer = isMobile || isNarrow;
@@ -1371,38 +1253,17 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     }
   };
 
-  // Handlers ⋯ track
-  const handleRenameTrack = async (track) => {
-    const next = window.prompt('Nouveau nom du titre :', track.title);
-    if (!next || next.trim() === '' || next.trim() === track.title) return;
-    try {
-      await renameTrack(track.id, next.trim());
-      const t = await loadTracks();
-      setTracks(t);
-      onTrackRenamed?.(track.id, next.trim());
-    } catch (e) { console.warn('renameTrack failed', e); }
+  // Handlers ⋯ version (depuis le menu d'une VChip)
+  // Ces handlers sont rattachés à une version précise (pas forcément la version
+  // actuellement affichée) : on stocke { track, version } pour que chaque
+  // modale (Export PDF / Lien public) cible la bonne version.
+  const handleExportVersion = (track, version) => {
+    if (!track || !version) return;
+    setExportTarget({ track, version });
   };
-  const handleDeleteTrack = async (track) => {
-    const n = (track.versions || []).length;
-    const ok = await confirmDialog({
-      title: "Supprimer le titre ?",
-      message: `Supprimer "${track.title}" et ses ${n} version${n > 1 ? 's' : ''} ? Cette action est définitive.`,
-      confirmLabel: "Supprimer",
-      cancelLabel: "Annuler",
-      danger: true,
-    });
-    if (ok !== 'confirm') return;
-    try {
-      await deleteTrack(track.id);
-      const t = await loadTracks();
-      setTracks(t);
-      onTrackDeleted?.(track.id);
-    } catch (e) { console.warn('deleteTrack failed', e); }
-  };
-  const handleExportTrack = (track) => {
-    // Ouvre la modale : l'utilisateur choisit quelles sections inclure,
-    // puis on génère un PDF partageable via lib/exportPdf.js.
-    setExportTarget(track || currentTrack || null);
+  const handleShareVersion = (track, version) => {
+    if (!track || !version || !version.id || version.id === '__pending_v__') return;
+    setShareTarget({ track, version });
   };
 
   return (
@@ -1416,9 +1277,8 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             stage={stage}
             onSelectVersion={onSelectVersion}
             onAddVersion={onAddVersion}
-            onRenameTrack={handleRenameTrack}
-            onDeleteTrack={handleDeleteTrack}
-            onExportTrack={handleExportTrack}
+            onShareVersion={handleShareVersion}
+            onExportVersion={handleExportVersion}
             onTracksRefresh={() => loadTracks().then(setTracks)}
           />
         )}
@@ -1678,15 +1538,14 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
       </main>
 
 
-      {/* Modale d'export PDF — utilise le track courant (forcément celui affiché) */}
+      {/* Modale d'export PDF — cible la version cliquée dans le menu VChip
+          (pas forcément la version actuellement affichée à l'écran). */}
       {exportTarget && (() => {
-        const t = exportTarget;
-        // On exporte *la version actuellement affichée* (config.version) si elle
-        // existe, sinon la dernière version connue de ce track.
-        const vInTrack = (t.versions || []).find((v) => v.name === config?.version)
-          || (t.versions || [])[t.versions.length - 1]
+        const t = exportTarget.track;
+        const v = exportTarget.version;
+        const ar = v?.analysisResult
+          || (v?.name === config?.version ? analysisResult : null)
           || null;
-        const ar = vInTrack?.analysisResult || analysisResult || null;
         const hasListening = !!(ar?.listening && (
           ar.listening.impression ||
           (Array.isArray(ar.listening.points_forts) && ar.listening.points_forts.length) ||
@@ -1699,7 +1558,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
         return (
           <ExportPdfModal
             title={t.title}
-            versionName={vInTrack?.name || config?.version || ''}
+            versionName={v?.name || ''}
             hasListening={hasListening}
             hasDiagnostic={hasDiagnostic}
             hasPlan={hasPlan}
@@ -1709,9 +1568,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               try {
                 exportFicheToPdf({
                   track: t,
-                  versionName: vInTrack?.name || config?.version || '',
+                  versionName: v?.name || '',
                   analysisResult: ar,
-                  date: vInTrack?.createdAt || vInTrack?.date || new Date().toISOString(),
+                  date: v?.createdAt || v?.date || new Date().toISOString(),
                   sections,
                 });
               } catch (err) {
@@ -1723,6 +1582,17 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           />
         );
       })()}
+
+      {/* Modale de partage (lien public lecture seule) pour la version
+          cliquée dans le menu VChip. */}
+      {shareTarget && (
+        <ShareLinkModal
+          versionId={shareTarget.version.id}
+          trackTitle={shareTarget.track?.title || ''}
+          versionName={shareTarget.version?.name || ''}
+          onClose={() => setShareTarget(null)}
+        />
+      )}
 
       {/* Chat — bulle + panneau (mobile + desktop étroit <1200px) */}
       {chatAsDrawer && (

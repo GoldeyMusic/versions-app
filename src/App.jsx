@@ -23,6 +23,7 @@ import { resizeImageFile } from "./lib/image";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
+import PublicFicheScreen from "./screens/PublicFicheScreen";
 import ReglagesScreen from "./screens/ReglagesScreen";
 import RenameModal from "./components/RenameModal";
 import OnboardingModal from "./components/OnboardingModal";
@@ -1581,7 +1582,36 @@ const HASH_SCREEN = {
 /* ═══════════════════════════════════════════════════════════ */
 /* APP                                                        */
 /* ═══════════════════════════════════════════════════════════ */
+// Extrait un éventuel token de partage (#/p/<token>) de l'URL courante.
+// Retourne null si on n'est pas sur une route publique.
+function extractPublicToken() {
+  if (typeof window === 'undefined') return null;
+  const h = window.location.hash || '';
+  const m = h.match(/^#\/p\/([A-Za-z0-9_-]+)$/);
+  return m ? m[1] : null;
+}
+
 export default function VersionsApp() {
+  // ── Route publique lien partagé : court-circuite tout (auth, sidebar, etc.)
+  // pour que les destinataires du lien n'aient jamais besoin d'un compte.
+  const [publicToken, setPublicToken] = useState(() => extractPublicToken());
+  useEffect(() => {
+    const onPop = () => setPublicToken(extractPublicToken());
+    window.addEventListener('hashchange', onPop);
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('hashchange', onPop);
+      window.removeEventListener('popstate', onPop);
+    };
+  }, []);
+  if (publicToken) {
+    return <PublicFicheScreen token={publicToken} />;
+  }
+
+  return <VersionsAppAuthed />;
+}
+
+function VersionsAppAuthed() {
   const { user, loading: authLoading, signOut } = useAuth();
   const isMobile = useMobile();
   const isDesktop = !isMobile;

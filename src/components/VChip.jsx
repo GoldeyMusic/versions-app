@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { renameVersion, deleteVersion } from '../lib/storage';
 
-export default function VChip({ track, version, idx, isActive, score, onSelect, onRefresh, onDeleted }) {
+export default function VChip({ track, version, idx, isActive, score, onSelect, onRefresh, onDeleted, onShare, onExport }) {
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
@@ -120,6 +120,18 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
           }}
         >
           <Item label="Renommer" onClick={openRename} />
+          {onShare && (
+            <Item
+              label="Partager un lien public"
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onShare(track, version); }}
+            />
+          )}
+          {onExport && (
+            <Item
+              label="Exporter en PDF"
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onExport(track, version); }}
+            />
+          )}
           <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
           <Item label="Supprimer" danger onClick={handleDelete} />
         </div>,

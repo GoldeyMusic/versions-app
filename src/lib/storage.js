@@ -198,6 +198,70 @@ export async function saveVersionNotes(versionId, notes) {
   if (writeErr) console.warn('[storage] saveVersionNotes write error:', writeErr.message);
 }
 
+// ── Lien public (lecture seule) ────────────────────────────
+// Génère un token 128 bits base64url. Utilisé pour les liens partageables.
+// On reste côté client : pas besoin de faire un round-trip pour créer un
+// token, et le token n'a de valeur qu'une fois écrit en DB (RLS + RPC
+// SECURITY DEFINER côté back).
+function generateShareToken() {
+  const arr = new Uint8Array(16);
+  (globalThis.crypto || window.crypto).getRandomValues(arr);
+  let bin = '';
+  for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+/** Récupère le token existant d'une version (ou null). */
+export async function getPublicShareToken(versionId) {
+  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return null;
+  const { data, error } = await supabase
+    .from('versions')
+    .select('public_share_token')
+    .eq('id', versionId)
+    .single();
+  if (error) { console.warn('[storage] getPublicShareToken error:', error.message); return null; }
+  return data?.public_share_token || null;
+}
+
+/** Active le partage public pour une version. Retourne le token (existant ou nouvellement créé). */
+export async function enablePublicShare(versionId) {
+  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return null;
+  const existing = await getPublicShareToken(versionId);
+  if (existing) return existing;
+  const token = generateShareToken();
+  const { error } = await supabase
+    .from('versions')
+    .update({ public_share_token: token })
+    .eq('id', versionId);
+  if (error) { console.warn('[storage] enablePublicShare error:', error.message); return null; }
+  return token;
+}
+
+/** Désactive le partage public (token → null). */
+export async function disablePublicShare(versionId) {
+  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return;
+  const { error } = await supabase
+    .from('versions')
+    .update({ public_share_token: null })
+    .eq('id', versionId);
+  if (error) console.warn('[storage] disablePublicShare error:', error.message);
+}
+
+/** Récupère la fiche partagée pour un token. Accessible en anonyme via la RPC. */
+export async function fetchPublicFiche(token) {
+  if (!token) return null;
+  const { data, error } = await supabase.rpc('get_public_fiche', { p_token: token });
+  if (error) { console.warn('[storage] fetchPublicFiche error:', error.message); return null; }
+  if (!data) return null;
+  // data = { track_title, version_name, created_at, analysis_result }
+  return {
+    trackTitle: data.track_title || '',
+    versionName: data.version_name || '',
+    createdAt: data.created_at || null,
+    analysisResult: data.analysis_result || null,
+  };
+}
+
 /** Delete a version. If last one, delete the track too. Also removes audio from Storage. */
 export async function deleteVersion(trackId, versionId) {
   // Récupère le storage_path AVANT de supprimer la row
