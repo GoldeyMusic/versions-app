@@ -577,9 +577,10 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
               disabled={!current?.id || current.id === '__pending_v__'}
               title={!current?.id || current.id === '__pending_v__' ? 'Enregistrement en cours…' : 'Générer un lien public lecture seule'}
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M6.5 9.5l3-3M5 11L3.5 12.5a2.12 2.12 0 01-3-3L3 7m8 2l1.5-1.5a2.12 2.12 0 000-3 2.12 2.12 0 00-3 0L8 6"
-                      stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              {/* Icône share iOS-style : flèche vers le haut depuis un carré */}
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M8 9V2M5.5 4.5L8 2l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M4 8v4.5h8V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               <span className="fhb-label">Partager un lien</span>
             </button>
@@ -591,9 +592,10 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
               onClick={() => onExportVersion(track, current)}
               title="Générer un PDF partageable de cette version"
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              {/* Icône export PDF : flèche vers le bas dans un plateau */}
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12v1.5A1.5 1.5 0 004.5 15h7A1.5 1.5 0 0013 13.5V12"
-                      stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <span className="fhb-label">Exporter en PDF</span>
             </button>
