@@ -795,6 +795,21 @@ export default function MockupStyles() {
   .wh-action-icon {
     font-size: 16px; line-height: 1;
   }
+  /* Variante primaire — CTA "Ajouter" unique, bien en évidence */
+  .wh-action.wh-action-primary {
+    background: var(--amber); border-color: var(--amber); color: #141416;
+    padding: 14px 28px; font-size: 14px; font-weight: 500;
+    letter-spacing: 0.3px;
+    box-shadow: 0 8px 24px rgba(245,176,86,0.22);
+  }
+  .wh-action.wh-action-primary:hover {
+    background: #ffc77a; border-color: #ffc77a; color: #141416;
+    box-shadow: 0 10px 28px rgba(245,176,86,0.32);
+    transform: translateY(-1px);
+  }
+  .wh-action.wh-action-primary .wh-action-icon {
+    font-size: 18px; font-weight: 500;
+  }
 
   /* ══════════════════════════════════════════════════════ */
   /* WELCOME HOME — variante DESKTOP (max-width 1200, 2 col) */

@@ -25,6 +25,7 @@ import AuthScreen from "./screens/AuthScreen";
 import ReglagesScreen from "./screens/ReglagesScreen";
 import RenameModal from "./components/RenameModal";
 import OnboardingModal from "./components/OnboardingModal";
+import AddModal from "./components/AddModal";
 import { confirmDialog } from "./lib/confirm.jsx";
 
 /* ── Font loader ────────────────────────────────────────── */
@@ -368,10 +369,8 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const [progressionNoScoreTip] = useState(() => pickTip(PROGRESSION_TIPS_NO_SCORE, 'versions_tip_progression_noscore'));
   const [progressionWithScoreTip] = useState(() => pickTip(PROGRESSION_TIPS_WITH_SCORE, 'versions_tip_progression_score'));
   const [homeTagline] = useState(() => pickTip(HOME_TAGLINES, 'versions_tip_tagline'));
-  const [pickingTrack, setPickingTrack] = useState(false);
-  const pickerRef = useRef(null);
-  const [pickingProject, setPickingProject] = useState(false);
-  const projectPickerRef = useRef(null);
+  // Modale unifiée "Ajouter" (remplace les 3 boutons nouveau projet / titre / version)
+  const [addModalOpen, setAddModalOpen] = useState(false);
   // true si l'utilisateur a cliqué "+ Nouveau projet" depuis le picker "Nouveau titre"
   // → après création on enchaîne directement sur la saisie du titre.
   const pendingNewTrackRef = useRef(false);
@@ -384,36 +383,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const [newProjectValue, setNewProjectValue] = useState('');
   const renameInputRef = useRef(null);
   const newProjectInputRef = useRef(null);
-
-  // Ferme le picker au clic extérieur / Escape
-  useEffect(() => {
-    if (!pickingTrack) return;
-    const onDown = (e) => {
-      if (pickerRef.current && !pickerRef.current.contains(e.target)) setPickingTrack(false);
-    };
-    const onEsc = (e) => { if (e.key === 'Escape') setPickingTrack(false); };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onEsc);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onEsc);
-    };
-  }, [pickingTrack]);
-
-  // Même logique pour le picker "Nouveau titre → dans quel projet ?"
-  useEffect(() => {
-    if (!pickingProject) return;
-    const onDown = (e) => {
-      if (projectPickerRef.current && !projectPickerRef.current.contains(e.target)) setPickingProject(false);
-    };
-    const onEsc = (e) => { if (e.key === 'Escape') setPickingProject(false); };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onEsc);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onEsc);
-    };
-  }, [pickingProject]);
 
   // Liste à plat de tous les titres (pour le picker "À quel titre ?")
   const allTracks = projects.flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectName: p.name })));
@@ -726,87 +695,13 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   /* ─── JSX réutilisables (mobile + desktop) ─────────────── */
   const actionsBar = (
     <div className="wh-actions">
-      <button className="wh-action" onClick={handleNewProject}>
+      <button
+        className="wh-action wh-action-primary"
+        onClick={() => setAddModalOpen(true)}
+      >
         <span className="wh-action-icon">+</span>
-        <span>Nouveau projet</span>
+        <span>Ajouter</span>
       </button>
-      <div ref={projectPickerRef} style={{ position: "relative", display: "flex" }}>
-        <button
-          className="wh-action"
-          style={{ flex: 1 }}
-          onClick={() => {
-            // Pas encore de projet → créer d'abord, puis chaîner sur le titre
-            if (totalProjects === 0) {
-              pendingNewTrackRef.current = true;
-              handleNewProject();
-              return;
-            }
-            setPickingProject((v) => !v);
-          }}
-        >
-          <span className="wh-action-icon">+</span>
-          <span>Nouveau titre</span>
-        </button>
-        {pickingProject && (
-          <div className="wh-track-picker">
-            <div className="wh-picker-label">Dans quel projet ?</div>
-            {projects.map((p) => (
-              <div
-                key={p.id}
-                className="wh-picker-item"
-                onClick={() => {
-                  setPickingProject(false);
-                  if (onSetCurrentProject) onSetCurrentProject(p.id);
-                  if (onNewTrack) onNewTrack();
-                }}
-              >
-                {p.name}
-                <span className="wh-picker-count">{metaLine(p)}</span>
-              </div>
-            ))}
-            <div
-              className="wh-picker-item wh-picker-create"
-              onClick={() => {
-                setPickingProject(false);
-                pendingNewTrackRef.current = true;
-                handleNewProject();
-              }}
-            >
-              <span className="wh-action-icon">+</span>
-              <span>Nouveau projet</span>
-            </div>
-          </div>
-        )}
-      </div>
-      {allTracks.length > 0 && (
-        <div ref={pickerRef} style={{ position: "relative", display: "flex" }}>
-          <button
-            className="wh-action"
-            style={{ flex: 1 }}
-            onClick={() => setPickingTrack((v) => !v)}
-          >
-            <span className="wh-action-icon">↻</span>
-            <span>Ajouter une version</span>
-          </button>
-          {pickingTrack && (
-            <div className="wh-track-picker">
-              <div className="wh-picker-label">À quel titre ?</div>
-              {allTracks.map((t) => (
-                <div
-                  key={t.id}
-                  className="wh-picker-item"
-                  onClick={() => { setPickingTrack(false); if (onAddVersion) onAddVersion(t); }}
-                >
-                  {t.title}
-                  <span className="wh-picker-count">
-                    {t.versions?.length || 0} version{(t.versions?.length || 0) > 1 ? "s" : ""}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 
@@ -976,6 +871,25 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           onCancel={() => setNewProjectOpen(false)}
           onSubmit={submitNewProject}
           confirmLabel="Créer"
+        />
+      )}
+      {addModalOpen && (
+        <AddModal
+          onClose={() => setAddModalOpen(false)}
+          projects={projects}
+          allTracks={allTracks}
+          onNewProject={handleNewProject}
+          onNewTrackInProject={(projectId) => {
+            if (onSetCurrentProject) onSetCurrentProject(projectId);
+            if (onNewTrack) onNewTrack();
+          }}
+          onNewProjectThenTrack={() => {
+            pendingNewTrackRef.current = true;
+            handleNewProject();
+          }}
+          onAddVersionToTrack={(track) => {
+            if (onAddVersion) onAddVersion(track);
+          }}
         />
       )}
     </>
