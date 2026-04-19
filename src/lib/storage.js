@@ -174,6 +174,30 @@ export async function getAnalysis(trackId, versionId) {
   return data?.analysis_result || null;
 }
 
+/**
+ * Sauvegarde les notes perso d'une version dans analysis_result.userNotes.
+ * Fait un read-modify-write (2 round-trips) parce qu'on n'a pas d'accès RPC jsonb_set côté client.
+ * Appelé en debounce depuis la fiche.
+ */
+export async function saveVersionNotes(versionId, notes) {
+  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return;
+  const { data, error: readErr } = await supabase
+    .from('versions')
+    .select('analysis_result')
+    .eq('id', versionId)
+    .single();
+  if (readErr) {
+    console.warn('[storage] saveVersionNotes read error:', readErr.message);
+    return;
+  }
+  const next = { ...(data?.analysis_result || {}), userNotes: notes || '' };
+  const { error: writeErr } = await supabase
+    .from('versions')
+    .update({ analysis_result: next })
+    .eq('id', versionId);
+  if (writeErr) console.warn('[storage] saveVersionNotes write error:', writeErr.message);
+}
+
 /** Delete a version. If last one, delete the track too. Also removes audio from Storage. */
 export async function deleteVersion(trackId, versionId) {
   // Récupère le storage_path AVANT de supprimer la row

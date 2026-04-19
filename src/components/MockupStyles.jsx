@@ -76,6 +76,66 @@ export default function MockupStyles() {
     color: var(--muted2); text-transform: uppercase;
     margin: 4px 4px 4px;
   }
+
+  /* ── Recherche sidebar ── */
+  .sidebar-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 0;
+  }
+  .sidebar-search .sidebar-search-icon {
+    position: absolute;
+    left: 10px;
+    color: var(--muted);
+    pointer-events: none;
+    display: inline-flex;
+  }
+  .sidebar-search-input {
+    flex: 1;
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 32px 7px 30px;
+    font-family: var(--body);
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .sidebar-search-input::placeholder {
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .sidebar-search-input:focus {
+    border-color: var(--amber);
+    background: var(--s2);
+  }
+  .sidebar-search-clear {
+    position: absolute;
+    right: 8px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px;
+    display: inline-flex;
+    border-radius: 4px;
+    transition: color .15s ease, background .15s ease;
+  }
+  .sidebar-search-clear:hover {
+    color: var(--text);
+    background: var(--s3);
+  }
+  .sidebar-search-empty {
+    font-family: var(--body);
+    font-size: 12px;
+    color: var(--muted);
+    padding: 12px 10px;
+    font-style: italic;
+  }
   .track-list { display: flex; flex-direction: column; gap: 1px; }
   .track {
     padding: 7px 10px; border-radius: 6px;
@@ -796,6 +856,110 @@ export default function MockupStyles() {
   /* Pas d'effet hover/translateY quand la card est en mode collapsible (le hover ne joue plus que sur la head) */
   .priority.collapsible:hover { border-color: var(--border); background: var(--s1); transform: none; }
   .priority.collapsible.open:hover { border-color: #f5b05655; background: var(--s1); }
+
+  /* ── Notes perso (1 par fiche) ───────────────────────── */
+  .notes-section {
+    margin-top: 36px;
+    padding: 0 0 16px;
+  }
+  .notes-block {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--s1);
+    overflow: hidden;
+    transition: border-color .18s ease;
+  }
+  .notes-block:hover { border-color: var(--s4); }
+  .notes-block.open { border-color: var(--s4); }
+  .notes-head {
+    all: unset;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: background .15s ease;
+  }
+  .notes-head:hover { background: var(--s2); }
+  .notes-head .notes-icon {
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+  }
+  .notes-head .notes-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .notes-head .notes-preview {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--body);
+    font-size: 13px;
+    color: var(--soft);
+    font-weight: 300;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .notes-head .notes-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--amber);
+    letter-spacing: 0.4px;
+    margin-left: auto;
+    opacity: 0.8;
+  }
+  .notes-head .notes-chev {
+    color: var(--muted);
+    display: inline-flex;
+    transition: transform .2s ease;
+  }
+  .notes-block.open .notes-head .notes-chev { transform: rotate(90deg); }
+  .notes-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .22s ease;
+    padding: 0 18px;
+  }
+  .notes-block.open .notes-body {
+    max-height: 500px;
+    padding: 4px 18px 18px;
+    border-top: 1px solid var(--border);
+  }
+  .notes-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--s2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: var(--body);
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text);
+    resize: none;
+    outline: none;
+    transition: border-color .15s ease, background .15s ease;
+    min-height: 60px;
+  }
+  .notes-textarea:focus {
+    border-color: var(--amber);
+    background: var(--s1);
+  }
+  .notes-textarea:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .notes-textarea::placeholder {
+    color: var(--muted);
+    opacity: 0.7;
+  }
 
   /* Section 3 : Diagnostic */
   .diag-cat {

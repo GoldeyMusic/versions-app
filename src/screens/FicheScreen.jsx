@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import API from '../constants/api';
 // import CompareButton from '../components/CompareButton'; // mis en sommeil
 import VChip from '../components/VChip';
-import { loadTracks, deleteTrack, renameTrack } from '../lib/storage';
+import { loadTracks, deleteTrack, renameTrack, saveVersionNotes } from '../lib/storage';
 import { confirmDialog } from '../lib/confirm.jsx';
 import useMobile from '../hooks/useMobile';
 import useNarrowDesktop from '../hooks/useNarrowDesktop';
@@ -1157,6 +1157,97 @@ function QualitativeSection({ listening }) {
   );
 }
 
+// ── NotesSection (bloc notes perso, 1 par fiche) ───────────
+
+function NotesSection({ versionId, initialNotes }) {
+  const [notes, setNotes] = useState(initialNotes || '');
+  const [open, setOpen] = useState(() => Boolean(initialNotes && initialNotes.trim()));
+  const [status, setStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
+  const taRef = useRef(null);
+  const timerRef = useRef(null);
+  const resetTimerRef = useRef(null);
+  const lastSavedRef = useRef(initialNotes || '');
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const ta = taRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(400, Math.max(60, ta.scrollHeight)) + 'px';
+  }, [notes, open]);
+
+  // Nettoyage à l'unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
+  }, []);
+
+  const canEdit = Boolean(versionId) && versionId !== '__pending_v__' && versionId !== '__pending__';
+  const label = status === 'saving' ? 'Sauvegarde…' : status === 'saved' ? 'Sauvegardé' : null;
+
+  const handleChange = (e) => {
+    const next = e.target.value;
+    setNotes(next);
+    if (!canEdit) return;
+    if (next === lastSavedRef.current) return;
+    setStatus('saving');
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(async () => {
+      try {
+        await saveVersionNotes(versionId, next);
+        lastSavedRef.current = next;
+        setStatus('saved');
+        if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+        resetTimerRef.current = setTimeout(() => setStatus('idle'), 1400);
+      } catch (err) {
+        console.warn('[NotesSection] save error', err);
+        setStatus('idle');
+      }
+    }, 1100);
+  };
+
+  return (
+    <section className="notes-section">
+      <div className={`notes-block collapsible${open ? ' open' : ''}`}>
+        <button className="notes-head" type="button" onClick={() => setOpen((v) => !v)}>
+          <span className="notes-icon" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M3 13V3h7l3 3v7H3z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+              <path d="M10 3v3h3" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+              <path d="M5.5 8.5h5M5.5 10.5h3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
+          </span>
+          <span className="notes-title">Mes notes</span>
+          {notes && notes.trim() && !open && (
+            <span className="notes-preview">{notes.trim().slice(0, 80)}{notes.trim().length > 80 ? '…' : ''}</span>
+          )}
+          <span className="notes-status" aria-live="polite">{label}</span>
+          <span className="notes-chev" aria-hidden="true">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </button>
+        <div className="notes-body">
+          <textarea
+            ref={taRef}
+            className="notes-textarea"
+            value={notes}
+            onChange={handleChange}
+            placeholder={canEdit
+              ? 'Tes observations, rappels, TODOs pour le prochain mix…'
+              : 'Notes disponibles une fois l\u2019analyse sauvegardée.'}
+            disabled={!canEdit}
+            rows={3}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── FicheScreen (principal) ────────────────────────────────
 
 export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onTrackDeleted, onTrackRenamed, onGoHome, refreshKey }) {
@@ -1554,6 +1645,13 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               </div>
             </div>
           )}
+
+          {/* 4 · Notes perso (1 par fiche, persistées dans analysis_result.userNotes) */}
+          <NotesSection
+            key={versionInDb?.id || 'pending'}
+            versionId={versionInDb?.id || null}
+            initialNotes={(analysisResult && analysisResult.userNotes) || ''}
+          />
           </>
           )}
         </div>
