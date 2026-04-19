@@ -3066,11 +3066,16 @@ export default function MockupStyles() {
     .reglages-signout { padding: 14px 16px; }
 
     /* Welcome Home */
-    .welcome-home { padding: 24px 20px 80px; max-width: 100%; gap: 20px; }
+    /* gap: 12px ≈ wh-projects gap (10px) → rythme uniforme au scroll */
+    .welcome-home { padding: 24px 20px 80px; max-width: 100%; gap: 12px; }
     .wh-greeting { font-size: 28px; letter-spacing: 2px; }
     .wh-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .wh-tracklist { max-width: 100%; }
     .wh-action { justify-content: center; padding: 12px 10px; font-size: 12px; }
+    /* Espace interne tracklist : title margin réduit pour coller aux projets */
+    .wh-section-title { margin-bottom: 10px; }
+    /* Corps accordéon ouvert : padding-bottom réduit pour éviter le grand blanc */
+    .wh-acc-body { padding: 0 14px 10px; }
     /* Tagline hero — version compacte mobile (padding + font réduits) */
     .wh-tagline-hero { padding: 32px 20px 24px; gap: 10px; }
     .wh-tagline-text { font-size: 22px; line-height: 1.3; max-width: 100%; }
