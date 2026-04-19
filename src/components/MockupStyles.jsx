@@ -835,7 +835,7 @@ export default function MockupStyles() {
   .wh-tagline-mid {
     display: flex; align-items: center; justify-content: center;
     text-align: center;
-    padding: 28px 24px 24px;
+    padding: 56px 24px 52px;
   }
   .wh-tagline-mid .wh-tagline-text {
     font-family: var(--serif); font-style: italic; font-size: 28px;
