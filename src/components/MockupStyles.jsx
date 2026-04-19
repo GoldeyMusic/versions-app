@@ -1300,6 +1300,14 @@ export default function MockupStyles() {
     transition: border-color 0.2s ease, background 0.2s ease;
   }
   .wh-acc-item:hover { border-color: rgba(245,176,86,.25); }
+  /* Quand le menu 3-points est ouvert sur un projet fermé, on laisse le
+     menu déborder hors de la carte (sinon overflow:hidden le tronque et
+     on ne voit que la première option). */
+  .wh-acc-item.menu-open {
+    overflow: visible;
+    position: relative;
+    z-index: 5;
+  }
   .wh-acc-item.open {
     /* En mode ouvert, teinte un poil plus marquée (9%) pour bien détacher
        le cadre du background général sur toute la hauteur de la carte. */
@@ -1493,6 +1501,7 @@ export default function MockupStyles() {
     background: #141416; border: 1px solid #2a2a2e;
     border-radius: 10px; padding: 6px;
     box-shadow: 0 12px 32px rgba(0,0,0,0.55);
+    z-index: 10;
     z-index: 10;
     animation: fadeup .15s ease;
   }
