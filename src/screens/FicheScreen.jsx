@@ -7,7 +7,7 @@ import ShareLinkModal from '../components/ShareLinkModal';
 import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory } from '../lib/storage';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
-import { renderWithEmphasis, formatAnalyzedAt, splitVerdict } from '../lib/ficheHelpers.jsx';
+import { renderWithEmphasis, formatAnalyzedAt, splitVerdict, applyVocalTypeToFiche, isVoiceCategory } from '../lib/ficheHelpers.jsx';
 import useMobile from '../hooks/useMobile';
 import useNarrowDesktop from '../hooks/useNarrowDesktop';
 
@@ -479,6 +479,18 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
             </button>
           )}
           <span><TrackTitleText title={track.title} /></span>
+          {/* Badge type vocal : seulement pour les titres instrumentaux.
+              'vocal' (défaut) → pas de badge, UX identique à avant. */}
+          {track?.vocalType === 'instrumental_final' && (
+            <span className="vocal-badge final" title="Œuvre purement instrumentale — la voix n'est pas évaluée">
+              Instrumental
+            </span>
+          )}
+          {track?.vocalType === 'instrumental_pending' && (
+            <span className="vocal-badge pending" title="Voix à venir sur les prochaines versions">
+              Voix à venir
+            </span>
+          )}
         </span>
         {current && (
           <span className="vsub">
@@ -1293,31 +1305,50 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
       analysisResult: analysisResult || null,
     }],
   } : null);
-  const fiche = analysisResult?.fiche || null;
+  const rawFiche = analysisResult?.fiche || null;
   const listening = analysisResult?.listening || null;
   const stage = analysisResult?._stage || 'idle';
-  const plan = fiche?.plan || [];
-  const elements = fiche?.elements || [];
-  const score = typeof fiche?.globalScore === 'number' ? fiche.globalScore : null;
+
+  // Type vocal du titre : priorité à la DB (la source de vérité), fallback
+  // sur config.vocalType fraîchement choisi pendant l'import (avant que
+  // le titre n'arrive en DB).
+  const vocalType = currentTrack?.vocalType || config?.vocalType || 'vocal';
+
+  // Applique le type vocal à la fiche courante :
+  //  - 'instrumental_final' filtre la catégorie VOIX + items plan liés, recalcule score
+  //  - 'instrumental_pending' ne filtre rien mais signale un relabel de la catégorie voix
+  //  - 'vocal' : no-op
+  const {
+    elements,
+    plan,
+    globalScore: adjustedScore,
+    voiceLabelOverride,
+  } = applyVocalTypeToFiche(rawFiche, vocalType);
+  const score = typeof adjustedScore === 'number' ? adjustedScore : null;
 
   // ── Données pour EvolutionPanel (sparkline + stats) ──
+  // Pour que le graphique reste cohérent avec la fiche courante quand le
+  // titre est 'instrumental_final', on recalcule le score de chaque version
+  // (et pas seulement de la courante) via le même helper.
   const allVersions = currentTrack?.versions || [];
   const currentIdx = allVersions.findIndex((v) => v.name === config?.version);
+  const adjustVersionScore = (v) => {
+    const f = v?.analysisResult?.fiche;
+    if (!f) return null;
+    const { globalScore: s } = applyVocalTypeToFiche(f, vocalType);
+    return typeof s === 'number' ? s : null;
+  };
   const versionScores = allVersions.map((v, i) => ({
     name: v.name,
     // la version courante peut être en cours d'analyse → utiliser le `score` en mémoire plutôt que l'ancien analysisResult
-    score: i === currentIdx && score != null
-      ? score
-      : (typeof v.analysisResult?.fiche?.globalScore === 'number' ? v.analysisResult.fiche.globalScore : null),
+    score: i === currentIdx && score != null ? score : adjustVersionScore(v),
   }));
   const currentDuration =
     (currentIdx >= 0 && allVersions[currentIdx]?.analysisResult?.fiche?.duration_seconds) ??
-    fiche?.duration_seconds ??
+    rawFiche?.duration_seconds ??
     null;
   const prevVersion = currentIdx > 0 ? allVersions[currentIdx - 1] : null;
-  const prevScore = typeof prevVersion?.analysisResult?.fiche?.globalScore === 'number'
-    ? prevVersion.analysisResult.fiche.globalScore
-    : null;
+  const prevScore = adjustVersionScore(prevVersion);
   const prevDuration = prevVersion?.analysisResult?.fiche?.duration_seconds ?? null;
 
   const toggleCat = (i) => setOpenCat((prev) => (prev === i ? null : i));
@@ -1370,9 +1401,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           />
         )}
 
-        <div className={`fiche-layout${!chatAsDrawer && fiche ? ' has-chat' : ''}`}>
+        <div className={`fiche-layout${!chatAsDrawer && rawFiche ? ' has-chat' : ''}`}>
         <div className="page">
-          {!fiche ? (
+          {!rawFiche ? (
             <AnalyzingState stage={stage} />
           ) : (
           <>
@@ -1384,13 +1415,13 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 {(() => {
                   // Priorité : verdict (phrase accrocheuse) pour le titre, summary pour le paragraphe.
                   // Si un seul des deux existe → on découpe en 1ʳᵉ phrase (titre) + reste (paragraphe).
-                  const vText = fiche?.verdict || fiche?.summary || '';
+                  const vText = rawFiche?.verdict || rawFiche?.summary || '';
                   if (!vText) return <h1>Analyse en cours…</h1>;
-                  if (fiche?.verdict && fiche?.summary && fiche.verdict !== fiche.summary) {
+                  if (rawFiche?.verdict && rawFiche?.summary && rawFiche.verdict !== rawFiche.summary) {
                     return (
                       <>
-                        <h1>{renderWithEmphasis(fiche.verdict)}</h1>
-                        <p>{fiche.summary}</p>
+                        <h1>{renderWithEmphasis(rawFiche.verdict)}</h1>
+                        <p>{rawFiche.summary}</p>
                       </>
                     );
                   }
@@ -1439,17 +1470,21 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                       const count = el.items?.length || 0;
                       const scores = (el.items || []).map((it) => it.score).filter((s) => typeof s === 'number');
                       const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+                      const isVoice = isVoiceCategory(el?.cat);
+                      const catLabel = (isVoice && voiceLabelOverride) ? voiceLabelOverride : el.cat;
                       return (
-                        <div key={el.id || el.cat || idx} className={`diag-cat${open ? ' open' : ''}`}>
+                        <div key={el.id || el.cat || idx} className={`diag-cat${open ? ' open' : ''}${isVoice && voiceLabelOverride ? ' pending-voice' : ''}`}>
                           <div className="diag-cat-head" onClick={() => toggleCat(idx)}>
                             <span className="chev">
                               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                                 <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                               </svg>
                             </span>
-                            <span className="name">{el.cat}</span>
+                            <span className="name">{catLabel}</span>
                             <span className="count">
-                              {count} élément{count > 1 ? 's' : ''}{avg != null ? ` · moy. ${avg.toFixed(1).replace(/\.0$/, '')}` : ''}
+                              {isVoice && voiceLabelOverride
+                                ? 'étape à franchir'
+                                : `${count} élément${count > 1 ? 's' : ''}${avg != null ? ` · moy. ${avg.toFixed(1).replace(/\.0$/, '')}` : ''}`}
                             </span>
                           </div>
                           <div className="diag-cat-body">
@@ -1610,7 +1645,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           </>
           )}
         </div>
-        {!chatAsDrawer && fiche && (
+        {!chatAsDrawer && rawFiche && (
           <aside className="fiche-chat-side">
             <VersionChat
               versionId={versionInDb?.id || null}

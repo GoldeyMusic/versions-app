@@ -117,6 +117,10 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
         formData.append("daw", config.daw || "Logic Pro");
         formData.append("title", config.title || "Titre inconnu");
         formData.append("version", config.version || "v1");
+        // Type vocal du titre — permet au backend (Railway) d'adapter les prompts
+        // IA (ton bienveillant pour 'pending', section voix ignorée pour 'final').
+        // Défaut 'vocal' pour compat avec les titres existants.
+        formData.append("vocalType", config.vocalType || "vocal");
         if (userId) formData.append("userId", userId);
         if (previousFiche) formData.append("previousFiche", JSON.stringify(previousFiche));
         if (durationSeconds) formData.append("durationSeconds", String(durationSeconds));

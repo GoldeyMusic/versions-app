@@ -300,12 +300,15 @@ export async function fetchPublicFiche(token) {
   const { data, error } = await supabase.rpc('get_public_fiche', { p_token: token });
   if (error) { console.warn('[storage] fetchPublicFiche error:', error.message); return null; }
   if (!data) return null;
-  // data = { track_title, version_name, created_at, analysis_result }
+  // data = { track_title, version_name, created_at, analysis_result, vocal_type }
+  // vocal_type : ajouté par migration 005 (COALESCE → 'vocal' par défaut
+  // pour les anciens partages créés avant la migration).
   return {
     trackTitle: data.track_title || '',
     versionName: data.version_name || '',
     createdAt: data.created_at || null,
     analysisResult: data.analysis_result || null,
+    vocalType: data.vocal_type || 'vocal',
   };
 }
 

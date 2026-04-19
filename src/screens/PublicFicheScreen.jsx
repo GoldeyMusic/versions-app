@@ -10,6 +10,8 @@ import {
   renderWithEmphasis,
   formatAnalyzedAt,
   splitVerdict,
+  applyVocalTypeToFiche,
+  isVoiceCategory,
 } from '../lib/ficheHelpers.jsx';
 import { fetchPublicFiche } from '../lib/storage';
 
@@ -87,12 +89,20 @@ export default function PublicFicheScreen({ token }) {
 
   const { data } = state;
   const analysisResult = data.analysisResult || {};
-  const fiche = analysisResult.fiche || {};
+  const rawFiche = analysisResult.fiche || {};
   const listening = analysisResult.listening || null;
-  const plan = Array.isArray(fiche.plan) ? fiche.plan : [];
-  const elements = Array.isArray(fiche.elements) ? fiche.elements : [];
-  const score = typeof fiche.globalScore === 'number' ? fiche.globalScore : null;
   const userNotes = (analysisResult.userNotes || '').trim();
+
+  // Type vocal du titre : vient du RPC (migration 005). Pour les anciens
+  // partages créés avant la migration, vocalType sera 'vocal' par défaut.
+  const vocalType = data.vocalType || 'vocal';
+  const {
+    elements,
+    plan,
+    globalScore: adjustedScore,
+    voiceLabelOverride,
+  } = applyVocalTypeToFiche(rawFiche, vocalType);
+  const score = typeof adjustedScore === 'number' ? adjustedScore : null;
 
   return (
     <>
@@ -119,13 +129,13 @@ export default function PublicFicheScreen({ token }) {
                 {score != null && <ScoreRingBig value={score} prevScore={null} />}
                 <div className="verdict-text">
                   {(() => {
-                    const vText = fiche.verdict || fiche.summary || '';
+                    const vText = rawFiche.verdict || rawFiche.summary || '';
                     if (!vText) return <h1>{data.trackTitle || 'Fiche'}</h1>;
-                    if (fiche.verdict && fiche.summary && fiche.verdict !== fiche.summary) {
+                    if (rawFiche.verdict && rawFiche.summary && rawFiche.verdict !== rawFiche.summary) {
                       return (
                         <>
-                          <h1>{renderWithEmphasis(fiche.verdict)}</h1>
-                          <p>{fiche.summary}</p>
+                          <h1>{renderWithEmphasis(rawFiche.verdict)}</h1>
+                          <p>{rawFiche.summary}</p>
                         </>
                       );
                     }
@@ -174,13 +184,18 @@ export default function PublicFicheScreen({ token }) {
                         const items = el.items || [];
                         const scores = items.map((it) => it.score).filter((s) => typeof s === 'number');
                         const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+                        const isVoice = isVoiceCategory(el.cat);
+                        const isPendingVoice = isVoice && voiceLabelOverride;
+                        const catLabel = isPendingVoice ? voiceLabelOverride : el.cat;
+                        const catClass = isPendingVoice ? 'diag-cat open pending-voice' : 'diag-cat open';
                         return (
-                          <div key={el.id || el.cat || idx} className="diag-cat open">
+                          <div key={el.id || el.cat || idx} className={catClass}>
                             <div className="diag-cat-head">
-                              <span className="name">{el.cat}</span>
+                              <span className="name">{catLabel}</span>
                               <span className="count">
-                                {items.length} élément{items.length > 1 ? 's' : ''}
-                                {avg != null ? ` · moy. ${avg.toFixed(1).replace(/\.0$/, '')}` : ''}
+                                {isPendingVoice
+                                  ? 'étape à franchir'
+                                  : `${items.length} élément${items.length > 1 ? 's' : ''}${avg != null ? ` · moy. ${avg.toFixed(1).replace(/\.0$/, '')}` : ''}`}
                               </span>
                             </div>
                             <div className="diag-cat-body">

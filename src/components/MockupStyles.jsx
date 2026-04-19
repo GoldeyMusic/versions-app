@@ -243,6 +243,32 @@ export default function MockupStyles() {
     letter-spacing: 1.5px;
   }
 
+  /* Badge type vocal (affiché à côté du titre pour les titres instrumentaux) */
+  .vocal-badge {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+    color: var(--textSoft, #b8bdc7);
+    align-self: center;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .vocal-badge.final {
+    border-color: rgba(30,207,176,.35);
+    color: var(--teal);
+    background: rgba(30,207,176,.06);
+  }
+  .vocal-badge.pending {
+    border-color: rgba(245,166,35,.35);
+    color: var(--amber);
+    background: rgba(245,166,35,.06);
+  }
+
   .versions-block {
     display: flex; align-items: center; gap: 10px;
     /* Le push-droite est désormais porté par .fiche-head-actions
@@ -997,6 +1023,14 @@ export default function MockupStyles() {
   .diag-cat.open .diag-cat-head .chev { transform: rotate(90deg); }
   .diag-cat-head .count {
     font-family: var(--mono); font-size: 10px; color: var(--muted);
+  }
+  /* Catégorie voix en mode 'voix à venir' : teintée pour se distinguer */
+  .diag-cat.pending-voice .diag-cat-head .name {
+    color: var(--amber);
+  }
+  .diag-cat.pending-voice .diag-cat-head .count {
+    color: var(--amber);
+    text-transform: uppercase; letter-spacing: 1px;
   }
   .diag-cat-body {
     padding: 0 20px 16px;

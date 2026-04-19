@@ -45,3 +45,73 @@ export function splitVerdict(text) {
   if (m) return { headline: m[1].trim(), rest: m[2].trim() };
   return { headline: text.trim(), rest: '' };
 }
+
+// Détecte si une catégorie de diagnostic concerne la voix.
+// Robuste aux variantes de casse et aux éventuels synonymes.
+export function isVoiceCategory(cat) {
+  const s = (cat || '').toString().trim().toLowerCase();
+  return s === 'voix' || s === 'voice' || s === 'vocal' || s === 'voice/vocal' || s.startsWith('voix');
+}
+
+/**
+ * Adapte une fiche d'analyse au type vocal du titre.
+ *
+ *  - 'vocal' : aucun changement.
+ *
+ *  - 'instrumental_pending' : aucune suppression (la voix est une étape
+ *    à franchir qui doit rester dans le diag et peser sur le score),
+ *    mais on signale à l'UI de relabeler la catégorie voix via
+ *    voiceLabelOverride.
+ *
+ *  - 'instrumental_final' : on retire la catégorie VOIX du diagnostic,
+ *    on retire les items du plan d'action dont tous les linkedItems
+ *    sont dans la catégorie VOIX, et on recalcule le globalScore en
+ *    prenant la moyenne des item.score restants (si au moins un score
+ *    est disponible ; sinon on conserve l'original).
+ *
+ * Retourne { elements, plan, globalScore, voiceLabelOverride }.
+ * Fonction pure : ne mute pas les entrées.
+ */
+export function applyVocalTypeToFiche(fiche, vocalType) {
+  const elements = Array.isArray(fiche?.elements) ? fiche.elements : [];
+  const plan = Array.isArray(fiche?.plan) ? fiche.plan : [];
+  const globalScore = typeof fiche?.globalScore === 'number' ? fiche.globalScore : null;
+
+  if (vocalType === 'instrumental_final') {
+    const voiceItemIds = new Set();
+    elements.forEach((el) => {
+      if (isVoiceCategory(el?.cat)) {
+        (el?.items || []).forEach((it) => { if (it?.id) voiceItemIds.add(it.id); });
+      }
+    });
+    const filteredElements = elements.filter((el) => !isVoiceCategory(el?.cat));
+    const filteredPlan = plan.filter((p) => {
+      const ids = Array.isArray(p?.linkedItemIds) ? p.linkedItemIds : [];
+      if (!ids.length) return true; // pas de lien explicite → garde (on ne peut pas trancher)
+      return !ids.every((id) => voiceItemIds.has(id)); // retire si tous les liens sont dans VOIX
+    });
+    const scores = filteredElements
+      .flatMap((el) => (el?.items || []).map((it) => it?.score))
+      .filter((s) => typeof s === 'number');
+    const recomputed = scores.length
+      ? scores.reduce((a, b) => a + b, 0) / scores.length
+      : globalScore;
+    return {
+      elements: filteredElements,
+      plan: filteredPlan,
+      globalScore: recomputed,
+      voiceLabelOverride: null,
+    };
+  }
+
+  if (vocalType === 'instrumental_pending') {
+    return {
+      elements,
+      plan,
+      globalScore,
+      voiceLabelOverride: 'VOIX À VENIR',
+    };
+  }
+
+  return { elements, plan, globalScore, voiceLabelOverride: null };
+}
