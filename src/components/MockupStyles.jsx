@@ -1956,6 +1956,33 @@ export default function MockupStyles() {
     pointer-events: none;
   }
 
+  /* Sélecteur type de titre (chanté / instrumental) */
+  .input-vkind {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .input-vpill {
+    flex: 1 1 auto; min-width: 0;
+    background: var(--s2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 11px 14px;
+    font-family: var(--body); font-size: 13px; font-weight: 300;
+    color: var(--textSoft, #b8bdc7);
+    cursor: pointer; transition: all .15s;
+    text-align: center;
+  }
+  .input-vpill:hover {
+    border-color: rgba(245,166,35,.5);
+    color: var(--text);
+  }
+  .input-vpill.on {
+    background: rgba(245,166,35,.08);
+    border-color: var(--amber);
+    color: var(--text);
+    font-weight: 400;
+  }
+  .input-vpill.small {
+    font-size: 12px; padding: 9px 12px;
+  }
+
   .input-cta {
     width: 100%; padding: 14px 16px; border-radius: 10px;
     background: var(--s2); border: 1px solid var(--border);

@@ -22,7 +22,7 @@ export async function loadTracks() {
 
   const { data: tracks, error } = await supabase
     .from('tracks')
-    .select('id, title, project_id, created_at, versions(id, name, date, bpm, key, lufs, is_main, analysis_result, storage_path, created_at)')
+    .select('id, title, project_id, vocal_type, created_at, versions(id, name, date, bpm, key, lufs, is_main, analysis_result, storage_path, created_at)')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -35,6 +35,7 @@ export async function loadTracks() {
     id: t.id,
     title: t.title,
     projectId: t.project_id,
+    vocalType: t.vocal_type || 'vocal',
     createdAt: t.created_at,
     versions: (t.versions || [])
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
@@ -77,7 +78,7 @@ export async function saveAnalysis(config, analysisResult, storagePath = null) {
   // Find existing track in the same project (case-insensitive title)
   const { data: existingTracks } = await supabase
     .from('tracks')
-    .select('id, title')
+    .select('id, title, vocal_type')
     .eq('project_id', projectId)
     .ilike('title', title);
 
@@ -93,6 +94,12 @@ export async function saveAnalysis(config, analysisResult, storagePath = null) {
       .limit(1);
     const nextPos = (last?.[0]?.position_in_project ?? -1) + 1;
 
+    // vocal_type : piloté par le flow d'import pour un nouveau titre.
+    // Valeurs autorisées : 'vocal' | 'instrumental_pending' | 'instrumental_final'.
+    // Pour un titre existant, on ne touche à rien (déjà défini à la création).
+    const allowedVocalTypes = ['vocal', 'instrumental_pending', 'instrumental_final'];
+    const vocalType = allowedVocalTypes.includes(config?.vocalType) ? config.vocalType : 'vocal';
+
     const { data: newTrack, error: insertErr } = await supabase
       .from('tracks')
       .insert({
@@ -100,6 +107,7 @@ export async function saveAnalysis(config, analysisResult, storagePath = null) {
         title,
         project_id: projectId,
         position_in_project: nextPos,
+        vocal_type: vocalType,
       })
       .select()
       .single();

@@ -201,6 +201,22 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
   const [newProjectValue, setNewProjectValue] = useState('');
   const newProjectInputRef = useRef(null);
 
+  // --- Type vocal du TITRE (question posée uniquement à la création d'un titre) ---
+  // kind : 'vocal' | 'instrumental'
+  // finalInstru : si instrumental, est-ce définitif ?
+  // Ces deux états se combinent pour produire vocalType : 'vocal' |
+  // 'instrumental_pending' | 'instrumental_final'. On ne pose PAS la question
+  // quand on ajoute une version à un titre existant (lockProject=true).
+  const [vocalKind, setVocalKind] = useState('vocal');
+  const [finalInstru, setFinalInstru] = useState(null); // null tant que pas choisi
+  const askVocal = !lockProject;
+  const vocalType = vocalKind === 'vocal'
+    ? 'vocal'
+    : (finalInstru === true ? 'instrumental_final'
+      : finalInstru === false ? 'instrumental_pending'
+        : null);
+  const vocalOk = !askVocal || vocalType !== null;
+
   // Charge la liste des projets
   useEffect(() => {
     let alive = true;
@@ -226,15 +242,20 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
     }
   };
 
-  const ok = !!file && !!daw && !!title && !!version && !!projectId;
+  const ok = !!file && !!daw && !!title && !!version && !!projectId && vocalOk;
 
   const handleAnalyze = () => {
     if (!ok) return;
-    onAnalyze({ file, title, version, daw, projectId, refFile: null });
+    onAnalyze({ file, title, version, daw, projectId, vocalType, refFile: null });
   };
 
-  // Progress indicator — 5 champs désormais (projet, fichier, titre, version, DAW)
-  const filled = [!!projectId, !!file, !!title, !!version, !!daw].filter(Boolean).length;
+  // Progress indicator — 5 champs (projet, fichier, titre, version, DAW).
+  // Le type vocal est conditionnel (caché quand on ajoute à un titre existant),
+  // donc on ne l'ajoute au compteur que s'il est demandé, et on normalise
+  // le total en conséquence pour garder une barre cohérente.
+  const baseFilled = [!!projectId, !!file, !!title, !!version, !!daw].filter(Boolean).length;
+  const totalSteps = askVocal ? 6 : 5;
+  const filled = baseFilled + (askVocal && vocalOk ? 1 : 0);
 
   // Création rapide de projet depuis le picker
   const handleCreateNewProject = () => {
@@ -269,7 +290,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
 
       {/* Progress bar */}
       <div className="input-progress">
-        <div className="input-progress-bar" style={{ width: `${(filled / 5) * 100}%` }} />
+        <div className="input-progress-bar" style={{ width: `${(filled / totalSteps) * 100}%` }} />
       </div>
 
       {/* Form */}
@@ -330,6 +351,66 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
           </div>
         )}
 
+        {/* ── TYPE DE TITRE (nouveau titre uniquement) ── */}
+        {file && askVocal && (
+          <div className="input-section" style={{ animation: 'fadeup .25s ease' }}>
+            <div className="input-section-label">
+              TYPE DE TITRE <div className="input-section-line" />
+              {vocalOk && <span style={{ color: '#7bd88f', fontSize: 9 }}>✓</span>}
+            </div>
+
+            {/* Étape 1 : chanté ou instrumental ? */}
+            <div className="input-vkind">
+              <button
+                type="button"
+                className={`input-vpill${vocalKind === 'vocal' ? ' on' : ''}`}
+                onClick={() => { setVocalKind('vocal'); setFinalInstru(null); }}
+              >
+                Chanté
+              </button>
+              <button
+                type="button"
+                className={`input-vpill${vocalKind === 'instrumental' ? ' on' : ''}`}
+                onClick={() => setVocalKind('instrumental')}
+              >
+                Instrumental
+              </button>
+            </div>
+
+            {/* Étape 2 : si instrumental, voix à venir ou définitif ? */}
+            {vocalKind === 'instrumental' && (
+              <div style={{ marginTop: 10, animation: 'fadeup .2s ease' }}>
+                <div style={{ fontSize: 10, color: T.muted, marginBottom: 6, fontFamily: T.mono, letterSpacing: 1 }}>
+                  VOIX SUR CE TITRE ?
+                </div>
+                <div className="input-vkind">
+                  <button
+                    type="button"
+                    className={`input-vpill small${finalInstru === false ? ' on' : ''}`}
+                    onClick={() => setFinalInstru(false)}
+                    title="Tu prévois d'ajouter des voix sur une prochaine version"
+                  >
+                    À venir
+                  </button>
+                  <button
+                    type="button"
+                    className={`input-vpill small${finalInstru === true ? ' on' : ''}`}
+                    onClick={() => setFinalInstru(true)}
+                    title="Œuvre purement instrumentale, pas de voix prévue"
+                  >
+                    Instrumental définitif
+                  </button>
+                </div>
+                <div style={{ marginTop: 8, fontSize: 10, color: T.muted, fontFamily: T.mono, lineHeight: 1.5 }}>
+                  {finalInstru === null && 'Ce choix évite que l\'absence de voix soit notée comme un défaut à tort.'}
+                  {finalInstru === false && 'L\'analyse traitera la voix comme une étape à franchir.'}
+                  {finalInstru === true && 'La section voix sera ignorée dans l\'analyse et le score.'}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── DAW ── */}
         <div className="input-section">
           <div className="input-section-label">
@@ -362,7 +443,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
           disabled={!ok}
           className={`input-cta${ok ? ' ready' : ''}`}
         >
-          {ok ? 'Analyser' : `${filled}/5 champs remplis`}
+          {ok ? 'Analyser' : `${filled}/${totalSteps} champs remplis`}
         </button>
 
       </div>
