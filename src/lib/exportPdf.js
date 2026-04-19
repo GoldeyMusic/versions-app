@@ -30,9 +30,45 @@ function setFont(doc, style = 'normal', size = 10, color = COLORS.text) {
   doc.setTextColor(color[0], color[1], color[2]);
 }
 
+// La police helvetica intégrée à jsPDF est encodée WinAnsi (Latin-1 + quelques
+// extras). Les caractères Unicode hors de cette plage (guillemets typo,
+// apostrophes courbes, tirets cadratins, emojis, etc.) sortent en charabia
+// avec des largeurs de glyphe aberrantes ("casse bizarre" / gros espaces
+// entre les lettres). On normalise vers de l'ASCII avant rendu.
+function sanitize(str) {
+  if (str == null) return '';
+  let s = String(str);
+  // Apostrophes courbes → droit
+  s = s.replace(/[\u2018\u2019\u201A\u201B\u2032]/g, "'");
+  // Guillemets courbes → droit
+  s = s.replace(/[\u201C\u201D\u201E\u201F\u2033]/g, '"');
+  // Tirets longs → hyphen
+  s = s.replace(/[\u2013\u2014\u2015\u2212]/g, '-');
+  // Points de suspension unicode → 3 points
+  s = s.replace(/\u2026/g, '...');
+  // Espaces exotiques → espace normal
+  s = s.replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000\u2060]/g, ' ');
+  // Ligatures françaises → lettres séparées
+  s = s.replace(/œ/g, 'oe').replace(/Œ/g, 'OE');
+  s = s.replace(/æ/g, 'ae').replace(/Æ/g, 'AE');
+  // Flèches courantes → ASCII approx.
+  s = s.replace(/\u2192/g, '->').replace(/\u2190/g, '<-');
+  s = s.replace(/\u2191/g, '^').replace(/\u2193/g, 'v');
+  // Puces/bullets → •  (la puce est en Latin-1, 0xB7 ·, on prend ça)
+  s = s.replace(/[\u2022\u2023\u25E6\u2043\u2219]/g, '\u00B7');
+  // Tout ce qui reste hors Latin-1 (emojis, kanjis, symboles) → supprimé
+  // eslint-disable-next-line no-control-regex -- Latin-1 inclut la plage de contrôle, c'est volontaire ici.
+  s = s.replace(/[^\u0000-\u00FF]/g, '');
+  return s;
+}
+
 function wrap(doc, text, width) {
   if (!text) return [];
-  return doc.splitTextToSize(String(text), width);
+  return doc.splitTextToSize(sanitize(text), width);
+}
+
+function safeText(doc, text, x, y, opts) {
+  doc.text(sanitize(text), x, y, opts);
 }
 
 function ensureSpace(doc, cursor, needed) {
@@ -47,10 +83,10 @@ function drawPageHeader(doc) {
   // Filigrane léger en haut de page (à partir de la page 2)
   if (doc.getNumberOfPages() <= 1) return;
   setFont(doc, 'bold', 8, COLORS.muted);
-  doc.text('VERSIONS', MARGIN.left, MARGIN.top - 6);
+  safeText(doc, 'VERSIONS', MARGIN.left, MARGIN.top - 6);
   setFont(doc, 'normal', 8, COLORS.muted);
   const pageLabel = `page ${doc.getNumberOfPages()}`;
-  doc.text(pageLabel, PAGE.w - MARGIN.right, MARGIN.top - 6, { align: 'right' });
+  safeText(doc, pageLabel, PAGE.w - MARGIN.right, MARGIN.top - 6, { align: 'right' });
 }
 
 function rule(doc, cursor, color = COLORS.rule) {
@@ -63,7 +99,7 @@ function rule(doc, cursor, color = COLORS.rule) {
 function sectionTitle(doc, cursor, label) {
   ensureSpace(doc, cursor, 14);
   setFont(doc, 'bold', 11, COLORS.text);
-  doc.text(label.toUpperCase(), MARGIN.left, cursor.y);
+  safeText(doc, label.toUpperCase(), MARGIN.left, cursor.y);
   cursor.y += 2.5;
   rule(doc, cursor, COLORS.text);
   cursor.y += 2;
@@ -80,6 +116,7 @@ function paragraph(doc, cursor, text, opts = {}) {
   const lh = size * 0.45;
   lines.forEach((line) => {
     ensureSpace(doc, cursor, lh);
+    // lines viennent déjà de wrap() → déjà sanitisés
     doc.text(line, MARGIN.left + indent, cursor.y);
     cursor.y += lh;
   });
@@ -105,13 +142,16 @@ function bullet(doc, cursor, text, opts = {}) {
   cursor.y += lh + 0.5;
 }
 
-function scoreBadge(doc, cursor, score) {
+// Score global (0-100) — rendu en "XX/100" ou "XX%" selon l'échelle détectée.
+function globalScoreBadge(doc, cursor, score) {
   if (typeof score !== 'number') return;
+  // Nos scores globaux sont sur 100 (pourcentage). On garde un seuil
+  // proportionnel pour la couleur.
   const color =
-    score >= 7 ? COLORS.green : score >= 4 ? COLORS.orange : COLORS.redSoft;
-  const label = `${score.toFixed(1).replace(/\.0$/, '')}/10`;
+    score >= 70 ? COLORS.green : score >= 40 ? COLORS.orange : COLORS.redSoft;
+  const rounded = Math.round(score);
   setFont(doc, 'bold', 10, color);
-  doc.text(label, MARGIN.left, cursor.y);
+  safeText(doc, `${rounded}/100`, MARGIN.left, cursor.y);
   cursor.y += 5;
 }
 
@@ -136,9 +176,10 @@ function pickListening(listening) {
 function drawHeader(doc, cursor, meta) {
   // Bandeau marque
   setFont(doc, 'bold', 9, COLORS.orange);
-  doc.text('VERSIONS', MARGIN.left, cursor.y);
+  safeText(doc, 'VERSIONS', MARGIN.left, cursor.y);
   setFont(doc, 'normal', 8, COLORS.muted);
-  doc.text('Fiche d\u2019analyse', MARGIN.left + 22, cursor.y);
+  // Apostrophe ASCII pour éviter le rendu charabia de U+2019 en helvetica
+  safeText(doc, "Fiche d'analyse", MARGIN.left + 22, cursor.y);
 
   const stamp = meta.date
     ? new Date(meta.date).toLocaleDateString('fr-FR', {
@@ -149,7 +190,7 @@ function drawHeader(doc, cursor, meta) {
     : '';
   if (stamp) {
     setFont(doc, 'normal', 8, COLORS.muted);
-    doc.text(stamp, PAGE.w - MARGIN.right, cursor.y, { align: 'right' });
+    safeText(doc, stamp, PAGE.w - MARGIN.right, cursor.y, { align: 'right' });
   }
   cursor.y += 9;
 
@@ -164,14 +205,14 @@ function drawHeader(doc, cursor, meta) {
   // Version
   if (meta.versionName) {
     setFont(doc, 'normal', 10, COLORS.subtle);
-    doc.text(`Version ${meta.versionName}`, MARGIN.left, cursor.y);
+    safeText(doc, `Version ${meta.versionName}`, MARGIN.left, cursor.y);
     cursor.y += 5;
   }
 
-  // Score global
+  // Score global — échelle 0-100
   if (typeof meta.score === 'number') {
     cursor.y += 2;
-    scoreBadge(doc, cursor, meta.score);
+    globalScoreBadge(doc, cursor, meta.score);
   }
 
   // Verdict / résumé
@@ -202,12 +243,12 @@ function drawQualitatif(doc, cursor, listening) {
     L.impression || L.points.length || L.aTravailler.length || L.espace || L.dynamique || L.potentiel;
   if (!hasAny) return;
 
-  sectionTitle(doc, cursor, 'Écoute qualitative');
+  sectionTitle(doc, cursor, 'Ecoute qualitative');
 
   if (L.impression) {
     setFont(doc, 'bold', 10, COLORS.text);
     ensureSpace(doc, cursor, 6);
-    doc.text('Impression générale', MARGIN.left, cursor.y);
+    safeText(doc, 'Impression generale', MARGIN.left, cursor.y);
     cursor.y += 5;
     paragraph(doc, cursor, L.impression);
   }
@@ -215,7 +256,7 @@ function drawQualitatif(doc, cursor, listening) {
   if (L.points.length) {
     setFont(doc, 'bold', 10, COLORS.text);
     ensureSpace(doc, cursor, 6);
-    doc.text('Points forts', MARGIN.left, cursor.y);
+    safeText(doc, 'Points forts', MARGIN.left, cursor.y);
     cursor.y += 5;
     L.points.forEach((p) => bullet(doc, cursor, p, { dotColor: COLORS.green }));
     cursor.y += 1;
@@ -224,7 +265,7 @@ function drawQualitatif(doc, cursor, listening) {
   if (L.aTravailler.length) {
     setFont(doc, 'bold', 10, COLORS.text);
     ensureSpace(doc, cursor, 6);
-    doc.text('À travailler', MARGIN.left, cursor.y);
+    safeText(doc, 'A travailler', MARGIN.left, cursor.y);
     cursor.y += 5;
     L.aTravailler.forEach((p) => bullet(doc, cursor, p, { dotColor: COLORS.orange }));
     cursor.y += 1;
@@ -238,7 +279,7 @@ function drawQualitatif(doc, cursor, listening) {
     if (!val) return;
     setFont(doc, 'bold', 10, COLORS.text);
     ensureSpace(doc, cursor, 6);
-    doc.text(label, MARGIN.left, cursor.y);
+    safeText(doc, label, MARGIN.left, cursor.y);
     cursor.y += 5;
     paragraph(doc, cursor, val);
   });
@@ -248,14 +289,14 @@ function drawQualitatif(doc, cursor, listening) {
 
 function drawDiagnostic(doc, cursor, elements) {
   if (!elements || !elements.length) return;
-  sectionTitle(doc, cursor, 'Diagnostic par éléments');
+  sectionTitle(doc, cursor, 'Diagnostic par elements');
 
   elements.forEach((el) => {
     const items = el.items || [];
     if (!items.length) return;
     ensureSpace(doc, cursor, 10);
     setFont(doc, 'bold', 11, COLORS.text);
-    doc.text(el.cat || 'Élément', MARGIN.left, cursor.y);
+    safeText(doc, el.cat || 'Element', MARGIN.left, cursor.y);
     cursor.y += 5;
 
     items.forEach((it) => {
@@ -267,11 +308,11 @@ function drawDiagnostic(doc, cursor, elements) {
           it.score >= 7 ? COLORS.green : it.score >= 4 ? COLORS.orange : COLORS.redSoft;
         setFont(doc, 'bold', 9, c);
         const s = it.score.toFixed(1).replace(/\.0$/, '');
-        doc.text(s, MARGIN.left + 4, cursor.y);
+        safeText(doc, s, MARGIN.left + 4, cursor.y);
         xLabel = MARGIN.left + 13;
         setFont(doc, 'bold', 10, COLORS.text);
       }
-      doc.text(it.label || '', xLabel, cursor.y);
+      safeText(doc, it.label || '', xLabel, cursor.y);
       cursor.y += 4.5;
 
       if (it.detail) {
@@ -299,7 +340,7 @@ function drawDiagnostic(doc, cursor, elements) {
 
 function drawPlan(doc, cursor, plan) {
   if (!plan || !plan.length) return;
-  sectionTitle(doc, cursor, 'Plan d\u2019action');
+  sectionTitle(doc, cursor, "Plan d'action");
 
   plan.forEach((p, i) => {
     ensureSpace(doc, cursor, 14);
@@ -313,7 +354,7 @@ function drawPlan(doc, cursor, plan) {
           : COLORS.orange;
     setFont(doc, 'bold', 9, badgeColor);
     const badge = (p.p || '').toUpperCase() || `#${i + 1}`;
-    doc.text(badge, MARGIN.left, cursor.y);
+    safeText(doc, badge, MARGIN.left, cursor.y);
 
     setFont(doc, 'bold', 10.5, COLORS.text);
     const titleLines = wrap(doc, p.task || '', CONTENT_W - 18);
@@ -326,7 +367,7 @@ function drawPlan(doc, cursor, plan) {
 
     if (p.daw) {
       setFont(doc, 'italic', 9.5, COLORS.subtle);
-      const lines = wrap(doc, `Action DAW — ${p.daw}`, CONTENT_W - 4);
+      const lines = wrap(doc, `Action DAW - ${p.daw}`, CONTENT_W - 4);
       lines.forEach((l) => {
         ensureSpace(doc, cursor, 4.5);
         doc.text(l, MARGIN.left + 4, cursor.y);
@@ -335,7 +376,7 @@ function drawPlan(doc, cursor, plan) {
     }
     if (p.metered || p.target) {
       const parts = [];
-      if (p.metered) parts.push(`Mesuré : ${p.metered}`);
+      if (p.metered) parts.push(`Mesure : ${p.metered}`);
       if (p.target) parts.push(`Objectif : ${p.target}`);
       setFont(doc, 'normal', 9.5, COLORS.subtle);
       const lines = wrap(doc, parts.join('    '), CONTENT_W - 4);
@@ -360,13 +401,14 @@ function drawFooter(doc) {
   for (let i = 1; i <= total; i++) {
     doc.setPage(i);
     setFont(doc, 'normal', 8, COLORS.muted);
-    doc.text(
+    safeText(
+      doc,
       `${i} / ${total}`,
       PAGE.w - MARGIN.right,
       PAGE.h - 8,
       { align: 'right' }
     );
-    doc.text('Généré avec Versions', MARGIN.left, PAGE.h - 8);
+    safeText(doc, 'Genere avec Versions', MARGIN.left, PAGE.h - 8);
   }
 }
 

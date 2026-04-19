@@ -3086,6 +3086,61 @@ export default function MockupStyles() {
     .public-fiche-page { padding: 0 16px; }
     .public-fiche-main { padding: 20px 0 48px; }
   }
+
+  /* Barre d'actions au-dessus du verdict : Partager / Exporter PDF.
+     Visible en premier coup d'œil pour éviter que l'utilisateur
+     fouille dans le menu ⋯ d'une VChip pour trouver ces actions. */
+  .fiche-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .fiche-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 12px;
+    background: rgba(245, 176, 86, 0.06);
+    border: 1px solid rgba(245, 176, 86, 0.28);
+    border-radius: 8px;
+    color: #e0c389;
+    font-family: 'Inter', sans-serif;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.1px;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+  }
+  .fiche-action-btn:hover:not(:disabled) {
+    background: rgba(245, 176, 86, 0.14);
+    border-color: rgba(245, 176, 86, 0.55);
+    color: #f5b056;
+  }
+  .fiche-action-btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .fiche-action-btn:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+  }
+  .fiche-action-btn svg {
+    flex-shrink: 0;
+    opacity: 0.9;
+  }
+
+  @media (max-width: 720px) {
+    .fiche-actions {
+      justify-content: stretch;
+      gap: 8px;
+    }
+    .fiche-action-btn {
+      flex: 1;
+      justify-content: center;
+      font-size: 12px;
+    }
+  }
 `}</style>
     </>
   );
