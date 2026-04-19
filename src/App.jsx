@@ -19,7 +19,6 @@ import VersionsScreen from "./screens/VersionsScreen";
 
 import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage } from "./lib/storage";
 import { assignProjectColors, PROJECT_COLOR_COUNT } from "./lib/projectColors";
-import { resizeImageFile } from "./lib/image";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
@@ -544,10 +543,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     e.target.value = '';
     if (!file || !target) { setCoverUploadTarget(null); return; }
     try {
-      // Redimensionnement automatique client-side (max 1200px, JPEG/WebP ~85%).
-      // Pas de message de taille : on adapte silencieusement.
-      const resized = await resizeImageFile(file).catch(() => file);
-      await setProjectCoverImage(target.id, resized || file);
+      await setProjectCoverImage(target.id, file);
       if (onMutate) onMutate();
     } catch (err) { console.warn('setProjectCoverImage failed', err); }
     setCoverUploadTarget(null);

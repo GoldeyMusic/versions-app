@@ -2,11 +2,15 @@
  * image.js — helpers image côté client.
  *
  * resizeImageFile(file, opts)
- *   - Redimensionne une image au maximum `maxSize` px sur le plus grand côté
- *     (par défaut 1200 px), en conservant le ratio.
- *   - Réencode en JPEG (qualité 0.85) sauf PNG/WebP/GIF avec transparence → WebP.
- *   - Si la source est déjà plus petite que maxSize ET plus légère que
- *     `maxBytes`, on renvoie le fichier d'origine intact.
+ *   - Par défaut : center-crop CARRÉ + resize à `maxSize` px (1200 par défaut).
+ *     → le fichier stocké est toujours un carré, propre à afficher partout.
+ *   - Réencode en JPEG (qualité 0.85). Si la source a de la transparence
+ *     (PNG/WebP/GIF), on sort en WebP pour la préserver.
+ *   - Options :
+ *        square      : true (par défaut) pour center-crop carré, false pour
+ *                      simple resize sans crop.
+ *        maxSize     : 1200 par défaut (côté du carré, ou plus grand côté).
+ *        quality     : 0.85 par défaut.
  *   - Renvoie un File prêt à uploader (nom conservé, extension ajustée).
  *
  * Usage :
@@ -16,7 +20,6 @@
 
 const DEFAULT_MAX = 1200;
 const DEFAULT_QUALITY = 0.85;
-const SKIP_IF_UNDER = 400 * 1024; // 400 KB
 
 function loadImage(file) {
   return new Promise((resolve, reject) => {
@@ -37,7 +40,7 @@ export async function resizeImageFile(file, opts = {}) {
 
   const maxSize = opts.maxSize ?? DEFAULT_MAX;
   const quality = opts.quality ?? DEFAULT_QUALITY;
-  const skipUnder = opts.skipUnder ?? SKIP_IF_UNDER;
+  const square = opts.square !== false; // carré par défaut
 
   let img;
   try {
@@ -46,15 +49,29 @@ export async function resizeImageFile(file, opts = {}) {
     return file; // format illisible : on laisse passer, le back gérera
   }
 
-  const { width, height } = img;
-  const biggest = Math.max(width, height);
+  const { width: srcW, height: srcH } = img;
 
-  // Rien à faire : image déjà petite et fichier léger
-  if (biggest <= maxSize && file.size <= skipUnder) return file;
+  // Calcule la zone source à peindre et la taille du canvas cible.
+  let sx, sy, sW, sH, targetSize;
+  let targetW, targetH;
 
-  const scale = biggest > maxSize ? maxSize / biggest : 1;
-  const targetW = Math.round(width * scale);
-  const targetH = Math.round(height * scale);
+  if (square) {
+    // Center-crop carré dans la source
+    const minSide = Math.min(srcW, srcH);
+    sx = Math.round((srcW - minSide) / 2);
+    sy = Math.round((srcH - minSide) / 2);
+    sW = minSide;
+    sH = minSide;
+    targetSize = Math.min(minSide, maxSize);
+    targetW = targetSize;
+    targetH = targetSize;
+  } else {
+    sx = 0; sy = 0; sW = srcW; sH = srcH;
+    const biggest = Math.max(srcW, srcH);
+    const scale = biggest > maxSize ? maxSize / biggest : 1;
+    targetW = Math.round(srcW * scale);
+    targetH = Math.round(srcH * scale);
+  }
 
   const canvas = document.createElement('canvas');
   canvas.width = targetW;
@@ -68,20 +85,16 @@ export async function resizeImageFile(file, opts = {}) {
   }
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(img, 0, 0, targetW, targetH);
+  ctx.drawImage(img, sx, sy, sW, sH, 0, 0, targetW, targetH);
 
   const blob = await new Promise((resolve) =>
     canvas.toBlob((b) => resolve(b), outType, quality)
   );
   if (!blob) return file;
 
-  // Extension de sortie
   const ext = outType === 'image/webp' ? 'webp' : 'jpg';
   const base = (file.name || 'cover').replace(/\.[^.]+$/, '');
   const name = `${base}.${ext}`;
-
-  // Si après recompression c'est plus gros que l'original, on garde l'original
-  if (blob.size >= file.size && biggest <= maxSize) return file;
 
   return new File([blob], name, { type: outType, lastModified: Date.now() });
 }
