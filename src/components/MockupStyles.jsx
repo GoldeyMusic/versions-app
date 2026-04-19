@@ -262,13 +262,17 @@ export default function MockupStyles() {
   }
   .new-version-btn:hover { background: var(--amber-glow); border-style: solid; }
 
-  /* ── PAGE PRINCIPALE ─────────────────────────── */
-  .page { max-width: 880px; margin: 0 auto; width: 100%; padding: 40px 60px 120px; }
+  /* ── PAGE PRINCIPALE ───────────────────────────
+     Pleine largeur comme la home : on utilise tout l'espace
+     entre la sidebar et le bord droit au lieu de cadenasser
+     à 880px.
+  */
+  .page { max-width: none; width: 100%; padding: 20px 28px 80px; box-sizing: border-box; }
 
   /* Section 1 : Verdict */
   .verdict {
     display: flex; align-items: center; gap: 42px;
-    padding: 30px 0 60px;
+    padding: 20px 0 48px;
   }
   .score-ring {
     width: 140px; height: 140px; position: relative; flex-shrink: 0;
@@ -288,14 +292,15 @@ export default function MockupStyles() {
   }
   .score-ring .unit { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 4px; }
 
+  .verdict-text { flex: 1; min-width: 0; }
   .verdict-text h1 {
     font-family: var(--serif);
-    font-size: 38px;
+    font-size: 42px;
     font-weight: 400;
     line-height: 1.15;
     letter-spacing: 0.3px;
     margin: 0 0 14px;
-    max-width: 540px;
+    max-width: 900px;
   }
   .verdict-text h1 em { font-style: italic; color: var(--amber); font-weight: 400; }
   .verdict-text p {
@@ -305,7 +310,7 @@ export default function MockupStyles() {
     color: var(--soft);
     font-weight: 300;
     margin: 0;
-    max-width: 540px;
+    max-width: 780px;
   }
 
   /* Séparateur de section discret (juste un label avec une ligne) */
@@ -322,8 +327,15 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 10px; color: var(--muted2);
   }
 
-  /* Section 2 : chantiers */
-  .priority-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 80px; }
+  /* Section 2 : chantiers
+     En desktop large, on passe en grille auto-fill pour éviter
+     que chaque ligne fasse 2000px de large pour 4 mots.
+  */
+  .priority-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 10px; margin-bottom: 64px;
+  }
   .priority {
     display: flex; align-items: center; gap: 18px;
     padding: 20px 22px;
