@@ -3069,7 +3069,8 @@ export default function MockupStyles() {
     /* gap: 12px ≈ wh-projects gap (10px) → rythme uniforme au scroll */
     .welcome-home { padding: 24px 20px 80px; max-width: 100%; gap: 12px; }
     .wh-greeting { font-size: 28px; letter-spacing: 2px; }
-    .wh-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    /* Bouton Ajouter déplacé dans le menu avatar sur mobile */
+    .wh-actions { display: none; }
     .wh-tracklist { max-width: 100%; }
     .wh-action { justify-content: center; padding: 12px 10px; font-size: 12px; }
     /* Espace interne tracklist : title margin réduit pour coller aux projets */

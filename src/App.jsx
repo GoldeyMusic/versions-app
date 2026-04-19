@@ -394,7 +394,7 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0 }) {
   );
 }
 
-function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onOpenFiche, onPlay, onToggle, playerState, projects = [], projectsLoaded = false, onMutate }) {
+function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onOpenFiche, onPlay, onToggle, playerState, projects = [], projectsLoaded = false, onMutate, addModalOpen, setAddModalOpen }) {
   // Rotation des conseils : un tip distinct à chaque ouverture, sans répétition consécutive
   const [tip] = useState(() => pickTip(SAVIEZ_VOUS_TIPS, 'versions_tip_saviez'));
   const [prochainPasTip] = useState(() => pickTip(PROCHAIN_PAS_TIPS, 'versions_tip_prochain'));
@@ -404,8 +404,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const [progressionNoScoreTip] = useState(() => pickTip(PROGRESSION_TIPS_NO_SCORE, 'versions_tip_progression_noscore'));
   const [progressionWithScoreTip] = useState(() => pickTip(PROGRESSION_TIPS_WITH_SCORE, 'versions_tip_progression_score'));
   const [homeTagline] = useState(() => pickTip(HOME_TAGLINES, 'versions_tip_tagline'));
-  // Modale unifiée "Ajouter" (remplace les 3 boutons nouveau projet / titre / version)
-  const [addModalOpen, setAddModalOpen] = useState(false);
   // Menu 3-points ouvert pour un projet donné (null = aucun)
   const [openProjectMenuId, setOpenProjectMenuId] = useState(null);
   // true si l'utilisateur a cliqué "+ Nouveau projet" depuis le picker "Nouveau titre"
@@ -1493,7 +1491,7 @@ function WhMenuItem({ label, onClick, danger }) {
 const SIDEBAR_WIDTH = 260;
 
 /* ── Mobile Avatar Menu ────────────────────────────────── */
-function MobileMenu({ onNavigate, onSignOut, user, userProfile }) {
+function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd }) {
   const [open, setOpen] = useState(false);
   const go = (target) => { setOpen(false); onNavigate(target); };
   const avatarUrl = userProfile?.avatar_url || null;
@@ -1527,6 +1525,19 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile }) {
                   <div className="mobile-avatar-popover-who">{displayName}</div>
                   {user?.email && <div className="mobile-avatar-popover-mail">{user.email}</div>}
                 </div>
+                {onAdd && (
+                  <button
+                    className="mobile-avatar-popover-item mobile-avatar-popover-add"
+                    onClick={() => { setOpen(false); onAdd(); }}
+                  >
+                    <span className="mobile-menu-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                    </span>
+                    Ajouter
+                  </button>
+                )}
                 <button className="mobile-avatar-popover-item" onClick={() => go('reglages')}>
                   <span className="mobile-menu-icon">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1617,6 +1628,7 @@ function VersionsAppAuthed() {
   const isDesktop = !isMobile;
   // On desktop, default = "welcome" (neutral empty state); on mobile, old default = "input"
   const [screen, setScreen] = useState("welcome");
+  const [homeAddOpen, setHomeAddOpen] = useState(false);
   const isHashSyncRef = useRef(false);
   const routeInitRef = useRef(false);
   const prevScreenRef = useRef(null);
@@ -2024,6 +2036,8 @@ function VersionsAppAuthed() {
             projects={projects}
             projectsLoaded={projectsLoaded}
             onMutate={refreshProjects}
+            addModalOpen={homeAddOpen}
+            setAddModalOpen={setHomeAddOpen}
           />
         );
       case "input":
@@ -2138,6 +2152,7 @@ function VersionsAppAuthed() {
               onSignOut={signOut}
               user={user}
               userProfile={userProfile}
+              onAdd={() => setHomeAddOpen(true)}
             />
           )}
 
