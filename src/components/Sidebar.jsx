@@ -227,26 +227,6 @@ export default function Sidebar({
   const initial = (displayName || user?.email || 'U').trim().charAt(0).toUpperCase();
   const who = displayName || (user?.email ? user.email.split('@')[0] : 'utilisateur');
 
-  // ── Recherche (titres + versions + projets) ──
-  const [searchQuery, setSearchQuery] = useState('');
-  const q = searchQuery.trim().toLowerCase();
-  const searchActive = q.length > 0;
-
-  const matchesText = (s) => (s || '').toLowerCase().includes(q);
-  const trackMatches = (track) => {
-    if (!searchActive) return true;
-    if (matchesText(track.title)) return true;
-    return (track.versions || []).some((v) => matchesText(v.name));
-  };
-  const projectIsVisible = (project) => {
-    if (!searchActive) return true;
-    if (matchesText(project.name)) return true;
-    return (project.tracks || []).some(trackMatches);
-  };
-  const projectMatchesItself = (project) => searchActive && matchesText(project.name);
-
-  const visibleProjects = projects.filter(projectIsVisible);
-
   return (
     <aside className="sidebar">
       <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
@@ -266,84 +246,35 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* ── Recherche ── */}
-      <div className="sidebar-search">
-        <span className="sidebar-search-icon" aria-hidden="true">
-          <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-            <circle cx="6" cy="6" r="4.3" stroke="currentColor" strokeWidth="1.4" />
-            <path d="M9.4 9.4L12 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          </svg>
-        </span>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Rechercher un titre, version, projet…"
-          className="sidebar-search-input"
-          aria-label="Rechercher"
-        />
-        {searchActive && (
-          <button
-            type="button"
-            className="sidebar-search-clear"
-            onClick={() => setSearchQuery('')}
-            title="Effacer la recherche"
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-            </svg>
-          </button>
-        )}
-      </div>
-
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0, marginTop: 8 }}>
-        <div className="section-label">
-          {searchActive
-            ? `Résultats (${visibleProjects.length}/${projects.length})`
-            : 'Mes projets'}
-        </div>
+        <div className="section-label">Mes projets</div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '0 2px' }}>
-          {searchActive && visibleProjects.length === 0 && (
-            <div className="sidebar-search-empty">
-              Aucun résultat pour "{searchQuery.trim()}"
-            </div>
-          )}
           {(() => {
             // Couleurs uniques par projet (même logique que la home).
             const colorMap = assignProjectColors(projects);
-            return visibleProjects.map((project) => {
-              const projectMatch = projectMatchesItself(project);
-              // Si le projet lui-même matche, on affiche tous ses tracks ; sinon on filtre.
-              const filteredTracks = searchActive && !projectMatch
-                ? (project.tracks || []).filter(trackMatches)
-                : (project.tracks || []);
-              const projectForRender = searchActive
-                ? { ...project, tracks: filteredTracks }
-                : project;
-              return (
-                <ProjectAccordion
-                  key={project.id}
-                  project={projectForRender}
-                  colorIndex={colorMap.get(project.id) ?? 0}
-                  open={searchActive ? true : project.id === currentProjectId}
-                  onToggle={() => toggleProject(project.id)}
-                  onTrackClick={handleTrackClick}
-                  onPlayTrack={handlePlayTrack}
-                  onRenameTrack={handleRenameTrack}
-                  onDeleteTrack={handleDeleteTrack}
-                  onRenameProject={handleRenameProject}
-                  onDeleteProject={handleDeleteProject}
-                  currentTrackTitle={currentTrackTitle}
-                  playerState={playerState}
-                  drag={drag}
-                  setDrag={setDrag}
-                  onDropTrackOnTrack={handleDropTrackOnTrack}
-                  onDropTrackOnProject={handleDropTrackOnProject}
-                  onDropProjectOnProject={handleDropProjectOnProject}
-                />
-              );
-            });
+            return projects.map((project) => (
+              <ProjectAccordion
+                key={project.id}
+                project={project}
+                colorIndex={colorMap.get(project.id) ?? 0}
+                open={project.id === currentProjectId}
+                onToggle={() => toggleProject(project.id)}
+                onTrackClick={handleTrackClick}
+                onPlayTrack={handlePlayTrack}
+                onRenameTrack={handleRenameTrack}
+                onDeleteTrack={handleDeleteTrack}
+                onRenameProject={handleRenameProject}
+                onDeleteProject={handleDeleteProject}
+                currentTrackTitle={currentTrackTitle}
+                playerState={playerState}
+                drag={drag}
+                setDrag={setDrag}
+                onDropTrackOnTrack={handleDropTrackOnTrack}
+                onDropTrackOnProject={handleDropTrackOnProject}
+                onDropProjectOnProject={handleDropProjectOnProject}
+              />
+            ));
           })()}
         </div>
       </div>
@@ -523,13 +454,13 @@ function ProjectAccordion({
           </svg>
         </span>
 
-        {/* Vignette sidebar = dégradé coloré uniquement. À 16 px la photo
-            devient illisible, on garde le dégradé comme marqueur visuel. */}
         <span
           aria-hidden
           style={{
             width: 16, height: 16, borderRadius: 5,
-            background: gradient,
+            background: project.coverImageUrl
+              ? `#141416 center/cover no-repeat url("${project.coverImageUrl}")`
+              : gradient,
             flexShrink: 0,
             boxShadow: open ? '0 2px 6px rgba(0,0,0,.4)' : 'none',
           }}
