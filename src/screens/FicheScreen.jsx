@@ -1350,12 +1350,22 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
 
   const toggleCat = (i) => setOpenCat((prev) => (prev === i ? null : i));
 
-  const toggleResolved = (key) => {
+  const toggleResolved = (key, planIdx = null) => {
+    let becameResolved = false;
     setResolved((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+        becameResolved = true;
+      }
       return next;
     });
+    // Replie l'accordéon quand on passe en "résolu" (mais pas au décochage)
+    if (becameResolved && planIdx != null) {
+      setOpenPlanIdx((prev) => (prev === planIdx ? null : prev));
+    }
   };
 
   // Handlers ⋯ track
@@ -1574,7 +1584,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                               <span className="ptitle">{p.task}</span>
                               <div
                                 className="pcheck"
-                                onClick={(e) => { e.stopPropagation(); toggleResolved(key); }}
+                                onClick={(e) => { e.stopPropagation(); toggleResolved(key, i); }}
                               >
                                 <svg width="14" height="14" viewBox="0 0 12 12" fill="none" style={{ display: done ? 'block' : 'none' }}>
                                   <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -1625,7 +1635,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                               )}
                               <button
                                 className={`resolve-action${done ? ' done' : ''}`}
-                                onClick={(e) => { e.stopPropagation(); toggleResolved(key); }}
+                                onClick={(e) => { e.stopPropagation(); toggleResolved(key, i); }}
                               >
                                 <span className="box">
                                   <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
@@ -1642,16 +1652,16 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   </>
                   );
                 })()}
+
+                {/* Notes perso — accolées au Plan d'action, dans la colonne de droite */}
+                <NotesSection
+                  key={versionInDb?.id || 'pending'}
+                  versionId={versionInDb?.id || null}
+                  initialNotes={(analysisResult && analysisResult.userNotes) || ''}
+                />
               </div>
             </div>
           )}
-
-          {/* 4 · Notes perso (1 par fiche, persistées dans analysis_result.userNotes) */}
-          <NotesSection
-            key={versionInDb?.id || 'pending'}
-            versionId={versionInDb?.id || null}
-            initialNotes={(analysisResult && analysisResult.userNotes) || ''}
-          />
           </>
           )}
         </div>

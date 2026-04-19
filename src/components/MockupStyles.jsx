@@ -857,11 +857,12 @@ export default function MockupStyles() {
   .priority.collapsible:hover { border-color: var(--border); background: var(--s1); transform: none; }
   .priority.collapsible.open:hover { border-color: #f5b05655; background: var(--s1); }
 
-  /* ── Notes perso (1 par fiche) ───────────────────────── */
+  /* ── Notes perso (1 par fiche) — placées dans col-plan, à la suite du Plan d'action ── */
   .notes-section {
-    margin-top: 36px;
+    margin-top: 22px;
     padding: 0 0 16px;
   }
+  .col-plan .notes-section { margin-top: 18px; }
   .notes-block {
     border: 1px solid var(--border);
     border-radius: 10px;
