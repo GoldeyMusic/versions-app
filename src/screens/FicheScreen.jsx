@@ -5,6 +5,7 @@ import VChip from '../components/VChip';
 import { loadTracks, deleteTrack, renameTrack } from '../lib/storage';
 import { confirmDialog } from '../lib/confirm.jsx';
 import useMobile from '../hooks/useMobile';
+import useNarrowDesktop from '../hooks/useNarrowDesktop';
 
 /**
  * FicheScreen — rendu fidèle à mockup-v3.html.
@@ -36,12 +37,23 @@ function TrackTitleText({ title }) {
 }
 
 // Anneau de score 140x140 — formule identique à la maquette : dasharray=276
-function ScoreRingBig({ value }) {
+function ScoreRingBig({ value, prevScore = null }) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
   const offset = 276 - (276 * v) / 100;
   const color = v < 50 ? '#ef6b6b' : v < 75 ? '#f5b056' : '#7bd88f';
+  const band = v < 50 ? 'À retravailler' : v < 75 ? 'En progression' : 'Solide';
+  const [tipOpen, setTipOpen] = useState(false);
+  const delta = typeof prevScore === 'number' ? Math.round(v - prevScore) : null;
   return (
-    <div className="score-ring">
+    <div
+      className={`score-ring${tipOpen ? ' tip-open' : ''}`}
+      onMouseEnter={() => setTipOpen(true)}
+      onMouseLeave={() => setTipOpen(false)}
+      onClick={() => setTipOpen((v) => !v)}
+      role="button"
+      tabIndex={0}
+      aria-label="Voir les détails du score"
+    >
       <svg viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="44" fill="none" stroke={`${color}22`} strokeWidth="5" />
         <circle
@@ -54,6 +66,38 @@ function ScoreRingBig({ value }) {
         <div className="big" style={{ color }}>
           {Math.round(v)}
           <span className="big-suffix">/100</span>
+        </div>
+      </div>
+      <span className="ring-help" aria-hidden="true">?</span>
+      <div className="ring-tooltip" role="tooltip">
+        <div className="rt-head">
+          <span className="rt-dot" style={{ background: color }} />
+          <strong>{band}</strong>
+          <span className="rt-val">{Math.round(v)}/100</span>
+        </div>
+        <div className="rt-bands">
+          <div className={`rt-band${v < 50 ? ' active' : ''}`}>
+            <span className="dot" style={{ background: '#ef6b6b' }} />
+            <span>0–49 · À retravailler</span>
+          </div>
+          <div className={`rt-band${v >= 50 && v < 75 ? ' active' : ''}`}>
+            <span className="dot" style={{ background: '#f5b056' }} />
+            <span>50–74 · En progression</span>
+          </div>
+          <div className={`rt-band${v >= 75 ? ' active' : ''}`}>
+            <span className="dot" style={{ background: '#7bd88f' }} />
+            <span>75–100 · Solide</span>
+          </div>
+        </div>
+        {delta != null && (
+          <div className="rt-calib">
+            {delta === 0
+              ? 'Calibré sur la version précédente · stable'
+              : `Calibré sur la version précédente · ${delta > 0 ? '+' : ''}${delta} pts`}
+          </div>
+        )}
+        <div className="rt-note">
+          Le score reflète la cohérence du mix (spatialisation, dynamique, équilibre, clarté). Il est calibré pour rester comparable d'une version à l'autre du même titre.
         </div>
       </div>
     </div>
@@ -92,6 +136,31 @@ function renderWithEmphasis(text) {
       ? <em key={i}>{p.slice(1, -1)}</em>
       : <span key={i}>{p}</span>
   );
+}
+
+// Formate un timestamp en texte humain : "il y a N jours" / "hier" / "le X avril".
+// Retourne null si la date n'est pas interprétable.
+function formatAnalyzedAt(input) {
+  if (!input) return null;
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) return null;
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMin = Math.round(diffMs / 60000);
+  if (diffMin < 1) return 'Analysé à l\u2019instant';
+  if (diffMin < 60) return `Analysé il y a ${diffMin} min`;
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `Analysé il y a ${diffH} h`;
+  const diffD = Math.round(diffH / 24);
+  if (diffD === 1) return 'Analysé hier';
+  if (diffD < 30) return `Analysé il y a ${diffD} jours`;
+  // Au-delà : date formatée en français "le 3 avril 2026"
+  try {
+    const f = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    return `Analysé le ${f.format(d)}`;
+  } catch {
+    return `Analysé le ${d.toLocaleDateString('fr-FR')}`;
+  }
 }
 
 // Sépare un texte en (1ʳᵉ phrase → titre) + (reste → paragraphe).
@@ -1095,8 +1164,27 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   const [openCat, setOpenCat] = useState(0); // un seul accordéon ouvert à la fois
   const [openPlanIdx, setOpenPlanIdx] = useState(null);
   const [resolved, setResolved] = useState(new Set());
+  const [hideResolved, setHideResolved] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const isMobile = useMobile();
+  const isNarrow = useNarrowDesktop(1200);
+  const chatAsDrawer = isMobile || isNarrow;
+  const planRefs = useRef({});
+
+  // Scroll doux vers l'item Plan d'action ouvert
+  useEffect(() => {
+    if (openPlanIdx == null) return;
+    const el = planRefs.current[openPlanIdx];
+    if (!el) return;
+    const raf = requestAnimationFrame(() => {
+      try {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch {
+        el.scrollIntoView();
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [openPlanIdx]);
 
   useEffect(() => {
     let alive = true;
@@ -1236,7 +1324,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           />
         )}
 
-        <div className={`fiche-layout${!isMobile && fiche ? ' has-chat' : ''}`}>
+        <div className={`fiche-layout${!chatAsDrawer && fiche ? ' has-chat' : ''}`}>
         <div className="page">
           {!fiche ? (
             <AnalyzingState stage={stage} />
@@ -1245,7 +1333,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           {/* 1 · Verdict + Évolution (2 colonnes) */}
           <section className="row-verdict">
             <div className="rv-left">
-              {score != null && <ScoreRingBig value={score} />}
+              {score != null && <ScoreRingBig value={score} prevScore={prevScore} />}
               <div className="verdict-text">
                 {(() => {
                   // Priorité : verdict (phrase accrocheuse) pour le titre, summary pour le paragraphe.
@@ -1267,6 +1355,10 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                       {rest && <p>{rest}</p>}
                     </>
                   );
+                })()}
+                {(() => {
+                  const stamp = formatAnalyzedAt(versionInDb?.createdAt || versionInDb?.date);
+                  return stamp ? <div className="analyzed-at">{stamp}</div> : null;
                 })()}
               </div>
             </div>
@@ -1337,17 +1429,36 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 )}
               </div>
               <div className="col-plan">
-                {plan.length > 0 && (
+                {plan.length > 0 && (() => {
+                  const planKeys = plan.map((p, i) => `${i}::${(p.task || '').slice(0, 60)}`);
+                  const resolvedCount = planKeys.reduce((acc, k) => acc + (resolved.has(k) ? 1 : 0), 0);
+                  const hasResolved = resolvedCount > 0;
+                  return (
                   <>
                     <div className="section-head">
                       <span className="t">Plan d'action</span>
                       <span className="line" />
-                      <span className="count">{plan.length} ajustement{plan.length > 1 ? 's' : ''}</span>
+                      <span className="count">
+                        {hasResolved
+                          ? `${resolvedCount}/${plan.length} résolu${resolvedCount > 1 ? 's' : ''}`
+                          : `${plan.length} ajustement${plan.length > 1 ? 's' : ''}`}
+                      </span>
+                      {hasResolved && (
+                        <button
+                          type="button"
+                          className={`plan-filter-toggle${hideResolved ? ' active' : ''}`}
+                          onClick={() => setHideResolved((v) => !v)}
+                          title={hideResolved ? 'Afficher tous les ajustements' : 'Masquer les ajustements résolus'}
+                        >
+                          {hideResolved ? 'Tout afficher' : 'Masquer résolus'}
+                        </button>
+                      )}
                     </div>
                     <div className="priority-list">
                       {plan.map((p, i) => {
                         const key = `${i}::${(p.task || '').slice(0, 60)}`;
                         const done = resolved.has(key);
+                        if (hideResolved && done) return null;
                         const prio = (p.p || '').toLowerCase();
                         const isOpen = openPlanIdx === i;
                         const linkedItems = (elements || []).flatMap((el) =>
@@ -1356,7 +1467,14 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                             .map((it) => ({ ...it, cat: el.cat }))
                         );
                         return (
-                          <div key={i} className={`priority collapsible${done ? ' done' : ''}${isOpen ? ' open' : ''}`}>
+                          <div
+                            key={i}
+                            ref={(el) => {
+                              if (el) planRefs.current[i] = el;
+                              else delete planRefs.current[i];
+                            }}
+                            className={`priority collapsible${done ? ' done' : ''}${isOpen ? ' open' : ''}`}
+                          >
                             <div
                               className="priority-head"
                               onClick={() => setOpenPlanIdx((prev) => (prev === i ? null : i))}
@@ -1431,14 +1549,15 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                       })}
                     </div>
                   </>
-                )}
+                  );
+                })()}
               </div>
             </div>
           )}
           </>
           )}
         </div>
-        {!isMobile && fiche && (
+        {!chatAsDrawer && fiche && (
           <aside className="fiche-chat-side">
             <VersionChat
               config={config}
@@ -1453,8 +1572,8 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
       </main>
 
 
-      {/* Chat — bulle + panneau (mobile uniquement) */}
-      {isMobile && (
+      {/* Chat — bulle + panneau (mobile + desktop étroit <1200px) */}
+      {chatAsDrawer && (
         <>
           <button className="chat-fab" onClick={() => setChatOpen(true)} title="Discussion">
             <svg width="22" height="22" viewBox="0 0 16 16" fill="none">

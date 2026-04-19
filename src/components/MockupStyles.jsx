@@ -291,6 +291,109 @@ export default function MockupStyles() {
     letter-spacing: 0.5px; font-weight: 400; margin-top: 6px;
   }
   .score-ring .unit { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 4px; }
+  .score-ring { cursor: help; outline: none; }
+  .score-ring:focus-visible {
+    box-shadow: 0 0 0 2px var(--amber);
+    border-radius: 50%;
+  }
+  .score-ring .ring-help {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--s3);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity .18s ease;
+    pointer-events: none;
+  }
+  .score-ring:hover .ring-help,
+  .score-ring.tip-open .ring-help { opacity: 0.8; }
+  .score-ring .ring-tooltip {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translate(-50%, -4px);
+    width: 300px;
+    max-width: 90vw;
+    background: var(--s1);
+    border: 1px solid var(--s4);
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .16s ease, transform .16s ease;
+    z-index: 40;
+  }
+  .score-ring:hover .ring-tooltip,
+  .score-ring.tip-open .ring-tooltip {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+  }
+  .ring-tooltip .rt-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--body);
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  .ring-tooltip .rt-head .rt-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .ring-tooltip .rt-head strong { font-weight: 500; }
+  .ring-tooltip .rt-head .rt-val {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .ring-tooltip .rt-bands {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .ring-tooltip .rt-band {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.3px;
+    opacity: 0.6;
+  }
+  .ring-tooltip .rt-band.active { opacity: 1; color: var(--text); }
+  .ring-tooltip .rt-band .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .ring-tooltip .rt-calib {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--amber);
+    padding: 8px 10px;
+    background: rgba(245, 176, 86, 0.08);
+    border-radius: 6px;
+    margin-bottom: 10px;
+  }
+  .ring-tooltip .rt-note {
+    font-family: var(--body);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--soft);
+    font-weight: 300;
+  }
 
   .verdict-text { flex: 1; min-width: 0; }
   .verdict-text h1 {
@@ -311,6 +414,15 @@ export default function MockupStyles() {
     font-weight: 300;
     margin: 0;
     max-width: 780px;
+  }
+  .verdict-text .analyzed-at {
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    opacity: 0.75;
   }
 
   /* ── ROW 1 : Verdict + Évolution (2 colonnes) ── */
@@ -559,6 +671,28 @@ export default function MockupStyles() {
   .section-head .line { flex: 1; height: 1px; background: var(--border); }
   .section-head .count {
     font-family: var(--mono); font-size: 10px; color: var(--muted2);
+  }
+  .section-head .plan-filter-toggle {
+    all: unset;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid var(--s4);
+    border-radius: 999px;
+    transition: color .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .section-head .plan-filter-toggle:hover {
+    color: var(--text);
+    border-color: var(--muted);
+  }
+  .section-head .plan-filter-toggle.active {
+    color: var(--amber);
+    border-color: rgba(245, 176, 86, 0.5);
+    background: rgba(245, 176, 86, 0.08);
   }
 
   /* Section 2 : chantiers
