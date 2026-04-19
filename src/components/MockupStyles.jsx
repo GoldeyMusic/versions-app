@@ -2501,6 +2501,17 @@ export default function MockupStyles() {
     color: var(--muted); text-align: center;
   }
 
+  /* ── Home mobile — ajustements padding/gap ── */
+  @media (max-width: 768px) {
+    .welcome-home {
+      padding: 24px 20px 80px;
+      gap: 20px;
+    }
+    .wh-tagline-hero {
+      padding: 32px 20px 24px;
+    }
+  }
+
   /* ── Auth Screen ── */
   .auth-screen {
     min-height: 100vh; display: grid; place-items: center;
