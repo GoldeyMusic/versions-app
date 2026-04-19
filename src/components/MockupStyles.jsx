@@ -617,6 +617,52 @@ export default function MockupStyles() {
   .parrow { color: var(--muted); flex-shrink: 0; font-size: 18px; }
   .priority:hover .parrow { color: var(--amber); }
 
+  /* Plan d'action : item dépliable (accordéon, un seul ouvert à la fois) */
+  .priority.collapsible {
+    display: block;
+    padding: 0;
+    overflow: hidden;
+    cursor: default;
+  }
+  .priority.collapsible .priority-head {
+    display: flex; align-items: center; gap: 18px;
+    padding: 20px 22px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .priority.collapsible .priority-head:hover { background: var(--s2); }
+  .priority.collapsible .pchev {
+    color: var(--muted); flex-shrink: 0;
+    display: flex; align-items: center;
+    transition: transform .2s ease, color .15s;
+  }
+  .priority.collapsible .priority-head:hover .pchev { color: var(--amber); }
+  .priority.collapsible.open .pchev { transform: rotate(90deg); color: var(--amber); }
+  .priority.collapsible.open {
+    border-color: #f5b05655;
+    background: var(--s1);
+  }
+
+  .priority.collapsible .priority-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .25s ease;
+    padding: 0 22px;
+  }
+  .priority.collapsible.open .priority-body {
+    max-height: 2000px;
+    padding: 4px 22px 22px;
+    border-top: 1px solid var(--border);
+  }
+  .priority.collapsible .priority-body .daw-box { margin-top: 16px; margin-bottom: 14px; }
+  .priority.collapsible .priority-body .mt-grid { margin-bottom: 14px; }
+  .priority.collapsible .priority-body .linked-elements { margin-top: 14px; margin-bottom: 14px; }
+  .priority.collapsible .priority-body .resolve-action { margin-top: 6px; }
+
+  /* Pas d'effet hover/translateY quand la card est en mode collapsible (le hover ne joue plus que sur la head) */
+  .priority.collapsible:hover { border-color: var(--border); background: var(--s1); transform: none; }
+  .priority.collapsible.open:hover { border-color: #f5b05655; background: var(--s1); }
+
   /* Section 3 : Diagnostic */
   .diag-cat {
     border: 1px solid var(--border);

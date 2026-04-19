@@ -1093,7 +1093,7 @@ function QualitativeSection({ listening }) {
 export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onTrackDeleted, onTrackRenamed, onGoHome, refreshKey }) {
   const [tracks, setTracks] = useState([]);
   const [openCat, setOpenCat] = useState(0); // un seul accordéon ouvert à la fois
-  const [focusIdx, setFocusIdx] = useState(null);
+  const [openPlanIdx, setOpenPlanIdx] = useState(null);
   const [resolved, setResolved] = useState(new Set());
   const [chatOpen, setChatOpen] = useState(false);
   const isMobile = useMobile();
@@ -1110,17 +1110,17 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     return () => document.body.classList.remove('chat-open');
   }, [chatOpen]);
 
-  // ESC global pour focus
+  // ESC global : referme le plan ouvert ou le chat
   useEffect(() => {
     const h = (e) => {
       if (e.key === 'Escape') {
-        if (focusIdx != null) setFocusIdx(null);
+        if (openPlanIdx != null) setOpenPlanIdx(null);
         else if (chatOpen) setChatOpen(false);
       }
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [focusIdx, chatOpen]);
+  }, [openPlanIdx, chatOpen]);
 
   const dbTrack = tracks.find((t) => t.title === config?.title) || null;
   // Si le track DB existe mais ne contient pas encore la version courante (save en cours),
@@ -1349,19 +1349,83 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                         const key = `${i}::${(p.task || '').slice(0, 60)}`;
                         const done = resolved.has(key);
                         const prio = (p.p || '').toLowerCase();
+                        const isOpen = openPlanIdx === i;
+                        const linkedItems = (elements || []).flatMap((el) =>
+                          (el.items || [])
+                            .filter((it) => Array.isArray(p.linkedItemIds) && it.id && p.linkedItemIds.includes(it.id))
+                            .map((it) => ({ ...it, cat: el.cat }))
+                        );
                         return (
-                          <div key={i} className={`priority${done ? ' done' : ''}`} onClick={() => setFocusIdx(i)}>
-                            <span className={`pbadge ${prio}`}>{(p.p || '').toUpperCase()}</span>
-                            <span className="ptitle">{p.task}</span>
+                          <div key={i} className={`priority collapsible${done ? ' done' : ''}${isOpen ? ' open' : ''}`}>
                             <div
-                              className="pcheck"
-                              onClick={(e) => { e.stopPropagation(); toggleResolved(key); }}
+                              className="priority-head"
+                              onClick={() => setOpenPlanIdx((prev) => (prev === i ? null : i))}
                             >
-                              <svg width="14" height="14" viewBox="0 0 12 12" fill="none" style={{ display: done ? 'block' : 'none' }}>
-                                <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
+                              <span className={`pbadge ${prio}`}>{(p.p || '').toUpperCase()}</span>
+                              <span className="ptitle">{p.task}</span>
+                              <div
+                                className="pcheck"
+                                onClick={(e) => { e.stopPropagation(); toggleResolved(key); }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" style={{ display: done ? 'block' : 'none' }}>
+                                  <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </div>
+                              <span className="pchev" aria-hidden="true">
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                  <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </span>
                             </div>
-                            <span className="parrow">→</span>
+                            <div className="priority-body">
+                              {p.daw && (
+                                <div className="daw-box">
+                                  <span className="daw-label">Action DAW</span>
+                                  {p.daw}
+                                </div>
+                              )}
+                              {(p.metered || p.target) && (
+                                <div className="mt-grid">
+                                  {p.metered && (
+                                    <div className="mt-box m">
+                                      <div className="mt-label">Mesuré</div>
+                                      <div className="mt-val">{p.metered}</div>
+                                    </div>
+                                  )}
+                                  {p.target && (
+                                    <div className="mt-box t">
+                                      <div className="mt-label">Objectif</div>
+                                      <div className="mt-val">{p.target}</div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              {linkedItems.length > 0 && (
+                                <div className="linked-elements">
+                                  <div className="label">Éléments liés</div>
+                                  <div className="le-list">
+                                    {linkedItems.map((it) => (
+                                      <div className="le" key={it.id}>
+                                        <span className="cat">{it.cat}</span>
+                                        <span className="name">{it.label}</span>
+                                        {typeof it.score === 'number' && <ScoreRingSmall value={it.score} />}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              <button
+                                className={`resolve-action${done ? ' done' : ''}`}
+                                onClick={(e) => { e.stopPropagation(); toggleResolved(key); }}
+                              >
+                                <span className="box">
+                                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                                    <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                </span>
+                                {done ? 'Résolu' : 'Marquer comme résolu'}
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -1388,21 +1452,6 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
         </div>
       </main>
 
-      {/* Focus modal */}
-      <FocusModal
-        open={focusIdx != null}
-        plan={plan}
-        idx={focusIdx}
-        elements={elements}
-        onClose={() => setFocusIdx(null)}
-        onPrev={() => setFocusIdx((i) => Math.max(0, (i || 0) - 1))}
-        onNext={() => setFocusIdx((i) => Math.min(plan.length - 1, (i || 0) + 1))}
-        isResolved={focusIdx != null ? resolved.has(`${focusIdx}::${(plan[focusIdx]?.task || '').slice(0, 60)}`) : false}
-        onToggleResolved={() => {
-          if (focusIdx == null) return;
-          toggleResolved(`${focusIdx}::${(plan[focusIdx]?.task || '').slice(0, 60)}`);
-        }}
-      />
 
       {/* Chat — bulle + panneau (mobile uniquement) */}
       {isMobile && (
