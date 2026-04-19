@@ -913,18 +913,84 @@ function EvolutionPanel({ versionScores, currentVersionName, currentScore, curre
 
 // ── QualitativeSection v2 (2 colonnes : impression toggle | forts+travail) ──
 
+// Normalise un titre de section (enlève accents, met en minuscules)
+function normSectionTitle(t) {
+  return (t || '')
+    .toString()
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Mappe une section du legacy parser vers un bucket qualitatif
+function routeLegacySection(sec) {
+  const t = normSectionTitle(sec.title);
+  if (/points? forts?|forces/.test(t)) return 'forts';
+  if (/a travailler|axes|faiblesses|points? faibles?|a ameliorer/.test(t)) return 'travail';
+  if (/espace|image stereo|stereo/.test(t)) return 'espace';
+  if (/dynamique|punch/.test(t)) return 'dynamique';
+  if (/potentiel|possibles?|possibilites?/.test(t)) return 'potentiel';
+  if (/impression|ecoute|global|verdict|ressenti/.test(t) || t === '') return 'impression';
+  return 'impression';
+}
+
+// Convertit les blocs parsés en texte (paras concatenés) ou tableau de bullets
+function blocksToText(blocks) {
+  return blocks.filter((b) => b.type === 'para').map((b) => b.text).join('\n\n').trim();
+}
+function blocksToBullets(blocks) {
+  const bullets = blocks.filter((b) => b.type === 'bullet').map((b) => b.text);
+  // Si pas de bullets explicites mais des paragraphes courts, on les traite comme items
+  if (bullets.length === 0) {
+    const paras = blocks.filter((b) => b.type === 'para').map((b) => b.text);
+    if (paras.length > 1 && paras.every((p) => p.length < 200)) return paras;
+  }
+  return bullets;
+}
+
 function QualitativeSection({ listening }) {
   const [expanded, setExpanded] = useState(false);
   const [fortsOpen, setFortsOpen] = useState(false);
   const [travailOpen, setTravailOpen] = useState(false);
   if (!listening) return null;
 
-  const impression = listening?.impression;
-  const points = Array.isArray(listening?.points_forts) ? listening.points_forts : [];
-  const aTravailler = Array.isArray(listening?.a_travailler) ? listening.a_travailler : [];
-  const espace = listening?.espace;
-  const dynamique = listening?.dynamique;
-  const potentiel = listening?.potentiel;
+  // 1. Format structuré (nouvelles fiches)
+  let impression = listening?.impression;
+  let points = Array.isArray(listening?.points_forts) ? listening.points_forts : [];
+  let aTravailler = Array.isArray(listening?.a_travailler) ? listening.a_travailler : [];
+  let espace = listening?.espace;
+  let dynamique = listening?.dynamique;
+  let potentiel = listening?.potentiel;
+
+  const hasStructured = impression || points.length || aTravailler.length || espace || dynamique || potentiel;
+
+  // 2. Fallback legacy : texte brut parsé → route vers les buckets
+  if (!hasStructured) {
+    let text = null;
+    if (typeof listening === 'string') text = listening;
+    else if (listening?.text) text = listening.text;
+    else if (listening?.content) text = listening.content;
+    const legacySections = text ? parseListening(text) : [];
+    const bucketText = { impression: [], espace: [], dynamique: [], potentiel: [] };
+    const bucketList = { forts: [], travail: [] };
+    for (const sec of legacySections) {
+      const bucket = routeLegacySection(sec);
+      if (bucket === 'forts' || bucket === 'travail') {
+        bucketList[bucket].push(...blocksToBullets(sec.blocks));
+      } else {
+        const t = blocksToText(sec.blocks);
+        if (t) bucketText[bucket].push(t);
+      }
+    }
+    impression = bucketText.impression.join('\n\n') || impression;
+    espace = bucketText.espace.join('\n\n') || espace;
+    dynamique = bucketText.dynamique.join('\n\n') || dynamique;
+    potentiel = bucketText.potentiel.join('\n\n') || potentiel;
+    points = bucketList.forts.length ? bucketList.forts : points;
+    aTravailler = bucketList.travail.length ? bucketList.travail : aTravailler;
+  }
 
   const hasAny = impression || points.length || aTravailler.length || espace || dynamique || potentiel;
   if (!hasAny) return null;
