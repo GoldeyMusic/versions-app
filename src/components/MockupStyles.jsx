@@ -2501,17 +2501,6 @@ export default function MockupStyles() {
     color: var(--muted); text-align: center;
   }
 
-  /* ── Home mobile — ajustements padding/gap ── */
-  @media (max-width: 768px) {
-    .welcome-home {
-      padding: 24px 20px 80px;
-      gap: 20px;
-    }
-    .wh-tagline-hero {
-      padding: 32px 20px 24px;
-    }
-  }
-
   /* ── Auth Screen ── */
   .auth-screen {
     min-height: 100vh; display: grid; place-items: center;
@@ -3077,17 +3066,17 @@ export default function MockupStyles() {
     .reglages-signout { padding: 14px 16px; }
 
     /* Welcome Home */
-    .welcome-home { padding: 30px 20px 120px; max-width: 100%; }
+    .welcome-home { padding: 24px 20px 80px; max-width: 100%; gap: 20px; }
     .wh-greeting { font-size: 28px; letter-spacing: 2px; }
     .wh-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .wh-tracklist { max-width: 100%; }
     .wh-action { justify-content: center; padding: 12px 10px; font-size: 12px; }
     /* Tagline hero — version compacte mobile (padding + font réduits) */
-    .wh-tagline-hero { padding: 24px 4px 32px; gap: 10px; }
+    .wh-tagline-hero { padding: 32px 20px 24px; gap: 10px; }
     .wh-tagline-text { font-size: 22px; line-height: 1.3; max-width: 100%; }
-    /* Cartes pédago hors .wh-col-right sur mobile : espacement vertical */
-    .welcome-home > .wh-card + .wh-card { margin-top: 12px; }
-    .welcome-home > .wh-card:first-of-type { margin-top: 16px; }
+    /* Cartes pédago : margin-top annulé — le gap du parent gère l'espacement */
+    .welcome-home > .wh-card + .wh-card { margin-top: 0; }
+    .welcome-home > .wh-card:first-of-type { margin-top: 0; }
 
     /* Versions Screen */
     .versions-screen { padding: 30px 20px 120px; max-width: 100%; }
