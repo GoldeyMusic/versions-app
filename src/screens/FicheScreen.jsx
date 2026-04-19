@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import API from '../constants/api';
 // import CompareButton from '../components/CompareButton'; // mis en sommeil
 import VChip from '../components/VChip';
+import ExportPdfModal from '../components/ExportPdfModal';
 import { loadTracks, deleteTrack, renameTrack, saveVersionNotes } from '../lib/storage';
+import { exportFicheToPdf } from '../lib/exportPdf';
 import { confirmDialog } from '../lib/confirm.jsx';
 import useMobile from '../hooks/useMobile';
 import useNarrowDesktop from '../hooks/useNarrowDesktop';
@@ -509,7 +511,7 @@ function TrackMenu({ track, onRename, onDelete, onExport }) {
           }}
         >
           <MenuItem label="Renommer" onClick={() => { setOpen(false); onRename?.(track); }} />
-          <MenuItem label="Exporter la fiche" onClick={() => { setOpen(false); onExport?.(track); }} />
+          <MenuItem label="Exporter en PDF" onClick={() => { setOpen(false); onExport?.(track); }} />
           <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
           <MenuItem label="Supprimer le titre" danger onClick={() => { setOpen(false); onDelete?.(track); }} />
         </div>
@@ -1257,6 +1259,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   const [resolved, setResolved] = useState(new Set());
   const [hideResolved, setHideResolved] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [exportTarget, setExportTarget] = useState(null); // track ouvert dans la modale d'export PDF
   const isMobile = useMobile();
   const isNarrow = useNarrowDesktop(1200);
   const chatAsDrawer = isMobile || isNarrow;
@@ -1397,14 +1400,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     } catch (e) { console.warn('deleteTrack failed', e); }
   };
   const handleExportTrack = (track) => {
-    const data = JSON.stringify(track, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${track.title.replace(/[^a-z0-9]/gi, '_')}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Ouvre la modale : l'utilisateur choisit quelles sections inclure,
+    // puis on génère un PDF partageable via lib/exportPdf.js.
+    setExportTarget(track || currentTrack || null);
   };
 
   return (
@@ -1679,6 +1677,52 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
         </div>
       </main>
 
+
+      {/* Modale d'export PDF — utilise le track courant (forcément celui affiché) */}
+      {exportTarget && (() => {
+        const t = exportTarget;
+        // On exporte *la version actuellement affichée* (config.version) si elle
+        // existe, sinon la dernière version connue de ce track.
+        const vInTrack = (t.versions || []).find((v) => v.name === config?.version)
+          || (t.versions || [])[t.versions.length - 1]
+          || null;
+        const ar = vInTrack?.analysisResult || analysisResult || null;
+        const hasListening = !!(ar?.listening && (
+          ar.listening.impression ||
+          (Array.isArray(ar.listening.points_forts) && ar.listening.points_forts.length) ||
+          (Array.isArray(ar.listening.a_travailler) && ar.listening.a_travailler.length) ||
+          ar.listening.espace || ar.listening.dynamique || ar.listening.potentiel
+        ));
+        const hasDiagnostic = !!(ar?.fiche?.elements && ar.fiche.elements.length);
+        const hasPlan = !!(ar?.fiche?.plan && ar.fiche.plan.length);
+        const hasNotes = !!(ar?.userNotes && ar.userNotes.trim());
+        return (
+          <ExportPdfModal
+            title={t.title}
+            versionName={vInTrack?.name || config?.version || ''}
+            hasListening={hasListening}
+            hasDiagnostic={hasDiagnostic}
+            hasPlan={hasPlan}
+            hasNotes={hasNotes}
+            onCancel={() => setExportTarget(null)}
+            onExport={(sections) => {
+              try {
+                exportFicheToPdf({
+                  track: t,
+                  versionName: vInTrack?.name || config?.version || '',
+                  analysisResult: ar,
+                  date: vInTrack?.createdAt || vInTrack?.date || new Date().toISOString(),
+                  sections,
+                });
+              } catch (err) {
+                console.warn('[export PDF] échec de la génération', err);
+              } finally {
+                setExportTarget(null);
+              }
+            }}
+          />
+        );
+      })()}
 
       {/* Chat — bulle + panneau (mobile + desktop étroit <1200px) */}
       {chatAsDrawer && (
