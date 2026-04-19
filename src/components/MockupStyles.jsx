@@ -3110,7 +3110,7 @@ export default function MockupStyles() {
     .score-ring .unit { font-size: 8px; letter-spacing: 0.5px; margin-top: 2px; }
     .verdict-text h1 { font-size: 26px; }
     .verdict-text p { font-size: 14px; }
-    .timeline { padding: 12px 16px 10px; gap: 12px; flex-wrap: wrap; }
+    .timeline { padding: 12px 16px 10px; gap: 12px; }
     .track-title { font-size: 20px; }
     .versions-block { padding: 8px; }
     .vchip { padding: 6px 10px; min-width: 50px; }
@@ -3417,21 +3417,61 @@ export default function MockupStyles() {
     .fiche-head-btn { padding: 6px 8px; }
   }
 
-  /* Sur mobile la Timeline bascule en colonne (voir règles plus haut) :
-     on ré-étire les boutons pour qu'ils soient confortables au doigt. */
+  /* ── Header fiche mobile : grille 2 colonnes ──────────────────────
+     Ligne 1 : titre + vocal-pill (col 1)  |  icônes share/export (col 2)
+     Ligne 2 : barre de versions pleine largeur
+     Inspiré SoundCloud / Spotify : actions en icônes discrètes,
+     info de version portée par la chip active plutôt que par le vsub. */
   @media (max-width: 720px) {
+    .timeline {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 8px 10px;
+      padding: 10px 16px;
+      align-items: center;
+    }
+    /* Titre : col 1 ligne 1 */
+    .track-title {
+      grid-column: 1;
+      grid-row: 1;
+      font-size: 17px;
+      gap: 8px;
+      min-width: 0;
+      align-items: center;
+    }
+    .track-title-left {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      flex-shrink: 1;
+    }
+    /* Sous-titre "VERSION ACTUELLE V2" masqué — redondant avec la chip active */
+    .track-title .vsub { display: none; }
+    /* Icônes share/export : col 2 ligne 1, sans label */
     .fiche-head-actions {
+      grid-column: 2;
+      grid-row: 1;
       margin-left: 0;
-      padding-left: 0;
-      border-left: 0;
+      width: auto;
+      gap: 4px;
+      align-self: center;
+    }
+    .fiche-head-btn .fhb-label { display: none; }
+    .fiche-head-btn { padding: 7px 8px; }
+    /* Versions : col 1-2 ligne 2, pleine largeur */
+    .versions-block {
+      grid-column: 1 / -1;
+      grid-row: 2;
       width: 100%;
-      justify-content: flex-end;
+      max-width: 100%;
+      padding: 8px 10px;
+      margin-left: 0;
     }
-    .fiche-head-btn .fhb-label { display: inline; }
-    .fiche-head-btn {
-      padding: 8px 12px;
-      font-size: 12.5px;
-    }
+    .vchip { padding: 6px 8px; min-width: 46px; }
+    .vchip .vname { font-size: 10px; }
+    .vchip .vscore { font-size: 16px; }
   }
 `}</style>
     </>
