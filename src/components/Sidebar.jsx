@@ -454,13 +454,13 @@ function ProjectAccordion({
           </svg>
         </span>
 
+        {/* Vignette sidebar = dégradé coloré uniquement. À 16 px la photo
+            devient illisible, on garde le dégradé comme marqueur visuel. */}
         <span
           aria-hidden
           style={{
             width: 16, height: 16, borderRadius: 5,
-            background: project.coverImageUrl
-              ? `#141416 center/cover no-repeat url("${project.coverImageUrl}")`
-              : gradient,
+            background: gradient,
             flexShrink: 0,
             boxShadow: open ? '0 2px 6px rgba(0,0,0,.4)' : 'none',
           }}
