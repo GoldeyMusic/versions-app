@@ -507,10 +507,9 @@ export default function MockupStyles() {
     margin: 8px 0 6px;
   }
 
-  /* Impression toggle — résumé par défaut, complet si expanded */
+  /* Impression toggle — Impression toujours visible, le reste ajouté en plus si expanded */
   .impression-summary { display: block; }
   .impression-full { display: none; }
-  .row-qualitative.expanded .impression-summary { display: none; }
   .row-qualitative.expanded .impression-full { display: block; }
 
   .impression-toggle {
