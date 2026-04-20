@@ -660,14 +660,15 @@ export default function MockupStyles() {
 
   .verdict-text { flex: 1; min-width: 0; }
   .verdict-text h1 {
-    /* Même typo ET même taille que la tagline aléatoire de la Home
-       (.wh-tagline-text) : DM Sans italic 400, 34px. On garde la couleur
-       d'accent ambre pour les passages entre *astérisques*. */
+    /* Même typo ET même taille que la tagline aléatoire affichée sur
+       la Home desktop (.wh-tagline-mid .wh-tagline-text) : DM Sans
+       italic 400, 28px. On garde la couleur d'accent ambre pour les
+       passages entre *astérisques*. */
     font-family: var(--serif);
     font-style: italic;
-    font-size: 34px;
+    font-size: 28px;
     font-weight: 400;
-    line-height: 1.25;
+    line-height: 1.3;
     letter-spacing: 0.3px;
     margin: 0 0 14px;
     max-width: 900px;
@@ -704,7 +705,7 @@ export default function MockupStyles() {
     display: flex; align-items: center; gap: 28px;
     min-width: 0;
   }
-  .rv-left .verdict-text h1 { font-size: 34px; margin-bottom: 10px; }
+  .rv-left .verdict-text h1 { font-size: 28px; margin-bottom: 10px; }
   .rv-left .verdict-text p { font-size: 14px; }
   .rv-right {
     display: flex;
