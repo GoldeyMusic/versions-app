@@ -2,15 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import API from '../constants/api';
 // import CompareButton from '../components/CompareButton'; // mis en sommeil
 import VChip from '../components/VChip';
-import ExportPdfModal from '../components/ExportPdfModal';
-import ShareLinkModal from '../components/ShareLinkModal';
-import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
-import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType } from '../lib/storage';
+import { loadTracks, deleteTrack, renameTrack } from '../lib/storage';
 import { confirmDialog } from '../lib/confirm.jsx';
-import { exportFicheToPdf } from '../lib/exportPdf';
-import { renderWithEmphasis, formatAnalyzedAt, splitVerdict, applyVocalTypeToFiche, isVoiceCategory } from '../lib/ficheHelpers.jsx';
-import useMobile from '../hooks/useMobile';
-import useNarrowDesktop from '../hooks/useNarrowDesktop';
 
 /**
  * FicheScreen — rendu fidèle à mockup-v3.html.
@@ -42,23 +35,12 @@ function TrackTitleText({ title }) {
 }
 
 // Anneau de score 140x140 — formule identique à la maquette : dasharray=276
-export function ScoreRingBig({ value, prevScore = null }) {
+function ScoreRingBig({ value }) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
   const offset = 276 - (276 * v) / 100;
   const color = v < 50 ? '#ef6b6b' : v < 75 ? '#f5b056' : '#7bd88f';
-  const band = v < 50 ? 'À retravailler' : v < 75 ? 'En progression' : 'Solide';
-  const [tipOpen, setTipOpen] = useState(false);
-  const delta = typeof prevScore === 'number' ? Math.round(v - prevScore) : null;
   return (
-    <div
-      className={`score-ring${tipOpen ? ' tip-open' : ''}`}
-      onMouseEnter={() => setTipOpen(true)}
-      onMouseLeave={() => setTipOpen(false)}
-      onClick={() => setTipOpen((v) => !v)}
-      role="button"
-      tabIndex={0}
-      aria-label="Voir les détails du score"
-    >
+    <div className="score-ring">
       <svg viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="44" fill="none" stroke={`${color}22`} strokeWidth="5" />
         <circle
@@ -68,49 +50,15 @@ export function ScoreRingBig({ value, prevScore = null }) {
         />
       </svg>
       <div className="center">
-        <div className="big" style={{ color }}>
-          {Math.round(v)}
-          <span className="big-suffix">/100</span>
-        </div>
-      </div>
-      <span className="ring-help" aria-hidden="true">?</span>
-      <div className="ring-tooltip" role="tooltip">
-        <div className="rt-head">
-          <span className="rt-dot" style={{ background: color }} />
-          <strong>{band}</strong>
-          <span className="rt-val">{Math.round(v)}/100</span>
-        </div>
-        <div className="rt-bands">
-          <div className={`rt-band${v < 50 ? ' active' : ''}`}>
-            <span className="dot" style={{ background: '#ef6b6b' }} />
-            <span>0–49 · À retravailler</span>
-          </div>
-          <div className={`rt-band${v >= 50 && v < 75 ? ' active' : ''}`}>
-            <span className="dot" style={{ background: '#f5b056' }} />
-            <span>50–74 · En progression</span>
-          </div>
-          <div className={`rt-band${v >= 75 ? ' active' : ''}`}>
-            <span className="dot" style={{ background: '#7bd88f' }} />
-            <span>75–100 · Solide</span>
-          </div>
-        </div>
-        {delta != null && (
-          <div className="rt-calib">
-            {delta === 0
-              ? 'Calibré sur la version précédente · stable'
-              : `Calibré sur la version précédente · ${delta > 0 ? '+' : ''}${delta} pts`}
-          </div>
-        )}
-        <div className="rt-note">
-          Le score reflète la cohérence du mix (spatialisation, dynamique, équilibre, clarté). Il est calibré pour rester comparable d'une version à l'autre du même titre.
-        </div>
+        <div className="big" style={{ color }}>{Math.round(v)}</div>
+        <div className="unit">SCORE / 100</div>
       </div>
     </div>
   );
 }
 
 // Anneau 32x32 (items diag) — dasharray=82 ; couleur par seuil
-export function ScoreRingSmall({ value }) {
+function ScoreRingSmall({ value }) {
   if (typeof value !== 'number') return null;
   const v = Math.max(0, Math.min(10, value));
   const offset = 82 - (82 * v) / 10;
@@ -133,6 +81,26 @@ export function ScoreRingSmall({ value }) {
 
 // Parse un texte avec des marqueurs *...* et retourne du JSX avec <em>
 // pour les passages italiques (mis en ambre via la règle CSS .verdict-text h1 em).
+function renderWithEmphasis(text) {
+  if (!text) return null;
+  const parts = text.split(/(\*[^*]+\*)/g);
+  return parts.map((p, i) =>
+    p.startsWith('*') && p.endsWith('*') && p.length > 2
+      ? <em key={i}>{p.slice(1, -1)}</em>
+      : <span key={i}>{p}</span>
+  );
+}
+
+// Sépare un texte en (1ʳᵉ phrase → titre) + (reste → paragraphe).
+// Retourne { headline, rest } ; rest peut être vide.
+function splitVerdict(text) {
+  if (!text) return { headline: '', rest: '' };
+  // Découpe à la première ponctuation forte suivie d'espace (ou fin de texte).
+  const m = text.match(/^([^.!?]*[.!?])\s+(.*)$/s);
+  if (m) return { headline: m[1].trim(), rest: m[2].trim() };
+  return { headline: text.trim(), rest: '' };
+}
+
 // ── ListeningSection (écoute qualitative) ─────────────────
 
 /**
@@ -209,7 +177,7 @@ function ListeningSection({ listening }) {
   const Bullet = ({ children }) => (
     <div style={{
       display: 'flex', gap: 12, alignItems: 'flex-start',
-      fontFamily: "'DM Sans', sans-serif", fontSize: 13,
+      fontFamily: 'Inter, sans-serif', fontSize: 13,
       color: '#c5c5c7', lineHeight: 1.7, fontWeight: 300,
     }}>
       <span style={{ color: '#f5b056', fontSize: 14, lineHeight: 1.5, flexShrink: 0, marginTop: 1 }}>▸</span>
@@ -332,7 +300,7 @@ function AnalyzingState({ stage }) {
           letterSpacing: 5, textTransform: 'uppercase',
         }}>Finalisation de l'analyse</h1>
         <p style={{
-          fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#7c7c80',
+          fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#7c7c80',
           margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6, letterSpacing: 1,
         }}>
           La fiche d'analyse se génère. Encore quelques secondes.
@@ -375,7 +343,7 @@ function AnalyzingState({ stage }) {
               </span>
               <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
               <span style={{
-                fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: 1,
+                fontFamily: 'JetBrains Mono, Inter, monospace', fontSize: 11, letterSpacing: 1,
                 textTransform: 'uppercase',
                 color: done ? '#c5c5c7' : active ? '#f5b056' : '#7c7c80',
               }}>{s.label}</span>
@@ -412,7 +380,7 @@ function AnalyzingState({ stage }) {
           color: '#f5b056', textTransform: 'uppercase',
         }}>Le saviez-vous</div>
         <div key={tipIdx} style={{
-          fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#c5c5c7',
+          fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#c5c5c7',
           lineHeight: 1.7, fontWeight: 300,
           animation: 'fadein .4s ease',
         }}>{ANALYSIS_TIPS[tipIdx]}</div>
@@ -421,83 +389,84 @@ function AnalyzingState({ stage }) {
   );
 }
 
-// ── VocalTypePill (contrôle pour changer le type vocal d'un titre après coup) ──
-// Montre l'état courant du titre (Chanté / Voix à venir / Instrumental) et permet
-// à l'utilisateur de le changer. Utile si on s'est trompé à l'import, ou si un
-// instrumental temporaire devient définitif.
-function VocalTypePill({ track, onRefresh }) {
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const ref = useRef(null);
-  const current = track?.vocalType || 'vocal';
-  const LABELS = {
-    vocal: 'Chanté',
-    instrumental_pending: 'Voix à venir',
-    instrumental_final: 'Instrumental',
-  };
-  const TITLES = {
-    vocal: 'Morceau chanté — la voix est évaluée',
-    instrumental_pending: 'Voix à venir sur les prochaines versions',
-    instrumental_final: 'Œuvre purement instrumentale — la voix n\'est pas évaluée',
-  };
+// ── Menu contextuel du titre (⋯) ───────────────────────────
 
-  // Ferme le popover au clic extérieur
+function TrackMenu({ track, onRename, onDelete, onExport }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
+
   useEffect(() => {
     if (!open) return;
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
+    const h = (e) => {
+      if (menuRef.current?.contains(e.target) || btnRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', h);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', h);
+      document.removeEventListener('keydown', esc);
+    };
   }, [open]);
 
-  const handleChange = async (next) => {
-    if (next === current || busy || !track?.id) { setOpen(false); return; }
-    setBusy(true);
-    try {
-      await updateTrackVocalType(track.id, next);
-      if (onRefresh) await onRefresh();
-    } finally {
-      setBusy(false);
-      setOpen(false);
-    }
-  };
-
   return (
-    <span className={`vocal-pill-wrap ${current}`} ref={ref}>
+    <div style={{ position: 'relative', display: 'inline-block' }}>
       <button
-        type="button"
-        className={`vocal-pill ${current}`}
-        onClick={() => setOpen((v) => !v)}
-        disabled={busy}
-        title={TITLES[current]}
-      >
-        <span className="vp-label">{LABELS[current]}</span>
-        <svg className="vp-caret" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-          <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
+        ref={btnRef}
+        onClick={() => setOpen((o) => !o)}
+        title="Options du titre"
+        style={{
+          width: 28, height: 28, borderRadius: 8,
+          background: open ? 'rgba(245,176,86,.12)' : 'transparent',
+          border: `1px solid ${open ? '#f5b05655' : '#2a2a2e'}`,
+          color: '#7c7c80', cursor: 'pointer', padding: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 16, letterSpacing: 1, lineHeight: 1,
+        }}
+      >⋯</button>
       {open && (
-        <div className="vocal-pill-menu">
-          {(['vocal', 'instrumental_pending', 'instrumental_final']).map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              className={`vpm-item ${opt === current ? 'active' : ''}`}
-              onClick={() => handleChange(opt)}
-              disabled={busy}
-            >
-              <span className="vpm-label">{LABELS[opt]}</span>
-              {opt === current && <span className="vpm-check">✓</span>}
-            </button>
-          ))}
+        <div
+          ref={menuRef}
+          style={{
+            position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50,
+            minWidth: 200, background: '#141416', border: '1px solid #2a2a2e',
+            borderRadius: 10, padding: 6, boxShadow: '0 12px 40px rgba(0,0,0,.5)',
+            animation: 'popin .12s ease',
+          }}
+        >
+          <MenuItem label="Renommer" onClick={() => { setOpen(false); onRename?.(track); }} />
+          <MenuItem label="Exporter la fiche" onClick={() => { setOpen(false); onExport?.(track); }} />
+          <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
+          <MenuItem label="Supprimer le titre" danger onClick={() => { setOpen(false); onDelete?.(track); }} />
         </div>
       )}
-    </span>
+    </div>
+  );
+}
+
+function MenuItem({ label, onClick, danger }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'block', width: '100%', textAlign: 'left',
+        padding: '8px 12px', borderRadius: 6, border: 'none',
+        background: 'transparent', cursor: 'pointer',
+        fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 400,
+        color: danger ? '#ef6b6b' : '#c5c5c7',
+        transition: 'background .1s',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = danger ? 'rgba(239,107,107,.08)' : 'rgba(245,176,86,.06)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+    >{label}</button>
   );
 }
 
 // ── Timeline (sticky bar avec chips versions) ──────────────
 
-function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onShareVersion, onExportVersion, onTracksRefresh, onGoHome }) {
+function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onRenameTrack, onDeleteTrack, onExportTrack, onTracksRefresh, onGoHome }) {
   const scrollRef = useRef(null);
   const [showFadeRight, setShowFadeRight] = useState(false);
   const [showFadeLeft, setShowFadeLeft] = useState(false);
@@ -554,10 +523,6 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
             </button>
           )}
           <span><TrackTitleText title={track.title} /></span>
-          {/* Contrôle type vocal : toujours visible, cliquable pour changer après coup
-              (étape 5 de la feature). L'état "vocal" (chanté) est affiché pour permettre
-              aussi de basculer un titre chanté en instrumental si besoin. */}
-          <VocalTypePill track={track} onRefresh={onTracksRefresh} />
         </span>
         {current && (
           <span className="vsub">
@@ -566,42 +531,6 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
           </span>
         )}
       </div>
-
-      {current && (onShareVersion || onExportVersion) && (
-        <div className="fiche-head-actions">
-          {onShareVersion && (
-            <button
-              type="button"
-              className="fiche-head-btn"
-              onClick={() => onShareVersion(track, current)}
-              disabled={!current?.id || current.id === '__pending_v__'}
-              title={!current?.id || current.id === '__pending_v__' ? 'Enregistrement en cours…' : 'Générer un lien public lecture seule'}
-            >
-              {/* Icône share iOS-style : flèche vers le haut depuis un carré */}
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M8 9V2M5.5 4.5L8 2l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M4 8v4.5h8V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span className="fhb-label">Partager un lien</span>
-            </button>
-          )}
-          {onExportVersion && (
-            <button
-              type="button"
-              className="fiche-head-btn"
-              onClick={() => onExportVersion(track, current)}
-              title="Générer un PDF partageable de cette version"
-            >
-              {/* Icône export PDF : flèche vers le bas dans un plateau */}
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12v1.5A1.5 1.5 0 004.5 15h7A1.5 1.5 0 0013 13.5V12"
-                      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="fhb-label">Exporter en PDF</span>
-            </button>
-          )}
-        </div>
-      )}
 
       <div className="versions-block">
         {/* CompareButton retiré — en sommeil */}
@@ -629,7 +558,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
                       {delta > 0 ? '↑' : delta < 0 ? '↓' : ''}{Math.abs(delta)}
                     </span>
                   )}
-                  <VChip track={track} version={v} idx={idx} isActive={isActive} score={score} onSelect={onSelectVersion} onRefresh={onTracksRefresh} onShare={onShareVersion} onExport={onExportVersion} onDeleted={(deleted) => { if (deleted.name === currentVersionName && versions.length > 1) { const next = versions.find(x => x.id !== deleted.id); if (next) onSelectVersion?.(track, next); } }} />
+                  <VChip track={track} version={v} idx={idx} isActive={isActive} score={score} onSelect={onSelectVersion} onRefresh={onTracksRefresh} onDeleted={(deleted) => { if (deleted.name === currentVersionName && versions.length > 1) { const next = versions.find(x => x.id !== deleted.id); if (next) onSelectVersion?.(track, next); } }} />
                 </span>
               );
             })}
@@ -664,6 +593,8 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
 // ── FocusModal (modale centrée, click-outside, flèches latérales) ───
 
 function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isResolved, onToggleResolved }) {
+  const touchStartX = useRef(null);
+
   useEffect(() => {
     if (!open) return;
     const h = (e) => {
@@ -709,7 +640,18 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
         aria-label="Suivant"
       >›</button>
 
-      <div className="focus-container" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="focus-container"
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+        onTouchEnd={(e) => {
+          if (touchStartX.current === null) return;
+          const delta = e.changedTouches[0].clientX - touchStartX.current;
+          touchStartX.current = null;
+          if (delta > 50 && !atFirst) onPrev?.();
+          else if (delta < -50 && !atLast) onNext?.();
+        }}
+      >
       <div className="focus-panel">
         {/* En-tête : compteur + close */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
@@ -731,7 +673,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
         </div>
 
         <h2 style={{
-          fontFamily: "'DM Sans', sans-serif", fontWeight: 400, fontSize: 26,
+          fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 26,
           lineHeight: 1.25, color: '#ededed', margin: '0 0 20px',
           display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap',
         }}>
@@ -797,30 +739,16 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
 
 // ── VersionChat (panneau glissant) ─────────────────────────
 
-function VersionChat({ versionId, config, analysisResult, open, onClose, anchored = false }) {
+function VersionChat({ config, analysisResult, open, onClose }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const controllerRef = useRef(null);
   const textareaRef = useRef(null);
-
-  // Charge l'historique persisté quand la version change — chat scopé par versionId.
-  // Si versionId n'est pas encore en DB (__pending_v__) le helper retourne []
-  // et on démarre avec une conversation vierge (sauvegardée plus tard quand l'ID existera).
-  useEffect(() => {
-    let alive = true;
-    if (!versionId) { setMessages([]); return; }
-    loadChatHistory(versionId).then((hist) => {
-      if (alive) setMessages(hist);
-    });
-    return () => { alive = false; };
-  }, [versionId]);
-
   const send = async () => {
     if (!input.trim() || loading) return;
     const userMsg = { role: 'user', content: input.trim() };
-    const withUser = [...messages, userMsg];
-    setMessages(withUser);
+    setMessages((m) => [...m, userMsg]);
     setInput('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setLoading(true);
@@ -834,7 +762,7 @@ function VersionChat({ versionId, config, analysisResult, open, onClose, anchore
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
         body: JSON.stringify({
-          messages: withUser,
+          messages: [...messages, userMsg],
           title: config?.title || '',
           version: config?.version || '',
           daw: config?.daw || 'Logic Pro',
@@ -844,59 +772,21 @@ function VersionChat({ versionId, config, analysisResult, open, onClose, anchore
       });
       clearTimeout(timeout);
       const json = await res.json();
-      const next = [...withUser, { role: 'assistant', content: json.reply || '…' }];
-      setMessages(next);
-      // Fire-and-forget : on ne bloque pas l'UI, les erreurs sont logguées côté helper.
-      saveChatHistory(versionId, next);
+      setMessages((m) => [...m, { role: 'assistant', content: json.reply || '…' }]);
     } catch (e) {
       if (e.name !== 'AbortError') {
-        const next = [...withUser, { role: 'assistant', content: 'Erreur de connexion.' }];
-        setMessages(next);
-        saveChatHistory(versionId, next);
+        setMessages((m) => [...m, { role: 'assistant', content: 'Erreur de connexion.' }]);
       }
     } finally { setLoading(false); controllerRef.current = null; }
   };
 
-  // Efface l'historique (local + DB) après confirmation. Le helper
-  // saveChatHistory gere le cas versionId non persiste : no-op silencieux.
-  const handleClear = async () => {
-    if (!messages.length || loading) return;
-    const res = await confirmDialog({
-      title: 'Effacer la conversation ?',
-      message: 'La conversation de cette version sera supprimée définitivement.',
-      confirmLabel: 'Effacer',
-      cancelLabel: 'Annuler',
-      danger: true,
-    });
-    if (res !== 'confirm') return;
-    setMessages([]);
-    saveChatHistory(versionId, []);
-  };
-
   return (
     <>
-      {!anchored && <div className="chat-backdrop" onClick={onClose} />}
-      <aside className={`chat-panel${anchored ? ' chat-panel-anchored' : ''}`}>
+      <div className="chat-backdrop" onClick={onClose} />
+      <aside className="chat-panel">
         <div className="chat-head">
           <span className="ctitle">Discussion</span>
-          <div className="chat-head-actions">
-            {messages.length > 0 && (
-              <button
-                type="button"
-                className="cclear"
-                onClick={handleClear}
-                disabled={loading}
-                title="Effacer la conversation"
-                aria-label="Effacer la conversation"
-              >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d="M3 4h10M6.5 4V2.5a1 1 0 011-1h1a1 1 0 011 1V4m-5 0v9a1.5 1.5 0 001.5 1.5h4a1.5 1.5 0 001.5-1.5V4"
-                        stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            )}
-            {!anchored && <button className="cclose" onClick={onClose}>✕</button>}
-          </div>
+          <button className="cclose" onClick={onClose}>✕</button>
         </div>
         <div className="chat-body">
           {messages.length === 0 && (
@@ -940,395 +830,14 @@ function VersionChat({ versionId, config, analysisResult, open, onClose, anchore
   );
 }
 
-// ── Helpers durée / delta ─────────────────────────────────
-
-function fmtDuration(sec) {
-  if (sec == null || !isFinite(sec)) return '—';
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
-function fmtScoreDelta(cur, prev) {
-  if (cur == null || prev == null) return null;
-  const d = cur - prev;
-  if (d === 0) return '= v. préc.';
-  return `${d > 0 ? '+' : '−'}${Math.abs(Math.round(d))} pts`;
-}
-function fmtDurationDelta(cur, prev) {
-  if (cur == null || prev == null) return null;
-  const d = Math.round(cur - prev);
-  if (d === 0) return '= v. préc.';
-  return `${d > 0 ? '+' : '−'}${Math.abs(d)}s`;
-}
-function scoreTier(v) {
-  if (v == null) return 'mid';
-  if (v < 60) return 'low';
-  if (v < 75) return 'mid';
-  return 'high';
-}
-
-// ── EvolutionPanel (sparkline + 2 stats) ──────────────────
-
-function EvolutionPanel({ versionScores, currentVersionName, currentScore, currentDuration, prevScore, prevDuration }) {
-  const scores = versionScores.map((v) => v.score).filter((s) => typeof s === 'number');
-  const hasMultiple = scores.length >= 2;
-  const maxScore = scores.length ? Math.max(...scores, 100) : 100;
-  const firstName = versionScores[0]?.name;
-  const lastName = versionScores[versionScores.length - 1]?.name;
-  const deltaLabel = fmtScoreDelta(currentScore, prevScore);
-
-  return (
-    <div className="evolution-panel">
-      <div className="vr-title">
-        {hasMultiple ? `Évolution ${firstName} → ${lastName}` : 'Évolution'}
-      </div>
-
-      <div className="spark">
-        {versionScores.length === 0 ? (
-          <div className="spark-empty">—</div>
-        ) : versionScores.map((v, i) => {
-          const s = typeof v.score === 'number' ? v.score : 0;
-          const h = Math.max(6, (s / maxScore) * 100);
-          const tier = scoreTier(v.score);
-          return (
-            <div
-              key={i}
-              className={`bar ${tier}`}
-              style={{ height: `${h}%` }}
-              title={`${v.name} · ${typeof v.score === 'number' ? v.score : '—'}`}
-            />
-          );
-        })}
-      </div>
-
-      {hasMultiple && (
-        <div className="evo-label">
-          <span>{firstName} · {versionScores[0]?.score ?? '—'}</span>
-          {deltaLabel && <span className={`delta ${currentScore - prevScore >= 0 ? 'up' : 'down'}`}>{deltaLabel}</span>}
-          <span>{lastName} · {versionScores[versionScores.length - 1]?.score ?? '—'}</span>
-        </div>
-      )}
-
-      <div className="stats-grid">
-        <div className="stat">
-          <div className="k">Version active</div>
-          <div className="v" title={currentVersionName || ''}>{currentVersionName || '—'}</div>
-          <div className="d">
-            {prevScore != null && currentScore != null
-              ? (fmtScoreDelta(currentScore, prevScore) || `${currentScore} pts`)
-              : (currentScore != null ? `${currentScore} pts` : '—')}
-          </div>
-        </div>
-        <div className="stat">
-          <div className="k">Durée</div>
-          <div className="v">{fmtDuration(currentDuration)}</div>
-          <div className="d">
-            {fmtDurationDelta(currentDuration, prevDuration) || '—'}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── QualitativeSection v2 (2 colonnes : impression toggle | forts+travail) ──
-
-// Normalise un titre de section (enlève accents, met en minuscules)
-function normSectionTitle(t) {
-  return (t || '')
-    .toString()
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z ]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-// Mappe une section du legacy parser vers un bucket qualitatif
-function routeLegacySection(sec) {
-  const t = normSectionTitle(sec.title);
-  if (/points? forts?|forces/.test(t)) return 'forts';
-  if (/a travailler|axes|faiblesses|points? faibles?|a ameliorer/.test(t)) return 'travail';
-  if (/espace|image stereo|stereo/.test(t)) return 'espace';
-  if (/dynamique|punch/.test(t)) return 'dynamique';
-  if (/potentiel|possibles?|possibilites?/.test(t)) return 'potentiel';
-  if (/impression|ecoute|global|verdict|ressenti/.test(t) || t === '') return 'impression';
-  return 'impression';
-}
-
-// Convertit les blocs parsés en texte (paras concatenés) ou tableau de bullets
-function blocksToText(blocks) {
-  return blocks.filter((b) => b.type === 'para').map((b) => b.text).join('\n\n').trim();
-}
-function blocksToBullets(blocks) {
-  const bullets = blocks.filter((b) => b.type === 'bullet').map((b) => b.text);
-  // Si pas de bullets explicites mais des paragraphes courts, on les traite comme items
-  if (bullets.length === 0) {
-    const paras = blocks.filter((b) => b.type === 'para').map((b) => b.text);
-    if (paras.length > 1 && paras.every((p) => p.length < 200)) return paras;
-  }
-  return bullets;
-}
-
-export function QualitativeSection({ listening }) {
-  const [expanded, setExpanded] = useState(false);
-  const [fortsOpen, setFortsOpen] = useState(false);
-  const [travailOpen, setTravailOpen] = useState(false);
-  if (!listening) return null;
-
-  // 1. Format structuré (nouvelles fiches)
-  let impression = listening?.impression;
-  let points = Array.isArray(listening?.points_forts) ? listening.points_forts : [];
-  let aTravailler = Array.isArray(listening?.a_travailler) ? listening.a_travailler : [];
-  let espace = listening?.espace;
-  let dynamique = listening?.dynamique;
-  let potentiel = listening?.potentiel;
-
-  const hasStructured = impression || points.length || aTravailler.length || espace || dynamique || potentiel;
-
-  // 2. Fallback legacy : texte brut parsé → route vers les buckets
-  if (!hasStructured) {
-    let text = null;
-    if (typeof listening === 'string') text = listening;
-    else if (listening?.text) text = listening.text;
-    else if (listening?.content) text = listening.content;
-    const legacySections = text ? parseListening(text) : [];
-    const bucketText = { impression: [], espace: [], dynamique: [], potentiel: [] };
-    const bucketList = { forts: [], travail: [] };
-    for (const sec of legacySections) {
-      const bucket = routeLegacySection(sec);
-      if (bucket === 'forts' || bucket === 'travail') {
-        bucketList[bucket].push(...blocksToBullets(sec.blocks));
-      } else {
-        const t = blocksToText(sec.blocks);
-        if (t) bucketText[bucket].push(t);
-      }
-    }
-    impression = bucketText.impression.join('\n\n') || impression;
-    espace = bucketText.espace.join('\n\n') || espace;
-    dynamique = bucketText.dynamique.join('\n\n') || dynamique;
-    potentiel = bucketText.potentiel.join('\n\n') || potentiel;
-    points = bucketList.forts.length ? bucketList.forts : points;
-    aTravailler = bucketList.travail.length ? bucketList.travail : aTravailler;
-  }
-
-  const hasAny = impression || points.length || aTravailler.length || espace || dynamique || potentiel;
-  if (!hasAny) return null;
-
-  const hasDeploy = potentiel || espace || dynamique;
-
-  return (
-    <section className={`row-qualitative${expanded ? ' expanded' : ''}`}>
-      {/* Colonne gauche : Impression (+ Potentiel) → déploie Espace + Dynamique */}
-      <div className="q-block impression">
-        <div className="q-title"><span className="dot" />Impression</div>
-
-        <div className="impression-summary">
-          {impression && <p>{renderWithEmphasis(impression)}</p>}
-        </div>
-
-        <div className="impression-full">
-          {potentiel && (
-            <>
-              <div className="subq-title">Potentiel</div>
-              <p>{renderWithEmphasis(potentiel)}</p>
-            </>
-          )}
-          {espace && (
-            <>
-              <div className="subq-title">Espace</div>
-              <p>{renderWithEmphasis(espace)}</p>
-            </>
-          )}
-          {dynamique && (
-            <>
-              <div className="subq-title">Dynamique</div>
-              <p>{renderWithEmphasis(dynamique)}</p>
-            </>
-          )}
-        </div>
-
-        {hasDeploy && (
-          <button className="impression-toggle" onClick={() => setExpanded((v) => !v)}>
-            {expanded ? '− Réduire' : "+ Voir l\u2019écoute complète"}
-          </button>
-        )}
-      </div>
-
-      {/* Colonne droite : Points forts + À travailler (collapsés par défaut, clic pour déployer) */}
-      <div className="q-stack">
-        {points.length > 0 && (
-          <div className={`q-block forts collapsible${fortsOpen ? ' open' : ''}`}>
-            <button
-              type="button"
-              className="q-head"
-              onClick={() => setFortsOpen((v) => !v)}
-              aria-expanded={fortsOpen}
-            >
-              <span className="q-title"><span className="dot" />Points forts</span>
-              <span className="q-count">{points.length}</span>
-              <span className="q-chev" aria-hidden="true">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-            </button>
-            <div className="q-body">
-              <ul>
-                {points.map((p, i) => <li key={i}>{renderWithEmphasis(p)}</li>)}
-              </ul>
-            </div>
-          </div>
-        )}
-        {aTravailler.length > 0 && (
-          <div className={`q-block travail collapsible${travailOpen ? ' open' : ''}`}>
-            <button
-              type="button"
-              className="q-head"
-              onClick={() => setTravailOpen((v) => !v)}
-              aria-expanded={travailOpen}
-            >
-              <span className="q-title"><span className="dot" />À travailler</span>
-              <span className="q-count">{aTravailler.length}</span>
-              <span className="q-chev" aria-hidden="true">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-            </button>
-            <div className="q-body">
-              <ul>
-                {aTravailler.map((p, i) => <li key={i}>{renderWithEmphasis(p)}</li>)}
-              </ul>
-            </div>
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-// ── NotesSection (bloc notes perso, 1 par fiche) ───────────
-
-function NotesSection({ versionId, initialNotes }) {
-  const [notes, setNotes] = useState(initialNotes || '');
-  const [open, setOpen] = useState(() => Boolean(initialNotes && initialNotes.trim()));
-  const [status, setStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
-  const taRef = useRef(null);
-  const timerRef = useRef(null);
-  const resetTimerRef = useRef(null);
-  const lastSavedRef = useRef(initialNotes || '');
-
-  // Auto-resize textarea
-  useEffect(() => {
-    const ta = taRef.current;
-    if (!ta) return;
-    ta.style.height = 'auto';
-    ta.style.height = Math.min(400, Math.max(60, ta.scrollHeight)) + 'px';
-  }, [notes, open]);
-
-  // Nettoyage à l'unmount
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-    };
-  }, []);
-
-  const canEdit = Boolean(versionId) && versionId !== '__pending_v__' && versionId !== '__pending__';
-  const label = status === 'saving' ? 'Sauvegarde…' : status === 'saved' ? 'Sauvegardé' : null;
-
-  const handleChange = (e) => {
-    const next = e.target.value;
-    setNotes(next);
-    if (!canEdit) return;
-    if (next === lastSavedRef.current) return;
-    setStatus('saving');
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(async () => {
-      try {
-        await saveVersionNotes(versionId, next);
-        lastSavedRef.current = next;
-        setStatus('saved');
-        if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-        resetTimerRef.current = setTimeout(() => setStatus('idle'), 1400);
-      } catch (err) {
-        console.warn('[NotesSection] save error', err);
-        setStatus('idle');
-      }
-    }, 1100);
-  };
-
-  return (
-    <section className="notes-section">
-      <div className={`notes-block collapsible${open ? ' open' : ''}`}>
-        <button className="notes-head" type="button" onClick={() => setOpen((v) => !v)}>
-          <span className="notes-icon" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <path d="M3 13V3h7l3 3v7H3z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-              <path d="M10 3v3h3" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-              <path d="M5.5 8.5h5M5.5 10.5h3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-            </svg>
-          </span>
-          <span className="notes-title">Mes notes</span>
-          {notes && notes.trim() && !open && (
-            <span className="notes-preview">{notes.trim().slice(0, 80)}{notes.trim().length > 80 ? '…' : ''}</span>
-          )}
-          <span className="notes-status" aria-live="polite">{label}</span>
-          <span className="notes-chev" aria-hidden="true">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-        </button>
-        <div className="notes-body">
-          <textarea
-            ref={taRef}
-            className="notes-textarea"
-            value={notes}
-            onChange={handleChange}
-            placeholder={canEdit
-              ? 'Tes observations, rappels, TODOs pour le prochain mix…'
-              : 'Notes disponibles une fois l\u2019analyse sauvegardée.'}
-            disabled={!canEdit}
-            rows={3}
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ── FicheScreen (principal) ────────────────────────────────
 
-export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onGoHome, refreshKey }) {
+export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onTrackDeleted, onTrackRenamed, onGoHome, refreshKey }) {
   const [tracks, setTracks] = useState([]);
   const [openCat, setOpenCat] = useState(0); // un seul accordéon ouvert à la fois
-  const [openPlanIdx, setOpenPlanIdx] = useState(null);
+  const [focusIdx, setFocusIdx] = useState(null);
   const [resolved, setResolved] = useState(new Set());
-  const [hideResolved, setHideResolved] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [exportTarget, setExportTarget] = useState(null); // { track, version } ouverts dans la modale d'export PDF
-  const [shareTarget, setShareTarget] = useState(null);   // { track, version } ouverts dans la modale de partage
-  const isMobile = useMobile();
-  const isNarrow = useNarrowDesktop(1200);
-  const chatAsDrawer = isMobile || isNarrow;
-  const planRefs = useRef({});
-
-  // Scroll doux vers l'item Plan d'action ouvert
-  useEffect(() => {
-    if (openPlanIdx == null) return;
-    const el = planRefs.current[openPlanIdx];
-    if (!el) return;
-    const raf = requestAnimationFrame(() => {
-      try {
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } catch {
-        el.scrollIntoView();
-      }
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [openPlanIdx]);
 
   useEffect(() => {
     let alive = true;
@@ -1342,17 +851,17 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     return () => document.body.classList.remove('chat-open');
   }, [chatOpen]);
 
-  // ESC global : referme le plan ouvert ou le chat
+  // ESC global pour focus
   useEffect(() => {
     const h = (e) => {
       if (e.key === 'Escape') {
-        if (openPlanIdx != null) setOpenPlanIdx(null);
+        if (focusIdx != null) setFocusIdx(null);
         else if (chatOpen) setChatOpen(false);
       }
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [openPlanIdx, chatOpen]);
+  }, [focusIdx, chatOpen]);
 
   const dbTrack = tracks.find((t) => t.title === config?.title) || null;
   // Si le track DB existe mais ne contient pas encore la version courante (save en cours),
@@ -1374,83 +883,60 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
       analysisResult: analysisResult || null,
     }],
   } : null);
-  const rawFiche = analysisResult?.fiche || null;
+  const fiche = analysisResult?.fiche || null;
   const listening = analysisResult?.listening || null;
   const stage = analysisResult?._stage || 'idle';
-
-  // Type vocal du titre : priorité à la DB (la source de vérité), fallback
-  // sur config.vocalType fraîchement choisi pendant l'import (avant que
-  // le titre n'arrive en DB).
-  const vocalType = currentTrack?.vocalType || config?.vocalType || 'vocal';
-
-  // Applique le type vocal à la fiche courante :
-  //  - 'instrumental_final' filtre la catégorie VOIX + items plan liés, recalcule score
-  //  - 'instrumental_pending' ne filtre rien mais signale un relabel de la catégorie voix
-  //  - 'vocal' : no-op
-  const {
-    elements,
-    plan,
-    globalScore: adjustedScore,
-    voiceLabelOverride,
-  } = applyVocalTypeToFiche(rawFiche, vocalType);
-  const score = typeof adjustedScore === 'number' ? adjustedScore : null;
-
-  // ── Données pour EvolutionPanel (sparkline + stats) ──
-  // Pour que le graphique reste cohérent avec la fiche courante quand le
-  // titre est 'instrumental_final', on recalcule le score de chaque version
-  // (et pas seulement de la courante) via le même helper.
-  const allVersions = currentTrack?.versions || [];
-  const currentIdx = allVersions.findIndex((v) => v.name === config?.version);
-  const adjustVersionScore = (v) => {
-    const f = v?.analysisResult?.fiche;
-    if (!f) return null;
-    const { globalScore: s } = applyVocalTypeToFiche(f, vocalType);
-    return typeof s === 'number' ? s : null;
-  };
-  const versionScores = allVersions.map((v, i) => ({
-    name: v.name,
-    // la version courante peut être en cours d'analyse → utiliser le `score` en mémoire plutôt que l'ancien analysisResult
-    score: i === currentIdx && score != null ? score : adjustVersionScore(v),
-  }));
-  const currentDuration =
-    (currentIdx >= 0 && allVersions[currentIdx]?.analysisResult?.fiche?.duration_seconds) ??
-    rawFiche?.duration_seconds ??
-    null;
-  const prevVersion = currentIdx > 0 ? allVersions[currentIdx - 1] : null;
-  const prevScore = adjustVersionScore(prevVersion);
-  const prevDuration = prevVersion?.analysisResult?.fiche?.duration_seconds ?? null;
+  const plan = fiche?.plan || [];
+  const elements = fiche?.elements || [];
+  const score = typeof fiche?.globalScore === 'number' ? fiche.globalScore : null;
 
   const toggleCat = (i) => setOpenCat((prev) => (prev === i ? null : i));
 
-  const toggleResolved = (key, planIdx = null) => {
-    let becameResolved = false;
+  const toggleResolved = (key) => {
     setResolved((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-        becameResolved = true;
-      }
+      if (next.has(key)) next.delete(key); else next.add(key);
       return next;
     });
-    // Replie l'accordéon quand on passe en "résolu" (mais pas au décochage)
-    if (becameResolved && planIdx != null) {
-      setOpenPlanIdx((prev) => (prev === planIdx ? null : prev));
-    }
   };
 
-  // Handlers ⋯ version (depuis le menu d'une VChip)
-  // Ces handlers sont rattachés à une version précise (pas forcément la version
-  // actuellement affichée) : on stocke { track, version } pour que chaque
-  // modale (Export PDF / Lien public) cible la bonne version.
-  const handleExportVersion = (track, version) => {
-    if (!track || !version) return;
-    setExportTarget({ track, version });
+  // Handlers ⋯ track
+  const handleRenameTrack = async (track) => {
+    const next = window.prompt('Nouveau nom du titre :', track.title);
+    if (!next || next.trim() === '' || next.trim() === track.title) return;
+    try {
+      await renameTrack(track.id, next.trim());
+      const t = await loadTracks();
+      setTracks(t);
+      onTrackRenamed?.(track.id, next.trim());
+    } catch (e) { console.warn('renameTrack failed', e); }
   };
-  const handleShareVersion = (track, version) => {
-    if (!track || !version || !version.id || version.id === '__pending_v__') return;
-    setShareTarget({ track, version });
+  const handleDeleteTrack = async (track) => {
+    const n = (track.versions || []).length;
+    const ok = await confirmDialog({
+      title: "Supprimer le titre ?",
+      message: `Supprimer "${track.title}" et ses ${n} version${n > 1 ? 's' : ''} ? Cette action est définitive.`,
+      confirmLabel: "Supprimer",
+      cancelLabel: "Annuler",
+      danger: true,
+    });
+    if (ok !== 'confirm') return;
+    try {
+      await deleteTrack(track.id);
+      const t = await loadTracks();
+      setTracks(t);
+      onTrackDeleted?.(track.id);
+    } catch (e) { console.warn('deleteTrack failed', e); }
+  };
+  const handleExportTrack = (track) => {
+    const data = JSON.stringify(track, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${track.title.replace(/[^a-z0-9]/gi, '_')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -1464,355 +950,162 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             stage={stage}
             onSelectVersion={onSelectVersion}
             onAddVersion={onAddVersion}
-            onShareVersion={handleShareVersion}
-            onExportVersion={handleExportVersion}
+            onRenameTrack={handleRenameTrack}
+            onDeleteTrack={handleDeleteTrack}
+            onExportTrack={handleExportTrack}
             onTracksRefresh={() => loadTracks().then(setTracks)}
           />
         )}
 
-        <div className={`fiche-layout${!chatAsDrawer && rawFiche ? ' has-chat' : ''}`}>
         <div className="page">
-          {!rawFiche ? (
+          {!fiche ? (
             <AnalyzingState stage={stage} />
           ) : (
           <>
-          {/* 0 · Bandeau « voix détectée » : propose de basculer le vocal_type
-                  en « chanté » quand le titre est encore marqué « voix à venir »
-                  mais que Gemini a entendu du chant sur la version courante. */}
-          <VocalTypeSuggestionBanner
-            track={currentTrack}
-            versionId={versionInDb?.id}
-            listening={listening}
-            onRefresh={() => loadTracks().then(setTracks)}
-          />
-
-          {/* 1 · Verdict + Évolution (2 colonnes) */}
-          <section className="row-verdict">
-            <div className="rv-left">
-              {score != null && <ScoreRingBig value={score} prevScore={prevScore} />}
-              <div className="verdict-text">
-                {(() => {
-                  // Priorité : verdict (phrase accrocheuse) pour le titre, summary pour le paragraphe.
-                  // Si un seul des deux existe → on découpe en 1ʳᵉ phrase (titre) + reste (paragraphe).
-                  const vText = rawFiche?.verdict || rawFiche?.summary || '';
-                  if (!vText) return <h1>Analyse en cours…</h1>;
-                  if (rawFiche?.verdict && rawFiche?.summary && rawFiche.verdict !== rawFiche.summary) {
-                    return (
-                      <>
-                        <h1>{renderWithEmphasis(rawFiche.verdict)}</h1>
-                        <p>{rawFiche.summary}</p>
-                      </>
-                    );
-                  }
-                  const { headline, rest } = splitVerdict(vText);
+          {/* 1 · Verdict */}
+          <section className="verdict">
+            {score != null && <ScoreRingBig value={score} />}
+            <div className="verdict-text">
+              {(() => {
+                // Priorité : verdict (phrase accrocheuse) pour le titre, summary pour le paragraphe.
+                // Si un seul des deux existe → on découpe en 1ʳᵉ phrase (titre) + reste (paragraphe).
+                const vText = fiche?.verdict || fiche?.summary || '';
+                if (!vText) return <h1>Analyse en cours…</h1>;
+                if (fiche?.verdict && fiche?.summary && fiche.verdict !== fiche.summary) {
                   return (
                     <>
-                      <h1>{renderWithEmphasis(headline)}</h1>
-                      {rest && <p>{rest}</p>}
+                      <h1>{renderWithEmphasis(fiche.verdict)}</h1>
+                      <p>{fiche.summary}</p>
                     </>
                   );
-                })()}
-                {(() => {
-                  const stamp = formatAnalyzedAt(versionInDb?.createdAt || versionInDb?.date);
-                  return stamp ? <div className="analyzed-at">{stamp}</div> : null;
-                })()}
-              </div>
-            </div>
-            <div className="rv-right">
-              <EvolutionPanel
-                versionScores={versionScores}
-                currentVersionName={config?.version}
-                currentScore={score}
-                currentDuration={currentDuration}
-                prevScore={prevScore}
-                prevDuration={prevDuration}
-              />
+                }
+                const { headline, rest } = splitVerdict(vText);
+                return (
+                  <>
+                    <h1>{renderWithEmphasis(headline)}</h1>
+                    {rest && <p>{rest}</p>}
+                  </>
+                );
+              })()}
             </div>
           </section>
 
-          {/* 2 · Écoute qualitative (2 cols : Impression | Points forts + À travailler) */}
-          <QualitativeSection listening={listening} />
+          {/* 2 · Écoute qualitative (Gemini + Claude) */}
+          {listening && <ListeningSection listening={listening} />}
 
-          {/* 3 · Diagnostic (gauche) + Plan d'action (droite) */}
-          {(elements.length > 0 || plan.length > 0) && (
-            <div className="row-two">
-              <div className="col-diag">
-                {elements.length > 0 && (
-                  <>
-                    <div className="section-head">
-                      <span className="t">Diagnostic par éléments</span>
-                      <span className="line" />
-                      <span className="count">{elements.length} catégorie{elements.length > 1 ? 's' : ''}</span>
+          {/* 3 · Plan d'action */}
+          {plan.length > 0 && (
+            <>
+              <div className="section-head">
+                <span className="t">Plan d'action</span>
+                <span className="line" />
+                <span className="count">{plan.length} ajustement{plan.length > 1 ? 's' : ''}</span>
+              </div>
+              <div className="priority-list">
+                {plan.map((p, i) => {
+                  const key = `${i}::${(p.task || '').slice(0, 60)}`;
+                  const done = resolved.has(key);
+                  const prio = (p.p || '').toLowerCase();
+                  return (
+                    <div key={i} className={`priority${done ? ' done' : ''}`} onClick={() => setFocusIdx(i)}>
+                      <span className={`pbadge ${prio}`}>{(p.p || '').toUpperCase()}</span>
+                      <span className="ptitle">{p.task}</span>
+                      <div
+                        className="pcheck"
+                        onClick={(e) => { e.stopPropagation(); toggleResolved(key); }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 12 12" fill="none" style={{ display: done ? 'block' : 'none' }}>
+                          <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                      <span className="parrow">→</span>
                     </div>
-                    {elements.map((el, idx) => {
-                      const open = openCat === idx;
-                      const count = el.items?.length || 0;
-                      const scores = (el.items || []).map((it) => it.score).filter((s) => typeof s === 'number');
-                      const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
-                      const isVoice = isVoiceCategory(el?.cat);
-                      const catLabel = (isVoice && voiceLabelOverride) ? voiceLabelOverride : el.cat;
-                      return (
-                        <div key={el.id || el.cat || idx} className={`diag-cat${open ? ' open' : ''}${isVoice && voiceLabelOverride ? ' pending-voice' : ''}`}>
-                          <div className="diag-cat-head" onClick={() => toggleCat(idx)}>
-                            <span className="chev">
-                              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                                <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            </span>
-                            <span className="name">{catLabel}</span>
-                            <span className="count">
-                              {isVoice && voiceLabelOverride
-                                ? 'étape à franchir'
-                                : `${count} élément${count > 1 ? 's' : ''}${avg != null ? ` · moy. ${avg.toFixed(1).replace(/\.0$/, '')}` : ''}`}
-                            </span>
-                          </div>
-                          <div className="diag-cat-body">
-                            {(el.items || []).map((it, i) => (
-                              <div key={it.id || i} className="diag-item">
-                                <ScoreRingSmall value={it.score} />
-                                <div className="di-body">
-                                  <div className="di-name">{it.label}</div>
-                                  {it.detail && <div className="di-detail">{it.detail}</div>}
-                                  {Array.isArray(it.tools) && it.tools.length > 0 && (
-                                    <div className="di-tools">
-                                      {it.tools.map((t) => <span key={t}>{t}</span>)}
-                                    </div>
-                                  )}
-                                </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* 3 · Diagnostic */}
+          {elements.length > 0 && (
+            <>
+              <div className="section-head">
+                <span className="t">Diagnostic par éléments</span>
+                <span className="line" />
+                <span className="count">{elements.length} catégorie{elements.length > 1 ? 's' : ''}</span>
+              </div>
+              {elements.map((el, idx) => {
+                const open = openCat === idx;
+                const count = el.items?.length || 0;
+                const scores = (el.items || []).map((it) => it.score).filter((s) => typeof s === 'number');
+                const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+                return (
+                  <div key={el.id || el.cat || idx} className={`diag-cat${open ? ' open' : ''}`}>
+                    <div className="diag-cat-head" onClick={() => toggleCat(idx)}>
+                      <span className="chev">
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                          <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                      <span className="name">{el.cat}</span>
+                      <span className="count">
+                        {count} élément{count > 1 ? 's' : ''}{avg != null ? ` · moy. ${avg.toFixed(1).replace(/\.0$/, '')}` : ''}
+                      </span>
+                    </div>
+                    <div className="diag-cat-body">
+                      {(el.items || []).map((it, i) => (
+                        <div key={it.id || i} className="diag-item">
+                          <ScoreRingSmall value={it.score} />
+                          <div className="di-body">
+                            <div className="di-name">{it.label}</div>
+                            {it.detail && <div className="di-detail">{it.detail}</div>}
+                            {Array.isArray(it.tools) && it.tools.length > 0 && (
+                              <div className="di-tools">
+                                {it.tools.map((t) => <span key={t}>{t}</span>)}
                               </div>
-                            ))}
+                            )}
                           </div>
                         </div>
-                      );
-                    })}
-                  </>
-                )}
-              </div>
-              <div className="col-plan">
-                {plan.length > 0 && (() => {
-                  const planKeys = plan.map((p, i) => `${i}::${(p.task || '').slice(0, 60)}`);
-                  const resolvedCount = planKeys.reduce((acc, k) => acc + (resolved.has(k) ? 1 : 0), 0);
-                  const hasResolved = resolvedCount > 0;
-                  return (
-                  <>
-                    <div className="section-head">
-                      <span className="t">Plan d'action</span>
-                      <span className="line" />
-                      <span className="count">
-                        {hasResolved
-                          ? `${resolvedCount}/${plan.length} résolu${resolvedCount > 1 ? 's' : ''}`
-                          : `${plan.length} ajustement${plan.length > 1 ? 's' : ''}`}
-                      </span>
-                      {hasResolved && (
-                        <button
-                          type="button"
-                          className={`plan-filter-toggle${hideResolved ? ' active' : ''}`}
-                          onClick={() => setHideResolved((v) => !v)}
-                          title={hideResolved ? 'Afficher tous les ajustements' : 'Masquer les ajustements résolus'}
-                        >
-                          {hideResolved ? 'Tout afficher' : 'Masquer résolus'}
-                        </button>
-                      )}
+                      ))}
                     </div>
-                    <div className="priority-list">
-                      {plan.map((p, i) => {
-                        const key = `${i}::${(p.task || '').slice(0, 60)}`;
-                        const done = resolved.has(key);
-                        if (hideResolved && done) return null;
-                        const prio = (p.p || '').toLowerCase();
-                        const isOpen = openPlanIdx === i;
-                        const linkedItems = (elements || []).flatMap((el) =>
-                          (el.items || [])
-                            .filter((it) => Array.isArray(p.linkedItemIds) && it.id && p.linkedItemIds.includes(it.id))
-                            .map((it) => ({ ...it, cat: el.cat }))
-                        );
-                        return (
-                          <div
-                            key={i}
-                            ref={(el) => {
-                              if (el) planRefs.current[i] = el;
-                              else delete planRefs.current[i];
-                            }}
-                            className={`priority collapsible${done ? ' done' : ''}${isOpen ? ' open' : ''}`}
-                          >
-                            <div
-                              className="priority-head"
-                              onClick={() => setOpenPlanIdx((prev) => (prev === i ? null : i))}
-                            >
-                              <span className={`pbadge ${prio}`}>{(p.p || '').toUpperCase()}</span>
-                              <span className="ptitle">{p.task}</span>
-                              <div
-                                className="pcheck"
-                                onClick={(e) => { e.stopPropagation(); toggleResolved(key, i); }}
-                              >
-                                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" style={{ display: done ? 'block' : 'none' }}>
-                                  <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              </div>
-                              <span className="pchev" aria-hidden="true">
-                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                                  <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              </span>
-                            </div>
-                            <div className="priority-body">
-                              {p.daw && (
-                                <div className="daw-box">
-                                  <span className="daw-label">Action DAW</span>
-                                  {p.daw}
-                                </div>
-                              )}
-                              {(p.metered || p.target) && (
-                                <div className="mt-grid">
-                                  {p.metered && (
-                                    <div className="mt-box m">
-                                      <div className="mt-label">Mesuré</div>
-                                      <div className="mt-val">{p.metered}</div>
-                                    </div>
-                                  )}
-                                  {p.target && (
-                                    <div className="mt-box t">
-                                      <div className="mt-label">Objectif</div>
-                                      <div className="mt-val">{p.target}</div>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              {linkedItems.length > 0 && (
-                                <div className="linked-elements">
-                                  <div className="label">Éléments liés</div>
-                                  <div className="le-list">
-                                    {linkedItems.map((it) => (
-                                      <div className="le" key={it.id}>
-                                        <span className="cat">{it.cat}</span>
-                                        <span className="name">{it.label}</span>
-                                        {typeof it.score === 'number' && <ScoreRingSmall value={it.score} />}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                              <button
-                                className={`resolve-action${done ? ' done' : ''}`}
-                                onClick={(e) => { e.stopPropagation(); toggleResolved(key, i); }}
-                              >
-                                <span className="box">
-                                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                                    <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                  </svg>
-                                </span>
-                                {done ? 'Résolu' : 'Marquer comme résolu'}
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                  );
-                })()}
-
-                {/* Notes perso — accolées au Plan d'action, dans la colonne de droite */}
-                <NotesSection
-                  key={versionInDb?.id || 'pending'}
-                  versionId={versionInDb?.id || null}
-                  initialNotes={(analysisResult && analysisResult.userNotes) || ''}
-                />
-              </div>
-            </div>
+                  </div>
+                );
+              })}
+            </>
           )}
           </>
           )}
         </div>
-        {!chatAsDrawer && rawFiche && (
-          <aside className="fiche-chat-side">
-            <VersionChat
-              versionId={versionInDb?.id || null}
-              config={config}
-              analysisResult={analysisResult}
-              open={true}
-              onClose={() => {}}
-              anchored
-            />
-          </aside>
-        )}
-        </div>
       </main>
 
+      {/* Focus modal */}
+      <FocusModal
+        open={focusIdx != null}
+        plan={plan}
+        idx={focusIdx}
+        elements={elements}
+        onClose={() => setFocusIdx(null)}
+        onPrev={() => setFocusIdx((i) => Math.max(0, (i || 0) - 1))}
+        onNext={() => setFocusIdx((i) => Math.min(plan.length - 1, (i || 0) + 1))}
+        isResolved={focusIdx != null ? resolved.has(`${focusIdx}::${(plan[focusIdx]?.task || '').slice(0, 60)}`) : false}
+        onToggleResolved={() => {
+          if (focusIdx == null) return;
+          toggleResolved(`${focusIdx}::${(plan[focusIdx]?.task || '').slice(0, 60)}`);
+        }}
+      />
 
-      {/* Modale d'export PDF — cible la version cliquée dans le menu VChip
-          (pas forcément la version actuellement affichée à l'écran). */}
-      {exportTarget && (() => {
-        const t = exportTarget.track;
-        const v = exportTarget.version;
-        const ar = v?.analysisResult
-          || (v?.name === config?.version ? analysisResult : null)
-          || null;
-        const hasListening = !!(ar?.listening && (
-          ar.listening.impression ||
-          (Array.isArray(ar.listening.points_forts) && ar.listening.points_forts.length) ||
-          (Array.isArray(ar.listening.a_travailler) && ar.listening.a_travailler.length) ||
-          ar.listening.espace || ar.listening.dynamique || ar.listening.potentiel
-        ));
-        const hasDiagnostic = !!(ar?.fiche?.elements && ar.fiche.elements.length);
-        const hasPlan = !!(ar?.fiche?.plan && ar.fiche.plan.length);
-        const hasNotes = !!(ar?.userNotes && ar.userNotes.trim());
-        return (
-          <ExportPdfModal
-            title={t.title}
-            versionName={v?.name || ''}
-            hasListening={hasListening}
-            hasDiagnostic={hasDiagnostic}
-            hasPlan={hasPlan}
-            hasNotes={hasNotes}
-            onCancel={() => setExportTarget(null)}
-            onExport={(sections) => {
-              try {
-                exportFicheToPdf({
-                  track: t,
-                  versionName: v?.name || '',
-                  analysisResult: ar,
-                  date: v?.createdAt || v?.date || new Date().toISOString(),
-                  sections,
-                });
-              } catch (err) {
-                console.warn('[export PDF] échec de la génération', err);
-              } finally {
-                setExportTarget(null);
-              }
-            }}
-          />
-        );
-      })()}
-
-      {/* Modale de partage (lien public lecture seule) pour la version
-          cliquée dans le menu VChip. */}
-      {shareTarget && (
-        <ShareLinkModal
-          versionId={shareTarget.version.id}
-          trackTitle={shareTarget.track?.title || ''}
-          versionName={shareTarget.version?.name || ''}
-          onClose={() => setShareTarget(null)}
-        />
-      )}
-
-      {/* Chat — bulle + panneau (mobile + desktop étroit <1200px) */}
-      {chatAsDrawer && (
-        <>
-          <button className="chat-fab" onClick={() => setChatOpen(true)} title="Discussion">
-            <svg width="22" height="22" viewBox="0 0 16 16" fill="none">
-              <path d="M2 3h12v8H7l-3 3v-3H2V3z" stroke="#000" strokeWidth="1.5" strokeLinejoin="round" />
-            </svg>
-          </button>
-          <VersionChat
-            versionId={versionInDb?.id || null}
-            config={config}
-            analysisResult={analysisResult}
-            open={chatOpen}
-            onClose={() => setChatOpen(false)}
-          />
-        </>
-      )}
+      {/* Chat — bulle + panneau */}
+      <button className="chat-fab" onClick={() => setChatOpen(true)} title="Discussion">
+        <svg width="22" height="22" viewBox="0 0 16 16" fill="none">
+          <path d="M2 3h12v8H7l-3 3v-3H2V3z" stroke="#000" strokeWidth="1.5" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <VersionChat
+        config={config}
+        analysisResult={analysisResult}
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+      />
     </>
   );
 }

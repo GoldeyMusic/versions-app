@@ -22,7 +22,7 @@ export async function loadTracks() {
 
   const { data: tracks, error } = await supabase
     .from('tracks')
-    .select('id, title, project_id, vocal_type, created_at, versions(id, name, date, bpm, key, lufs, is_main, analysis_result, storage_path, created_at)')
+    .select('id, title, created_at, versions(id, name, date, bpm, key, lufs, is_main, analysis_result, storage_path, created_at)')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -34,8 +34,6 @@ export async function loadTracks() {
   return (tracks || []).map(t => ({
     id: t.id,
     title: t.title,
-    projectId: t.project_id,
-    vocalType: t.vocal_type || 'vocal',
     createdAt: t.created_at,
     versions: (t.versions || [])
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
@@ -43,7 +41,6 @@ export async function loadTracks() {
         id: v.id,
         name: v.name,
         date: v.date,
-        createdAt: v.created_at,
         bpm: v.bpm,
         key: v.key,
         lufs: v.lufs,
@@ -68,47 +65,18 @@ export async function saveAnalysis(config, analysisResult, storagePath = null) {
   const title = (config?.title || analysisResult?.meta?.title || 'Sans titre').trim();
   const versionName = (config?.version || 'v1').trim();
 
-  // Resolve target project : explicit via config, or user's default
-  const projectId = config?.projectId || await getOrCreateDefaultProjectId(user.id);
-  if (!projectId) {
-    console.warn('[storage] saveAnalysis: could not resolve a project');
-    return null;
-  }
-
-  // Find existing track in the same project (case-insensitive title)
+  // Find existing track (case-insensitive)
   const { data: existingTracks } = await supabase
     .from('tracks')
-    .select('id, title, vocal_type')
-    .eq('project_id', projectId)
+    .select('id, title')
     .ilike('title', title);
 
   let track = existingTracks?.find(t => t.title.toLowerCase() === title.toLowerCase());
 
   if (!track) {
-    // Append at the end of the project
-    const { data: last } = await supabase
-      .from('tracks')
-      .select('position_in_project')
-      .eq('project_id', projectId)
-      .order('position_in_project', { ascending: false })
-      .limit(1);
-    const nextPos = (last?.[0]?.position_in_project ?? -1) + 1;
-
-    // vocal_type : piloté par le flow d'import pour un nouveau titre.
-    // Valeurs autorisées : 'vocal' | 'instrumental_pending' | 'instrumental_final'.
-    // Pour un titre existant, on ne touche à rien (déjà défini à la création).
-    const allowedVocalTypes = ['vocal', 'instrumental_pending', 'instrumental_final'];
-    const vocalType = allowedVocalTypes.includes(config?.vocalType) ? config.vocalType : 'vocal';
-
     const { data: newTrack, error: insertErr } = await supabase
       .from('tracks')
-      .insert({
-        user_id: user.id,
-        title,
-        project_id: projectId,
-        position_in_project: nextPos,
-        vocal_type: vocalType,
-      })
+      .insert({ user_id: user.id, title })
       .select()
       .single();
     if (insertErr) {
@@ -182,136 +150,6 @@ export async function getAnalysis(trackId, versionId) {
   return data?.analysis_result || null;
 }
 
-/**
- * Sauvegarde les notes perso d'une version dans analysis_result.userNotes.
- * Fait un read-modify-write (2 round-trips) parce qu'on n'a pas d'accès RPC jsonb_set côté client.
- * Appelé en debounce depuis la fiche.
- */
-export async function saveVersionNotes(versionId, notes) {
-  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return;
-  const { data, error: readErr } = await supabase
-    .from('versions')
-    .select('analysis_result')
-    .eq('id', versionId)
-    .single();
-  if (readErr) {
-    console.warn('[storage] saveVersionNotes read error:', readErr.message);
-    return;
-  }
-  const next = { ...(data?.analysis_result || {}), userNotes: notes || '' };
-  const { error: writeErr } = await supabase
-    .from('versions')
-    .update({ analysis_result: next })
-    .eq('id', versionId);
-  if (writeErr) console.warn('[storage] saveVersionNotes write error:', writeErr.message);
-}
-
-// ── Historique de chat par version ─────────────────────────
-// Stocké dans la colonne dédiée `versions.chat_history` (jsonb).
-// Pas dans `analysis_result` pour que la fiche publique ne l'expose pas
-// (la RPC get_public_fiche ne lit que analysis_result).
-
-/**
- * Lit l'historique du chat d'une version.
- * Retourne un tableau de messages { role, content } — ou [] si pas de chat
- * / version non encore persistée / erreur RLS.
- */
-export async function loadChatHistory(versionId) {
-  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return [];
-  const { data, error } = await supabase
-    .from('versions')
-    .select('chat_history')
-    .eq('id', versionId)
-    .single();
-  if (error) {
-    console.warn('[storage] loadChatHistory error:', error.message);
-    return [];
-  }
-  return Array.isArray(data?.chat_history) ? data.chat_history : [];
-}
-
-/**
- * Réécrit tout l'historique du chat d'une version.
- * Simple full-replace : on écrit le tableau complet à chaque échange —
- * trafic négligeable pour un chat (quelques Ko par save). Fire-and-forget.
- */
-export async function saveChatHistory(versionId, messages) {
-  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return;
-  const safe = Array.isArray(messages) ? messages : [];
-  const { error } = await supabase
-    .from('versions')
-    .update({ chat_history: safe })
-    .eq('id', versionId);
-  if (error) console.warn('[storage] saveChatHistory error:', error.message);
-}
-
-// ── Lien public (lecture seule) ────────────────────────────
-// Génère un token 128 bits base64url. Utilisé pour les liens partageables.
-// On reste côté client : pas besoin de faire un round-trip pour créer un
-// token, et le token n'a de valeur qu'une fois écrit en DB (RLS + RPC
-// SECURITY DEFINER côté back).
-function generateShareToken() {
-  const arr = new Uint8Array(16);
-  (globalThis.crypto || window.crypto).getRandomValues(arr);
-  let bin = '';
-  for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
-
-/** Récupère le token existant d'une version (ou null). */
-export async function getPublicShareToken(versionId) {
-  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return null;
-  const { data, error } = await supabase
-    .from('versions')
-    .select('public_share_token')
-    .eq('id', versionId)
-    .single();
-  if (error) { console.warn('[storage] getPublicShareToken error:', error.message); return null; }
-  return data?.public_share_token || null;
-}
-
-/** Active le partage public pour une version. Retourne le token (existant ou nouvellement créé). */
-export async function enablePublicShare(versionId) {
-  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return null;
-  const existing = await getPublicShareToken(versionId);
-  if (existing) return existing;
-  const token = generateShareToken();
-  const { error } = await supabase
-    .from('versions')
-    .update({ public_share_token: token })
-    .eq('id', versionId);
-  if (error) { console.warn('[storage] enablePublicShare error:', error.message); return null; }
-  return token;
-}
-
-/** Désactive le partage public (token → null). */
-export async function disablePublicShare(versionId) {
-  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return;
-  const { error } = await supabase
-    .from('versions')
-    .update({ public_share_token: null })
-    .eq('id', versionId);
-  if (error) console.warn('[storage] disablePublicShare error:', error.message);
-}
-
-/** Récupère la fiche partagée pour un token. Accessible en anonyme via la RPC. */
-export async function fetchPublicFiche(token) {
-  if (!token) return null;
-  const { data, error } = await supabase.rpc('get_public_fiche', { p_token: token });
-  if (error) { console.warn('[storage] fetchPublicFiche error:', error.message); return null; }
-  if (!data) return null;
-  // data = { track_title, version_name, created_at, analysis_result, vocal_type }
-  // vocal_type : ajouté par migration 005 (COALESCE → 'vocal' par défaut
-  // pour les anciens partages créés avant la migration).
-  return {
-    trackTitle: data.track_title || '',
-    versionName: data.version_name || '',
-    createdAt: data.created_at || null,
-    analysisResult: data.analysis_result || null,
-    vocalType: data.vocal_type || 'vocal',
-  };
-}
-
 /** Delete a version. If last one, delete the track too. Also removes audio from Storage. */
 export async function deleteVersion(trackId, versionId) {
   // Récupère le storage_path AVANT de supprimer la row
@@ -348,25 +186,6 @@ export async function renameVersion(trackId, versionId, newName) {
 /** Rename a track */
 export async function renameTrack(trackId, newTitle) {
   await supabase.from('tracks').update({ title: newTitle.trim() }).eq('id', trackId);
-  return loadTracks();
-}
-
-/**
- * Change le type vocal d'un titre existant (étape 5 de la feature vocal-type).
- * Accepte 'vocal', 'instrumental_pending', 'instrumental_final'. Retourne la
- * nouvelle liste de tracks pour mettre à jour l'état immédiatement.
- */
-export async function updateTrackVocalType(trackId, newVocalType) {
-  const allowed = ['vocal', 'instrumental_pending', 'instrumental_final'];
-  if (!allowed.includes(newVocalType)) {
-    console.warn('[storage] updateTrackVocalType: invalid type', newVocalType);
-    return loadTracks();
-  }
-  const { error } = await supabase
-    .from('tracks')
-    .update({ vocal_type: newVocalType })
-    .eq('id', trackId);
-  if (error) console.warn('[storage] updateTrackVocalType error:', error.message);
   return loadTracks();
 }
 
@@ -503,310 +322,4 @@ export async function getOrCreateComparison(trackId, versionA, versionB) {
   }).then(({ error }) => { if (error) console.warn('[compare] cache save failed:', error.message); });
 
   return result;
-}
-
-// =============================================================
-// PROJECTS (Phase 2)
-// =============================================================
-
-/**
- * Return the user's default project id (first by position, then by created_at).
- * If the user has zero projects, create "Mon premier projet" and return its id.
- */
-async function getOrCreateDefaultProjectId(userId) {
-  const { data: existing } = await supabase
-    .from('projects')
-    .select('id')
-    .eq('user_id', userId)
-    .order('position', { ascending: true })
-    .order('created_at', { ascending: true })
-    .limit(1);
-  if (existing?.[0]) return existing[0].id;
-
-  const { data: created, error } = await supabase
-    .from('projects')
-    .insert({ user_id: userId, name: 'Mon premier projet', cover_gradient: 0, position: 0 })
-    .select('id')
-    .single();
-  if (error) {
-    console.warn('[storage] getOrCreateDefaultProjectId error:', error.message);
-    return null;
-  }
-  return created.id;
-}
-
-/** Load all projects for the current user, with nested tracks and versions. */
-export async function loadProjects() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
-
-  const { data, error } = await supabase
-    .from('projects')
-    .select(`
-      id,
-      name,
-      cover_gradient,
-      cover_image_url,
-      position,
-      created_at,
-      tracks(
-        id,
-        title,
-        created_at,
-        position_in_project,
-        versions(id, name, date, bpm, key, lufs, is_main, analysis_result, storage_path, created_at)
-      )
-    `)
-    .eq('user_id', user.id)
-    .order('position', { ascending: true })
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    console.warn('[storage] loadProjects error:', error.message);
-    return [];
-  }
-
-  return (data || []).map(p => ({
-    id: p.id,
-    name: p.name,
-    coverGradient: p.cover_gradient,
-    coverImageUrl: p.cover_image_url || null,
-    position: p.position,
-    createdAt: p.created_at,
-    tracks: (p.tracks || [])
-      .slice()
-      .sort((a, b) => (a.position_in_project ?? 0) - (b.position_in_project ?? 0))
-      .map(t => ({
-        id: t.id,
-        title: t.title,
-        projectId: p.id,
-        createdAt: t.created_at,
-        positionInProject: t.position_in_project,
-        versions: (t.versions || [])
-          .slice()
-          .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-          .map(v => ({
-            id: v.id,
-            name: v.name,
-            date: v.date,
-            createdAt: v.created_at,
-            bpm: v.bpm,
-            key: v.key,
-            lufs: v.lufs,
-            main: v.is_main,
-            analysisResult: v.analysis_result,
-            storagePath: v.storage_path,
-          })),
-      })),
-  }));
-}
-
-/** Create a new project. Appends at the end of the user's project list. */
-export async function createProject(name, coverGradient = 0) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: last } = await supabase
-    .from('projects')
-    .select('position')
-    .eq('user_id', user.id)
-    .order('position', { ascending: false })
-    .limit(1);
-  const nextPos = (last?.[0]?.position ?? -1) + 1;
-
-  const { data: project, error } = await supabase
-    .from('projects')
-    .insert({
-      user_id: user.id,
-      name: (name || '').trim() || 'Nouveau projet',
-      cover_gradient: coverGradient,
-      position: nextPos,
-    })
-    .select()
-    .single();
-  if (error) {
-    console.warn('[storage] createProject error:', error.message);
-    return null;
-  }
-  return {
-    id: project.id,
-    name: project.name,
-    coverGradient: project.cover_gradient,
-    position: project.position,
-    createdAt: project.created_at,
-    tracks: [],
-  };
-}
-
-/** Rename a project. Returns true on success. */
-export async function renameProject(projectId, newName) {
-  const clean = (newName || '').trim();
-  if (!clean) return false;
-  const { error } = await supabase
-    .from('projects')
-    .update({ name: clean })
-    .eq('id', projectId);
-  if (error) console.warn('[storage] renameProject error:', error.message);
-  return !error;
-}
-
-/**
- * Upload / replace a project cover image.
- * Bucket `project-covers` (public). Path = `{user_id}/{project_id}.{ext}`.
- * Renvoie l'URL publique, ou null en cas d'échec.
- */
-export async function setProjectCoverImage(projectId, file) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !file) return null;
-
-  const ext = (file.name || '').split('.').pop()?.toLowerCase() || 'jpg';
-  const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) ? ext : 'jpg';
-  const path = `${user.id}/${projectId}.${safeExt}`;
-
-  const { error: uploadErr } = await supabase.storage
-    .from('project-covers')
-    .upload(path, file, { upsert: true, contentType: file.type || `image/${safeExt}` });
-  if (uploadErr) {
-    console.warn('[storage] setProjectCoverImage upload error:', uploadErr.message);
-    return null;
-  }
-
-  const { data: urlData } = supabase.storage.from('project-covers').getPublicUrl(path);
-  // On ajoute un cache-buster pour forcer le navigateur à recharger
-  // après remplacement d'une image existante (même path → même URL).
-  const publicUrl = urlData?.publicUrl ? `${urlData.publicUrl}?v=${Date.now()}` : null;
-  if (!publicUrl) return null;
-
-  const { error: updateErr } = await supabase
-    .from('projects')
-    .update({ cover_image_url: publicUrl })
-    .eq('id', projectId);
-  if (updateErr) {
-    console.warn('[storage] setProjectCoverImage update error:', updateErr.message);
-    return null;
-  }
-  return publicUrl;
-}
-
-/**
- * Clear a project's cover image — supprime le fichier du bucket et met
- * cover_image_url à null en base.
- */
-export async function clearProjectCoverImage(projectId) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
-
-  // On essaie de supprimer toutes les extensions possibles (upsert précédent
-  // peut en avoir laissé plusieurs si l'utilisateur a changé de format).
-  const paths = ['jpg', 'jpeg', 'png', 'webp', 'gif'].map(ext => `${user.id}/${projectId}.${ext}`);
-  await supabase.storage.from('project-covers').remove(paths).catch(() => {});
-
-  const { error } = await supabase
-    .from('projects')
-    .update({ cover_image_url: null })
-    .eq('id', projectId);
-  if (error) {
-    console.warn('[storage] clearProjectCoverImage update error:', error.message);
-    return false;
-  }
-  return true;
-}
-
-/**
- * Delete a project — removes audio files from Storage, then the row
- * (DB cascade deletes tracks + versions).
- * Refuses to delete the user's last remaining project.
- * Returns { ok, reason? } so the UI can react to the "last project" case.
- */
-export async function deleteProject(projectId) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, reason: 'no-user' };
-
-  const { count } = await supabase
-    .from('projects')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id);
-  if ((count ?? 0) <= 1) {
-    return { ok: false, reason: 'last-project' };
-  }
-
-  const { data: tracks } = await supabase
-    .from('tracks')
-    .select('id, versions(storage_path)')
-    .eq('project_id', projectId);
-
-  const storagePaths = (tracks || [])
-    .flatMap(t => (t.versions || []).map(v => v.storage_path))
-    .filter(Boolean);
-
-  if (storagePaths.length > 0) {
-    await supabase.storage
-      .from('audio')
-      .remove(storagePaths)
-      .catch(e => console.warn('[storage] audio remove error:', e.message));
-  }
-
-  // Nettoie aussi une éventuelle cover image du projet
-  const coverPaths = ['jpg', 'jpeg', 'png', 'webp', 'gif']
-    .map(ext => `${user.id}/${projectId}.${ext}`);
-  await supabase.storage.from('project-covers').remove(coverPaths).catch(() => {});
-
-  const { error } = await supabase
-    .from('projects')
-    .delete()
-    .eq('id', projectId);
-  if (error) {
-    console.warn('[storage] deleteProject error:', error.message);
-    return { ok: false, reason: error.message };
-  }
-  return { ok: true };
-}
-
-/** Persist the order of projects. `orderedIds` is the new [id, id, ...] order. */
-export async function reorderProjects(orderedIds) {
-  const updates = orderedIds.map((id, idx) =>
-    supabase.from('projects').update({ position: idx }).eq('id', id)
-  );
-  const results = await Promise.all(updates);
-  const firstErr = results.find(r => r.error)?.error;
-  if (firstErr) console.warn('[storage] reorderProjects error:', firstErr.message);
-  return !firstErr;
-}
-
-/**
- * Move a track to another project. Appends at the end of the target project
- * unless `newPosition` (integer) is specified.
- */
-export async function moveTrackToProject(trackId, projectId, newPosition = null) {
-  let pos = newPosition;
-  if (pos == null) {
-    const { data: last } = await supabase
-      .from('tracks')
-      .select('position_in_project')
-      .eq('project_id', projectId)
-      .order('position_in_project', { ascending: false })
-      .limit(1);
-    pos = (last?.[0]?.position_in_project ?? -1) + 1;
-  }
-  const { error } = await supabase
-    .from('tracks')
-    .update({ project_id: projectId, position_in_project: pos })
-    .eq('id', trackId);
-  if (error) console.warn('[storage] moveTrackToProject error:', error.message);
-  return !error;
-}
-
-/** Persist the order of tracks within a project. */
-export async function reorderTracksInProject(projectId, orderedTrackIds) {
-  const updates = orderedTrackIds.map((id, idx) =>
-    supabase
-      .from('tracks')
-      .update({ position_in_project: idx })
-      .eq('id', id)
-      .eq('project_id', projectId)
-  );
-  const results = await Promise.all(updates);
-  const firstErr = results.find(r => r.error)?.error;
-  if (firstErr) console.warn('[storage] reorderTracksInProject error:', firstErr.message);
-  return !firstErr;
 }

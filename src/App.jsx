@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import STRINGS from "./constants/strings";
+import STRINGS, { pick } from "./constants/strings";
 import T from "./constants/theme";
 import API from "./constants/api";
 import { LangContext } from "./hooks/useLang";
@@ -1819,18 +1819,50 @@ function VersionsAppAuthed() {
   };
 
   // ── Language ──
-  const [lang, setLangState] = useState("fr");
-  useEffect(() => {
+  // Priorité de chargement : localStorage > profile.langue Supabase > navigator.language > 'fr'
+  // L'init est SYNCHRONE pour éviter un flash FR→EN au démarrage.
+  const detectInitialLang = () => {
     try {
       const stored = localStorage.getItem("versions_lang");
-      if (stored === "en") setLangState("en");
+      if (stored === "fr" || stored === "en") return stored;
     } catch {}
-  }, []);
-  const setLang = (l) => {
+    // Fallback : langue du navigateur (ex. "en-US" → "en")
+    try {
+      const nav = (typeof navigator !== "undefined" && (navigator.language || navigator.userLanguage)) || "";
+      if (nav.toLowerCase().startsWith("en")) return "en";
+    } catch {}
+    return "fr";
+  };
+  const [lang, setLangState] = useState(detectInitialLang);
+
+  // Sync côté Supabase : quand le profil se charge, si une préférence serveur existe
+  // et diffère du cache local, on l'adopte (l'utilisateur a pu changer sur un autre appareil).
+  useEffect(() => {
+    if (!userProfile) return;
+    const serverLang = userProfile.langue;
+    if ((serverLang === "fr" || serverLang === "en") && serverLang !== lang) {
+      setLangState(serverLang);
+      try { localStorage.setItem("versions_lang", serverLang); } catch {}
+    }
+  }, [userProfile]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setLang = useCallback((l) => {
+    if (l !== "fr" && l !== "en") return;
     setLangState(l);
     try { localStorage.setItem("versions_lang", l); } catch {}
-  };
+    // Persiste côté serveur si l'utilisateur est connecté (silent — on n'attend pas)
+    if (user?.id) {
+      supabase.from("profiles")
+        .upsert({ id: user.id, langue: l, updated_at: new Date().toISOString() })
+        .then(() => {})
+        .catch((e) => console.warn("save langue:", e));
+    }
+    // Met à jour le state local de userProfile pour rester cohérent
+    setUserProfile((prev) => prev ? { ...prev, langue: l } : prev);
+  }, [user]);
+
   const s = STRINGS[lang];
+  const t = useCallback((path, vars) => pick(lang, path, vars), [lang]);
 
   // ── Persistent player state ──
   const [playerState, setPlayerState] = useState(null);
@@ -2095,7 +2127,7 @@ function VersionsAppAuthed() {
   }
   if (!user) {
     return (
-      <LangContext.Provider value={{ lang, s, setLang }}>
+      <LangContext.Provider value={{ lang, s, setLang, t }}>
         <FontLink />
         <GlobalStyles />
         <MockupStyles />
@@ -2109,7 +2141,7 @@ function VersionsAppAuthed() {
   const contentMarginLeft = showSidebar ? SIDEBAR_WIDTH : 0;
 
   return (
-    <LangContext.Provider value={{ lang, s, setLang }}>
+    <LangContext.Provider value={{ lang, s, setLang, t }}>
       <FontLink />
       <GlobalStyles />
       <MockupStyles />

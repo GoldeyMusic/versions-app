@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import T from '../constants/theme';
 import DAWS from '../constants/daws';
 import { useAuth } from '../hooks/useAuth';
+import useLang from '../hooks/useLang';
 import { supabase } from '../lib/supabase';
 
 /* ═══════════════════════════════════════════════════════════ */
@@ -9,6 +10,7 @@ import { supabase } from '../lib/supabase';
 /* ═══════════════════════════════════════════════════════════ */
 export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate }) {
   const { user } = useAuth();
+  const { s, lang, setLang } = useLang();
   const fileRef = useRef(null);
 
   // ── Profile state ──
@@ -17,7 +19,9 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [defaultDaw, setDefaultDaw] = useState('');
-  const [langue, setLangue] = useState('fr');
+  // La langue affichée dans le switch suit en temps réel la langue globale
+  // de l'app (via useLang). Pas besoin d'un state local dédié.
+  const langue = lang;
   // Coordonnées bancaires (display only for now)
   const [iban, setIban] = useState('');
   const [bic, setBic] = useState('');
@@ -41,7 +45,8 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
           setNom(data.nom || '');
           setAvatarUrl(data.avatar_url || null);
           setDefaultDaw(data.default_daw || '');
-          setLangue(data.langue || 'fr');
+          // La langue est gérée via LangContext (App.jsx synchronise automatiquement
+          // quand userProfile change), donc on n'a rien à faire ici.
           setIban(data.iban || '');
           setBic(data.bic || '');
         }
@@ -66,7 +71,7 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
         nom: nom.trim(),
         avatar_url: avatarUrl,
         default_daw: defaultDaw,
-        langue,
+        // langue : gérée en direct par setLang (useLang), pas besoin de la ré-écrire ici
         iban: iban.trim(),
         bic: bic.trim(),
         updated_at: new Date().toISOString(),
@@ -110,13 +115,13 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
   return (
     <div className="reglages-screen">
       <div className="reglages-header">
-        <div className="reglages-title">RÉGLAGES</div>
-        <div className="reglages-subtitle">Gérer ton profil et tes préférences</div>
+        <div className="reglages-title">{s.reglages.title}</div>
+        <div className="reglages-subtitle">{s.reglages.subtitle}</div>
       </div>
 
       {loadingProfile ? (
         <div style={{ textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: 1, padding: 40 }}>
-          CHARGEMENT...
+          {s.common.loading}
         </div>
       ) : (
         <div className="reglages-body">
@@ -124,7 +129,7 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
           {/* ── PHOTO DE PROFIL ── */}
           <div className="reglages-section">
             <div className="reglages-section-label">
-              PHOTO DE PROFIL <div className="reglages-section-line" />
+              {s.reglages.sectionAvatar} <div className="reglages-section-line" />
             </div>
             <div className="reglages-avatar-row">
               <div className="reglages-avatar" onClick={() => fileRef.current?.click()}>
@@ -139,7 +144,7 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
               </div>
               <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
               <div className="reglages-avatar-hint">
-                Clique sur l'avatar pour changer ta photo
+                {s.reglages.avatarHint}
               </div>
             </div>
           </div>
@@ -147,30 +152,30 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
           {/* ── PROFIL ── */}
           <div className="reglages-section">
             <div className="reglages-section-label">
-              PROFIL <div className="reglages-section-line" />
+              {s.reglages.sectionProfile} <div className="reglages-section-line" />
             </div>
             <div className="reglages-fields">
               <div className="reglages-field">
-                <label className="reglages-label">PRÉNOM</label>
+                <label className="reglages-label">{s.reglages.firstName}</label>
                 <input
                   value={prenom}
                   onChange={(e) => setPrenom(e.target.value)}
-                  placeholder="Ton prénom"
+                  placeholder={s.reglages.firstNamePlaceholder}
                   className="reglages-input"
                 />
               </div>
               <div className="reglages-field">
-                <label className="reglages-label">NOM</label>
+                <label className="reglages-label">{s.reglages.lastName}</label>
                 <input
                   value={nom}
                   onChange={(e) => setNom(e.target.value)}
-                  placeholder="Ton nom"
+                  placeholder={s.reglages.lastNamePlaceholder}
                   className="reglages-input"
                 />
               </div>
             </div>
             <div className="reglages-field" style={{ marginTop: 12 }}>
-              <label className="reglages-label">EMAIL</label>
+              <label className="reglages-label">{s.reglages.emailLabel}</label>
               <input
                 value={user?.email || ''}
                 disabled
@@ -182,7 +187,7 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
           {/* ── DAW PAR DÉFAUT ── */}
           <div className="reglages-section">
             <div className="reglages-section-label">
-              DAW PAR DÉFAUT <div className="reglages-section-line" />
+              {s.reglages.sectionDaw} <div className="reglages-section-line" />
             </div>
             <div style={{ position: 'relative' }}>
               <select
@@ -190,7 +195,7 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
                 onChange={(e) => setDefaultDaw(e.target.value)}
                 className="reglages-select"
               >
-                <option value="">Aucun (demander à chaque fois)</option>
+                <option value="">{s.reglages.dawNone}</option>
                 {DAWS.map((d) => (
                   <option key={d} value={d}>{d}</option>
                 ))}
@@ -206,20 +211,20 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
           {/* ── LANGUE ── */}
           <div className="reglages-section">
             <div className="reglages-section-label">
-              LANGUE <div className="reglages-section-line" />
+              {s.reglages.sectionLang} <div className="reglages-section-line" />
             </div>
             <div className="reglages-lang-row">
               <button
                 className={`reglages-lang-btn${langue === 'fr' ? ' active' : ''}`}
-                onClick={() => setLangue('fr')}
+                onClick={() => setLang('fr')}
               >
-                Français
+                {s.reglages.langFrench}
               </button>
               <button
                 className={`reglages-lang-btn${langue === 'en' ? ' active' : ''}`}
-                onClick={() => setLangue('en')}
+                onClick={() => setLang('en')}
               >
-                English
+                {s.reglages.langEnglish}
               </button>
             </div>
           </div>
@@ -227,12 +232,12 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
           {/* ── COORDONNÉES BANCAIRES (PREMIUM) ── */}
           <div className="reglages-section premium">
             <div className="reglages-section-label">
-              COORDONNÉES BANCAIRES <div className="reglages-section-line" />
-              <span className="reglages-premium-badge">PREMIUM</span>
+              {s.reglages.sectionBank} <div className="reglages-section-line" />
+              <span className="reglages-premium-badge">{s.reglages.bankPremium}</span>
             </div>
             <div className="reglages-fields">
               <div className="reglages-field">
-                <label className="reglages-label">IBAN</label>
+                <label className="reglages-label">{s.reglages.ibanLabel}</label>
                 <input
                   value={iban}
                   onChange={(e) => setIban(e.target.value)}
@@ -241,7 +246,7 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
                 />
               </div>
               <div className="reglages-field">
-                <label className="reglages-label">BIC / SWIFT</label>
+                <label className="reglages-label">{s.reglages.bicLabel}</label>
                 <input
                   value={bic}
                   onChange={(e) => setBic(e.target.value)}
@@ -251,17 +256,17 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
               </div>
             </div>
             <div className="reglages-bank-hint">
-              Ces informations sont chiffrées et utilisées uniquement pour les reversements d'abonnement.
+              {s.reglages.bankHint}
             </div>
           </div>
 
           {/* ── ACTIONS ── */}
           <div className="reglages-actions">
             <button onClick={handleSave} disabled={saving} className="reglages-save">
-              {saving ? 'Enregistrement...' : saved ? '✓ Enregistré' : 'Enregistrer'}
+              {saving ? s.reglages.saving : saved ? s.reglages.saved : s.reglages.save}
             </button>
             <button onClick={handleSignOut} className="reglages-signout">
-              Se déconnecter
+              {s.reglages.signOut}
             </button>
           </div>
 

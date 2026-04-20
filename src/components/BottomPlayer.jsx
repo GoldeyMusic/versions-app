@@ -264,9 +264,10 @@ export default function BottomPlayer({
         )}
       </div>
 
-      {/* WaveSurfer container */}
+      {/* WaveSurfer container — hidden on mobile via CSS */}
       <div
         ref={containerRef}
+        className="pl-wavesurfer"
         style={{
           flex: 1,
           minWidth: 0,
@@ -275,6 +276,22 @@ export default function BottomPlayer({
           cursor: idle ? 'default' : 'pointer',
           display: 'block',
           overflow: 'hidden',
+        }}
+      />
+
+      {/* Mobile scrubber — shown on mobile via CSS */}
+      <input
+        type="range"
+        className="pl-scrubber"
+        min={0}
+        max={duration || 100}
+        value={currentTime}
+        step={0.1}
+        disabled={idle || !duration}
+        style={{ opacity: idle || !duration ? 0.35 : 1 }}
+        onChange={(e) => {
+          const t = parseFloat(e.target.value);
+          if (activeAudioRef.current) activeAudioRef.current.currentTime = t;
         }}
       />
 

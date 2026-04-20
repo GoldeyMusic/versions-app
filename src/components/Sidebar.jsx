@@ -1,65 +1,101 @@
 import { useState, useEffect, useRef } from 'react';
-import {
-  renameProject,
-  deleteProject,
-  deleteTrack,
-  renameTrack,
-  moveTrackToProject,
-  reorderTracksInProject,
-  reorderProjects,
-} from '../lib/storage';
+import { loadTracks, deleteTrack, renameTrack, saveTrackOrder, applyTrackOrder } from '../lib/storage';
 import { confirmDialog } from '../lib/confirm.jsx';
-import RenameModal from './RenameModal';
-import { assignProjectColors, PROJECT_COLOR_COUNT } from '../lib/projectColors';
 
 /**
- * Sidebar — accordéon de projets.
- * Un seul projet ouvert à la fois (piloté par `currentProjectId`).
- * Chaque projet ouvert déplie sa liste de titres + un bouton "+ Nouveau titre".
+ * Sidebar — rendu conforme à mockup-v3.html (classes maquette).
+ * Les styles sont définis dans MockupStyles.jsx.
  */
 export default function Sidebar({
   currentTrackTitle,
-  currentProjectId,
-  onSetCurrentProject,
   onSelectVersion,
+  onNewTrack,
   onGoReglages,
   onGoHome,
   onPlay,
   onToggle,
+  onReorder,
   playerState,
   user,
   userProfile,
-  projects = [],
-  // projectsLoaded non utilisé ici — la sidebar ne différencie pas "chargé / pas chargé"
-  // puisqu'un cache localStorage fournit les projets dès le premier render
-  onMutate,
+  refreshKey,
 }) {
-  // Modales
-  const [renameProjectTarget, setRenameProjectTarget] = useState(null);
-  const [renameTrackTarget, setRenameTrackTarget] = useState(null);
+  const [tracks, setTracks] = useState([]);
+  const [localRefresh, setLocalRefresh] = useState(0);
+  const [renameTarget, setRenameTarget] = useState(null); // track being renamed
   const [renameValue, setRenameValue] = useState('');
   const renameInputRef = useRef(null);
+  const [dragIdx, setDragIdx] = useState(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
 
-  // Si le projet courant n'existe plus (après suppression), ouvre le 1er dispo.
-  // `null` = volontairement replié → on le laisse tel quel.
   useEffect(() => {
-    if (!projects.length) return;
-    if (currentProjectId == null) return;
-    const exists = projects.some((p) => p.id === currentProjectId);
-    if (!exists && onSetCurrentProject) onSetCurrentProject(projects[0].id);
-  }, [projects, currentProjectId, onSetCurrentProject]);
+    let alive = true;
+    loadTracks().then((t) => { if (alive) setTracks(applyTrackOrder(t)); });
+    return () => { alive = false; };
+  }, [refreshKey, localRefresh]);
 
-  // ── Handlers tracks ──
+  // Drag-and-drop reorder (desktop + mobile touch)
+  const handleDragStart = (idx) => setDragIdx(idx);
+  const handleDragOver = (e, idx) => { e.preventDefault(); setDragOverIdx(idx); };
+  const handleDragEnd = () => { setDragIdx(null); setDragOverIdx(null); };
+  const commitDrop = (fromIdx, toIdx) => {
+    if (fromIdx === null || fromIdx === toIdx) { handleDragEnd(); return; }
+    const reordered = [...tracks];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    setTracks(reordered);
+    saveTrackOrder(reordered.map(t => t.id));
+    handleDragEnd();
+    if (onReorder) onReorder();
+  };
+  const handleDrop = (idx) => commitDrop(dragIdx, idx);
+  const dragDir = dragIdx !== null && dragOverIdx !== null && dragOverIdx !== dragIdx
+    ? (dragOverIdx > dragIdx ? 'below' : 'above')
+    : null;
+
+  // Touch reorder (mobile)
+  const touchState = useRef({ idx: null, startY: 0, rowEls: [] });
+  const listRef = useRef(null);
+  const handleTouchStart = (idx, e) => {
+    e.preventDefault(); // Bloque le long-press iOS
+    touchState.current.idx = idx;
+    touchState.current.startY = e.touches[0].clientY;
+    if (listRef.current) {
+      touchState.current.rowEls = Array.from(listRef.current.querySelectorAll('.track'));
+    }
+    setDragIdx(idx);
+  };
+  const handleTouchMove = (e) => {
+    if (touchState.current.idx === null) return;
+    e.preventDefault();
+    const y = e.touches[0].clientY;
+    const rows = touchState.current.rowEls;
+    let overIdx = touchState.current.idx;
+    for (let i = 0; i < rows.length; i++) {
+      const rect = rows[i].getBoundingClientRect();
+      if (y >= rect.top && y <= rect.bottom) { overIdx = i; break; }
+    }
+    setDragOverIdx(overIdx);
+  };
+  const handleTouchEnd = () => {
+    if (touchState.current.idx !== null && dragOverIdx !== null) {
+      commitDrop(touchState.current.idx, dragOverIdx);
+    }
+    touchState.current.idx = null;
+    handleDragEnd();
+  };
+
   const handleTrackClick = (track) => {
     const latest = track.versions?.[track.versions.length - 1];
     if (latest && onSelectVersion) onSelectVersion(track, latest);
   };
 
-  const handlePlayTrack = (e, track, project) => {
+  // Construit la playlist et lance la lecture, ou toggle si déjà en lecture
+  const handlePlayTrack = (e, track) => {
     e.stopPropagation();
+    // Si ce titre est déjà en lecture → toggle pause/play
     if (playerState?.trackTitle === track.title && onToggle) { onToggle(); return; }
-    // Playlist scopée au projet (stop en fin de projet)
-    const playlist = (project.tracks || [])
+    const playlist = tracks
       .map((t) => {
         const latest = t.versions?.[t.versions.length - 1];
         if (!latest?.storagePath) return null;
@@ -71,155 +107,38 @@ export default function Sidebar({
     onPlay(playlist[idx].trackTitle, playlist[idx].versionName, playlist[idx].storagePath, playlist, idx);
   };
 
-  const handleRenameTrack = (e, track) => {
+  const handleRename = (e, track) => {
     e.stopPropagation();
-    setRenameTrackTarget(track);
+    setRenameTarget(track);
     setRenameValue(track.title);
     setTimeout(() => renameInputRef.current?.select(), 50);
   };
 
-  const submitRenameTrack = async () => {
+  const submitRename = async () => {
     const next = renameValue.trim();
-    if (!next || next === renameTrackTarget?.title) { setRenameTrackTarget(null); return; }
+    if (!next || next === renameTarget?.title) { setRenameTarget(null); return; }
     try {
-      await renameTrack(renameTrackTarget.id, next);
-      if (onMutate) onMutate();
+      await renameTrack(renameTarget.id, next);
+      setLocalRefresh((n) => n + 1);
     } catch (err) { console.warn('renameTrack failed', err); }
-    setRenameTrackTarget(null);
+    setRenameTarget(null);
   };
 
-  const handleDeleteTrack = async (e, track) => {
+  const handleDelete = async (e, track) => {
     e.stopPropagation();
     const n = (track.versions || []).length;
     const ok = await confirmDialog({
-      title: 'Supprimer le titre ?',
+      title: "Supprimer le titre ?",
       message: `Supprimer "${track.title}" et ses ${n} version${n > 1 ? 's' : ''} ? Cette action est définitive.`,
-      confirmLabel: 'Supprimer',
-      cancelLabel: 'Annuler',
+      confirmLabel: "Supprimer",
+      cancelLabel: "Annuler",
       danger: true,
     });
     if (ok !== 'confirm') return;
     try {
       await deleteTrack(track.id);
-      if (onMutate) onMutate();
+      setLocalRefresh((n2) => n2 + 1);
     } catch (err) { console.warn('deleteTrack failed', err); }
-  };
-
-  // ── Handlers projets ──
-  const toggleProject = (projectId) => {
-    if (!onSetCurrentProject) return;
-    onSetCurrentProject(projectId === currentProjectId ? null : projectId);
-  };
-
-  const handleRenameProject = (e, project) => {
-    e.stopPropagation();
-    setRenameProjectTarget(project);
-    setRenameValue(project.name);
-    setTimeout(() => renameInputRef.current?.select(), 50);
-  };
-
-  const submitRenameProject = async () => {
-    const next = renameValue.trim();
-    if (!next || next === renameProjectTarget?.name) { setRenameProjectTarget(null); return; }
-    try {
-      await renameProject(renameProjectTarget.id, next);
-      if (onMutate) onMutate();
-    } catch (err) { console.warn('renameProject failed', err); }
-    setRenameProjectTarget(null);
-  };
-
-  const handleDeleteProject = async (e, project) => {
-    e.stopPropagation();
-    if (projects.length <= 1) {
-      await confirmDialog({
-        title: 'Impossible',
-        message: 'Au moins un projet est requis. Crée un autre projet avant de supprimer celui-ci.',
-        confirmLabel: 'OK',
-        cancelLabel: null,
-      });
-      return;
-    }
-    const nTracks = (project.tracks || []).length;
-    const msg = nTracks === 0
-      ? `Supprimer le projet "${project.name}" ?`
-      : `Supprimer le projet "${project.name}" et ses ${nTracks} titre${nTracks > 1 ? 's' : ''} (avec toutes leurs versions et fichiers audio) ? Cette action est définitive.`;
-    const ok = await confirmDialog({
-      title: 'Supprimer le projet ?',
-      message: msg,
-      confirmLabel: 'Supprimer',
-      cancelLabel: 'Annuler',
-      danger: true,
-    });
-    if (ok !== 'confirm') return;
-    try {
-      const res = await deleteProject(project.id);
-      if (res?.ok === false && res?.reason === 'last-project') {
-        await confirmDialog({
-          title: 'Impossible',
-          message: 'Au moins un projet est requis.',
-          confirmLabel: 'OK',
-          cancelLabel: null,
-        });
-        return;
-      }
-      if (onMutate) onMutate();
-    } catch (err) { console.warn('deleteProject failed', err); }
-  };
-
-  /* ─── Drag & drop ─────────────────────────────────────────── */
-  // drag = { type: 'track'|'project', trackId?, sourceProjectId?, projectId? } | null
-  const [drag, setDrag] = useState(null);
-
-  const handleDropTrackOnTrack = async (sourceTrackId, sourceProjectId, targetTrackId, targetProjectId, position /* 'before' | 'after' */) => {
-    if (sourceTrackId === targetTrackId) return;
-    const targetProject = projects.find(p => p.id === targetProjectId);
-    if (!targetProject) return;
-    const targetOrder = (targetProject.tracks || []).map(t => t.id).filter(id => id !== sourceTrackId);
-    const targetIdx = targetOrder.findIndex(id => id === targetTrackId);
-    if (targetIdx < 0 && sourceProjectId === targetProjectId) return;
-    const insertAt = position === 'before' ? (targetIdx < 0 ? 0 : targetIdx) : (targetIdx < 0 ? targetOrder.length : targetIdx + 1);
-    targetOrder.splice(insertAt, 0, sourceTrackId);
-
-    try {
-      if (sourceProjectId !== targetProjectId) {
-        await moveTrackToProject(sourceTrackId, targetProjectId);
-        // Réindexe l'ancien projet (positions propres)
-        const sourceProject = projects.find(p => p.id === sourceProjectId);
-        if (sourceProject) {
-          const sourceOrder = (sourceProject.tracks || []).map(t => t.id).filter(id => id !== sourceTrackId);
-          if (sourceOrder.length) await reorderTracksInProject(sourceProjectId, sourceOrder);
-        }
-      }
-      await reorderTracksInProject(targetProjectId, targetOrder);
-      if (onMutate) onMutate();
-    } catch (err) { console.warn('drop track on track failed', err); }
-  };
-
-  const handleDropTrackOnProject = async (sourceTrackId, sourceProjectId, targetProjectId) => {
-    if (sourceProjectId === targetProjectId) return;
-    try {
-      await moveTrackToProject(sourceTrackId, targetProjectId);
-      // Réindexe l'ancien projet
-      const sourceProject = projects.find(p => p.id === sourceProjectId);
-      if (sourceProject) {
-        const sourceOrder = (sourceProject.tracks || []).map(t => t.id).filter(id => id !== sourceTrackId);
-        if (sourceOrder.length) await reorderTracksInProject(sourceProjectId, sourceOrder);
-      }
-      if (onMutate) onMutate();
-    } catch (err) { console.warn('drop track on project failed', err); }
-  };
-
-  const handleDropProjectOnProject = async (sourceProjectId, targetProjectId, position) => {
-    if (sourceProjectId === targetProjectId) return;
-    const order = projects.map(p => p.id).filter(id => id !== sourceProjectId);
-    const targetIdx = order.findIndex(id => id === targetProjectId);
-    if (targetIdx < 0) return;
-    const insertAt = position === 'before' ? targetIdx : targetIdx + 1;
-    order.splice(insertAt, 0, sourceProjectId);
-    try {
-      await reorderProjects(order);
-      if (onMutate) onMutate();
-    } catch (err) { console.warn('drop project failed', err); }
   };
 
   const avatarUrl = userProfile?.avatar_url || null;
@@ -230,8 +149,7 @@ export default function Sidebar({
   return (
     <aside className="sidebar">
       <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
-        <img src="/logo-versions.svg" alt="" style={{ height: 38, width: 'auto' }} />
-        <span>{'VER'}<span className="accent">{'SI'}</span>{'ONS'}</span>
+        <img src="/logo-versions.svg" alt="" style={{ height: 28, width: 'auto' }} /><span>{"VER"}<span className="accent">{"SI"}</span>{"ONS"}</span>
       </div>
 
       <div className="user-pill" onClick={onGoReglages} style={{ cursor: 'pointer' }}>
@@ -246,317 +164,109 @@ export default function Sidebar({
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0, marginTop: 8 }}>
-        <div className="section-label">Mes projets</div>
+      <button className="new-track" onClick={onNewTrack}>+ Nouveau titre</button>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '0 2px' }}>
-          {(() => {
-            // Couleurs uniques par projet (même logique que la home).
-            const colorMap = assignProjectColors(projects);
-            return projects.map((project) => (
-              <ProjectAccordion
-                key={project.id}
-                project={project}
-                colorIndex={colorMap.get(project.id) ?? 0}
-                open={project.id === currentProjectId}
-                onToggle={() => toggleProject(project.id)}
-                onTrackClick={handleTrackClick}
-                onPlayTrack={handlePlayTrack}
-                onRenameTrack={handleRenameTrack}
-                onDeleteTrack={handleDeleteTrack}
-                onRenameProject={handleRenameProject}
-                onDeleteProject={handleDeleteProject}
-                currentTrackTitle={currentTrackTitle}
-                playerState={playerState}
-                drag={drag}
-                setDrag={setDrag}
-                onDropTrackOnTrack={handleDropTrackOnTrack}
-                onDropTrackOnProject={handleDropTrackOnProject}
-                onDropProjectOnProject={handleDropProjectOnProject}
-              />
-            ));
-          })()}
-        </div>
-      </div>
-
-      {/* Modale renommer titre */}
-      {renameTrackTarget && (
-        <RenameModal
-          title="Renommer le titre"
-          placeholder="Nom du titre"
-          value={renameValue}
-          originalValue={renameTrackTarget.title}
-          inputRef={renameInputRef}
-          onChange={setRenameValue}
-          onCancel={() => setRenameTrackTarget(null)}
-          onSubmit={submitRenameTrack}
-          confirmLabel="Renommer"
-        />
-      )}
-
-      {/* Modale renommer projet */}
-      {renameProjectTarget && (
-        <RenameModal
-          title="Renommer le projet"
-          placeholder="Nom du projet"
-          value={renameValue}
-          originalValue={renameProjectTarget.name}
-          inputRef={renameInputRef}
-          onChange={setRenameValue}
-          onCancel={() => setRenameProjectTarget(null)}
-          onSubmit={submitRenameProject}
-          confirmLabel="Renommer"
-        />
-      )}
-
-    </aside>
-  );
-}
-
-/* ─── Accordéon projet ─────────────────────────────────────── */
-function ProjectAccordion({
-  project,
-  colorIndex = 0,
-  open,
-  onToggle,
-  onTrackClick,
-  onPlayTrack,
-  onRenameTrack,
-  onDeleteTrack,
-  onRenameProject,
-  onDeleteProject,
-  currentTrackTitle,
-  playerState,
-  drag,
-  setDrag,
-  onDropTrackOnTrack,
-  onDropTrackOnProject,
-  onDropProjectOnProject,
-}) {
-  // Couleur projet : cover_gradient si défini (>0), sinon index unique
-  // calculé au niveau parent (garantit l'unicité entre projets).
-  const resolvedIdx = project.coverGradient
-    ? project.coverGradient % PROJECT_COLOR_COUNT
-    : colorIndex;
-  const gradient = GRADIENTS[resolvedIdx % GRADIENTS.length];
-  const nTracks = project.tracks?.length || 0;
-  const [hoverHead, setHoverHead] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  // dropOver = 'before' | 'after' | 'into' | null
-  const [dropOver, setDropOver] = useState(null);
-  const menuRef = useRef(null);
-  const btnRef = useRef(null);
-  const headRef = useRef(null);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const h = (e) => {
-      if (menuRef.current?.contains(e.target) || btnRef.current?.contains(e.target)) return;
-      setMenuOpen(false);
-    };
-    const esc = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
-    document.addEventListener('mousedown', h);
-    document.addEventListener('keydown', esc);
-    return () => {
-      document.removeEventListener('mousedown', h);
-      document.removeEventListener('keydown', esc);
-    };
-  }, [menuOpen]);
-
-  const showDots = hoverHead || menuOpen;
-
-  return (
-    <div
-      style={{
-        background: open ? 'rgba(255,255,255,.02)' : 'transparent',
-        borderRadius: 10,
-        transition: 'background .15s',
-      }}
-    >
-      {/* Header projet */}
-      <div
-        ref={headRef}
-        onClick={onToggle}
-        onMouseEnter={() => setHoverHead(true)}
-        onMouseLeave={() => setHoverHead(false)}
-        onDragOver={(e) => {
-          if (!drag) return;
-          if (drag.type === 'project' && drag.projectId === project.id) return;
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          const rect = headRef.current?.getBoundingClientRect();
-          if (!rect) return;
-          if (drag.type === 'project') {
-            const isAbove = (e.clientY - rect.top) < rect.height / 2;
-            setDropOver(isAbove ? 'before' : 'after');
-          } else if (drag.type === 'track' && drag.sourceProjectId !== project.id) {
-            setDropOver('into');
-          }
-        }}
-        onDragLeave={() => setDropOver(null)}
-        onDrop={(e) => {
-          e.preventDefault();
-          const d = drag;
-          setDropOver(null);
-          setDrag(null);
-          if (!d) return;
-          if (d.type === 'project' && d.projectId !== project.id) {
-            const rect = headRef.current?.getBoundingClientRect();
-            const isAbove = rect ? (e.clientY - rect.top) < rect.height / 2 : true;
-            onDropProjectOnProject?.(d.projectId, project.id, isAbove ? 'before' : 'after');
-          } else if (d.type === 'track' && d.sourceProjectId !== project.id) {
-            onDropTrackOnProject?.(d.trackId, d.sourceProjectId, project.id);
-          }
-        }}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: '8px 10px',
-          borderRadius: 10,
-          cursor: 'pointer',
-          position: 'relative',
-          background: dropOver === 'into' ? 'rgba(245,176,86,.10)' : (open ? undefined : 'transparent'),
-          boxShadow: dropOver === 'before' ? 'inset 0 2px 0 0 #f5b056' : (dropOver === 'after' ? 'inset 0 -2px 0 0 #f5b056' : 'none'),
-          transition: 'background .1s, box-shadow .1s',
-        }}
-      >
-        {/* Poignée de déplacement projet */}
-        <span
-          draggable={true}
-          onClick={(e) => e.stopPropagation()}
-          onDragStart={(e) => {
-            e.stopPropagation();
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('application/x-versions-dnd', 'project');
-            if (headRef.current) e.dataTransfer.setDragImage(headRef.current, 10, 10);
-            setDrag({ type: 'project', projectId: project.id });
-          }}
-          onDragEnd={() => { setDrag(null); setDropOver(null); }}
-          title="Glisser pour déplacer le projet"
-          aria-label="Déplacer le projet"
-          style={{
-            width: 14, height: 18, flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'grab',
-            opacity: hoverHead ? 0.55 : 0,
-            transition: 'opacity .15s',
-            color: '#c5c5c7',
-            marginLeft: -4,
-          }}
-          onMouseDown={(e) => { e.currentTarget.style.cursor = 'grabbing'; }}
-          onMouseUp={(e) => { e.currentTarget.style.cursor = 'grab'; }}
-        >
-          <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor" aria-hidden>
-            <circle cx="3" cy="3" r="1.1"/><circle cx="7" cy="3" r="1.1"/>
-            <circle cx="3" cy="7" r="1.1"/><circle cx="7" cy="7" r="1.1"/>
-            <circle cx="3" cy="11" r="1.1"/><circle cx="7" cy="11" r="1.1"/>
-          </svg>
-        </span>
-
-        <span
-          aria-hidden
-          style={{
-            width: 16, height: 16, borderRadius: 5,
-            background: project.coverImageUrl
-              ? `#141416 center/cover no-repeat url("${project.coverImageUrl}")`
-              : gradient,
-            flexShrink: 0,
-            boxShadow: open ? '0 2px 6px rgba(0,0,0,.4)' : 'none',
-          }}
-        />
-        <span
-          style={{
-            flex: 1, minWidth: 0, fontSize: 13, fontWeight: 500,
-            color: '#e8e8ea',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}
-        >{project.name}</span>
-
-        {showDots ? (
-          <button
-            ref={btnRef}
-            onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
-            title="Options"
-            style={{
-              width: 22, height: 22, borderRadius: 6,
-              background: menuOpen ? 'rgba(245,176,86,.15)' : 'transparent',
-              border: 'none', color: '#c5c5c7', cursor: 'pointer',
-              padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 14, lineHeight: 1,
-            }}
-          >⋯</button>
-        ) : (
-          <span style={{ fontSize: 11, color: '#8a8a95', minWidth: 18, textAlign: 'right' }}>
-            {nTracks}
-          </span>
-        )}
-
-        <span
-          style={{
-            fontSize: 10, color: '#8a8a95', width: 10, textAlign: 'center',
-            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform .15s ease',
-          }}
-        >▾</span>
-
-        {menuOpen && (
-          <div
-            ref={menuRef}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'absolute', top: 'calc(100% + 2px)', right: 6, zIndex: 100,
-              minWidth: 200, background: '#141416', border: '1px solid #2a2a2e',
-              borderRadius: 10, padding: 6, boxShadow: '0 12px 32px rgba(0,0,0,.55)',
-            }}
-          >
-            <SbMenuItem label="Renommer" onClick={(e) => { setMenuOpen(false); onRenameProject(e, project); }} />
-            <SbMenuItem label="Supprimer" danger onClick={(e) => { setMenuOpen(false); onDeleteProject(e, project); }} />
-          </div>
-        )}
-      </div>
-
-      {/* Body : liste des tracks */}
-      {open && (
-        <div style={{ paddingLeft: 6, paddingBottom: 6 }}>
-          {(project.tracks || []).map((track) => {
+      <div>
+        <div className="section-label">Mes titres</div>
+        <div className="track-list" ref={listRef} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+          {tracks.map((track, idx) => {
             const active = track.title === currentTrackTitle;
-            const isPlaying = playerState?.trackTitle === track.title && !!playerState?.isPlaying;
+            const count = track.versions?.length || 0;
             return (
               <TrackRow
                 key={track.id}
                 track={track}
-                projectId={project.id}
                 active={active}
-                isPlaying={isPlaying}
-                onClick={() => onTrackClick(track)}
-                onPlay={(e) => onPlayTrack(e, track, project)}
-                onRename={(e) => onRenameTrack(e, track)}
-                onDelete={(e) => onDeleteTrack(e, track)}
-                drag={drag}
-                setDrag={setDrag}
-                onDropTrackOnTrack={onDropTrackOnTrack}
+                count={count}
+                onClick={() => handleTrackClick(track)}
+                onRename={(e) => handleRename(e, track)}
+                onDelete={(e) => handleDelete(e, track)}
+                onPlayTrack={(e) => handlePlayTrack(e, track)}
+                isPlaying={
+                  playerState?.trackTitle === track.title && !!playerState?.isPlaying
+                }
+                idx={idx}
+                isDragging={dragIdx === idx}
+                isDragOver={dragOverIdx === idx}
+                dragDir={dragDir}
+                onDragStart={() => handleDragStart(idx)}
+                onDragOver={(e) => handleDragOver(e, idx)}
+                onDragEnd={handleDragEnd}
+                onDrop={() => handleDrop(idx)}
+                onTouchStart={(e) => handleTouchStart(idx, e)}
               />
             );
           })}
-          {nTracks === 0 && (
-            <div style={{ padding: '8px 12px', color: '#8a8a95', fontSize: 12, fontStyle: 'italic' }}>
-              Aucun titre pour l'instant
+        </div>
+      </div>
+
+      <div className="footer">
+        <button onClick={onGoReglages}>⚙ Réglages</button>
+      </div>
+
+      {/* Modale renommer titre */}
+      {renameTarget && (
+        <div
+          onClick={() => setRenameTarget(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10000,
+            background: 'rgba(0,0,0,.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'Inter, sans-serif',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 380, background: '#141416', border: '1px solid #2a2a2e',
+              borderRadius: 14, padding: 22, boxShadow: '0 20px 60px rgba(0,0,0,.6)',
+            }}
+          >
+            <div style={{ fontSize: 14, color: '#e8e8ea', marginBottom: 14, fontWeight: 500 }}>
+              Renommer le titre
             </div>
-          )}
+            <input
+              ref={renameInputRef}
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submitRename();
+                if (e.key === 'Escape') setRenameTarget(null);
+              }}
+              placeholder="Nom du titre"
+              style={{
+                width: '100%', padding: '10px 12px', fontSize: 13,
+                background: '#0e0e10', border: '1px solid #2a2a2e',
+                borderRadius: 8, color: '#e8e8ea', outline: 'none',
+                fontFamily: 'inherit', boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+              <button onClick={() => setRenameTarget(null)}
+                style={{
+                  padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                  background: 'transparent', border: '1px solid #2a2a2e',
+                  color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
+                }}>Annuler</button>
+              <button onClick={submitRename}
+                disabled={!renameValue.trim() || renameValue.trim() === renameTarget?.title}
+                style={{
+                  padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                  background: '#f5b056', border: 'none',
+                  color: '#141416', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit',
+                  opacity: (!renameValue.trim() || renameValue.trim() === renameTarget?.title) ? 0.5 : 1,
+                }}>Renommer</button>
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </aside>
   );
 }
 
-/* ─── Row titre (DnD Phase 6) ──────────────────────────────── */
-function TrackRow({ track, projectId, active, isPlaying, onClick, onPlay, onRename, onDelete, drag, setDrag, onDropTrackOnTrack }) {
+function TrackRow({ track, active, count, onClick, onRename, onDelete, onPlayTrack, isPlaying, idx, isDragging, isDragOver, dragDir, onDragStart, onDragOver, onDragEnd, onDrop, onTouchStart }) {
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  // dropOver = 'before' | 'after' | null
-  const [dropOver, setDropOver] = useState(null);
-  const rowRef = useRef(null);
   const menuRef = useRef(null);
   const btnRef = useRef(null);
 
@@ -579,82 +289,40 @@ function TrackRow({ track, projectId, active, isPlaying, onClick, onPlay, onRena
 
   return (
     <div
-      ref={rowRef}
-      className={`track${active ? ' active' : ''}`}
+      className={`track${active ? ' active' : ''}${isDragOver && dragDir === 'above' ? ' drag-over-above' : ''}${isDragOver && dragDir === 'below' ? ' drag-over-below' : ''}`}
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onDragOver={(e) => {
-        if (!drag || drag.type !== 'track') return;
-        if (drag.trackId === track.id) return;
-        e.preventDefault();
-        e.stopPropagation();
-        e.dataTransfer.dropEffect = 'move';
-        const rect = rowRef.current?.getBoundingClientRect();
-        if (!rect) return;
-        const isAbove = (e.clientY - rect.top) < rect.height / 2;
-        setDropOver(isAbove ? 'before' : 'after');
-      }}
-      onDragLeave={() => setDropOver(null)}
-      onDrop={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const d = drag;
-        setDropOver(null);
-        if (setDrag) setDrag(null);
-        if (!d || d.type !== 'track' || d.trackId === track.id) return;
-        const rect = rowRef.current?.getBoundingClientRect();
-        const isAbove = rect ? (e.clientY - rect.top) < rect.height / 2 : true;
-        onDropTrackOnTrack?.(d.trackId, d.sourceProjectId, track.id, projectId, isAbove ? 'before' : 'after');
-      }}
-      style={{
-        position: 'relative',
-        boxShadow: dropOver === 'before' ? 'inset 0 2px 0 0 #f5b056' : (dropOver === 'after' ? 'inset 0 -2px 0 0 #f5b056' : 'none'),
-        transition: 'box-shadow .1s',
-      }}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      style={{ position: 'relative', opacity: isDragging ? 0.4 : 1, transition: 'opacity .15s' }}
     >
-      {/* Poignée de déplacement titre */}
+      {/* Poignée drag */}
       <span
-        draggable={true}
+        className="sb-drag-handle"
+        draggable
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        onTouchStart={onTouchStart}
         onClick={(e) => e.stopPropagation()}
-        onDragStart={(e) => {
-          e.stopPropagation();
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('application/x-versions-dnd', 'track');
-          if (rowRef.current) e.dataTransfer.setDragImage(rowRef.current, 10, 10);
-          if (setDrag) setDrag({ type: 'track', trackId: track.id, sourceProjectId: projectId });
-        }}
-        onDragEnd={() => { if (setDrag) setDrag(null); setDropOver(null); }}
-        title="Glisser pour déplacer le titre"
-        aria-label="Déplacer le titre"
-        style={{
-          width: 12, height: 16, flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'grab',
-          opacity: hover ? 0.55 : 0,
-          transition: 'opacity .15s',
-          color: '#c5c5c7',
-          marginLeft: -2,
-        }}
-        onMouseDown={(e) => { e.currentTarget.style.cursor = 'grabbing'; }}
-        onMouseUp={(e) => { e.currentTarget.style.cursor = 'grab'; }}
       >
-        <svg width="9" height="13" viewBox="0 0 9 13" fill="currentColor" aria-hidden>
-          <circle cx="2.5" cy="2.5" r="1"/><circle cx="6.5" cy="2.5" r="1"/>
-          <circle cx="2.5" cy="6.5" r="1"/><circle cx="6.5" cy="6.5" r="1"/>
-          <circle cx="2.5" cy="10.5" r="1"/><circle cx="6.5" cy="10.5" r="1"/>
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
+          <circle cx="2" cy="2" r="1.2"/><circle cx="6" cy="2" r="1.2"/>
+          <circle cx="2" cy="7" r="1.2"/><circle cx="6" cy="7" r="1.2"/>
+          <circle cx="2" cy="12" r="1.2"/><circle cx="6" cy="12" r="1.2"/>
         </svg>
       </span>
 
+      {/* Bouton play */}
       <button
-        onClick={onPlay}
+        onClick={onPlayTrack}
         title={isPlaying ? 'En lecture' : 'Écouter'}
         className={`sb-play-btn${isPlaying ? ' playing' : ''}`}
       >
         {isPlaying ? (
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9" rx="0.8" /><rect x="7" y="1.5" width="3" height="9" rx="0.8" /></svg>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9" rx="0.8"/><rect x="7" y="1.5" width="3" height="9" rx="0.8"/></svg>
         ) : (
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2.5 1v10l8-5z" /></svg>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2.5 1v10l8-5z"/></svg>
         )}
       </button>
 
@@ -662,6 +330,7 @@ function TrackRow({ track, projectId, active, isPlaying, onClick, onPlay, onRena
         {track.title}
       </span>
 
+      {/* ⋯ au hover ; remplace le compteur au survol */}
       {showDots ? (
         <button
           ref={btnRef}
@@ -704,7 +373,7 @@ function SbMenuItem({ label, onClick, danger }) {
         display: 'block', width: '100%', textAlign: 'left',
         padding: '8px 12px', borderRadius: 6, border: 'none',
         background: 'transparent', cursor: 'pointer',
-        fontFamily: "'DM Sans', sans-serif", fontSize: 12,
+        fontFamily: 'Inter, sans-serif', fontSize: 12,
         color: danger ? '#ef6b6b' : '#c5c5c7',
       }}
       onMouseEnter={(e) => { e.currentTarget.style.background = danger ? 'rgba(239,107,107,.08)' : 'rgba(245,176,86,.06)'; }}
@@ -712,14 +381,3 @@ function SbMenuItem({ label, onClick, danger }) {
     >{label}</button>
   );
 }
-
-/* ─── Dégradés des covers projet (6 teintes, en phase avec la DB cover_gradient 0–5) ── */
-const GRADIENTS = [
-  'linear-gradient(135deg, #4a3b2a, #8a6a3f 60%, #c6a15b)', // 0 ambre
-  'linear-gradient(135deg, #2a3a4a, #3f6a8a 60%, #5ba1c6)', // 1 bleu
-  'linear-gradient(135deg, #3a2a4a, #6a3f8a 60%, #a15bc6)', // 2 violet
-  'linear-gradient(135deg, #2a4a3a, #3f8a6a 60%, #5bc6a1)', // 3 vert
-  'linear-gradient(135deg, #4a2a2a, #8a3f3f 60%, #c65b5b)', // 4 rouge
-  'linear-gradient(135deg, #24242c, #3a3a48 70%, #5a5a6e)', // 5 gris
-];
-
