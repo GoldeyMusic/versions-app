@@ -81,6 +81,8 @@ export default function BottomPlayer({
   const wsRef = useRef(null);
   const activeAudioRef = useRef(null);
   const activePathRef = useRef(null);
+  // Mémorise le dernier resetKey vu : si inchangé = switch de version → on conserve la position.
+  const lastResetKeyRef = useRef(resetKey);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -109,13 +111,24 @@ export default function BottomPlayer({
         const prev = activeAudioRef.current;
         const wasPlaying = prev ? !prev.paused : isPlaying;
 
-        // Version switch (same title, different file): App.jsx does NOT bump resetKey
-        // → this useEffect won't fire (guard at line 95 blocks re-entry for same path)
-        // → handled by the play/pause sync effect instead
-        //
-        // New title or replay: App.jsx BUMPS resetKey → we get here
-        // → always start from beginning
-        audio.currentTime = 0;
+        // Deux cas :
+        // • resetKey a changé (nouveau titre, replay explicite) → on reprend à 0.
+        // • resetKey inchangé (switch de version, A/B du même titre) → on conserve
+        //   la position actuelle pour une comparaison transparente sans coupure.
+        const resetKeyChanged = lastResetKeyRef.current !== resetKey;
+        lastResetKeyRef.current = resetKey;
+
+        if (resetKeyChanged || !prev) {
+          audio.currentTime = 0;
+        } else {
+          // Conserve la position. Clamp à la durée du nouvel audio au cas où
+          // les versions n'ont pas exactement la même longueur.
+          const prevTime = prev.currentTime || 0;
+          const targetDur = Number.isFinite(audio.duration) && audio.duration > 0
+            ? audio.duration
+            : prevTime;
+          audio.currentTime = Math.min(prevTime, Math.max(0, targetDur - 0.05));
+        }
 
         if (wasPlaying) {
           try { await audio.play(); } catch {}
