@@ -660,16 +660,19 @@ export default function MockupStyles() {
 
   .verdict-text { flex: 1; min-width: 0; }
   .verdict-text h1 {
-    font-family: 'Cormorant Garamond', serif;
+    /* Même typo que la tagline aléatoire de la Home (.wh-tagline-text) :
+       DM Sans italic 400, pour cohérence visuelle. On garde la couleur
+       d'accent ambre pour les passages entre *astérisques*. */
+    font-family: var(--serif);
     font-style: italic;
     font-size: 42px;
-    font-weight: 600;
+    font-weight: 400;
     line-height: 1.15;
     letter-spacing: 0.3px;
     margin: 0 0 14px;
     max-width: 900px;
   }
-  .verdict-text h1 em { color: var(--amber); font-weight: 600; }
+  .verdict-text h1 em { color: var(--amber); font-weight: 500; font-style: italic; }
   .verdict-text p {
     font-family: var(--body);
     font-size: 15px;
