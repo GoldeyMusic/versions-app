@@ -1415,16 +1415,16 @@ export default function MockupStyles() {
   }
   .player .pl-time b { color: var(--text); font-weight: 500; }
 
-  /* Volume : icône + popup slider vertical */
-  .player .pl-volume { position: relative; flex-shrink: 0; }
-  .player .pl-volume-btn {
+  /* Volume : icône + popup slider vertical (réutilisable dans player + hero) */
+  .pl-volume { position: relative; flex-shrink: 0; }
+  .pl-volume-btn {
     display: flex; align-items: center; justify-content: center;
     width: 28px; height: 28px; border-radius: 6px;
     color: var(--muted); background: transparent; border: none; cursor: pointer;
     transition: color .1s, background .1s;
   }
-  .player .pl-volume-btn:hover { color: var(--text); background: var(--s1); }
-  .player .pl-volume-pop {
+  .pl-volume-btn:hover { color: var(--text); background: var(--s1); }
+  .pl-volume-pop {
     position: absolute;
     bottom: calc(100% + 8px);
     right: 0;
@@ -1435,7 +1435,7 @@ export default function MockupStyles() {
     box-shadow: 0 8px 20px rgba(0,0,0,.3);
     z-index: 10;
   }
-  .player .pl-volume-pop input[type="range"] {
+  .pl-volume-pop input[type="range"] {
     -webkit-appearance: slider-vertical;
     writing-mode: vertical-lr; direction: rtl;
     width: 18px; height: 90px;
