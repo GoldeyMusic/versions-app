@@ -25,7 +25,7 @@ import { supabase } from "./lib/supabase";
 import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
 import PublicFicheScreen from "./screens/PublicFicheScreen";
-import ReglagesScreen from "./screens/ReglagesScreen";
+import ReglagesModal from "./components/ReglagesModal";
 import RenameModal from "./components/RenameModal";
 import OnboardingModal from "./components/OnboardingModal";
 import AddModal from "./components/AddModal";
@@ -1788,7 +1788,6 @@ const SCREEN_HASH = {
   loading: '#/analyse',
   fiche: '#/fiche',
   versions: '#/versions',
-  reglages: '#/reglages',
 };
 const HASH_SCREEN = {
   '': 'welcome',
@@ -1797,7 +1796,6 @@ const HASH_SCREEN = {
   '#/analyse': 'loading',
   '#/fiche': 'fiche',
   '#/versions': 'versions',
-  '#/reglages': 'reglages',
 };
 
 /* ═══════════════════════════════════════════════════════════ */
@@ -1866,6 +1864,8 @@ function VersionsAppAuthed() {
   const [config, setConfig] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [askOpen, setAskOpen] = useState(false);
+  // Les réglages s'ouvrent en modale (plus de page dédiée)
+  const [reglagesOpen, setReglagesOpen] = useState(false);
   // When adding a new version from an existing track, we prefill the title
   // and, after analysis completes, auto-open that track's folder in Versions tab
   const [prefillTitle, setPrefillTitle] = useState("");
@@ -1919,6 +1919,16 @@ function VersionsAppAuthed() {
     if (!user || routeInitRef.current) return;
     routeInitRef.current = true;
     const current = window.location.hash || '#/';
+    // Compat : #/reglages ouvre désormais la modale et renvoie sur #/
+    if (current === '#/reglages') {
+      setReglagesOpen(true);
+      window.history.replaceState({ screen: 'welcome' }, '', '#/');
+      if (screen !== 'welcome') {
+        isHashSyncRef.current = true;
+        setScreen('welcome');
+      }
+      return;
+    }
     const target = HASH_SCREEN[current] || 'welcome';
     const safe = (target === 'fiche' || target === 'loading') ? 'welcome' : target;
     const targetHash = SCREEN_HASH[safe];
@@ -2316,8 +2326,6 @@ function VersionsAppAuthed() {
             playerState={playerState}
           />
         );
-      case "reglages":
-        return <ReglagesScreen onSignOut={signOut} onGoHome={goHome} onProfileUpdate={setUserProfile} />;
       default:
         return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialProjectId={currentProjectId} onRefreshProjects={refreshProjects} />;
     }
@@ -2371,7 +2379,7 @@ function VersionsAppAuthed() {
             onSetCurrentProject={setCurrentProjectId}
             onSelectVersion={handleSidebarSelectVersion}
             onNewTrack={handleSidebarNewTrack}
-            onGoReglages={() => setScreen("reglages")}
+            onGoReglages={() => setReglagesOpen(true)}
             onAskOpen={() => setAskOpen(true)}
             onPlay={play}
             onToggle={togglePlay}
@@ -2394,6 +2402,8 @@ function VersionsAppAuthed() {
             <MobileMenu
               onNavigate={(target) => {
                 setAskOpen(false);
+                // Réglages → modale, pas d'écran dédié
+                if (target === 'reglages') { setReglagesOpen(true); return; }
                 if (target === 'input') setPrefillTitle('');
                 setScreen(target);
               }}
@@ -2406,6 +2416,15 @@ function VersionsAppAuthed() {
 
           {/* Ask Modal */}
           {askOpen && <AskModal onClose={() => setAskOpen(false)} />}
+
+          {/* Réglages — modale globale, ouvrable depuis sidebar desktop
+              ou menu avatar mobile */}
+          <ReglagesModal
+            open={reglagesOpen}
+            onClose={() => setReglagesOpen(false)}
+            onSignOut={signOut}
+            onProfileUpdate={setUserProfile}
+          />
 
           {/* Content */}
           <div ref={scrollContentRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: screen === "welcome" ? 0 : 80 }}>

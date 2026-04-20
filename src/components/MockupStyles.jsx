@@ -2651,6 +2651,57 @@ export default function MockupStyles() {
   }
   .auth-toggle-btn:hover { color: var(--amber); }
 
+  /* ── Réglages Modal ──
+     Overlay fullscreen + panneau centré. Le contenu (ReglagesScreen)
+     conserve ses propres styles ; on neutralise juste son padding haut
+     et sa largeur max dans le contexte modale pour coller à la grille. */
+  .reglages-modal-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 5vh 20px 5vh;
+    box-sizing: border-box;
+    overflow-y: auto;
+    animation: fadein .18s ease;
+  }
+  .reglages-modal-panel {
+    position: relative;
+    width: 100%; max-width: 620px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    animation: fadeup .22s ease;
+    max-height: 90vh;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .reglages-modal-scroll {
+    overflow-y: auto;
+    flex: 1;
+  }
+  .reglages-modal-panel .reglages-screen {
+    padding: 36px 36px 40px;
+    max-width: 100%;
+    animation: none;
+  }
+  .reglages-modal-close {
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    cursor: pointer;
+    z-index: 2;
+    transition: color .15s, background .15s;
+  }
+  .reglages-modal-close:hover { color: var(--text); background: var(--s2); }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+
   /* ── Réglages Screen ── */
   .reglages-screen {
     width: 100%; max-width: 560px; margin: 0 auto;
@@ -3112,6 +3163,10 @@ export default function MockupStyles() {
 
     /* Réglages */
     .reglages-screen { padding: 30px 20px 120px; max-width: 100%; }
+    .reglages-modal-overlay { padding: 0; }
+    .reglages-modal-panel { max-width: 100%; max-height: 100vh; border-radius: 0; border: none; }
+    .reglages-modal-panel .reglages-screen { padding: 56px 20px 80px; }
+    .reglages-modal-close { top: 12px; right: 12px; }
     .reglages-title { font-size: 30px; letter-spacing: 2px; }
     .reglages-section { padding: 16px; border-radius: 12px; }
     .reglages-fields { flex-direction: column; gap: 10px; }
