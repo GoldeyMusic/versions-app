@@ -27,8 +27,11 @@ const T = {
   cyan: "#48CAE4",
   red: "#D85666",
 
-  // Typographies — DM Sans partout, Bebas Neue pour le logo
-  mono: "'IBM Plex Mono', ui-monospace, monospace",
+  // Typographies — DM Sans partout, Bebas Neue pour le logo, JetBrains Mono
+  // pour les labels capitales. IMPORTANT : doit rester aligné avec la variable
+  // CSS --mono dans MockupStyles.jsx (import Google Fonts) pour éviter un
+  // fallback silencieux sur la mono système.
+  mono: "'JetBrains Mono', ui-monospace, monospace",
   display: "'Bebas Neue', sans-serif",
   body: "'DM Sans', sans-serif",
 };
