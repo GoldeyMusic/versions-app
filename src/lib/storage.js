@@ -153,6 +153,9 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
       .update(updatePayload)
       .eq('id', existing.id);
     if (error) console.warn('[storage] version update error:', error.message);
+    // Fire-and-forget : pré-traduit vers la langue opposée pour que la bascule
+    // de langue soit instantanée la prochaine fois. Ne bloque pas le retour.
+    prewarmTranslation(existing.id, localeToPersist);
     return { trackId: track.id, versionId: existing.id };
   } else {
     const { data: newVer, error } = await supabase
@@ -173,7 +176,55 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
       console.warn('[storage] version insert error:', error.message);
       return null;
     }
+    // Fire-and-forget : idem, pour la nouvelle version.
+    prewarmTranslation(newVer.id, localeToPersist);
     return { trackId: track.id, versionId: newVer.id };
+  }
+}
+
+/**
+ * Pré-traduit une version vers la langue opposée et écrit le cache.
+ * Fire & forget : appelé après saveAnalysis pour que l'utilisateur puisse
+ * basculer de langue instantanément la prochaine fois.
+ *
+ * Coût : ~1 appel Haiku supplémentaire par analyse (~$0.001), négligeable.
+ * Bénéfice : bascule instantanée FR ↔ EN au lieu de 10-15s d'attente.
+ */
+async function prewarmTranslation(versionId, sourceLocale) {
+  if (!versionId) return;
+  const source = (sourceLocale || 'fr').toString().toLowerCase().slice(0, 2);
+  const target = source === 'fr' ? 'en' : 'fr';
+  try {
+    const { data, error } = await supabase
+      .from('versions')
+      .select('analysis_result, analysis_translations')
+      .eq('id', versionId)
+      .single();
+    if (error || !data?.analysis_result) return;
+    // Déjà en cache → rien à faire
+    if (data.analysis_translations && data.analysis_translations[target]) return;
+
+    const translated = await translateAnalysisResult(data.analysis_result, source, target);
+    if (!translated) return;
+
+    // Ne cache que si la traduction est complète (évite de cacher un résultat partiel)
+    const original = data.analysis_result;
+    const ficheOk = !original.fiche || translated.fiche !== original.fiche;
+    const listeningOk = !original.listening || translated.listening !== original.listening;
+    if (!ficheOk || !listeningOk) {
+      console.warn('[storage] prewarm partial, cache NON écrit');
+      return;
+    }
+
+    const newCache = { ...(data.analysis_translations || {}), [target]: translated };
+    const { error: werr } = await supabase
+      .from('versions')
+      .update({ analysis_translations: newCache })
+      .eq('id', versionId);
+    if (werr) console.warn('[storage] prewarm write failed:', werr.message);
+    else console.log(`[storage] prewarm ${source}→${target} cached for ${versionId}`);
+  } catch (e) {
+    console.warn('[storage] prewarm failed:', e.message);
   }
 }
 
