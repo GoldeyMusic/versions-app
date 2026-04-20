@@ -465,7 +465,7 @@ export async function findDuplicateAudio(title, audioHash) {
 
 /** Compare two versions (A = older, B = newer). Returns {resume, progres, regressions, inchanges}.
  * Caches results in the `comparisons` table keyed by (trackId, vA, vB). */
-export async function getOrCreateComparison(trackId, versionA, versionB) {
+export async function getOrCreateComparison(trackId, versionA, versionB, locale) {
   if (!trackId || !versionA?.id || !versionB?.id) throw new Error('trackId + 2 versions requis');
 
   // Lookup cache (try both orderings)
@@ -486,7 +486,7 @@ export async function getOrCreateComparison(trackId, versionA, versionB) {
   const resp = await fetch(`${API}/api/compare`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ficheA, ficheB, nameA: versionA.name, nameB: versionB.name }),
+    body: JSON.stringify({ ficheA, ficheB, nameA: versionA.name, nameB: versionB.name, locale: locale || 'fr' }),
   });
   if (!resp.ok) {
     const err = await resp.text();

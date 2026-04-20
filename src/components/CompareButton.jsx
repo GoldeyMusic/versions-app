@@ -4,7 +4,7 @@ import { getOrCreateComparison } from '../lib/storage';
 import useLang from '../hooks/useLang';
 
 export default function CompareButton({ track, currentVersion }) {
-  const { s } = useLang();
+  const { s, lang } = useLang();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -42,7 +42,7 @@ export default function CompareButton({ track, currentVersion }) {
       const aIsOlder = new Date(other.date || 0) < new Date(currentVersion.date || 0);
       const A = aIsOlder ? other : currentVersion;
       const B = aIsOlder ? currentVersion : other;
-      const r = await getOrCreateComparison(track.id, A, B);
+      const r = await getOrCreateComparison(track.id, A, B, lang);
       setResult({ ...r, _A: A.name, _B: B.name });
     } catch (e) {
       setError(e.message || 'erreur');

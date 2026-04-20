@@ -7,7 +7,7 @@ import { supabase } from "../lib/supabase";
 import useLang from '../hooks/useLang';
 
 const LoadingScreen = ({ config, onDone, onBackToInput }) => {
-  const { s } = useLang();
+  const { s, lang } = useLang();
   const [phase, setPhase] = useState(0);
   const [error, setError] = useState(null);
   const jobIdRef = useRef(null);
@@ -114,6 +114,8 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
         // IA (ton bienveillant pour 'pending', section voix ignorée pour 'final').
         // Défaut 'vocal' pour compat avec les titres existants.
         formData.append("vocalType", config.vocalType || "vocal");
+        // Langue cible pour les textes de la fiche (labels, verdict, summary…).
+        formData.append("locale", lang || 'fr');
         if (userId) formData.append("userId", userId);
         if (previousFiche) formData.append("previousFiche", JSON.stringify(previousFiche));
         if (durationSeconds) formData.append("durationSeconds", String(durationSeconds));
