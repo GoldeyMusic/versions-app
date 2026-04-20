@@ -1870,7 +1870,7 @@ export default function MockupStyles() {
     text-transform: uppercase; color: var(--amber); margin-bottom: 8px;
   }
   .wh-card-title {
-    font-family: var(--serif); font-style: italic; font-size: 20px;
+    font-family: var(--body); font-size: 15px; font-weight: 500;
     margin-bottom: 8px; color: var(--text);
   }
   .wh-card-body {
