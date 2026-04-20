@@ -1943,7 +1943,7 @@ export default function MockupStyles() {
     color: var(--text); margin-bottom: 18px;
   }
   .wh-section-title em {
-    color: var(--amber); font-weight: 400;
+    color: var(--amber); font-weight: 400; font-style: normal;
   }
 
   /* Tracklist homepage */
