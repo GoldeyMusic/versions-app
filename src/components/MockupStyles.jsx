@@ -1551,10 +1551,11 @@ export default function MockupStyles() {
     flex: 1;
     background: var(--s2) !important; border: 1px solid var(--border);
     padding: 10px 12px; border-radius: 8px;
-    color: var(--text); font-family: var(--body); font-size: 16px;
+    color: var(--text); font-family: var(--body) !important;
+    font-size: 18px !important;
     outline: none; resize: none;
     line-height: 1.4;
-    height: 40px; min-height: 40px;
+    height: 44px; min-height: 44px;
     max-height: 120px;
     overflow-y: auto;
     -webkit-appearance: none;
