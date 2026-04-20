@@ -1754,21 +1754,19 @@ export default function MockupStyles() {
     display: flex; align-items: center; gap: 8px;
     margin-top: 12px;
     padding: 10px 12px;
-    background: var(--amber);
+    background: transparent;
     border: 1px solid var(--amber);
-    color: #141416;
+    color: var(--amber);
     border-radius: 8px;
     font-family: var(--mono);
     font-size: 14px; letter-spacing: 1px; text-transform: uppercase;
     font-weight: 500;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(245,176,86,0.18);
-    transition: background .15s, transform .1s, box-shadow .15s;
+    transition: background .15s, color .15s;
   }
   .sidebar-add-btn:hover {
-    background: #ffc77a; border-color: #ffc77a;
-    box-shadow: 0 6px 16px rgba(245,176,86,0.28);
-    transform: translateY(-1px);
+    background: rgba(245,176,86,0.08);
+    color: #ffc77a; border-color: #ffc77a;
   }
   .sidebar-add-icon {
     font-size: 18px; line-height: 1; font-weight: 500;
