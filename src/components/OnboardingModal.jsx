@@ -65,13 +65,13 @@ export default function OnboardingModal({ displayName, onCreate }) {
           boxShadow: '0 30px 80px rgba(0,0,0,.7)',
         }}
       >
-        <div style={{ fontSize: 11, color: '#f5b056', letterSpacing: '0.12em', marginBottom: 10, textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 14, color: '#f5b056', letterSpacing: '0.12em', marginBottom: 10, textTransform: 'uppercase' }}>
           {s.onboardingFirst.kicker}
         </div>
         <div style={{ fontSize: 22, color: '#e8e8ea', marginBottom: 10, fontWeight: 500 }}>
           {greeting}
         </div>
-        <div style={{ fontSize: 13, color: '#a0a0a8', lineHeight: 1.5, marginBottom: 20 }}>
+        <div style={{ fontSize: 14, color: '#a0a0a8', lineHeight: 1.5, marginBottom: 20 }}>
           {s.onboardingFirst.body}
         </div>
 
@@ -96,7 +96,7 @@ export default function OnboardingModal({ displayName, onCreate }) {
         />
 
         {error && (
-          <div style={{ marginTop: 10, fontSize: 12, color: '#ff6b6b' }}>
+          <div style={{ marginTop: 10, fontSize: 14, color: '#ff6b6b' }}>
             {error}
           </div>
         )}
@@ -107,7 +107,7 @@ export default function OnboardingModal({ displayName, onCreate }) {
           style={{
             marginTop: 20,
             width: '100%',
-            padding: '12px 16px', fontSize: 13, borderRadius: 10,
+            padding: '12px 16px', fontSize: 14, borderRadius: 10,
             background: '#f5b056', border: 'none',
             color: '#141416', fontWeight: 600, fontFamily: 'inherit',
             cursor: disabled ? 'not-allowed' : 'pointer',

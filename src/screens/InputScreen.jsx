@@ -342,7 +342,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
               {/* Étape 2 : si instrumental, voix à venir ou définitif ? */}
               {vocalKind === 'instrumental' && (
                 <div style={{ marginTop: 10, animation: 'fadeup .2s ease' }}>
-                  <div style={{ fontSize: 12, color: T.muted, marginBottom: 6, fontFamily: T.mono, letterSpacing: 1 }}>
+                  <div style={{ fontSize: 14, color: T.muted, marginBottom: 6, fontFamily: T.mono, letterSpacing: 1 }}>
                     {s.input.vocalVoiceQuestion}
                   </div>
                   <div className="input-vkind">
@@ -363,7 +363,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
                       {s.input.vocalFinal}
                     </button>
                   </div>
-                  <div style={{ marginTop: 8, fontSize: 12, color: T.muted, fontFamily: T.mono, lineHeight: 1.5 }}>
+                  <div style={{ marginTop: 8, fontSize: 14, color: T.muted, fontFamily: T.mono, lineHeight: 1.5 }}>
                     {finalInstru === null && s.input.vocalHintIdle}
                     {finalInstru === false && s.input.vocalHintComing}
                     {finalInstru === true && s.input.vocalHintFinal}

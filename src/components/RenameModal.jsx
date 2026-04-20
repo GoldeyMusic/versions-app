@@ -55,7 +55,7 @@ export default function RenameModal({
           }}
           placeholder={placeholder}
           style={{
-            width: '100%', padding: '10px 12px', fontSize: 13,
+            width: '100%', padding: '10px 12px', fontSize: 14,
             background: '#0e0e10', border: '1px solid #2a2a2e',
             borderRadius: 8, color: '#e8e8ea', outline: 'none',
             fontFamily: 'inherit', boxSizing: 'border-box',
@@ -65,7 +65,7 @@ export default function RenameModal({
           <button
             onClick={onCancel}
             style={{
-              padding: '8px 16px', fontSize: 12, borderRadius: 8,
+              padding: '8px 16px', fontSize: 14, borderRadius: 8,
               background: 'transparent', border: '1px solid #2a2a2e',
               color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
             }}
@@ -74,7 +74,7 @@ export default function RenameModal({
             onClick={onSubmit}
             disabled={disabled}
             style={{
-              padding: '8px 16px', fontSize: 12, borderRadius: 8,
+              padding: '8px 16px', fontSize: 14, borderRadius: 8,
               background: '#f5b056', border: 'none',
               color: '#141416', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit',
               opacity: disabled ? 0.5 : 1,

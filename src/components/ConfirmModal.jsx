@@ -49,7 +49,7 @@ export default function ConfirmModal({
         <div style={{ fontSize: 14, color: '#e8e8ea', marginBottom: 10, fontWeight: 500 }}>
           {effTitle}
         </div>
-        <div style={{ fontSize: 13, color: '#c5c5c7', lineHeight: 1.6, marginBottom: 20 }}>
+        <div style={{ fontSize: 14, color: '#c5c5c7', lineHeight: 1.6, marginBottom: 20 }}>
           {message}
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
@@ -57,7 +57,7 @@ export default function ConfirmModal({
             <button
               onClick={onCancel}
               style={{
-                padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                padding: '8px 16px', fontSize: 14, borderRadius: 8,
                 background: 'transparent', border: '1px solid #2a2a2e',
                 color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
               }}
@@ -69,7 +69,7 @@ export default function ConfirmModal({
             <button
               onClick={onTertiary}
               style={{
-                padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                padding: '8px 16px', fontSize: 14, borderRadius: 8,
                 background: 'transparent', border: '1px solid #f5b05666',
                 color: '#f5b056', cursor: 'pointer', fontFamily: 'inherit',
               }}
@@ -81,7 +81,7 @@ export default function ConfirmModal({
             ref={okRef}
             onClick={onConfirm}
             style={{
-              padding: '8px 16px', fontSize: 12, borderRadius: 8,
+              padding: '8px 16px', fontSize: 14, borderRadius: 8,
               background: danger ? '#ef6b6b' : '#f5b056', border: 'none',
               color: '#141416', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit',
             }}

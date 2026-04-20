@@ -96,18 +96,18 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
         <div style={{ fontSize: 14, color: '#e8e8ea', marginBottom: 4, fontWeight: 500 }}>
           {s.modals.shareModalTitle}
         </div>
-        <div style={{ fontSize: 12, color: '#8a8a8f', marginBottom: 16 }}>
+        <div style={{ fontSize: 14, color: '#8a8a8f', marginBottom: 16 }}>
           {trackTitle}{versionName ? ` — ${s.modals.shareVersionPrefix} ${versionName}` : ''}
         </div>
 
         {loading ? (
-          <div style={{ fontSize: 12, color: '#8a8a8f', padding: '18px 0' }}>
+          <div style={{ fontSize: 14, color: '#8a8a8f', padding: '18px 0' }}>
             {s.modals.shareLoading}
           </div>
         ) : token ? (
           <>
             <div style={{
-              fontSize: 12, color: '#c5c5c7', lineHeight: 1.6, marginBottom: 14,
+              fontSize: 14, color: '#c5c5c7', lineHeight: 1.6, marginBottom: 14,
             }}>
               {s.modals.shareActiveBody}
             </div>
@@ -122,7 +122,7 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
                 style={{
                   flex: 1,
                   padding: '10px 12px',
-                  fontSize: 12,
+                  fontSize: 14,
                   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
                   color: '#e8e8ea',
                   background: '#1a1a1d',
@@ -134,7 +134,7 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
               <button
                 onClick={handleCopy}
                 style={{
-                  padding: '0 14px', fontSize: 12, borderRadius: 8,
+                  padding: '0 14px', fontSize: 14, borderRadius: 8,
                   background: copied ? '#7ac48e' : '#f5b056', border: 'none',
                   color: '#141416', cursor: 'pointer', fontWeight: 500,
                   fontFamily: 'inherit', whiteSpace: 'nowrap',
@@ -151,7 +151,7 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
                 onClick={handleDisable}
                 disabled={busy}
                 style={{
-                  padding: '8px 14px', fontSize: 12, borderRadius: 8,
+                  padding: '8px 14px', fontSize: 14, borderRadius: 8,
                   background: 'transparent', border: '1px solid #ef6b6b66',
                   color: '#ef6b6b', cursor: busy ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
@@ -162,7 +162,7 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
               <button
                 onClick={onClose}
                 style={{
-                  padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                  padding: '8px 16px', fontSize: 14, borderRadius: 8,
                   background: '#1a1a1d', border: '1px solid #2a2a2e',
                   color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
                 }}
@@ -174,7 +174,7 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
         ) : (
           <>
             <div style={{
-              fontSize: 12, color: '#c5c5c7', lineHeight: 1.6, marginBottom: 16,
+              fontSize: 14, color: '#c5c5c7', lineHeight: 1.6, marginBottom: 16,
             }}>
               {s.modals.shareInactiveBody}
             </div>
@@ -183,7 +183,7 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
                 onClick={onClose}
                 disabled={busy}
                 style={{
-                  padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                  padding: '8px 16px', fontSize: 14, borderRadius: 8,
                   background: 'transparent', border: '1px solid #2a2a2e',
                   color: '#c5c5c7', cursor: busy ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
@@ -195,7 +195,7 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
                 onClick={handleEnable}
                 disabled={busy}
                 style={{
-                  padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                  padding: '8px 16px', fontSize: 14, borderRadius: 8,
                   background: '#f5b056', border: 'none',
                   color: '#141416', cursor: busy ? 'not-allowed' : 'pointer',
                   fontWeight: 500, fontFamily: 'inherit',

@@ -64,7 +64,7 @@ export default function VersionsScreen({
             <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
           </svg>
           <div>{s.versions.emptyMobile}</div>
-          <div style={{ fontSize: 12, color: 'var(--muted2)' }}>{s.versions.emptyMobileSub}</div>
+          <div style={{ fontSize: 14, color: 'var(--muted2)' }}>{s.versions.emptyMobileSub}</div>
         </div>
       ) : (
         <div className="versions-s-list">

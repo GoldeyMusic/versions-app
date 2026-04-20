@@ -479,7 +479,7 @@ function ProjectAccordion({
         />
         <span
           style={{
-            flex: 1, minWidth: 0, fontSize: 13, fontWeight: 500,
+            flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500,
             color: '#e8e8ea',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}
@@ -499,7 +499,7 @@ function ProjectAccordion({
             }}
           >⋯</button>
         ) : (
-          <span style={{ fontSize: 11, color: '#8a8a95', minWidth: 18, textAlign: 'right' }}>
+          <span style={{ fontSize: 14, color: '#8a8a95', minWidth: 18, textAlign: 'right' }}>
             {nTracks}
           </span>
         )}
@@ -552,7 +552,7 @@ function ProjectAccordion({
             );
           })}
           {nTracks === 0 && (
-            <div style={{ padding: '8px 12px', color: '#8a8a95', fontSize: 12, fontStyle: 'italic' }}>
+            <div style={{ padding: '8px 12px', color: '#8a8a95', fontSize: 14, fontStyle: 'italic' }}>
               {s.sidebar.emptyTracks}
             </div>
           )}

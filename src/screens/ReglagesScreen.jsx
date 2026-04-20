@@ -120,7 +120,7 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
       </div>
 
       {loadingProfile ? (
-        <div style={{ textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: 1, padding: 40 }}>
+        <div style={{ textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 14, letterSpacing: 1, padding: 40 }}>
           {s.common.loading}
         </div>
       ) : (

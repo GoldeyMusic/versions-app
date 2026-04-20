@@ -78,11 +78,11 @@ export default function ExportPdfModal({
         <div style={{ fontSize: 14, color: '#e8e8ea', marginBottom: 4, fontWeight: 500 }}>
           {s.modals.exportPdfModalTitle}
         </div>
-        <div style={{ fontSize: 12, color: '#8a8a8f', marginBottom: 16 }}>
+        <div style={{ fontSize: 14, color: '#8a8a8f', marginBottom: 16 }}>
           {title}{versionName ? ` — ${s.modals.exportPdfVersionPrefix} ${versionName}` : ''}
         </div>
 
-        <div style={{ fontSize: 11, color: '#8a8a8f', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+        <div style={{ fontSize: 14, color: '#8a8a8f', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 }}>
           {s.modals.exportPdfSections}
         </div>
 
@@ -128,13 +128,13 @@ export default function ExportPdfModal({
                   style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
                 />
                 <span style={{ flex: 1 }}>
-                  <span style={{ display: 'block', fontSize: 13, color: '#e8e8ea', lineHeight: 1.3 }}>
+                  <span style={{ display: 'block', fontSize: 14, color: '#e8e8ea', lineHeight: 1.3 }}>
                     {opt.label}
                     {disabled && (
-                      <span style={{ marginLeft: 6, fontSize: 11, color: '#6a6a6e' }}>{s.modals.exportPdfNotAvailable}</span>
+                      <span style={{ marginLeft: 6, fontSize: 14, color: '#6a6a6e' }}>{s.modals.exportPdfNotAvailable}</span>
                     )}
                   </span>
-                  <span style={{ display: 'block', fontSize: 11, color: '#8a8a8f', marginTop: 2 }}>
+                  <span style={{ display: 'block', fontSize: 14, color: '#8a8a8f', marginTop: 2 }}>
                     {opt.hint}
                   </span>
                 </span>
@@ -148,7 +148,7 @@ export default function ExportPdfModal({
             onClick={onCancel}
             disabled={busy}
             style={{
-              padding: '8px 16px', fontSize: 12, borderRadius: 8,
+              padding: '8px 16px', fontSize: 14, borderRadius: 8,
               background: 'transparent', border: '1px solid #2a2a2e',
               color: '#c5c5c7', cursor: busy ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',
@@ -161,7 +161,7 @@ export default function ExportPdfModal({
             onClick={handleExport}
             disabled={busy || !anyChecked}
             style={{
-              padding: '8px 16px', fontSize: 12, borderRadius: 8,
+              padding: '8px 16px', fontSize: 14, borderRadius: 8,
               background: anyChecked ? '#f5b056' : '#4a3c22', border: 'none',
               color: anyChecked ? '#141416' : '#8a7a52',
               cursor: busy || !anyChecked ? 'not-allowed' : 'pointer',

@@ -2337,7 +2337,7 @@ function VersionsAppAuthed() {
       <>
         <FontLink />
         <GlobalStyles />
-        <div style={{minHeight:"100vh",display:"grid",placeItems:"center",background:T.black,color:T.muted,fontFamily:T.mono,fontSize:12,letterSpacing:2}}>
+        <div style={{minHeight:"100vh",display:"grid",placeItems:"center",background:T.black,color:T.muted,fontFamily:T.mono,fontSize:14,letterSpacing:2}}>
           CHARGEMENT...
         </div>
       </>

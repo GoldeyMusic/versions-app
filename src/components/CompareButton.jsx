@@ -182,8 +182,8 @@ function Column({ title, items, color }) {
       )}
       {(items || []).map((it, i) => (
         <div key={i} style={{ marginBottom: 14 }}>
-          <div style={{ color: '#e7e7e9', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>{it.titre}</div>
-          <div style={{ color: '#a5a5a7', fontSize: 12, lineHeight: 1.5 }}>{it.detail}</div>
+          <div style={{ color: '#e7e7e9', fontSize: 14, fontWeight: 500, marginBottom: 4 }}>{it.titre}</div>
+          <div style={{ color: '#a5a5a7', fontSize: 14, lineHeight: 1.5 }}>{it.detail}</div>
         </div>
       ))}
     </div>

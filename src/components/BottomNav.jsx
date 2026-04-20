@@ -67,7 +67,7 @@ export default function BottomNav({ active, onChange, onAsk }) {
             <span
               style={{
                 fontFamily: T.mono,
-                fontSize: 12,
+                fontSize: 14,
                 letterSpacing: 0.5,
                 color,
                 fontWeight: isActive ? 600 : 400,

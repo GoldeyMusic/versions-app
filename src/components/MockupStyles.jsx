@@ -70,16 +70,16 @@ export default function MockupStyles() {
     font-size: 16px; color: var(--text); font-weight: 500;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .user-pill .plan { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .user-pill .plan { font-family: var(--mono); font-size: 14px; color: var(--muted); margin-top: 3px; }
 
   .new-track {
     padding: 9px 12px; border-radius: 8px;
     border: 1px dashed #f5b05666; color: var(--amber);
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1px; text-transform: uppercase;
     text-align: center;
   }
   .section-label {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px;
     color: var(--muted2); text-transform: uppercase;
     margin: 4px 4px 4px;
   }
@@ -107,14 +107,14 @@ export default function MockupStyles() {
     border-radius: 8px;
     padding: 7px 32px 7px 30px;
     font-family: var(--body);
-    font-size: 13px;
+    font-size: 14px;
     color: var(--text);
     outline: none;
     transition: border-color .15s ease, background .15s ease;
   }
   .sidebar-search-input::placeholder {
     color: var(--muted);
-    font-size: 12px;
+    font-size: 14px;
   }
   .sidebar-search-input:focus {
     border-color: var(--amber);
@@ -138,7 +138,7 @@ export default function MockupStyles() {
   }
   .sidebar-search-empty {
     font-family: var(--body);
-    font-size: 12px;
+    font-size: 14px;
     color: var(--muted);
     padding: 12px 10px;
     font-style: italic;
@@ -154,7 +154,7 @@ export default function MockupStyles() {
   .track.active { background: var(--amber-glow); color: var(--amber); }
   .track.drag-over-above { border-top: 2px solid var(--amber); margin-top: -2px; }
   .track.drag-over-below { border-bottom: 2px solid var(--amber); margin-bottom: -2px; }
-  .track .count { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .track .count { font-family: var(--mono); font-size: 14px; color: var(--muted); }
 
   .sb-drag-handle {
     display: flex; align-items: center; justify-content: center;
@@ -196,7 +196,7 @@ export default function MockupStyles() {
   }
   .footer button {
     padding: 7px 10px; border-radius: 7px;
-    font-family: var(--mono); font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 0.5px; text-transform: uppercase;
     color: var(--muted); border: 1px solid var(--border);
     text-align: left;
   }
@@ -233,7 +233,7 @@ export default function MockupStyles() {
   .track-title .it { color: var(--amber); }
   .track-title .vsub {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 14px;
     letter-spacing: 2px;
     color: var(--muted);
     text-transform: uppercase;
@@ -340,7 +340,7 @@ export default function MockupStyles() {
     border: 0;
     color: var(--text, #e8eaf0);
     font-family: var(--body);
-    font-size: 13px;
+    font-size: 14px;
     text-align: left;
     cursor: pointer;
     transition: background .12s ease;
@@ -349,7 +349,7 @@ export default function MockupStyles() {
   .vocal-pill-menu .vpm-item.active { color: var(--accent, #f5a623); }
   .vocal-pill-menu .vpm-item:disabled { opacity: .6; cursor: progress; }
   .vocal-pill-menu .vpm-check {
-    font-size: 12px;
+    font-size: 14px;
     opacity: .85;
   }
 
@@ -450,7 +450,7 @@ export default function MockupStyles() {
     margin-left: 0;
   }
   .versions-label {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 2px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 2px;
     color: var(--muted2); text-transform: uppercase;
     padding-right: 4px; border-right: 1px solid var(--border);
     margin-right: 2px;
@@ -473,7 +473,7 @@ export default function MockupStyles() {
     box-shadow: 0 0 0 1px #f5b05633, 0 4px 14px rgba(245,176,86,0.08);
   }
   .vchip .vname {
-    font-family: var(--mono); font-size: 12px; color: var(--soft); letter-spacing: 1px;
+    font-family: var(--mono); font-size: 14px; color: var(--soft); letter-spacing: 1px;
     font-weight: 500;
   }
   .vchip.active .vname { color: var(--amber); }
@@ -483,7 +483,7 @@ export default function MockupStyles() {
   }
   .vchip.active .vscore { color: var(--amber); }
   .vchip .vscore .pct {
-    font-family: var(--mono); font-size: 12px; color: var(--muted); margin-left: 2px;
+    font-family: var(--mono); font-size: 14px; color: var(--muted); margin-left: 2px;
     font-weight: 400;
   }
   .vchip.current-badge::after {
@@ -501,7 +501,7 @@ export default function MockupStyles() {
   }
   .vdelta {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 14px;
     padding: 3px 7px;
     border-radius: 4px;
     background: #7bd88f18;
@@ -545,10 +545,10 @@ export default function MockupStyles() {
     display: inline-flex; align-items: flex-start; gap: 2px;
   }
   .score-ring .big-suffix {
-    font-family: var(--mono); font-size: 13px; color: var(--muted);
+    font-family: var(--mono); font-size: 14px; color: var(--muted);
     letter-spacing: 0.5px; font-weight: 400; margin-top: 6px;
   }
-  .score-ring .unit { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 1px; margin-top: 4px; }
+  .score-ring .unit { font-family: var(--mono); font-size: 14px; color: var(--muted); letter-spacing: 1px; margin-top: 4px; }
   .score-ring { cursor: help; outline: none; }
   .score-ring:focus-visible {
     box-shadow: 0 0 0 2px var(--amber);
@@ -564,7 +564,7 @@ export default function MockupStyles() {
     background: var(--s3);
     color: var(--muted);
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -607,7 +607,7 @@ export default function MockupStyles() {
     align-items: center;
     gap: 8px;
     font-family: var(--body);
-    font-size: 13px;
+    font-size: 14px;
     color: var(--text);
     margin-bottom: 10px;
   }
@@ -618,7 +618,7 @@ export default function MockupStyles() {
   .ring-tooltip .rt-head .rt-val {
     margin-left: auto;
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: 14px;
     color: var(--muted);
   }
   .ring-tooltip .rt-bands {
@@ -632,7 +632,7 @@ export default function MockupStyles() {
     align-items: center;
     gap: 8px;
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: 14px;
     color: var(--muted);
     letter-spacing: 0.3px;
     opacity: 0.6;
@@ -643,7 +643,7 @@ export default function MockupStyles() {
   }
   .ring-tooltip .rt-calib {
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: 14px;
     color: var(--amber);
     padding: 8px 10px;
     background: rgba(245, 176, 86, 0.08);
@@ -652,7 +652,7 @@ export default function MockupStyles() {
   }
   .ring-tooltip .rt-note {
     font-family: var(--body);
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.5;
     color: var(--soft);
     font-weight: 300;
@@ -686,7 +686,7 @@ export default function MockupStyles() {
   .verdict-text .analyzed-at {
     margin-top: 10px;
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: 14px;
     letter-spacing: 0.4px;
     color: var(--muted);
     text-transform: uppercase;
@@ -722,7 +722,7 @@ export default function MockupStyles() {
     width: 100%;
   }
   .vr-title {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 2px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 2px;
     color: var(--muted); text-transform: uppercase;
   }
   .spark {
@@ -746,11 +746,11 @@ export default function MockupStyles() {
   .spark .bar:last-child.high { background: var(--green); }
   .spark-empty {
     flex: 1; display: flex; align-items: center; justify-content: center;
-    color: var(--muted); font-family: var(--mono); font-size: 12px;
+    color: var(--muted); font-family: var(--mono); font-size: 14px;
   }
   .evo-label {
     display: flex; justify-content: space-between; align-items: center;
-    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    font-family: var(--mono); font-size: 14px; color: var(--muted);
     gap: 8px;
   }
   .evo-label .delta { padding: 2px 8px; border-radius: 10px; background: var(--s3); color: var(--muted); }
@@ -771,7 +771,7 @@ export default function MockupStyles() {
     min-width: 0;
   }
   .stats-grid .stat .k {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px;
     color: var(--muted); text-transform: uppercase; margin-bottom: 4px;
   }
   .stats-grid .stat .v {
@@ -780,7 +780,7 @@ export default function MockupStyles() {
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .stats-grid .stat .d {
-    font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 3px;
+    font-family: var(--mono); font-size: 14px; color: var(--muted); margin-top: 3px;
   }
 
   /* ── ROW 2 : Écoute qualitative (2 colonnes) ── */
@@ -806,7 +806,7 @@ export default function MockupStyles() {
   }
   .q-title {
     display: flex; align-items: center; gap: 10px;
-    font-family: var(--mono); font-size: 12px; letter-spacing: 2px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 2px;
     color: var(--muted); text-transform: uppercase;
     margin-bottom: 14px;
   }
@@ -857,7 +857,7 @@ export default function MockupStyles() {
   .q-block.collapsible .q-head:hover { background: var(--s2); }
   .q-block.collapsible .q-title { margin-bottom: 0; flex: 1; }
   .q-block.collapsible .q-count {
-    font-family: var(--mono); font-size: 12px; color: var(--muted2);
+    font-family: var(--mono); font-size: 14px; color: var(--muted2);
     padding: 2px 8px; border-radius: 10px; background: var(--s3);
     min-width: 22px; text-align: center;
   }
@@ -882,7 +882,7 @@ export default function MockupStyles() {
   }
 
   .subq-title {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px;
     color: var(--muted); text-transform: uppercase;
     margin: 8px 0 6px;
   }
@@ -899,7 +899,7 @@ export default function MockupStyles() {
     background: transparent;
     border: 1px solid var(--border);
     border-radius: 8px;
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px;
     color: var(--muted); text-transform: uppercase;
     cursor: pointer;
     transition: border-color .15s, color .15s, background .15s;
@@ -933,18 +933,18 @@ export default function MockupStyles() {
     margin: 0 0 24px;
   }
   .section-head .t {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase;
     white-space: nowrap;
   }
   .section-head .line { flex: 1; height: 1px; background: var(--border); }
   .section-head .count {
-    font-family: var(--mono); font-size: 12px; color: var(--muted2);
+    font-family: var(--mono); font-size: 14px; color: var(--muted2);
   }
   .section-head .plan-filter-toggle {
     all: unset;
     cursor: pointer;
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 14px;
     letter-spacing: 1px;
     color: var(--muted);
     text-transform: uppercase;
@@ -989,7 +989,7 @@ export default function MockupStyles() {
   .priority.done { opacity: 0.5; }
 
   .pbadge {
-    font-family: var(--mono); font-size: 12px;
+    font-family: var(--mono); font-size: 14px;
     padding: 3px 7px; border-radius: 4px;
     letter-spacing: 1px;
     flex-shrink: 0;
@@ -1099,7 +1099,7 @@ export default function MockupStyles() {
   }
   .notes-head .notes-title {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 14px;
     letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--text);
@@ -1109,7 +1109,7 @@ export default function MockupStyles() {
     flex: 1;
     min-width: 0;
     font-family: var(--body);
-    font-size: 13px;
+    font-size: 14px;
     color: var(--soft);
     font-weight: 300;
     overflow: hidden;
@@ -1118,7 +1118,7 @@ export default function MockupStyles() {
   }
   .notes-head .notes-status {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 14px;
     color: var(--amber);
     letter-spacing: 0.4px;
     margin-left: auto;
@@ -1183,7 +1183,7 @@ export default function MockupStyles() {
     cursor: pointer;
   }
   .diag-cat-head .name {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 2px; color: var(--amber); text-transform: uppercase;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 2px; color: var(--amber); text-transform: uppercase;
     flex: 1;
   }
   .diag-cat-head .chev {
@@ -1192,7 +1192,7 @@ export default function MockupStyles() {
   }
   .diag-cat.open .diag-cat-head .chev { transform: rotate(90deg); }
   .diag-cat-head .count {
-    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    font-family: var(--mono); font-size: 14px; color: var(--muted);
   }
   /* Catégorie voix en mode 'voix à venir' : teintée pour se distinguer */
   .diag-cat.pending-voice .diag-cat-head .name {
@@ -1218,14 +1218,14 @@ export default function MockupStyles() {
   .diag-item .sring svg { transform: rotate(-90deg); }
   .diag-item .sring .n {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    font-family: var(--mono); font-size: 14px; color: var(--muted);
   }
   .diag-item .di-body { flex: 1; }
   .diag-item .di-name { font-family: var(--body); font-size: 15px; font-weight: 400; margin-bottom: 4px; }
-  .diag-item .di-detail { font-size: 13px; color: var(--soft); line-height: 1.6; font-weight: 300; margin-bottom: 10px; }
+  .diag-item .di-detail { font-size: 14px; color: var(--soft); line-height: 1.6; font-weight: 300; margin-bottom: 10px; }
   .diag-item .di-tools { display: flex; flex-wrap: wrap; gap: 6px; }
   .diag-item .di-tools span {
-    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    font-family: var(--mono); font-size: 14px; color: var(--muted);
     padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px;
   }
 
@@ -1250,13 +1250,13 @@ export default function MockupStyles() {
   }
   .focus-back {
     display: flex; align-items: center; gap: 8px;
-    font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase;
+    font-family: var(--mono); font-size: 14px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase;
     padding: 6px 10px; border-radius: 6px;
   }
   .focus-back:hover { color: var(--amber); background: var(--s1); }
   .focus-local {
     display: flex; align-items: center; gap: 14px;
-    font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase;
+    font-family: var(--mono); font-size: 14px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase;
   }
   .focus-local .counter b { color: var(--amber); font-weight: 500; }
   .focus-local .nav-btn {
@@ -1305,7 +1305,7 @@ export default function MockupStyles() {
     padding: 18px 22px;
   }
   .mt-box .mt-label {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px; text-transform: uppercase;
     margin-bottom: 8px;
   }
   .mt-box.m .mt-label { color: var(--amber); }
@@ -1316,7 +1316,7 @@ export default function MockupStyles() {
 
   .linked-elements { margin-top: 34px; }
   .linked-elements .label {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase;
     margin-bottom: 14px;
   }
   .le-list { display: flex; flex-direction: column; gap: 8px; }
@@ -1326,7 +1326,7 @@ export default function MockupStyles() {
     border: 1px solid var(--border); border-radius: 8px;
   }
   .le .cat {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1px;
     color: var(--muted); text-transform: uppercase;
     min-width: 60px;
   }
@@ -1335,7 +1335,7 @@ export default function MockupStyles() {
   .le .sring svg { transform: rotate(-90deg); }
   .le .sring .n {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    font-family: var(--mono); font-size: 14px; color: var(--muted);
   }
 
   .resolve-action {
@@ -1345,7 +1345,7 @@ export default function MockupStyles() {
     border: 1.5px solid var(--border);
     border-radius: 10px;
     cursor: pointer;
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1px; text-transform: uppercase;
     color: var(--muted);
     background: transparent;
     width: 100%;
@@ -1395,7 +1395,7 @@ export default function MockupStyles() {
     font-family: var(--body); font-size: 14px; font-weight: 300; color: var(--soft); line-height: 1; letter-spacing: 0.3px;
   }
   .player .pl-meta .pl-sub {
-    font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 1px;
+    font-family: var(--mono); font-size: 14px; color: var(--muted); letter-spacing: 1px;
   }
   .player .pl-wave {
     flex: 1; height: 36px;
@@ -1414,7 +1414,7 @@ export default function MockupStyles() {
   .player .pl-wavesurfer { display: block; }
   .player .pl-scrubber { display: none; }
   .player .pl-time {
-    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    font-family: var(--mono); font-size: 14px; color: var(--muted);
     flex-shrink: 0; min-width: 78px; text-align: right;
   }
   .player .pl-time b { color: var(--text); font-weight: 500; }
@@ -1489,7 +1489,7 @@ export default function MockupStyles() {
     border-bottom: 1px solid var(--border);
   }
   .chat-head .ctitle {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 2px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 2px;
     color: var(--amber); text-transform: uppercase;
   }
   .chat-head .cclose {
@@ -1521,7 +1521,7 @@ export default function MockupStyles() {
     max-width: 86%;
     padding: 10px 14px;
     border-radius: 12px;
-    font-size: 13px; line-height: 1.55; font-weight: 300;
+    font-size: 14px; line-height: 1.55; font-weight: 300;
   }
   .msg.user {
     align-self: flex-end;
@@ -1576,7 +1576,7 @@ export default function MockupStyles() {
   .chat-input button {
     background: var(--amber); color: #000;
     padding: 0 16px; border-radius: 8px;
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1px; text-transform: uppercase;
     font-weight: 500;
     height: 40px; min-height: 40px;
     flex-shrink: 0;
@@ -1673,7 +1673,7 @@ export default function MockupStyles() {
     border-radius: 10px; display: flex; flex-direction: column; gap: 8px;
   }
   .wh-tip-label {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 2px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 2px;
     color: var(--amber); text-transform: uppercase;
   }
   .wh-tip-text {
@@ -1767,7 +1767,7 @@ export default function MockupStyles() {
     padding: 96px 20px 84px;
   }
   .wh-tagline-salut {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 3px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 3px;
     color: var(--amber); text-transform: uppercase;
   }
   .wh-tagline-text {
@@ -1807,7 +1807,7 @@ export default function MockupStyles() {
     gap: 16px; min-width: 0;
   }
   .wh-hero-kicker {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 2px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 2px;
     text-transform: uppercase; color: var(--amber);
   }
   .wh-hero-title {
@@ -1817,7 +1817,7 @@ export default function MockupStyles() {
     margin: 4px 0 6px; color: var(--text);
   }
   .wh-hero-meta {
-    font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 0.5px;
+    font-family: var(--mono); font-size: 14px; color: var(--muted); letter-spacing: 0.5px;
   }
   .wh-hero-wave {
     width: 100%; height: 56px; margin: 8px 0;
@@ -1855,16 +1855,16 @@ export default function MockupStyles() {
     display: inline-flex; align-items: baseline; gap: 4px;
   }
   .wh-hero-score .num-suffix {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px;
     color: var(--muted); text-transform: uppercase; font-weight: 400;
   }
   .wh-hero-score .lbl {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px;
     color: var(--muted); text-transform: uppercase;
   }
   .wh-hero-ctas { display: flex; gap: 10px; }
   .wh-btn {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.2px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.2px;
     text-transform: uppercase; padding: 10px 16px; border-radius: 8px;
     background: transparent; border: 1px solid var(--border); color: var(--text);
     cursor: pointer; transition: all .15s;
@@ -1885,7 +1885,7 @@ export default function MockupStyles() {
     display: flex; flex-direction: column;
   }
   .wh-stat-label {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px;
     text-transform: uppercase; color: var(--muted);
   }
   .wh-stat-value {
@@ -1893,7 +1893,7 @@ export default function MockupStyles() {
     margin-top: 8px; line-height: 1; color: var(--text);
   }
   .wh-stat-hint {
-    font-family: var(--mono); font-size: 12px; color: var(--amber);
+    font-family: var(--mono); font-size: 14px; color: var(--amber);
     margin-top: auto; letter-spacing: 0.5px;
   }
   .wh-stat-spark { margin-top: auto; }
@@ -1922,7 +1922,7 @@ export default function MockupStyles() {
     background: rgba(245,176,86,0.06); border-color: rgba(245,176,86,0.22);
   }
   .wh-card-kicker {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px;
     text-transform: uppercase; color: var(--amber); margin-bottom: 8px;
   }
   .wh-card-title {
@@ -1930,11 +1930,11 @@ export default function MockupStyles() {
     margin-bottom: 8px; color: var(--text);
   }
   .wh-card-body {
-    font-size: 13px; line-height: 1.55; color: var(--soft); font-weight: 300;
+    font-size: 14px; line-height: 1.55; color: var(--soft); font-weight: 300;
   }
   .wh-card-link {
     display: inline-block; margin-top: 10px;
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.2px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.2px;
     text-transform: uppercase; color: var(--amber);
     background: transparent; border: none; padding: 0; cursor: pointer;
   }
@@ -1944,7 +1944,7 @@ export default function MockupStyles() {
   .wh-checklist { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
   .wh-check-item {
     display: flex; align-items: center; gap: 10px; padding: 6px 0;
-    font-size: 13px;
+    font-size: 14px;
   }
   .wh-check-box {
     width: 16px; height: 16px; border-radius: 4px;
@@ -2045,14 +2045,14 @@ export default function MockupStyles() {
     color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .wh-track-date {
-    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    font-family: var(--mono); font-size: 14px; color: var(--muted);
     flex-shrink: 0; white-space: nowrap; letter-spacing: 0.3px;
   }
   @media (max-width: 600px) {
     .wh-track-date { display: none; }
   }
   .wh-track-meta {
-    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    font-family: var(--mono); font-size: 14px; color: var(--muted);
     letter-spacing: 0.5px; margin-top: 2px;
   }
   .wh-track-fiche {
@@ -2060,7 +2060,7 @@ export default function MockupStyles() {
     padding: 6px 14px; border-radius: 8px;
     background: rgba(245,176,86,0.08); border: 1px solid rgba(245,176,86,0.25);
     color: var(--amber); cursor: pointer; flex-shrink: 0;
-    font-family: var(--mono); font-size: 12px; letter-spacing: 0.8px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 0.8px;
     text-transform: uppercase; font-weight: 500;
     transition: all .15s;
   }
@@ -2077,7 +2077,7 @@ export default function MockupStyles() {
     animation: fadeup .15s ease;
   }
   .wh-picker-label {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px;
     text-transform: uppercase; color: var(--muted);
     padding: 8px 12px 4px;
   }
@@ -2091,7 +2091,7 @@ export default function MockupStyles() {
     background: rgba(245,176,86,0.08); color: var(--amber);
   }
   .wh-picker-count {
-    font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 0.5px;
+    font-family: var(--mono); font-size: 14px; color: var(--muted); letter-spacing: 0.5px;
   }
   .wh-picker-create {
     justify-content: flex-start; gap: 8px;
@@ -2170,7 +2170,7 @@ export default function MockupStyles() {
     border-radius: 14px; padding: 20px; transition: border-color .2s;
   }
   .input-section-label {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 2px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 2px;
     color: var(--amber); margin-bottom: 14px;
     display: flex; align-items: center; gap: 10px;
   }
@@ -2196,7 +2196,7 @@ export default function MockupStyles() {
     font-family: var(--body); font-size: 14px; font-weight: 300; color: var(--muted);
   }
   .input-drop-formats {
-    font-family: var(--mono); font-size: 12px; color: #5a5a5e; margin-top: 3px;
+    font-family: var(--mono); font-size: 14px; color: #5a5a5e; margin-top: 3px;
     letter-spacing: 0.5px;
   }
 
@@ -2205,7 +2205,7 @@ export default function MockupStyles() {
   }
   .input-field { flex: 1; }
   .input-label {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px;
     color: var(--muted); margin-bottom: 6px; display: block;
   }
   .input-input {
@@ -2255,7 +2255,7 @@ export default function MockupStyles() {
     font-weight: 400;
   }
   .input-vpill.small {
-    font-size: 12px; padding: 9px 12px;
+    font-size: 14px; padding: 9px 12px;
   }
 
   .input-cta {
@@ -2275,7 +2275,7 @@ export default function MockupStyles() {
   }
 
   .input-mode-hint {
-    text-align: center; font-family: var(--mono); font-size: 12px;
+    text-align: center; font-family: var(--mono); font-size: 14px;
     color: var(--amber); opacity: 0.5; animation: fadeup .2s ease;
   }
 
@@ -2363,7 +2363,7 @@ export default function MockupStyles() {
   .wh-acc-title { min-width: 0; overflow: hidden; }
   .wh-acc-kicker {
     display: none;
-    font-family: var(--mono); font-size: 12px;
+    font-family: var(--mono); font-size: 14px;
     letter-spacing: 2.5px; color: var(--amber);
     text-transform: uppercase; margin-bottom: 6px;
   }
@@ -2379,7 +2379,7 @@ export default function MockupStyles() {
     line-height: 1.1;
   }
   .wh-acc-meta {
-    font-family: var(--mono); font-size: 12px;
+    font-family: var(--mono); font-size: 14px;
     color: var(--muted); letter-spacing: 0.5px;
     margin-top: 3px;
   }
@@ -2450,7 +2450,7 @@ export default function MockupStyles() {
     display: flex; flex-direction: column; gap: 4px;
   }
   .wh-acc-empty {
-    padding: 24px 0; color: var(--muted); font-size: 12px;
+    padding: 24px 0; color: var(--muted); font-size: 14px;
     font-style: italic; text-align: center;
   }
   .wh-acc-add-track {
@@ -2578,7 +2578,7 @@ export default function MockupStyles() {
   }
   .auth-brand .accent { color: var(--amber); }
   .auth-tagline {
-    font-family: var(--body); font-size: 10px; font-weight: 300;
+    font-family: var(--body); font-size: 14px; font-weight: 300;
     letter-spacing: 3px; color: var(--amber); text-transform: uppercase;
     display: flex; align-items: center; gap: 10px;
   }
@@ -2598,11 +2598,11 @@ export default function MockupStyles() {
   .auth-input:focus { border-color: var(--amber); }
   .auth-input::placeholder { color: #5a5a5e; }
   .auth-error {
-    color: var(--red); font-family: var(--mono); font-size: 12px;
+    color: var(--red); font-family: var(--mono); font-size: 14px;
     text-align: center; letter-spacing: 0.3px;
   }
   .auth-info {
-    color: var(--green); font-family: var(--mono); font-size: 12px;
+    color: var(--green); font-family: var(--mono); font-size: 14px;
     text-align: center; letter-spacing: 0.3px;
   }
   .auth-submit {
@@ -2623,7 +2623,7 @@ export default function MockupStyles() {
   }
   .auth-sep-line { flex: 1; height: 1px; background: var(--border); }
   .auth-sep-text {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 2px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 2px;
     color: var(--muted2);
   }
 
@@ -2729,7 +2729,7 @@ export default function MockupStyles() {
     border-color: rgba(245,176,86,0.2);
   }
   .reglages-section-label {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 2px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 2px;
     color: var(--amber); margin-bottom: 14px;
     display: flex; align-items: center; gap: 10px;
   }
@@ -2774,7 +2774,7 @@ export default function MockupStyles() {
   }
   .reglages-field { flex: 1; }
   .reglages-label {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px;
     color: var(--muted); margin-bottom: 6px; display: block;
   }
   .reglages-input {
@@ -2822,7 +2822,7 @@ export default function MockupStyles() {
 
   .reglages-bank-hint {
     margin-top: 12px;
-    font-family: var(--mono); font-size: 12px; color: var(--muted2);
+    font-family: var(--mono); font-size: 14px; color: var(--muted2);
     letter-spacing: 0.3px; line-height: 1.6;
   }
 
@@ -2846,7 +2846,7 @@ export default function MockupStyles() {
   .reglages-signout {
     width: 100%; padding: 12px 16px; border-radius: 10px;
     background: transparent; border: 1px solid var(--border);
-    color: var(--red); font-family: var(--mono); font-size: 12px;
+    color: var(--red); font-family: var(--mono); font-size: 14px;
     letter-spacing: 1px; text-transform: uppercase;
     cursor: pointer; transition: all .2s;
   }
@@ -2927,7 +2927,7 @@ export default function MockupStyles() {
     letter-spacing: 3px; color: var(--text); margin-bottom: 6px;
   }
   .versions-s-tagline {
-    font-family: var(--mono); font-size: 12px; font-weight: 400;
+    font-family: var(--mono); font-size: 14px; font-weight: 400;
     letter-spacing: 1px; color: var(--muted);
   }
   .versions-s-tagline-dot {
@@ -2968,7 +2968,7 @@ export default function MockupStyles() {
     color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .versions-s-card-meta {
-    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    font-family: var(--mono); font-size: 14px; color: var(--muted);
     letter-spacing: 0.5px; margin-top: 3px;
   }
   .versions-s-card-chev { color: var(--muted); flex-shrink: 0; }
@@ -2992,7 +2992,7 @@ export default function MockupStyles() {
     display: flex; align-items: center; gap: 12px;
   }
   .versions-s-version-badge {
-    font-family: var(--mono); font-size: 13px; font-weight: 500;
+    font-family: var(--mono); font-size: 14px; font-weight: 500;
     min-width: 28px; text-align: center;
   }
   .versions-s-version-info { flex: 1; min-width: 0; }
@@ -3000,7 +3000,7 @@ export default function MockupStyles() {
     font-family: var(--body); font-size: 14px; font-weight: 300; color: var(--soft);
   }
   .versions-s-version-date {
-    font-family: var(--mono); font-size: 12px; color: var(--muted2);
+    font-family: var(--mono); font-size: 14px; color: var(--muted2);
     letter-spacing: 0.5px; margin-top: 2px;
   }
 
@@ -3021,7 +3021,7 @@ export default function MockupStyles() {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     width: 100%; padding: 10px 14px; border-radius: 8px;
     background: rgba(245,176,86,0.08); border: 1px solid rgba(245,176,86,0.25);
-    color: var(--amber); font-family: var(--mono); font-size: 12px;
+    color: var(--amber); font-family: var(--mono); font-size: 14px;
     letter-spacing: 0.8px; text-transform: uppercase; font-weight: 500;
     cursor: pointer; transition: all .2s;
   }
@@ -3034,7 +3034,7 @@ export default function MockupStyles() {
     margin-top: 6px; padding: 10px 14px; border-radius: 8px;
     border: 1px dashed rgba(245,176,86,0.35);
     background: transparent; color: var(--amber);
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1px;
+    font-family: var(--mono); font-size: 14px; letter-spacing: 1px;
     text-transform: uppercase; cursor: pointer; transition: all .2s;
   }
   .versions-s-add:hover {
@@ -3113,7 +3113,7 @@ export default function MockupStyles() {
     font-family: var(--body); font-size: 14px; font-weight: 500; color: var(--text);
   }
   .mobile-avatar-popover-mail {
-    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    font-family: var(--mono); font-size: 14px; color: var(--muted);
     margin-top: 3px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
@@ -3383,11 +3383,11 @@ export default function MockupStyles() {
     color: var(--accent);
   }
   .public-fiche-topbar .pft-subbrand {
-    font-size: 11px; color: var(--muted); letter-spacing: 1px;
+    font-size: 14px; color: var(--muted); letter-spacing: 1px;
     text-transform: uppercase;
   }
   .public-fiche-topbar .pft-cta {
-    font-size: 12px; color: var(--text); text-decoration: none;
+    font-size: 14px; color: var(--text); text-decoration: none;
     padding: 8px 14px;
     border: 1px solid var(--border); border-radius: 8px;
     transition: border-color .15s ease, background .15s ease;
@@ -3411,7 +3411,7 @@ export default function MockupStyles() {
 
   .public-fiche-meta {
     display: flex; align-items: center; gap: 8px;
-    font-size: 13px; color: var(--muted);
+    font-size: 14px; color: var(--muted);
     margin-top: 10px;
   }
   .public-fiche-meta .pfm-track {
@@ -3454,7 +3454,7 @@ export default function MockupStyles() {
   /* Loading + 404 */
   .public-fiche-loading {
     flex: 1; display: grid; place-items: center;
-    color: var(--muted); font-size: 12px; letter-spacing: 2px;
+    color: var(--muted); font-size: 14px; letter-spacing: 2px;
     text-transform: uppercase;
   }
   .public-fiche-404 {
@@ -3464,7 +3464,7 @@ export default function MockupStyles() {
   }
   .public-fiche-404 .pfx-kicker {
     font-family: var(--mono, "DM Sans", sans-serif);
-    font-size: 12px; letter-spacing: 3px;
+    font-size: 14px; letter-spacing: 3px;
     color: var(--accent); margin-bottom: 18px;
   }
   .public-fiche-404 h1 {
@@ -3477,7 +3477,7 @@ export default function MockupStyles() {
     margin: 0 0 24px;
   }
   .public-fiche-404 .pfx-home {
-    font-size: 13px; color: var(--text); text-decoration: none;
+    font-size: 14px; color: var(--text); text-decoration: none;
     padding: 10px 18px;
     border: 1px solid var(--accent); border-radius: 8px;
     background: transparent;
@@ -3489,7 +3489,7 @@ export default function MockupStyles() {
 
   .public-fiche-footer {
     padding: 20px 28px; border-top: 1px solid var(--border);
-    text-align: center; font-size: 11px; color: var(--muted);
+    text-align: center; font-size: 14px; color: var(--muted);
     letter-spacing: 0.5px;
   }
 
@@ -3519,7 +3519,7 @@ export default function MockupStyles() {
     border-radius: 8px;
     color: #e0c389;
     font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     letter-spacing: 0.1px;

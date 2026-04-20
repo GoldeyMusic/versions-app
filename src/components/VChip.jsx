@@ -107,7 +107,7 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
             background: menuOpen ? 'rgba(245,176,86,.18)' : 'rgba(20,20,22,.85)',
             color: '#c5c5c7', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, lineHeight: 1, userSelect: 'none',
+            fontSize: 14, lineHeight: 1, userSelect: 'none',
           }}
         >⋯</span>
       )}
@@ -157,7 +157,7 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
               }}
               placeholder={s.vchip.renameVersionPlaceholder}
               style={{
-                width: '100%', padding: '10px 12px', fontSize: 13,
+                width: '100%', padding: '10px 12px', fontSize: 14,
                 background: '#0e0e10', border: '1px solid #2a2a2e',
                 borderRadius: 8, color: '#e8e8ea', outline: 'none',
                 fontFamily: 'inherit', boxSizing: 'border-box',
@@ -166,13 +166,13 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
               <button onClick={() => setRenameOpen(false)} disabled={busy}
                 style={{
-                  padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                  padding: '8px 16px', fontSize: 14, borderRadius: 8,
                   background: 'transparent', border: '1px solid #2a2a2e',
                   color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
                 }}>{s.common.cancel}</button>
               <button onClick={submitRename} disabled={busy || !renameValue.trim()}
                 style={{
-                  padding: '8px 16px', fontSize: 12, borderRadius: 8,
+                  padding: '8px 16px', fontSize: 14, borderRadius: 8,
                   background: '#f5b056', border: 'none',
                   color: '#141416', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit',
                   opacity: busy || !renameValue.trim() ? 0.5 : 1,

@@ -79,7 +79,7 @@ export default function AddModal({
   };
   const backBtnStyle = {
     background: 'transparent', border: 'none', color: '#9a9a9e',
-    fontSize: 12, cursor: 'pointer', padding: '4px 8px',
+    fontSize: 14, cursor: 'pointer', padding: '4px 8px',
     fontFamily: 'inherit',
   };
   const closeBtnStyle = {
@@ -102,8 +102,8 @@ export default function AddModal({
     fontSize: 18, lineHeight: 1, color: '#f5b056',
     width: 22, flex: '0 0 auto', marginTop: 1,
   };
-  const choiceLabel = { fontSize: 13, fontWeight: 500, marginBottom: 4 };
-  const choiceDesc = { fontSize: 11, color: '#9a9a9e', fontWeight: 300, lineHeight: 1.5 };
+  const choiceLabel = { fontSize: 14, fontWeight: 500, marginBottom: 4 };
+  const choiceDesc = { fontSize: 14, color: '#9a9a9e', fontWeight: 300, lineHeight: 1.5 };
 
   const pickItemStyle = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
@@ -111,7 +111,7 @@ export default function AddModal({
     padding: '12px 14px', borderRadius: 8,
     background: '#0e0e10', border: '1px solid #2a2a2e',
     color: '#e8e8ea', cursor: 'pointer', fontFamily: 'inherit',
-    fontSize: 13, fontWeight: 300,
+    fontSize: 14, fontWeight: 300,
     transition: 'all .15s',
   };
   const pickCountStyle = {
@@ -181,7 +181,7 @@ export default function AddModal({
 
         {step === 'pick-project' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ fontSize: 11, color: '#9a9a9e', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
+            <div style={{ fontSize: 14, color: '#9a9a9e', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
               {s.addModal.pickProjectTitle}
             </div>
             {projects.map((p) => {
@@ -213,7 +213,7 @@ export default function AddModal({
 
         {step === 'pick-track' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ fontSize: 11, color: '#9a9a9e', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
+            <div style={{ fontSize: 14, color: '#9a9a9e', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
               {s.addModal.pickTrackTitle}
             </div>
             {allTracks.map((t) => {

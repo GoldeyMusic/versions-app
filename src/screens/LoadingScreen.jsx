@@ -193,12 +193,12 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
   if (error) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100%", gap: 20, padding: "60px 20px" }}>
-        <div style={{ fontFamily: T.mono, fontSize: 13, color: T.red, textAlign: "center", maxWidth: 320 }}>
+        <div style={{ fontFamily: T.mono, fontSize: 14, color: T.red, textAlign: "center", maxWidth: 320 }}>
           ⚠️ {error}
         </div>
         <button
           onClick={() => window.location.reload()}
-          style={{ fontFamily: T.mono, fontSize: 12, padding: "8px 20px", borderRadius: 8, background: T.s2, border: `1px solid ${T.border}`, color: T.muted, cursor: "pointer" }}
+          style={{ fontFamily: T.mono, fontSize: 14, padding: "8px 20px", borderRadius: 8, background: T.s2, border: `1px solid ${T.border}`, color: T.muted, cursor: "pointer" }}
         >
           {s.loading.errorRetry}
         </button>
@@ -223,7 +223,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           <div style={{ fontFamily: T.display, fontSize: 32, fontWeight: 400, color: "#ededed", letterSpacing: 5, textAlign: "center", textTransform: "uppercase" }}>
             {s.loading.title}
           </div>
-          <div style={{ fontFamily: T.mono, fontSize: 12, color: T.amber, fontWeight: 400, textAlign: "center", lineHeight: 1.6, letterSpacing: 1, opacity: 0.85 }}>
+          <div style={{ fontFamily: T.mono, fontSize: 14, color: T.amber, fontWeight: 400, textAlign: "center", lineHeight: 1.6, letterSpacing: 1, opacity: 0.85 }}>
             {config?.title}{config?.version ? ` · ${config.version}` : ""}
           </div>
         </div>
@@ -264,7 +264,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
                 </span>
                 <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
                 <span style={{
-                  fontFamily: "JetBrains Mono, monospace", fontSize: 12, letterSpacing: 1,
+                  fontFamily: "JetBrains Mono, monospace", fontSize: 14, letterSpacing: 1,
                   textTransform: "uppercase",
                   color: done ? "#c5c5c7" : active ? T.amber : "#7c7c80",
                 }}>{label}</span>
@@ -297,7 +297,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           borderRadius: 10, minHeight: 70, display: "flex", flexDirection: "column", gap: 8,
         }}>
           <div style={{
-            fontFamily: "JetBrains Mono, monospace", fontSize: 12, letterSpacing: 2,
+            fontFamily: "JetBrains Mono, monospace", fontSize: 14, letterSpacing: 2,
             color: T.amber, textTransform: "uppercase",
           }}>{s.loading.didYouKnow}</div>
           <div key={tipIdx} style={{
