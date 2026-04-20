@@ -27,10 +27,10 @@ const T = {
   cyan: "#48CAE4",
   red: "#D85666",
 
-  // Typographies — Plex Mono partout pour le caractère "studio"
+  // Typographies — DM Sans partout, Bebas Neue pour le logo
   mono: "'IBM Plex Mono', ui-monospace, monospace",
   display: "'Bebas Neue', sans-serif",
-  body: "'IBM Plex Mono', ui-monospace, monospace",
+  body: "'DM Sans', sans-serif",
 };
 
 export default T;

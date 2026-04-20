@@ -106,7 +106,7 @@ function ProjectPicker({ projects, projectId, onChange, onCreateNew, locked = fa
                   width: '100%', padding: '8px 10px', borderRadius: 8,
                   background: isCurrent ? 'rgba(245,176,86,.08)' : 'transparent',
                   border: 'none', cursor: 'pointer',
-                  fontFamily: 'Inter, sans-serif', fontSize: 13, color: T.text,
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: T.text,
                   textAlign: 'left',
                 }}
                 onMouseEnter={(e) => { if (!isCurrent) e.currentTarget.style.background = 'rgba(255,255,255,.04)'; }}
@@ -130,7 +130,7 @@ function ProjectPicker({ projects, projectId, onChange, onCreateNew, locked = fa
               display: 'flex', alignItems: 'center', gap: 10,
               width: '100%', padding: '8px 10px', borderRadius: 8,
               background: 'transparent', border: 'none', cursor: 'pointer',
-              fontFamily: 'Inter, sans-serif', fontSize: 12, color: T.amber,
+              fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: T.amber,
               textAlign: 'left',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(245,176,86,.08)'; }}
@@ -388,7 +388,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
               locked={lockProject}
             />
             {lockProject && (
-              <div style={{ marginTop: 6, fontSize: 10, color: T.muted, fontFamily: 'IBM Plex Mono, monospace' }}>
+              <div style={{ marginTop: 6, fontSize: 10, color: T.muted, fontFamily: "'DM Sans', sans-serif" }}>
                 Projet verrouillé — ce titre appartient déjà à ce projet.
               </div>
             )}

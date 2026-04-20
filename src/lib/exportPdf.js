@@ -411,7 +411,7 @@ function drawNotes(doc, cursor, notes) {
 
   // Chaîne de fallback : d'abord la police UI, puis chaque police emoji
   // cross-plateforme. Le navigateur prend celle qui couvre chaque glyphe.
-  const FONT = `${FONT_PX}px "Inter","-apple-system","Segoe UI","Helvetica Neue","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+  const FONT = `${FONT_PX}px "DM Sans","-apple-system","Segoe UI","Helvetica Neue","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
 
   // 1) Wrap en lignes (mesure via canvas hors écran)
   const measure = document.createElement('canvas').getContext('2d');

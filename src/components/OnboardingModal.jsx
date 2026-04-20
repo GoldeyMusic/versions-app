@@ -47,7 +47,7 @@ export default function OnboardingModal({ displayName, onCreate }) {
         background: 'rgba(0,0,0,.75)',
         backdropFilter: 'blur(4px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'Inter, sans-serif',
+        fontFamily: "'DM Sans', sans-serif",
         animation: 'fadeup .25s ease',
       }}
     >

@@ -269,7 +269,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
                 </span>
                 <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
                 <span style={{
-                  fontFamily: "JetBrains Mono, Inter, monospace", fontSize: 11, letterSpacing: 1,
+                  fontFamily: "JetBrains Mono, monospace", fontSize: 11, letterSpacing: 1,
                   textTransform: "uppercase",
                   color: done ? "#c5c5c7" : active ? T.amber : "#7c7c80",
                 }}>{label}</span>
@@ -306,7 +306,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
             color: T.amber, textTransform: "uppercase",
           }}>Le saviez-vous</div>
           <div key={tipIdx} style={{
-            fontFamily: "Inter, sans-serif", fontSize: 13, color: "#c5c5c7",
+            fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#c5c5c7",
             lineHeight: 1.7, fontWeight: 300,
             animation: "fadein .4s ease",
           }}>{shuffledTips[tipIdx]}</div>

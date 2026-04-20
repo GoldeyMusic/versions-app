@@ -30,7 +30,7 @@ export default function ConfirmModal({
         position: 'fixed', inset: 0, zIndex: 10000,
         background: 'rgba(0,0,0,.55)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'Inter, sans-serif',
+        fontFamily: "'DM Sans', sans-serif",
       }}
     >
       <div

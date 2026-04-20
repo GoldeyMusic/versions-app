@@ -209,7 +209,7 @@ function ListeningSection({ listening }) {
   const Bullet = ({ children }) => (
     <div style={{
       display: 'flex', gap: 12, alignItems: 'flex-start',
-      fontFamily: 'Inter, sans-serif', fontSize: 13,
+      fontFamily: "'DM Sans', sans-serif", fontSize: 13,
       color: '#c5c5c7', lineHeight: 1.7, fontWeight: 300,
     }}>
       <span style={{ color: '#f5b056', fontSize: 14, lineHeight: 1.5, flexShrink: 0, marginTop: 1 }}>▸</span>
@@ -332,7 +332,7 @@ function AnalyzingState({ stage }) {
           letterSpacing: 5, textTransform: 'uppercase',
         }}>Finalisation de l'analyse</h1>
         <p style={{
-          fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#7c7c80',
+          fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#7c7c80',
           margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6, letterSpacing: 1,
         }}>
           La fiche d'analyse se génère. Encore quelques secondes.
@@ -375,7 +375,7 @@ function AnalyzingState({ stage }) {
               </span>
               <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
               <span style={{
-                fontFamily: 'JetBrains Mono, Inter, monospace', fontSize: 11, letterSpacing: 1,
+                fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: 1,
                 textTransform: 'uppercase',
                 color: done ? '#c5c5c7' : active ? '#f5b056' : '#7c7c80',
               }}>{s.label}</span>
@@ -412,7 +412,7 @@ function AnalyzingState({ stage }) {
           color: '#f5b056', textTransform: 'uppercase',
         }}>Le saviez-vous</div>
         <div key={tipIdx} style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#c5c5c7',
+          fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#c5c5c7',
           lineHeight: 1.7, fontWeight: 300,
           animation: 'fadein .4s ease',
         }}>{ANALYSIS_TIPS[tipIdx]}</div>
@@ -731,7 +731,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
         </div>
 
         <h2 style={{
-          fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 26,
+          fontFamily: "'DM Sans', sans-serif", fontWeight: 400, fontSize: 26,
           lineHeight: 1.25, color: '#ededed', margin: '0 0 20px',
           display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap',
         }}>

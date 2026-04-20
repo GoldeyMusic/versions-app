@@ -132,7 +132,7 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
             position: 'fixed', inset: 0, zIndex: 10000,
             background: 'rgba(0,0,0,.55)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: "'DM Sans', sans-serif",
           }}
         >
           <div
@@ -192,7 +192,7 @@ function Item({ label, onClick, danger }) {
         display: 'block', width: '100%', textAlign: 'left',
         padding: '8px 12px', borderRadius: 6, border: 'none',
         background: 'transparent', cursor: 'pointer',
-        fontFamily: 'Inter, sans-serif', fontSize: 12,
+        fontFamily: "'DM Sans', sans-serif", fontSize: 12,
         color: danger ? '#ef6b6b' : '#c5c5c7',
       }}
       onMouseEnter={(e) => { e.currentTarget.style.background = danger ? 'rgba(239,107,107,.08)' : 'rgba(245,176,86,.06)'; }}

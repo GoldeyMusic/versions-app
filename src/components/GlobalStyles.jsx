@@ -9,12 +9,12 @@ const GlobalStyles = () => (
     /* Réglages inputs — override 16px, pas de risque de zoom car champ court */
     @media(max-width:767px){.reglages-input{font-size:13px!important;}}
     /* Desktop inputs — force font */
-    @media(min-width:768px){input,textarea{font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1;-webkit-appearance:none;appearance:none;}}
-    /* Placeholder — IBM Plex Mono 11px partout */
-    input::placeholder,textarea::placeholder{font-family:'IBM Plex Mono',monospace;font-size:11px;color:${T.muted};opacity:1;}
-    ::-webkit-input-placeholder{font-family:'IBM Plex Mono',monospace;font-size:11px;color:${T.muted};}
-    :-ms-input-placeholder{font-family:'IBM Plex Mono',monospace;font-size:11px;color:${T.muted};}
-    .dapp{background:${T.black};color:${T.text};width:100%;height:100vh;height:100dvh;overflow:hidden;position:relative;display:flex;flex-direction:column;font-family:'IBM Plex Mono',ui-monospace,monospace;}
+    @media(min-width:768px){input,textarea{font-family:'DM Sans',sans-serif;font-size:11px;line-height:1;-webkit-appearance:none;appearance:none;}}
+    /* Placeholder — DM Sans 11px partout */
+    input::placeholder,textarea::placeholder{font-family:'DM Sans',sans-serif;font-size:11px;color:${T.muted};opacity:1;}
+    ::-webkit-input-placeholder{font-family:'DM Sans',sans-serif;font-size:11px;color:${T.muted};}
+    :-ms-input-placeholder{font-family:'DM Sans',sans-serif;font-size:11px;color:${T.muted};}
+    .dapp{background:${T.black};color:${T.text};width:100%;height:100vh;height:100dvh;overflow:hidden;position:relative;display:flex;flex-direction:column;font-family:'DM Sans',sans-serif;}
     .dapp::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:0.6}
     ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:${T.s1}}::-webkit-scrollbar-thumb{background:${T.border};border-radius:2px}
     @keyframes apulse{0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,.3)}50%{box-shadow:0 0 0 8px rgba(245,166,35,0)}}

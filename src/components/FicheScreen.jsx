@@ -170,7 +170,7 @@ function ListeningSection({ listening }) {
               {sec.blocks.map((b, j) => b.type === 'bullet' ? (
                 <div key={j} style={{
                   display: 'flex', gap: 12, alignItems: 'flex-start',
-                  fontFamily: 'Inter, sans-serif', fontSize: 13,
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 13,
                   color: '#c5c5c7', lineHeight: 1.7, fontWeight: 300,
                 }}>
                   <span style={{
@@ -182,7 +182,7 @@ function ListeningSection({ listening }) {
               ) : (
                 <p key={j} style={{
                   margin: 0,
-                  fontFamily: "'Instrument Serif', serif",
+                  fontFamily: "'DM Sans', sans-serif",
                   fontSize: 17, lineHeight: 1.6, fontWeight: 400,
                   color: '#ededed',
                 }}>{renderWithEmphasis(b.text)}</p>
@@ -247,11 +247,11 @@ function AnalyzingState({ stage }) {
         }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         <h1 style={{
-          fontFamily: "'Instrument Serif', serif", fontSize: 32, fontWeight: 400,
+          fontFamily: "'DM Sans', sans-serif", fontSize: 32, fontWeight: 400,
           color: '#ededed', margin: 0, textAlign: 'center', lineHeight: 1.2,
         }}>Analyse en cours</h1>
         <p style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#7c7c80',
+          fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#7c7c80',
           margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6,
         }}>
           L'écoute qualitative et la fiche se génèrent en parallèle.<br/>
@@ -315,7 +315,7 @@ function AnalyzingState({ stage }) {
           color: '#f5b056', textTransform: 'uppercase',
         }}>Le saviez-vous</div>
         <div key={tipIdx} style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#c5c5c7',
+          fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#c5c5c7',
           lineHeight: 1.7, fontWeight: 300,
           animation: 'fadein .4s ease',
         }}>{ANALYSIS_TIPS[tipIdx]}</div>
@@ -389,7 +389,7 @@ function MenuItem({ label, onClick, danger }) {
         display: 'block', width: '100%', textAlign: 'left',
         padding: '8px 12px', borderRadius: 6, border: 'none',
         background: 'transparent', cursor: 'pointer',
-        fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 400,
+        fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 400,
         color: danger ? '#ef6b6b' : '#c5c5c7',
         transition: 'background .1s',
       }}
@@ -586,7 +586,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
       color: disabled ? '#5a5a5e' : '#0c0c0d',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       cursor: disabled ? 'default' : 'pointer',
-      fontSize: 22, fontFamily: 'Inter, sans-serif', lineHeight: 1,
+      fontSize: 22, fontFamily: "'DM Sans', sans-serif", lineHeight: 1,
       boxShadow: disabled ? 'none' : '0 6px 20px rgba(245,176,86,.35)',
       transition: 'all .18s ease',
       pointerEvents: disabled ? 'none' : 'auto',
@@ -638,7 +638,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
         </div>
 
         <h2 style={{
-          fontFamily: "'Instrument Serif', serif", fontWeight: 400, fontSize: 26,
+          fontFamily: "'DM Sans', sans-serif", fontWeight: 400, fontSize: 26,
           lineHeight: 1.25, color: '#ededed', margin: '0 0 20px',
           display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap',
         }}>

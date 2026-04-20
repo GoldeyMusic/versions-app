@@ -6,7 +6,7 @@
 export default function MockupStyles() {
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap');`}</style>
       <style>{`
   :root {
     --bg: #0c0c0d;
@@ -25,8 +25,8 @@ export default function MockupStyles() {
     --green-dim: #7bd88f33;
     --red: #ef6b6b;
     --black: #000;
-    --serif: 'Instrument Serif', serif;
-    --body: 'Inter', sans-serif;
+    --serif: 'DM Sans', sans-serif;
+    --body: 'DM Sans', sans-serif;
     --mono: 'JetBrains Mono', monospace;
   }
   * { box-sizing: border-box; }
@@ -653,15 +653,16 @@ export default function MockupStyles() {
 
   .verdict-text { flex: 1; min-width: 0; }
   .verdict-text h1 {
-    font-family: var(--serif);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
     font-size: 42px;
-    font-weight: 400;
+    font-weight: 600;
     line-height: 1.15;
     letter-spacing: 0.3px;
     margin: 0 0 14px;
     max-width: 900px;
   }
-  .verdict-text h1 em { font-style: italic; color: var(--amber); font-weight: 400; }
+  .verdict-text h1 em { font-style: italic; color: var(--amber); font-weight: 600; }
   .verdict-text p {
     font-family: var(--body);
     font-size: 15px;
@@ -3245,7 +3246,7 @@ export default function MockupStyles() {
     display: flex; align-items: baseline; gap: 12px;
   }
   .public-fiche-topbar .pft-brand {
-    font-family: var(--mono, "Inter", monospace);
+    font-family: var(--mono, "DM Sans", sans-serif);
     font-size: 14px; font-weight: 600; letter-spacing: 2px;
     color: var(--accent);
   }
@@ -3330,7 +3331,7 @@ export default function MockupStyles() {
     padding: 80px 28px; text-align: center;
   }
   .public-fiche-404 .pfx-kicker {
-    font-family: var(--mono, "Inter", monospace);
+    font-family: var(--mono, "DM Sans", sans-serif);
     font-size: 12px; letter-spacing: 3px;
     color: var(--accent); margin-bottom: 18px;
   }
@@ -3385,7 +3386,7 @@ export default function MockupStyles() {
     border: 1px solid rgba(245, 176, 86, 0.28);
     border-radius: 8px;
     color: #e0c389;
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;

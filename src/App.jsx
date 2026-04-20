@@ -32,7 +32,7 @@ import { confirmDialog } from "./lib/confirm.jsx";
 
 /* ── Font loader ────────────────────────────────────────── */
 const FontLink = () => (
-  <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap');`}</style>
+  <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap');`}</style>
 );
 
 /* ── Welcome Home Screen ─────────────────────────────────
@@ -1480,7 +1480,7 @@ function WhMenuItem({ label, onClick, danger }) {
         display: 'block', width: '100%', textAlign: 'left',
         padding: '8px 12px', borderRadius: 6, border: 'none',
         background: 'transparent', cursor: 'pointer',
-        fontFamily: 'Inter, sans-serif', fontSize: 12,
+        fontFamily: "'DM Sans', sans-serif", fontSize: 12,
         color: danger ? '#ef6b6b' : '#c5c5c7',
       }}
       onMouseEnter={(e) => { e.currentTarget.style.background = danger ? 'rgba(239,107,107,.08)' : 'rgba(245,176,86,.06)'; }}

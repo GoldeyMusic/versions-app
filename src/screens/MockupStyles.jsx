@@ -6,7 +6,7 @@
 export default function MockupStyles() {
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap');`}</style>
       <style>{`
   :root {
     --bg: #0c0c0d;
@@ -25,8 +25,8 @@ export default function MockupStyles() {
     --green-dim: #7bd88f33;
     --red: #ef6b6b;
     --black: #000;
-    --serif: 'Instrument Serif', serif;
-    --body: 'Inter', sans-serif;
+    --serif: 'DM Sans', sans-serif;
+    --body: 'DM Sans', sans-serif;
     --mono: 'JetBrains Mono', monospace;
   }
   * { box-sizing: border-box; }
@@ -239,15 +239,16 @@ export default function MockupStyles() {
   .score-ring .unit { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 4px; }
 
   .verdict-text h1 {
-    font-family: var(--serif);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
     font-size: 38px;
-    font-weight: 400;
+    font-weight: 600;
     line-height: 1.15;
     letter-spacing: 0.3px;
     margin: 0 0 14px;
     max-width: 540px;
   }
-  .verdict-text h1 em { font-style: italic; color: var(--amber); font-weight: 400; }
+  .verdict-text h1 em { font-style: italic; color: var(--amber); font-weight: 600; }
   .verdict-text p {
     font-family: var(--body);
     font-size: 15px;
