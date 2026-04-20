@@ -128,7 +128,7 @@ const AvatarMenu = ({ user, onLogout }) => {
               <div style={{ fontFamily: T.body, fontSize: 13, fontWeight: 600, color: T.text }}>
                 {user?.name || ls.avatarMenu.fallbackUser}
               </div>
-              <div style={{ fontFamily: T.mono, fontSize: 10, color: T.muted, marginTop: 2 }}>
+              <div style={{ fontFamily: T.mono, fontSize: 11, color: T.muted, marginTop: 2 }}>
                 {user?.email || ls.avatarMenu.fallbackEmail}
               </div>
               <div
@@ -144,7 +144,7 @@ const AvatarMenu = ({ user, onLogout }) => {
                 }}
               >
                 <div style={{ width: 5, height: 5, borderRadius: "50%", background: T.amber }} />
-                <span style={{ fontFamily: T.mono, fontSize: 9, color: T.amber, letterSpacing: 0.5 }}>
+                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.amber, letterSpacing: 0.5 }}>
                   {ls.avatarMenu.planFree}
                 </span>
               </div>

@@ -297,7 +297,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           borderRadius: 10, minHeight: 70, display: "flex", flexDirection: "column", gap: 8,
         }}>
           <div style={{
-            fontFamily: "JetBrains Mono, monospace", fontSize: 9, letterSpacing: 2,
+            fontFamily: "JetBrains Mono, monospace", fontSize: 11, letterSpacing: 2,
             color: T.amber, textTransform: "uppercase",
           }}>{s.loading.didYouKnow}</div>
           <div key={tipIdx} style={{

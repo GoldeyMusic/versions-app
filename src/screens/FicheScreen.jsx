@@ -196,7 +196,7 @@ function ListeningSection({ listening }) {
     <div>
       <h3 style={{
         fontFamily: 'JetBrains Mono, monospace',
-        fontSize: 10, letterSpacing: 2, fontWeight: 500,
+        fontSize: 11, letterSpacing: 2, fontWeight: 500,
         color: '#f5b056', textTransform: 'uppercase',
         margin: '0 0 10px',
       }}>{title}</h3>
@@ -246,7 +246,7 @@ function ListeningSection({ listening }) {
                   alignSelf: 'flex-start', marginTop: -6,
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   color: '#f5b056', fontFamily: 'JetBrains Mono, monospace',
-                  fontSize: 10, letterSpacing: 2, fontWeight: 500,
+                  fontSize: 11, letterSpacing: 2, fontWeight: 500,
                   textTransform: 'uppercase', padding: '6px 0',
                   display: 'flex', alignItems: 'center', gap: 6,
                 }}
@@ -258,7 +258,7 @@ function ListeningSection({ listening }) {
         ) : (
           legacySections.map((sec, i) => (
             <div key={i}>
-              {sec.title && <h3 style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: 2, fontWeight: 500, color: '#f5b056', textTransform: 'uppercase', margin: '0 0 10px' }}>{sec.title}</h3>}
+              {sec.title && <h3 style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: 2, fontWeight: 500, color: '#f5b056', textTransform: 'uppercase', margin: '0 0 10px' }}>{sec.title}</h3>}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {sec.blocks.map((b, j) => b.type === 'bullet' ? <Bullet key={j}>{b.text}</Bullet> : <P key={j}>{b.text}</P>)}
               </div>
@@ -324,7 +324,7 @@ function AnalyzingState({ stage }) {
           letterSpacing: 5, textTransform: 'uppercase',
         }}>{s.fiche.finalizingTitle}</h1>
         <p style={{
-          fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#7c7c80',
+          fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#7c7c80',
           margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6, letterSpacing: 1,
         }}>
           {s.fiche.finalizingSubtitle}
@@ -400,7 +400,7 @@ function AnalyzingState({ stage }) {
         borderRadius: 10, minHeight: 70, display: 'flex', flexDirection: 'column', gap: 8,
       }}>
         <div style={{
-          fontFamily: 'JetBrains Mono, monospace', fontSize: 9, letterSpacing: 2,
+          fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: 2,
           color: '#f5b056', textTransform: 'uppercase',
         }}>{s.fiche.didYouKnow}</div>
         <div key={tipIdx} style={{
@@ -709,7 +709,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
         {/* En-tête : compteur + close */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <span style={{
-            fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: 2,
+            fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: 2,
             color: '#7c7c80', textTransform: 'uppercase',
           }}>
             <b style={{ color: '#f5b056' }}>{idx + 1}</b> / {plan.length}

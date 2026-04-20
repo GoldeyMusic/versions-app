@@ -163,7 +163,7 @@ function ListeningSection({ listening }) {
             {sec.title && (
               <h3 style={{
                 fontFamily: 'JetBrains Mono, monospace',
-                fontSize: 10, letterSpacing: 2, fontWeight: 500,
+                fontSize: 11, letterSpacing: 2, fontWeight: 500,
                 color: '#f5b056', textTransform: 'uppercase',
                 margin: '0 0 10px',
               }}>{sec.title}</h3>
@@ -303,7 +303,7 @@ function AnalyzingState({ stage }) {
         borderRadius: 10, minHeight: 80, display: 'flex', flexDirection: 'column', gap: 10,
       }}>
         <div style={{
-          fontFamily: 'JetBrains Mono, monospace', fontSize: 9, letterSpacing: 2,
+          fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: 2,
           color: '#f5b056', textTransform: 'uppercase',
         }}>{s.fiche.didYouKnow}</div>
         <div key={tipIdx} style={{
@@ -382,7 +382,7 @@ function MenuItem({ label, onClick, danger }) {
         display: 'block', width: '100%', textAlign: 'left',
         padding: '8px 12px', borderRadius: 6, border: 'none',
         background: 'transparent', cursor: 'pointer',
-        fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 400,
+        fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 400,
         color: danger ? '#ef6b6b' : '#c5c5c7',
         transition: 'background .1s',
       }}
@@ -616,7 +616,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
         {/* En-tête : compteur + close */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <span style={{
-            fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: 2,
+            fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: 2,
             color: '#7c7c80', textTransform: 'uppercase',
           }}>
             <b style={{ color: '#f5b056' }}>{idx + 1}</b> / {plan.length}

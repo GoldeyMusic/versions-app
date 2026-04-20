@@ -120,7 +120,7 @@ export default function AskModal({ onClose }) {
             <div
               style={{
                 fontFamily: T.mono,
-                fontSize: 10,
+                fontSize: 11,
                 color: T.muted,
                 marginTop: 2,
               }}
@@ -174,7 +174,7 @@ export default function AskModal({ onClose }) {
               <div
                 style={{
                   fontFamily: T.body,
-                  fontSize: 12,
+                  fontSize: 13,
                   color: T.muted,
                   textAlign: 'center',
                   lineHeight: 1.6,
@@ -200,7 +200,7 @@ export default function AskModal({ onClose }) {
                     }}
                     style={{
                       fontFamily: T.mono,
-                      fontSize: 9,
+                      fontSize: 11,
                       padding: '5px 10px',
                       borderRadius: 6,
                       background: T.s2,
@@ -239,7 +239,7 @@ export default function AskModal({ onClose }) {
               <div
                 style={{
                   fontFamily: T.body,
-                  fontSize: 12,
+                  fontSize: 13,
                   color: T.text,
                   lineHeight: 1.6,
                   fontWeight: m.role === 'user' ? 400 : 300,
