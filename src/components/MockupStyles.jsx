@@ -3186,15 +3186,15 @@ export default function MockupStyles() {
 
     /* Priority / plan d'action mobile */
     .priority { padding: 14px 14px; gap: 12px; }
-    .pbadge { font-size: 8px; padding: 2px 5px; }
+    .pbadge { font-size: 9px; padding: 2px 5px; }
     .ptitle { font-size: 13px; }
     .parrow { display: none; }
 
     /* Diagnostic mobile */
     .diag-cat-head { padding: 12px 14px; gap: 10px; }
     .diag-item { gap: 12px; padding: 12px 0; }
-    .diag-item .di-name { font-size: 13px; }
-    .diag-item .di-detail { font-size: 12px; }
+    .diag-item .di-name { font-size: 15px; }
+    .diag-item .di-detail { font-size: 13px; }
 
     /* Focus modal mobile */
     .focus-backdrop { padding: 16px; }
