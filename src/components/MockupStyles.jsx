@@ -1406,6 +1406,9 @@ export default function MockupStyles() {
   }
   .player .pl-wave .bar.past { background: var(--amber); }
   .player .pl-wave .bar.head { background: var(--text); }
+  /* Desktop : wavesurfer visible, scrubber mobile caché */
+  .player .pl-wavesurfer { display: block; }
+  .player .pl-scrubber { display: none; }
   .player .pl-time {
     font-family: var(--mono); font-size: 10px; color: var(--muted);
     flex-shrink: 0; min-width: 78px; text-align: right;
@@ -3225,6 +3228,27 @@ export default function MockupStyles() {
     .player .pl-meta .pl-title { font-size: 12px; }
     .player .pl-meta { min-width: 100px; }
     .player .pl-wave { display: none; }
+    /* Mobile : wavesurfer caché, scrubber range visible (plus léger côté perf) */
+    .player .pl-wavesurfer { display: none; }
+    .player .pl-scrubber {
+      display: block;
+      flex: 1; min-width: 0;
+      -webkit-appearance: none; appearance: none;
+      height: 3px; border-radius: 2px;
+      background: var(--muted2);
+      cursor: pointer;
+    }
+    .player .pl-scrubber::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--amber); border: none;
+      cursor: pointer;
+    }
+    .player .pl-scrubber::-moz-range-thumb {
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--amber); border: none;
+      cursor: pointer;
+    }
     .player .pl-time { font-size: 9px; min-width: 60px; }
     .player { gap: 12px; height: 60px; }
     .player .pl-btn { width: 34px; height: 34px; }
