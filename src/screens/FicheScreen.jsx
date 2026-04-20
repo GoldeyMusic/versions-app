@@ -4,6 +4,7 @@ import API from '../constants/api';
 import VChip from '../components/VChip';
 import ExportPdfModal from '../components/ExportPdfModal';
 import ShareLinkModal from '../components/ShareLinkModal';
+import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
 import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType } from '../lib/storage';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
@@ -208,7 +209,7 @@ function ListeningSection({ listening }) {
   const Bullet = ({ children }) => (
     <div style={{
       display: 'flex', gap: 12, alignItems: 'flex-start',
-      fontFamily: 'Inter, sans-serif', fontSize: 13,
+      fontFamily: "'DM Sans', sans-serif", fontSize: 13,
       color: '#c5c5c7', lineHeight: 1.7, fontWeight: 300,
     }}>
       <span style={{ color: '#f5b056', fontSize: 14, lineHeight: 1.5, flexShrink: 0, marginTop: 1 }}>▸</span>
@@ -331,7 +332,7 @@ function AnalyzingState({ stage }) {
           letterSpacing: 5, textTransform: 'uppercase',
         }}>Finalisation de l'analyse</h1>
         <p style={{
-          fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#7c7c80',
+          fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#7c7c80',
           margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6, letterSpacing: 1,
         }}>
           La fiche d'analyse se génère. Encore quelques secondes.
@@ -374,7 +375,7 @@ function AnalyzingState({ stage }) {
               </span>
               <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
               <span style={{
-                fontFamily: 'JetBrains Mono, Inter, monospace', fontSize: 11, letterSpacing: 1,
+                fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: 1,
                 textTransform: 'uppercase',
                 color: done ? '#c5c5c7' : active ? '#f5b056' : '#7c7c80',
               }}>{s.label}</span>
@@ -411,7 +412,7 @@ function AnalyzingState({ stage }) {
           color: '#f5b056', textTransform: 'uppercase',
         }}>Le saviez-vous</div>
         <div key={tipIdx} style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#c5c5c7',
+          fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#c5c5c7',
           lineHeight: 1.7, fontWeight: 300,
           animation: 'fadein .4s ease',
         }}>{ANALYSIS_TIPS[tipIdx]}</div>
@@ -576,9 +577,10 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
               disabled={!current?.id || current.id === '__pending_v__'}
               title={!current?.id || current.id === '__pending_v__' ? 'Enregistrement en cours…' : 'Générer un lien public lecture seule'}
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M6.5 9.5l3-3M5 11L3.5 12.5a2.12 2.12 0 01-3-3L3 7m8 2l1.5-1.5a2.12 2.12 0 000-3 2.12 2.12 0 00-3 0L8 6"
-                      stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              {/* Icône share iOS-style : flèche vers le haut depuis un carré */}
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M8 9V2M5.5 4.5L8 2l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M4 8v4.5h8V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               <span className="fhb-label">Partager un lien</span>
             </button>
@@ -590,9 +592,10 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
               onClick={() => onExportVersion(track, current)}
               title="Générer un PDF partageable de cette version"
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              {/* Icône export PDF : flèche vers le bas dans un plateau */}
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12v1.5A1.5 1.5 0 004.5 15h7A1.5 1.5 0 0013 13.5V12"
-                      stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <span className="fhb-label">Exporter en PDF</span>
             </button>
@@ -728,7 +731,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
         </div>
 
         <h2 style={{
-          fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 26,
+          fontFamily: "'DM Sans', sans-serif", fontWeight: 400, fontSize: 26,
           lineHeight: 1.25, color: '#ededed', margin: '0 0 20px',
           display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap',
         }}>
@@ -1473,6 +1476,16 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             <AnalyzingState stage={stage} />
           ) : (
           <>
+          {/* 0 · Bandeau « voix détectée » : propose de basculer le vocal_type
+                  en « chanté » quand le titre est encore marqué « voix à venir »
+                  mais que Gemini a entendu du chant sur la version courante. */}
+          <VocalTypeSuggestionBanner
+            track={currentTrack}
+            versionId={versionInDb?.id}
+            listening={listening}
+            onRefresh={() => loadTracks().then(setTracks)}
+          />
+
           {/* 1 · Verdict + Évolution (2 colonnes) */}
           <section className="row-verdict">
             <div className="rv-left">

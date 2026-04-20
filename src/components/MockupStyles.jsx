@@ -6,7 +6,7 @@
 export default function MockupStyles() {
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap');`}</style>
       <style>{`
   :root {
     --bg: #0c0c0d;
@@ -25,8 +25,8 @@ export default function MockupStyles() {
     --green-dim: #7bd88f33;
     --red: #ef6b6b;
     --black: #000;
-    --serif: 'Instrument Serif', serif;
-    --body: 'Inter', sans-serif;
+    --serif: 'DM Sans', sans-serif;
+    --body: 'DM Sans', sans-serif;
     --mono: 'JetBrains Mono', monospace;
   }
   * { box-sizing: border-box; }
@@ -346,6 +346,87 @@ export default function MockupStyles() {
     opacity: .85;
   }
 
+  /* ── VocalTypeSuggestionBanner ──
+     Bandeau affiché sur la fiche quand Gemini a détecté de la voix sur une
+     version alors que le titre est encore marqué "voix à venir". Registre
+     visuel ambré (cohérent avec la pill instrumental_pending), cliquable
+     au clavier, disparaît sans animation brutale. */
+  .vocal-suggest {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: rgba(245,166,35,0.06);
+    border: 1px solid rgba(245,166,35,0.35);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    color: var(--text);
+    animation: fadeup .25s ease;
+  }
+  .vocal-suggest .vs-icon {
+    flex: 0 0 auto;
+    color: var(--amber);
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(245,166,35,0.1);
+    margin-top: 1px;
+  }
+  .vocal-suggest .vs-body {
+    flex: 1 1 auto; min-width: 0;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .vocal-suggest .vs-title {
+    font-family: var(--body); font-size: 14px; font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.1px;
+  }
+  .vocal-suggest .vs-text {
+    font-family: var(--body); font-size: 13px; font-weight: 300;
+    color: var(--textSoft, #b8bdc7);
+    line-height: 1.4;
+  }
+  .vocal-suggest .vs-actions {
+    flex: 0 0 auto;
+    display: flex; gap: 8px; align-items: center;
+    margin-left: 8px;
+  }
+  .vocal-suggest .vs-btn {
+    font-family: var(--body); font-size: 12.5px; font-weight: 500;
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;
+    white-space: nowrap;
+  }
+  .vocal-suggest .vs-btn:disabled { opacity: .6; cursor: progress; }
+  .vocal-suggest .vs-btn-primary {
+    background: var(--amber);
+    border: 1px solid var(--amber);
+    color: #1a1a1e;
+  }
+  .vocal-suggest .vs-btn-primary:hover:not(:disabled) {
+    background: #f5c056;
+    border-color: #f5c056;
+  }
+  .vocal-suggest .vs-btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--textSoft, #b8bdc7);
+  }
+  .vocal-suggest .vs-btn-ghost:hover:not(:disabled) {
+    border-color: rgba(255,255,255,0.2);
+    color: var(--text);
+  }
+
+  /* Mobile : pile les actions sous le texte pour éviter la compression. */
+  @media (max-width: 768px) {
+    .vocal-suggest { flex-wrap: wrap; }
+    .vocal-suggest .vs-actions {
+      margin-left: 0;
+      width: 100%;
+      justify-content: flex-start;
+    }
+  }
+
   .versions-block {
     display: flex; align-items: center; gap: 10px;
     /* Le push-droite est désormais porté par .fiche-head-actions
@@ -572,15 +653,16 @@ export default function MockupStyles() {
 
   .verdict-text { flex: 1; min-width: 0; }
   .verdict-text h1 {
-    font-family: var(--serif);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
     font-size: 42px;
-    font-weight: 400;
+    font-weight: 600;
     line-height: 1.15;
     letter-spacing: 0.3px;
     margin: 0 0 14px;
     max-width: 900px;
   }
-  .verdict-text h1 em { font-style: italic; color: var(--amber); font-weight: 400; }
+  .verdict-text h1 em { font-style: italic; color: var(--amber); font-weight: 600; }
   .verdict-text p {
     font-family: var(--body);
     font-size: 15px;
@@ -603,7 +685,7 @@ export default function MockupStyles() {
   /* ── ROW 1 : Verdict + Évolution (2 colonnes) ── */
   .row-verdict {
     display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    grid-template-columns: 1fr 340px;
     gap: 32px;
     align-items: stretch;
     padding: 20px 0 40px;
@@ -1968,7 +2050,7 @@ export default function MockupStyles() {
 
   /* ── Input Screen ── */
   .input-screen {
-    width: 100%; max-width: 520px; margin: 0 auto;
+    width: 100%; max-width: 1200px; margin: 0 auto;
     padding: 50px 40px 80px; box-sizing: border-box;
     display: flex; flex-direction: column; gap: 28px;
     animation: fadeup .35s ease;
@@ -1999,6 +2081,32 @@ export default function MockupStyles() {
 
   .input-form {
     display: flex; flex-direction: column; gap: 16px;
+  }
+
+  /* Body en 2 colonnes sur desktop (fichier+type à gauche, metadonnees+CTA à droite).
+     Par défaut : mono-colonne. La grille 2-col s'active via le media query ≥1100px. */
+  .input-body {
+    display: flex; flex-direction: column; gap: 16px;
+    max-width: 520px; margin: 0 auto; width: 100%;
+  }
+  .input-col-main,
+  .input-col-side {
+    display: flex; flex-direction: column; gap: 16px;
+    min-width: 0;
+  }
+
+  /* À partir de 1100px, on bascule le body en grille 2 colonnes.
+     Ratio 1.2fr / 1fr : le fichier (colonne principale) a un peu plus de poids
+     visuel que les métadonnées. align-items:start pour éviter que la colonne
+     la plus courte ne soit étirée. */
+  @media (min-width: 1100px) {
+    .input-body {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 24px;
+      align-items: start;
+      max-width: 1100px;
+    }
   }
 
   .input-section {
@@ -2959,17 +3067,24 @@ export default function MockupStyles() {
     .reglages-signout { padding: 14px 16px; }
 
     /* Welcome Home */
-    .welcome-home { padding: 30px 20px 120px; max-width: 100%; }
+    /* gap: 12px ≈ wh-projects gap (10px) → rythme uniforme au scroll */
+    /* animation: none — supprime le fadeup (opacity 0→1 sur 350ms) qui crée le flash */
+    .welcome-home { padding: 24px 20px 80px; max-width: 100%; gap: 12px; animation: none; }
     .wh-greeting { font-size: 28px; letter-spacing: 2px; }
-    .wh-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    /* Bouton Ajouter déplacé dans le menu avatar sur mobile */
+    .wh-actions { display: none; }
     .wh-tracklist { max-width: 100%; }
     .wh-action { justify-content: center; padding: 12px 10px; font-size: 12px; }
+    /* Espace interne tracklist : title margin réduit pour coller aux projets */
+    .wh-section-title { margin-bottom: 10px; }
+    /* Corps accordéon ouvert : padding-bottom réduit pour éviter le grand blanc */
+    .wh-acc-body { padding: 0 14px 10px; }
     /* Tagline hero — version compacte mobile (padding + font réduits) */
-    .wh-tagline-hero { padding: 24px 4px 32px; gap: 10px; }
+    .wh-tagline-hero { padding: 32px 20px 24px; gap: 10px; }
     .wh-tagline-text { font-size: 22px; line-height: 1.3; max-width: 100%; }
-    /* Cartes pédago hors .wh-col-right sur mobile : espacement vertical */
-    .welcome-home > .wh-card + .wh-card { margin-top: 12px; }
-    .welcome-home > .wh-card:first-of-type { margin-top: 16px; }
+    /* Cartes pédago : margin-top annulé — le gap du parent gère l'espacement */
+    .welcome-home > .wh-card + .wh-card { margin-top: 0; }
+    .welcome-home > .wh-card:first-of-type { margin-top: 0; }
 
     /* Versions Screen */
     .versions-screen { padding: 30px 20px 120px; max-width: 100%; }
@@ -2996,7 +3111,7 @@ export default function MockupStyles() {
     .score-ring .unit { font-size: 8px; letter-spacing: 0.5px; margin-top: 2px; }
     .verdict-text h1 { font-size: 26px; }
     .verdict-text p { font-size: 14px; }
-    .timeline { padding: 12px 16px 10px; gap: 12px; flex-wrap: wrap; }
+    .timeline { padding: 12px 16px 10px; gap: 12px; }
     .track-title { font-size: 20px; }
     .versions-block { padding: 8px; }
     .vchip { padding: 6px 10px; min-width: 50px; }
@@ -3131,7 +3246,7 @@ export default function MockupStyles() {
     display: flex; align-items: baseline; gap: 12px;
   }
   .public-fiche-topbar .pft-brand {
-    font-family: var(--mono, "Inter", monospace);
+    font-family: var(--mono, "DM Sans", sans-serif);
     font-size: 14px; font-weight: 600; letter-spacing: 2px;
     color: var(--accent);
   }
@@ -3216,7 +3331,7 @@ export default function MockupStyles() {
     padding: 80px 28px; text-align: center;
   }
   .public-fiche-404 .pfx-kicker {
-    font-family: var(--mono, "Inter", monospace);
+    font-family: var(--mono, "DM Sans", sans-serif);
     font-size: 12px; letter-spacing: 3px;
     color: var(--accent); margin-bottom: 18px;
   }
@@ -3271,7 +3386,7 @@ export default function MockupStyles() {
     border: 1px solid rgba(245, 176, 86, 0.28);
     border-radius: 8px;
     color: #e0c389;
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
@@ -3303,21 +3418,61 @@ export default function MockupStyles() {
     .fiche-head-btn { padding: 6px 8px; }
   }
 
-  /* Sur mobile la Timeline bascule en colonne (voir règles plus haut) :
-     on ré-étire les boutons pour qu'ils soient confortables au doigt. */
+  /* ── Header fiche mobile : grille 2 colonnes ──────────────────────
+     Ligne 1 : titre + vocal-pill (col 1)  |  icônes share/export (col 2)
+     Ligne 2 : barre de versions pleine largeur
+     Inspiré SoundCloud / Spotify : actions en icônes discrètes,
+     info de version portée par la chip active plutôt que par le vsub. */
   @media (max-width: 720px) {
+    .timeline {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 8px 10px;
+      padding: 10px 16px;
+      align-items: center;
+    }
+    /* Titre : col 1 ligne 1 */
+    .track-title {
+      grid-column: 1;
+      grid-row: 1;
+      font-size: 17px;
+      gap: 8px;
+      min-width: 0;
+      align-items: center;
+    }
+    .track-title-left {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      flex-shrink: 1;
+    }
+    /* Sous-titre "VERSION ACTUELLE V2" masqué — redondant avec la chip active */
+    .track-title .vsub { display: none; }
+    /* Icônes share/export : col 2 ligne 1, sans label */
     .fiche-head-actions {
+      grid-column: 2;
+      grid-row: 1;
       margin-left: 0;
-      padding-left: 0;
-      border-left: 0;
+      width: auto;
+      gap: 4px;
+      align-self: center;
+    }
+    .fiche-head-btn .fhb-label { display: none; }
+    .fiche-head-btn { padding: 7px 8px; }
+    /* Versions : col 1-2 ligne 2, pleine largeur */
+    .versions-block {
+      grid-column: 1 / -1;
+      grid-row: 2;
       width: 100%;
-      justify-content: flex-end;
+      max-width: 100%;
+      padding: 8px 10px;
+      margin-left: 0;
     }
-    .fiche-head-btn .fhb-label { display: inline; }
-    .fiche-head-btn {
-      padding: 8px 12px;
-      font-size: 12.5px;
-    }
+    .vchip { padding: 6px 8px; min-width: 46px; }
+    .vchip .vname { font-size: 10px; }
+    .vchip .vscore { font-size: 16px; }
   }
 `}</style>
     </>

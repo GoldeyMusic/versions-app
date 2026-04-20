@@ -117,6 +117,10 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
         formData.append("daw", config.daw || "Logic Pro");
         formData.append("title", config.title || "Titre inconnu");
         formData.append("version", config.version || "v1");
+        // Type vocal du titre — permet au backend (Railway) d'adapter les prompts
+        // IA (ton bienveillant pour 'pending', section voix ignorée pour 'final').
+        // Défaut 'vocal' pour compat avec les titres existants.
+        formData.append("vocalType", config.vocalType || "vocal");
         if (userId) formData.append("userId", userId);
         if (previousFiche) formData.append("previousFiche", JSON.stringify(previousFiche));
         if (durationSeconds) formData.append("durationSeconds", String(durationSeconds));
@@ -265,7 +269,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
                 </span>
                 <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
                 <span style={{
-                  fontFamily: "JetBrains Mono, Inter, monospace", fontSize: 11, letterSpacing: 1,
+                  fontFamily: "JetBrains Mono, monospace", fontSize: 11, letterSpacing: 1,
                   textTransform: "uppercase",
                   color: done ? "#c5c5c7" : active ? T.amber : "#7c7c80",
                 }}>{label}</span>
@@ -302,7 +306,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
             color: T.amber, textTransform: "uppercase",
           }}>Le saviez-vous</div>
           <div key={tipIdx} style={{
-            fontFamily: "Inter, sans-serif", fontSize: 13, color: "#c5c5c7",
+            fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#c5c5c7",
             lineHeight: 1.7, fontWeight: 300,
             animation: "fadein .4s ease",
           }}>{shuffledTips[tipIdx]}</div>
