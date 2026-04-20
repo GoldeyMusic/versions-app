@@ -382,16 +382,56 @@ export async function fetchPublicFiche(token) {
   const { data, error } = await supabase.rpc('get_public_fiche', { p_token: token });
   if (error) { console.warn('[storage] fetchPublicFiche error:', error.message); return null; }
   if (!data) return null;
-  // data = { track_title, version_name, created_at, analysis_result, vocal_type }
-  // vocal_type : ajouté par migration 005 (COALESCE → 'vocal' par défaut
-  // pour les anciens partages créés avant la migration).
+  // data = { track_title, version_name, created_at, analysis_result, vocal_type,
+  //          analysis_locale, analysis_translations }
+  // analysis_locale / analysis_translations : ajoutés par la migration i18n
+  // (par défaut 'fr' et {} pour les anciennes fiches).
   return {
     trackTitle: data.track_title || '',
     versionName: data.version_name || '',
     createdAt: data.created_at || null,
     analysisResult: data.analysis_result || null,
     vocalType: data.vocal_type || 'vocal',
+    analysisLocale: (data.analysis_locale || 'fr').toString().toLowerCase().slice(0, 2),
+    analysisTranslations: data.analysis_translations || {},
   };
+}
+
+/**
+ * Traduit un analysisResult (fiche + écoute) vers `target` en utilisant
+ * /api/translate. Pas d'écriture en DB (utile pour les visiteurs anonymes
+ * qui ne peuvent pas updater le cache côté owner).
+ */
+export async function translateAnalysisResult(analysisResult, sourceLocale, targetLocale) {
+  if (!analysisResult) return null;
+  const source = (sourceLocale || 'fr').toString().toLowerCase().slice(0, 2);
+  const target = (targetLocale || 'fr').toString().toLowerCase().slice(0, 2);
+  if (source === target) return analysisResult;
+  const API = (await import('../constants/api')).default;
+  const callTranslate = async (type, content) => {
+    if (!content || typeof content !== 'object') return null;
+    try {
+      const r = await fetch(`${API}/api/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, content, targetLocale: target, sourceLocale: source }),
+      });
+      if (!r.ok) throw new Error(`translate ${type}: ${r.status}`);
+      const j = await r.json();
+      return j?.translated || null;
+    } catch (e) {
+      console.warn('[storage] translate fallback (original):', e.message);
+      return null;
+    }
+  };
+  const [ficheT, listeningT] = await Promise.all([
+    callTranslate('fiche', analysisResult.fiche),
+    callTranslate('listening', analysisResult.listening),
+  ]);
+  const translated = { ...analysisResult };
+  if (ficheT) translated.fiche = ficheT;
+  if (listeningT) translated.listening = listeningT;
+  return translated;
 }
 
 /** Delete a version. If last one, delete the track too. Also removes audio from Storage. */

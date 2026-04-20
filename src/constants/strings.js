@@ -516,6 +516,7 @@ const STRINGS = {
       planResolvedSingular: "résolu",
       planResolvedPlural: "résolus",
       pendingVerdict: "Analyse en cours…",
+      translating: "Traduction en cours…",
     },
 
     /* ─────────────── COMPARE ─────────────── */
@@ -1421,6 +1422,7 @@ const STRINGS = {
       planResolvedSingular: "resolved",
       planResolvedPlural: "resolved",
       pendingVerdict: "Analysis in progress…",
+      translating: "Translating…",
     },
 
     /* ─────────────── COMPARE ─────────────── */

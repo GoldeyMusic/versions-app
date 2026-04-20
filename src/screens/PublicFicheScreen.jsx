@@ -13,7 +13,7 @@ import {
   applyVocalTypeToFiche,
   isVoiceCategory,
 } from '../lib/ficheHelpers.jsx';
-import { fetchPublicFiche } from '../lib/storage';
+import { fetchPublicFiche, translateAnalysisResult } from '../lib/storage';
 import useLang from '../hooks/useLang';
 
 // FontLink dupliqué depuis App.jsx (évite l'import circulaire de App dans ce
@@ -33,12 +33,13 @@ function FontLink() {
 // (via SECURITY DEFINER) uniquement la fiche correspondant au token — aucune
 // autre version / projet / notes externes n'est exposé.
 export default function PublicFicheScreen({ token }) {
-  const { s } = useLang();
+  const { s, lang } = useLang();
   // L'état initial dépend du token (présent ou non) — on évite un setState
   // synchrone dans l'effet (règle react-hooks/set-state-in-effect).
   const [state, setState] = useState(() => (
     token ? { status: 'loading', data: null } : { status: 'notfound', data: null }
   ));
+  const [translating, setTranslating] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -48,12 +49,40 @@ export default function PublicFicheScreen({ token }) {
       if (!alive) return;
       if (!data) {
         setState({ status: 'notfound', data: null });
-      } else {
+        return;
+      }
+      // Serve l'analysisResult directement dans la langue du visiteur si
+      // possible. Ordre d'essai :
+      //  1) source = target → on sert l'original.
+      //  2) cache présent (rempli par l'owner) pour la langue cible → cache.
+      //  3) appel /api/translate à la volée (pas de writeback, visiteur anonyme).
+      const target = (lang || 'fr').toString().toLowerCase().slice(0, 2);
+      const source = (data.analysisLocale || 'fr').toString().toLowerCase().slice(0, 2);
+      if (source === target || !data.analysisResult) {
         setState({ status: 'ok', data });
+        return;
+      }
+      const cached = data.analysisTranslations && data.analysisTranslations[target];
+      if (cached) {
+        setState({ status: 'ok', data: { ...data, analysisResult: cached } });
+        return;
+      }
+      // Cache miss : on affiche l'original tout de suite, et on déclenche la
+      // traduction en arrière-plan avec un indicateur.
+      setState({ status: 'ok', data });
+      setTranslating(true);
+      try {
+        const tr = await translateAnalysisResult(data.analysisResult, source, target);
+        if (!alive) return;
+        if (tr) setState({ status: 'ok', data: { ...data, analysisResult: tr } });
+      } catch (e) {
+        console.warn('[PublicFicheScreen] translate failed', e?.message);
+      } finally {
+        if (alive) setTranslating(false);
       }
     })();
     return () => { alive = false; };
-  }, [token]);
+  }, [token, lang]);
 
   if (state.status === 'loading') {
     return (
@@ -161,6 +190,11 @@ export default function PublicFicheScreen({ token }) {
                     const stamp = formatAnalyzedAt(data.createdAt);
                     return stamp ? <div className="analyzed-at">{stamp}</div> : null;
                   })()}
+                  {translating && (
+                    <div className="analyzed-at" style={{ opacity: 0.6, fontStyle: 'italic' }}>
+                      {s.fiche.translating}
+                    </div>
+                  )}
                 </div>
               </div>
             </section>

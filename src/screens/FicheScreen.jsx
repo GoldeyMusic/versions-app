@@ -5,7 +5,7 @@ import VChip from '../components/VChip';
 import ExportPdfModal from '../components/ExportPdfModal';
 import ShareLinkModal from '../components/ShareLinkModal';
 import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
-import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType } from '../lib/storage';
+import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized } from '../lib/storage';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
 import { renderWithEmphasis, formatAnalyzedAt, splitVerdict, applyVocalTypeToFiche, isVoiceCategory } from '../lib/ficheHelpers.jsx';
@@ -1302,8 +1302,13 @@ function NotesSection({ versionId, initialNotes }) {
 // ── FicheScreen (principal) ────────────────────────────────
 
 export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onGoHome, refreshKey }) {
-  const { s } = useLang();
+  const { s, lang } = useLang();
   const [tracks, setTracks] = useState([]);
+  // Fiche traduite (lazy) — null tant qu'on n'a pas fetché, sinon l'objet
+  // `{ fiche, listening, ... }` dans la langue courante. Clé = `${versionId}::${lang}`.
+  const [localizedAR, setLocalizedAR] = useState(null);
+  const [localizedKey, setLocalizedKey] = useState(null);
+  const [translating, setTranslating] = useState(false);
   const [openCat, setOpenCat] = useState(0); // un seul accordéon ouvert à la fois
   const [openPlanIdx, setOpenPlanIdx] = useState(null);
   const [resolved, setResolved] = useState(new Set());
@@ -1375,9 +1380,51 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
       analysisResult: analysisResult || null,
     }],
   } : null);
-  const rawFiche = analysisResult?.fiche || null;
-  const listening = analysisResult?.listening || null;
-  const stage = analysisResult?._stage || 'idle';
+
+  // ── i18n : traduction à la volée de la fiche + écoute ──────
+  // On ne traduit que quand on a un id de version (persisté en DB).
+  // Tant que la traduction n'est pas revenue, on montre l'original (meilleur
+  // compromis UX : l'utilisateur voit toujours quelque chose, et l'indicateur
+  // `translating` est affiché sur le panneau verdict/écoute).
+  // La clé inclut une empreinte du payload source : si l'analyse est
+  // re-sauvegardée, la clé change et on refait une traduction fraîche.
+  const versionId = versionInDb?.id || null;
+  const sourceStamp = analysisResult?._stage === 'idle'
+    ? (analysisResult?.fiche ? 'ready' : 'empty')
+    : (analysisResult?._stage || 'idle');
+  const langKey = versionId ? `${versionId}::${lang}::${sourceStamp}` : null;
+  useEffect(() => {
+    if (!versionId || !analysisResult) return;
+    // Si la clé courante = celle déjà fetchée, rien à faire.
+    if (langKey && langKey === localizedKey) return;
+    let alive = true;
+    setTranslating(true);
+    (async () => {
+      try {
+        const tr = await loadVersionLocalized(versionId, lang);
+        if (!alive) return;
+        setLocalizedAR(tr || null);
+        setLocalizedKey(langKey);
+      } catch (e) {
+        console.warn('[FicheScreen] loadVersionLocalized failed', e?.message);
+        if (alive) { setLocalizedAR(null); setLocalizedKey(langKey); }
+      } finally {
+        if (alive) setTranslating(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [versionId, lang, analysisResult, langKey, localizedKey]);
+
+  // `displayAR` = analysisResult rendu à l'écran.
+  //  - Si on a une traduction valide pour la clé courante → on la sert.
+  //  - Sinon on retombe sur l'original (pas encore fetché, pas d'id, fallback).
+  const displayAR = (langKey && langKey === localizedKey && localizedAR)
+    ? localizedAR
+    : analysisResult;
+
+  const rawFiche = displayAR?.fiche || null;
+  const listening = displayAR?.listening || null;
+  const stage = displayAR?._stage || analysisResult?._stage || 'idle';
 
   // Type vocal du titre : priorité à la DB (la source de vérité), fallback
   // sur config.vocalType fraîchement choisi pendant l'import (avant que
@@ -1517,6 +1564,11 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   const stamp = formatAnalyzedAt(versionInDb?.createdAt || versionInDb?.date);
                   return stamp ? <div className="analyzed-at">{stamp}</div> : null;
                 })()}
+                {translating && (
+                  <div className="analyzed-at" style={{ opacity: 0.6, fontStyle: 'italic' }}>
+                    {s.fiche.translating}
+                  </div>
+                )}
               </div>
             </div>
             <div className="rv-right">
@@ -1730,7 +1782,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             <VersionChat
               versionId={versionInDb?.id || null}
               config={config}
-              analysisResult={analysisResult}
+              analysisResult={displayAR}
               open={true}
               onClose={() => {}}
               anchored
@@ -1746,7 +1798,11 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
       {exportTarget && (() => {
         const t = exportTarget.track;
         const v = exportTarget.version;
-        const ar = v?.analysisResult
+        // Si on exporte la version actuellement affichée, on prend le displayAR
+        // (qui contient la traduction dans la langue courante si disponible).
+        // Sinon on prend l'objet brut de la version ciblée (source FR par défaut).
+        const ar = (v?.name === config?.version ? displayAR : null)
+          || v?.analysisResult
           || (v?.name === config?.version ? analysisResult : null)
           || null;
         const hasListening = !!(ar?.listening && (
@@ -1808,7 +1864,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           <VersionChat
             versionId={versionInDb?.id || null}
             config={config}
-            analysisResult={analysisResult}
+            analysisResult={displayAR}
             open={chatOpen}
             onClose={() => setChatOpen(false)}
           />
