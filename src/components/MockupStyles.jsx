@@ -228,7 +228,7 @@ export default function MockupStyles() {
     font-size: 28px;
     letter-spacing: 0.5px;
     line-height: 1;
-    display: flex; align-items: baseline; gap: 12px;
+    display: flex; align-items: center; gap: 12px;
   }
   .track-title .it { color: var(--amber); }
   .track-title .vsub {
