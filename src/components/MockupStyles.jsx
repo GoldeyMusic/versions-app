@@ -1818,6 +1818,18 @@ export default function MockupStyles() {
     width: 100%; height: 56px; margin: 8px 0;
     cursor: pointer; overflow: hidden;
   }
+  .wh-hero-wave-row {
+    display: flex; align-items: center; gap: 10px; margin: 8px 0;
+  }
+  .wh-hero-wave-row .wh-hero-wave {
+    flex: 1; margin: 0;
+  }
+  .wh-hero-wave-row .pl-volume-btn {
+    color: rgba(255,255,255,0.7);
+  }
+  .wh-hero-wave-row .pl-volume-btn:hover {
+    color: #fff; background: rgba(255,255,255,0.08);
+  }
   .wh-hero-wave-empty {
     background:
       repeating-linear-gradient(

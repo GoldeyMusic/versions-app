@@ -10,7 +10,7 @@ import MockupStyles from "./components/MockupStyles";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import WaveSurfer from 'wavesurfer.js';
-import BottomPlayer, { resolveAudio } from "./components/BottomPlayer";
+import BottomPlayer, { resolveAudio, VolumeControl } from "./components/BottomPlayer";
 import AskModal from "./components/AskModal";
 import Sidebar from "./components/Sidebar";
 import InputScreen from "./screens/InputScreen";
@@ -1238,11 +1238,14 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           </div>
         </div>
         {heroWaveStoragePath ? (
-          <HeroWaveform
-            storagePath={heroWaveStoragePath}
-            isActive={heroIsPlaying}
-            resetKey={playerState?.resetKey || 0}
-          />
+          <div className="wh-hero-wave-row">
+            <HeroWaveform
+              storagePath={heroWaveStoragePath}
+              isActive={heroIsPlaying}
+              resetKey={playerState?.resetKey || 0}
+            />
+            <VolumeControl idle={!heroWaveStoragePath} />
+          </div>
         ) : (
           <div className="wh-hero-wave wh-hero-wave-empty" aria-hidden />
         )}
