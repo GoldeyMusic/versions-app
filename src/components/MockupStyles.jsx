@@ -223,7 +223,7 @@ export default function MockupStyles() {
     line-height: 1;
     display: flex; align-items: baseline; gap: 12px;
   }
-  .track-title .it { font-style: italic; color: var(--amber); }
+  .track-title .it { color: var(--amber); }
   .track-title .vsub {
     font-family: var(--mono);
     font-size: 10px;
@@ -662,7 +662,7 @@ export default function MockupStyles() {
     margin: 0 0 14px;
     max-width: 900px;
   }
-  .verdict-text h1 em { font-style: italic; color: var(--amber); font-weight: 600; }
+  .verdict-text h1 em { color: var(--amber); font-weight: 600; }
   .verdict-text p {
     font-family: var(--body);
     font-size: 15px;
@@ -1870,7 +1870,7 @@ export default function MockupStyles() {
     text-transform: uppercase; color: var(--amber); margin-bottom: 8px;
   }
   .wh-card-title {
-    font-family: var(--serif); font-style: italic; font-size: 20px;
+    font-family: var(--body); font-size: 15px; font-weight: 500;
     margin-bottom: 8px; color: var(--text);
   }
   .wh-card-body {
@@ -1943,7 +1943,7 @@ export default function MockupStyles() {
     color: var(--text); margin-bottom: 18px;
   }
   .wh-section-title em {
-    font-style: italic; color: var(--amber); font-weight: 400;
+    color: var(--amber); font-weight: 400; font-style: normal;
   }
 
   /* Tracklist homepage */
@@ -3186,15 +3186,15 @@ export default function MockupStyles() {
 
     /* Priority / plan d'action mobile */
     .priority { padding: 14px 14px; gap: 12px; }
-    .pbadge { font-size: 8px; padding: 2px 5px; }
+    .pbadge { font-size: 9px; padding: 2px 5px; }
     .ptitle { font-size: 13px; }
     .parrow { display: none; }
 
     /* Diagnostic mobile */
     .diag-cat-head { padding: 12px 14px; gap: 10px; }
     .diag-item { gap: 12px; padding: 12px 0; }
-    .diag-item .di-name { font-size: 13px; }
-    .diag-item .di-detail { font-size: 12px; }
+    .diag-item .di-name { font-size: 15px; }
+    .diag-item .di-detail { font-size: 13px; }
 
     /* Focus modal mobile */
     .focus-backdrop { padding: 16px; }
