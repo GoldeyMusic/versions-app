@@ -4,6 +4,7 @@ import DAWS from '../constants/daws';
 import { IconWave, IconCheck } from '../components/Icons';
 import { loadProjects, createProject } from '../lib/storage';
 import RenameModal from '../components/RenameModal';
+import useLang from '../hooks/useLang';
 
 /* ── PROJECT PICKER ─────────────────────────────────────── */
 const PROJECT_GRADIENTS = [
@@ -16,6 +17,7 @@ const PROJECT_GRADIENTS = [
 ];
 
 function ProjectPicker({ projects, projectId, onChange, onCreateNew, locked = false }) {
+  const { s } = useLang();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -40,7 +42,7 @@ function ProjectPicker({ projects, projectId, onChange, onCreateNew, locked = fa
           onClick={onCreateNew}
           className="input-select"
           style={{ textAlign: 'left', cursor: 'pointer', color: T.muted }}
-        >+ Crée ton premier projet</button>
+        >{s.input.projectPickerFirst}</button>
       </div>
     );
   }
@@ -52,7 +54,7 @@ function ProjectPicker({ projects, projectId, onChange, onCreateNew, locked = fa
         type="button"
         onClick={() => { if (!locked) setOpen((o) => !o); }}
         disabled={locked}
-        title={locked ? 'Projet verrouillé — ce titre est déjà rattaché à un projet' : undefined}
+        title={locked ? s.input.projectLocked : undefined}
         className="input-select"
         style={{
           textAlign: 'left', cursor: locked ? 'default' : 'pointer',
@@ -67,12 +69,12 @@ function ProjectPicker({ projects, projectId, onChange, onCreateNew, locked = fa
           {current.name}
         </span>
         <span style={{ color: T.muted, fontSize: 10 }}>
-          {(current.tracks?.length || 0)} titre{(current.tracks?.length || 0) > 1 ? 's' : ''}
+          {(current.tracks?.length || 0)} {(current.tracks?.length || 0) > 1 ? s.input.tracksPlural : s.input.tracksSingular}
         </span>
       </button>
       <div className="input-select-arrow">
         {locked ? (
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-label="verrouillé">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-label={s.input.projectLocked}>
             <rect x="3" y="5.5" width="6" height="4.5" rx="1" stroke="#7c7c80" strokeWidth="1.2" fill="none" />
             <path d="M4.2 5.5 V 4 a 1.8 1.8 0 0 1 3.6 0 V 5.5" stroke="#7c7c80" strokeWidth="1.2" fill="none" strokeLinecap="round" />
           </svg>
@@ -117,7 +119,7 @@ function ProjectPicker({ projects, projectId, onChange, onCreateNew, locked = fa
                   {p.name}
                 </span>
                 <span style={{ color: T.muted, fontSize: 10 }}>
-                  {n} titre{n > 1 ? 's' : ''}
+                  {n} {n > 1 ? s.input.tracksPlural : s.input.tracksSingular}
                 </span>
               </button>
             );
@@ -135,7 +137,7 @@ function ProjectPicker({ projects, projectId, onChange, onCreateNew, locked = fa
             }}
             onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(245,176,86,.08)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-          >+ Nouveau projet</button>
+          >{s.input.projectPickerNew}</button>
         </div>
       )}
     </div>
@@ -144,6 +146,7 @@ function ProjectPicker({ projects, projectId, onChange, onCreateNew, locked = fa
 
 /* ── FILE DROP ZONE ─────────────────────────────────────── */
 const FileDropZone = ({ file, onFile }) => {
+  const { s } = useLang();
   const [drag, setDrag] = useState(false);
   const ref = useRef(null);
 
@@ -178,8 +181,8 @@ const FileDropZone = ({ file, onFile }) => {
         <>
           <IconWave c={drag ? T.amber : '#7c7c80'} s={22} />
           <div className="input-drop-text">
-            <div className="input-drop-hint">Glisser le fichier ici ou cliquer</div>
-            <div className="input-drop-formats">WAV · AIFF · MP3 · FLAC — 200 MB max</div>
+            <div className="input-drop-hint">{s.input.dropText}</div>
+            <div className="input-drop-formats">{s.input.dropFormats}</div>
           </div>
         </>
       )}
@@ -191,6 +194,7 @@ const FileDropZone = ({ file, onFile }) => {
 /* INPUT SCREEN                                               */
 /* ═══════════════════════════════════════════════════════════ */
 const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lockProject = false, onRefreshProjects }) => {
+  const { s } = useLang();
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState(initialTitle);
   const [version, setVersion] = useState('');
@@ -284,8 +288,8 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
     <div className="input-screen">
       {/* Header */}
       <div className="input-header">
-        <div className="input-title">NOUVELLE ANALYSE</div>
-        <div className="input-tagline">Analyse <span className="input-tagline-dot">·</span> Compare <span className="input-tagline-dot">·</span> Évolue</div>
+        <div className="input-title">{s.input.title}</div>
+        <div className="input-tagline">{s.input.taglineWord1} <span className="input-tagline-dot">·</span> {s.input.taglineWord2} <span className="input-tagline-dot">·</span> {s.input.taglineWord3}</div>
       </div>
 
       {/* Progress bar */}
@@ -303,7 +307,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
           {/* ── FILE DROP ── */}
           <div className="input-section input-section-file">
             <div className="input-section-label">
-              TON MIX <div className="input-section-line" />
+              {s.input.sectionMix} <div className="input-section-line" />
               {file && <span style={{ color: '#7bd88f', fontSize: 9 }}>✓</span>}
             </div>
             <FileDropZone file={file} onFile={handleMainFile} />
@@ -313,7 +317,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
           {file && askVocal && (
             <div className="input-section" style={{ animation: 'fadeup .25s ease' }}>
               <div className="input-section-label">
-                TYPE DE TITRE <div className="input-section-line" />
+                {s.input.sectionVocalType} <div className="input-section-line" />
                 {vocalOk && <span style={{ color: '#7bd88f', fontSize: 9 }}>✓</span>}
               </div>
 
@@ -324,14 +328,14 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
                   className={`input-vpill${vocalKind === 'vocal' ? ' on' : ''}`}
                   onClick={() => { setVocalKind('vocal'); setFinalInstru(null); }}
                 >
-                  Chanté
+                  {s.input.vocalSung}
                 </button>
                 <button
                   type="button"
                   className={`input-vpill${vocalKind === 'instrumental' ? ' on' : ''}`}
                   onClick={() => setVocalKind('instrumental')}
                 >
-                  Instrumental
+                  {s.input.vocalInstrumental}
                 </button>
               </div>
 
@@ -339,30 +343,30 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
               {vocalKind === 'instrumental' && (
                 <div style={{ marginTop: 10, animation: 'fadeup .2s ease' }}>
                   <div style={{ fontSize: 10, color: T.muted, marginBottom: 6, fontFamily: T.mono, letterSpacing: 1 }}>
-                    VOIX SUR CE TITRE ?
+                    {s.input.vocalVoiceQuestion}
                   </div>
                   <div className="input-vkind">
                     <button
                       type="button"
                       className={`input-vpill small${finalInstru === false ? ' on' : ''}`}
                       onClick={() => setFinalInstru(false)}
-                      title="Tu prévois d'ajouter des voix sur une prochaine version"
+                      title={s.input.vocalComingTip}
                     >
-                      À venir
+                      {s.input.vocalComing}
                     </button>
                     <button
                       type="button"
                       className={`input-vpill small${finalInstru === true ? ' on' : ''}`}
                       onClick={() => setFinalInstru(true)}
-                      title="Œuvre purement instrumentale, pas de voix prévue"
+                      title={s.input.vocalFinalTip}
                     >
-                      Instrumental définitif
+                      {s.input.vocalFinal}
                     </button>
                   </div>
                   <div style={{ marginTop: 8, fontSize: 10, color: T.muted, fontFamily: T.mono, lineHeight: 1.5 }}>
-                    {finalInstru === null && 'Ce choix évite que l\'absence de voix soit notée comme un défaut à tort.'}
-                    {finalInstru === false && 'L\'analyse traitera la voix comme une étape à franchir.'}
-                    {finalInstru === true && 'La section voix sera ignorée dans l\'analyse et le score.'}
+                    {finalInstru === null && s.input.vocalHintIdle}
+                    {finalInstru === false && s.input.vocalHintComing}
+                    {finalInstru === true && s.input.vocalHintFinal}
                   </div>
                 </div>
               )}
@@ -377,7 +381,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
           {/* ── PROJET ── */}
           <div className="input-section">
             <div className="input-section-label">
-              PROJET <div className="input-section-line" />
+              {s.input.sectionProject} <div className="input-section-line" />
               {projectId && <span style={{ color: '#7bd88f', fontSize: 9 }}>✓</span>}
             </div>
             <ProjectPicker
@@ -389,7 +393,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
             />
             {lockProject && (
               <div style={{ marginTop: 6, fontSize: 10, color: T.muted, fontFamily: "'DM Sans', sans-serif" }}>
-                Projet verrouillé — ce titre appartient déjà à ce projet.
+                {s.input.projectLockedHint}
               </div>
             )}
           </div>
@@ -399,21 +403,21 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
             <div className="input-section" style={{ animation: 'fadeup .25s ease' }}>
               <div className="input-fields">
                 <div className="input-field">
-                  <label className="input-label">TITRE</label>
+                  <label className="input-label">{s.input.sectionTitle}</label>
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Nom du morceau"
+                    placeholder={s.input.titlePlaceholder}
                     className="input-input"
                     style={{ borderColor: title ? '#7bd88f66' : undefined }}
                   />
                 </div>
                 <div className="input-field">
-                  <label className="input-label">VERSION</label>
+                  <label className="input-label">{s.input.sectionVersion}</label>
                   <input
                     value={version}
                     onChange={(e) => setVersion(e.target.value)}
-                    placeholder="ex: Mix v3, Demo, Master…"
+                    placeholder={s.input.versionPlaceholder}
                     className="input-input"
                     style={{ borderColor: version ? '#7bd88f66' : undefined }}
                   />
@@ -425,7 +429,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
           {/* ── DAW ── */}
           <div className="input-section">
             <div className="input-section-label">
-              TON DAW <div className="input-section-line" />
+              {s.input.sectionDaw} <div className="input-section-line" />
               {daw && <span style={{ color: '#7bd88f', fontSize: 9 }}>✓</span>}
             </div>
             <div style={{ position: 'relative' }}>
@@ -435,7 +439,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
                 className="input-select"
                 style={{ borderColor: daw ? `${T.amber}88` : undefined, color: daw ? T.text : undefined }}
               >
-                <option value="">Sélectionne ton DAW…</option>
+                <option value="">{s.input.dawPlaceholder}</option>
                 {DAWS.map((d) => (
                   <option key={d} value={d}>{d}</option>
                 ))}
@@ -454,7 +458,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
             disabled={!ok}
             className={`input-cta${ok ? ' ready' : ''}`}
           >
-            {ok ? 'Analyser' : `${filled}/${totalSteps} champs remplis`}
+            {ok ? s.input.analyze : s.input.fieldsRemaining.replace('{filled}', String(filled)).replace('{total}', String(totalSteps))}
           </button>
 
         </div>
@@ -464,15 +468,15 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
       {/* Modale nouveau projet (depuis le picker) */}
       {newProjectOpen && (
         <RenameModal
-          title="Nouveau projet"
-          placeholder="Nom du projet"
+          title={s.input.newProjectTitle}
+          placeholder={s.input.newProjectPlaceholder}
           value={newProjectValue}
           originalValue=""
           inputRef={newProjectInputRef}
           onChange={setNewProjectValue}
           onCancel={() => setNewProjectOpen(false)}
           onSubmit={submitNewProject}
-          confirmLabel="Créer"
+          confirmLabel={s.input.confirmCreate}
         />
       )}
     </div>

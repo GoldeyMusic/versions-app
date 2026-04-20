@@ -3,6 +3,7 @@ import STRINGS, { pick } from "./constants/strings";
 import T from "./constants/theme";
 import API from "./constants/api";
 import { LangContext } from "./hooks/useLang";
+import useLang from "./hooks/useLang";
 import useMobile from "./hooks/useMobile";
 import GlobalStyles from "./components/GlobalStyles";
 import MockupStyles from "./components/MockupStyles";
@@ -220,6 +221,182 @@ const CONSEIL_TIPS = [
   { title: "Imprime tes fiches importantes", body: "Pour les titres clés, exporte ou garde un PDF de la fiche. Tu y reviendras avant le master pour valider les gestes finaux." },
 ];
 
+/* ── EN translations of the same pools. Kept parallel to FR so the picker
+   logic can select the pool matching the active language. ─────────── */
+const SAVIEZ_VOUS_TIPS_EN = [
+  "Taking regular breaks keeps your listening attentive and objective.",
+  "Your ears fatigue after 45 min — a 10 min break saves you 2h of work.",
+  "Listening to your mix in another context (car, headphones) reveals what the studio hides.",
+  "Lowering the monitoring volume helps you spot balance imbalances.",
+  "Stepping away from a mix for 24h completely changes your perception.",
+  "Regularly comparing with a reference recalibrates your ear and your choices.",
+  "Silence between sessions matters as much as the work itself.",
+  "Listening at low volume is the best test: if the mix works quiet, it will work loud.",
+  "The low end is easier to judge standing than sitting — you feel the sub better.",
+  "Your first mix draft often contains a truth you lose when over-polishing.",
+  "A mix that holds in mono almost always holds in stereo.",
+  "The best compression is often the one you don't hear.",
+  "Pro engineers switch speakers every 30 minutes to avoid getting used to a single color.",
+  "The brain averages what it hears: after 20 minutes on a passage, you stop noticing flaws.",
+  "Ear fatigue first hits the highs — that's why we tend to add top end late at night.",
+  "Listening to your mix while walking reveals things a seated studio hides.",
+  "A good mix should work on a phone placed on a table — that's the ultimate test.",
+  "Stereo correlation tells you whether your mix collapses when summed to mono.",
+  "Perceived dynamics depend on context: -10 LUFS can sound loud on streaming and weak on vinyl.",
+  "A master that's too loud masks mistakes — when you turn down, they reappear.",
+  "The brain loves novelty: listening to a reference before your mix makes it feel fresh again.",
+  "Closed headphones exaggerate the low end, open ones exaggerate the highs. Cross-check both.",
+  "The first 200 ms of a sound define its perceived impact — that's where you need to be precise.",
+  "Your decisions are better in the morning — the brain is less biased by cognitive fatigue.",
+  "Drinking water regularly actually improves hearing clarity.",
+  "A room's acoustics shift with temperature: a heated room doesn't respond like a cold one.",
+  "Pros listen on cheap speakers to catch what holds up despite them.",
+  "Absolute silence doesn't exist in a studio: your noise floor is part of what you hear.",
+  "A consistent monitoring level from session to session saves you from re-mixing the same things.",
+  "Moving your head while listening naturally corrects your room's colorations.",
+  "The kick and the lead vocal often share the same energy band: their balance makes the mix.",
+];
+
+const PROCHAIN_PAS_TIPS_EN = [
+  { title: "Listen at low volume", body: "Monitoring quietly reveals balance imbalances. If the mix works quiet, it will work loud." },
+  { title: "Change environments", body: "Listen in the car or on headphones: flaws invisible in the studio become obvious elsewhere." },
+  { title: "Take a 24h break", body: "Come back to your mix after 24 hours — a fresh ear tells you more than 2 hours of continuous work." },
+  { title: "Compare with a reference", body: "Grab a track you love, level-match it, and toggle. You'll see what's missing or too much." },
+  { title: "Work in mono", body: "Flip your mix to mono to catch phase cancellations and check low-end solidity." },
+  { title: "Print then forget", body: "Export, close the session, listen elsewhere later. You'll hear it like a listener." },
+  { title: "Check the dynamics", body: "Look at your crest factor: too flat, the mix fatigues; too dynamic, it struggles to come through." },
+  { title: "Listen in the car", body: "Car cabins reveal lingering basses and aggressive mids. A real tell-tale." },
+  { title: "Solo kick + bass", body: "Solo kick and bass: their core relationship defines your mix's groove and foundation." },
+  { title: "The phone test", body: "Grab your phone, set it on the table, play the mix. Most honest audience-side test." },
+  { title: "Cut the low end", body: "High-pass your master at 150 Hz: what remains tells you if mids and highs hold on their own." },
+  { title: "Close your eyes", body: "Listen for a minute with eyes closed, no DAW visual. You'll hear what your eyes were hiding from your ears." },
+  { title: "Walk while listening", body: "Play the mix quietly and walk around — balance issues jump out." },
+  { title: "Back-to-back compare", body: "Follow your mix with a commercial track. The quality 'jump' tells you exactly where to work." },
+  { title: "Listen tomorrow morning", body: "Close the session, sleep on it, listen at breakfast without touching anything. Your real opinion appears there." },
+  { title: "Aim for the middle", body: "Look for what works everywhere (car, headphones, speakers), not what only shines in your studio." },
+  { title: "Mute the lead vocal", body: "Listen without the lead: if the instrumental doesn't hold, you were masking a problem behind the voice." },
+  { title: "Re-compress your music", body: "Make a 160 kbps MP3 of your bounce and listen. Two-thirds of listeners will hear it that way." },
+  { title: "Test at realistic volume", body: "Set monitoring to conversation level. If it works there, it works everywhere." },
+];
+
+const PROGRESSION_TIPS_NO_SCORE_EN = [
+  "As soon as you have two versions of a track, VERSIONS compares the mixes and highlights what has changed.",
+  "Import a first bounce: frequency and dynamics analysis happens in under a minute.",
+  "Each track added sharpens your ear and gives you a reference for the next ones.",
+  "Start by analyzing a track you know well — you'll validate the analysis against your own perception.",
+  "First upload your raw V1: it serves as a reference point to see the evolution.",
+  "One report per track is enough to reveal the strengths and gaps of your mix.",
+  "Analyze a well-mastered track first: you'll confront your feelings with objective measurements.",
+  "You can import a commercial reference — it becomes your benchmark for your own bounces.",
+  "Three tracks is already enough for trends to emerge in your mix choices.",
+  "Your first analyses teach you the most: each report gives you a new reference point.",
+];
+
+const PROGRESSION_TIPS_WITH_SCORE_EN = [
+  "Keep comparing your versions to refine evaluation. Each analysis sharpens how you read your mix.",
+  "A score doesn't judge your mix — it points out what could be improved.",
+  "The score evolves with your choices: frequency balance, dynamics, stereo clarity.",
+  "Watch trends rather than absolute values: two versions 5 points apart is already meaningful.",
+  "If the score drops between versions, it might be the signal to go back.",
+  "Add a comment to each version: you'll see which moves actually shift the score.",
+  "A stable score across three versions means you're going in circles — change your angle of attack.",
+  "Compare two versions side-by-side rather than judging them separately: the gap speaks louder.",
+  "The score is just a reference — the detailed report tells you why.",
+  "If a heavily reworked version scores lower than the previous one, trust yourself and go back.",
+];
+
+const A_QUOI_CA_SERT_TIPS_EN = [
+  { title: "Analyze like a pro", body: "Each track you import goes through an objective analysis — frequency balance, dynamics, stereo, saturation — then through a detailed AI listen. You get a clear report showing what works and what doesn't." },
+  { title: "Readable metrics", body: "VERSIONS translates technical measurements (LUFS, crest factor, stereo correlation) into understandable comments. No need to be a sound engineer to know what to adjust." },
+  { title: "A reliable second opinion", body: "The AI listen comments on your mix section by section and points out where your ears may have fatigued. An outside perspective, available anytime." },
+  { title: "A clear report", body: "Each analysis delivers a structured report: strengths, points to rework, levels, dynamics. No interpretation, just reference points." },
+  { title: "Spot ear fatigue", body: "VERSIONS listens with the same freshness at any hour. It detects what your ears overcompensate for after several hours of work." },
+  { title: "Break the V2/V3 loop", body: "When torn between two versions, comparative analysis decides objectively: you know which holds up better, and why." },
+  { title: "An auditory logbook", body: "Every analysis is archived and dated. You can look back, see a track's evolution, and spot when a mix started to drift." },
+  { title: "An ego-less perspective", body: "VERSIONS has no interest in flattering your mix or tearing it apart. It tells you what is, with the right words." },
+  { title: "Prepare for mastering", body: "Before sending your mix to mastering, VERSIONS flags what to clean up. You arrive at the studio with a clean mix." },
+  { title: "Save hours of listening", body: "A 2-minute analysis replaces dozens of trips between speakers, headphones, and car. You target what's wrong, fast." },
+];
+
+const POURQUOI_VERSIONS_TIPS_EN = [
+  { title: "Compare your mixes", body: "Upload multiple versions of the same track: VERSIONS highlights what has progressed, what has regressed, and where to rework." },
+  { title: "See progress", body: "Each version is dated and scored. At a glance, you see if V3 is actually better than V2 — or if you should go back." },
+  { title: "Undo misleading intuition", body: "Sometimes you think a mix is improving when it's losing clarity. VERSIONS objectifies this feeling and gives you stable reference points." },
+  { title: "Keep the history", body: "Your versions stay organized by project and dated. No more hunting for 'the last good one' in a folder." },
+  { title: "A pocket studio", body: "The perspective of a sound engineer, available anytime, no appointment, no studio cost, no waiting for feedback." },
+  { title: "Break home-studio loneliness", body: "Mixing alone, you lose the outside eye. VERSIONS fills that role — a tangible, backed opinion that renews your listening." },
+  { title: "Confirm your choices", body: "Sometimes you know what's off but can't decide. VERSIONS confirms (or disproves) your intuition with data to back it up." },
+  { title: "Learn while mixing", body: "Each report is also a lesson: you learn to name what you hear and recognize the patterns of a good mix." },
+  { title: "Stop doubting at 3 AM", body: "Late at night, your ears lie. VERSIONS gives you a stable reference point when fatigue blurs your decisions." },
+  { title: "Escape sterile perfectionism", body: "VERSIONS tells you when a mix is good — to break the endless cycle of adjustments and finally close it." },
+];
+
+const HOME_TAGLINES_EN = [
+  "The studio [assistant] that follows your mixes.",
+  "The best [version] of your mix starts here.",
+  "An outside [opinion], available anytime.",
+  "Your ear, but [rested].",
+  "The [fresh] take your mix is waiting for.",
+  "Hours of [distance], in seconds.",
+  "An [attentive] listen, free of judgment.",
+  "A studio's [patience], a click's speed.",
+  "So your choices no longer rest on [fatigue].",
+  "A second opinion, as [fair] as a night's sleep.",
+  "Your versions, read [cold].",
+  "The assistant that never gets [tired] of your mix.",
+  "Because the best mix is the one that's been [compared].",
+  "Your [copilot] when you're unsure you're moving forward.",
+  "The [reference] point your session is missing.",
+  "To escape the V2, V3, V4 [loop] without ever deciding.",
+  "A [professional] listen, without renting a studio.",
+  "Listen [better], not longer.",
+  "The second [wind] of your mix.",
+  "Every version deserves a [fresh] listen.",
+  "The distance the [late] hour takes from you.",
+  "When your ears saturate, the analysis stays [fresh].",
+  "[Move forward] on your mix without going in circles.",
+  "Your [silent] studio, at any hour.",
+  "The ear you've lost by the end of the [session].",
+  "A perspective that doesn't [judge], that illuminates.",
+  "The [clarity] missing when you've listened too long.",
+  "The [sparring partner] for your mix.",
+  "What your [tired] ear no longer tells you.",
+  "The [stable] listen your session was missing.",
+  "[Breathe] — VERSIONS listens for you.",
+  "When doubt sets in, VERSIONS [decides].",
+  "Because mixing alone isn't mixing [blindly].",
+  "Less [doubt], more decisions.",
+  "Your [witness ear], always fresh.",
+  "An [outside] eye that never sleeps.",
+  "Leave the tunnel where [V7] sounds like V3.",
+  "[Deciding] shouldn't take three evenings anymore.",
+  "The [objectivity] that fatigue takes from you.",
+  "Real [distance], not 2 AM distance.",
+  "A [safety] net before mastering.",
+  "The [calm] of a listen with no ego.",
+  "To move forward without [circling] the mix.",
+  "Your mix deserves a [fresh] listen — every time.",
+  "A [pro] listen without a pro's calendar.",
+  "One more ear, [patient] and precise.",
+  "Your [compass] when you've lost north.",
+  "[Finish] a mix, at last.",
+];
+
+const CONSEIL_TIPS_EN = [
+  { title: "Start simple", body: "No need for a commercial master — even a quick bounce from Logic or Ableton works for a first pass. You can also test on a reference you love to calibrate your ear." },
+  { title: "Three versions are enough", body: "You don't need 10 versions to see progress. A V1 (raw), V2 (reworked), V3 (near-final mix) is enough to read the evolution." },
+  { title: "Label each version", body: "Add a short comment on each upload: 'comp pass', 'cleaner EQ', 'low cut on keys'. It ties the score to the choices you make." },
+  { title: "Test the reference", body: "Drop a commercial track you love into VERSIONS and look at its profile. It gives you a realistic benchmark for your own mixes." },
+  { title: "Analyze cold", body: "Upload a version and read the report the next day. The comments will jump out with a rested ear." },
+  { title: "One track per project at first", body: "Don't upload your whole catalog. Take one track, work it until you understand the report, then expand." },
+  { title: "Mix then pause then report", body: "Finish your session, export, go walk 30 minutes, then read the report. Your brain will be more open to critique." },
+  { title: "Don't fix everything at once", body: "If the report flags five points, pick one or two for the next version. Fixing everything at once blurs the read." },
+  { title: "Keep the raw V1", body: "Never throw away your initial bounce. It's your zero, your reference. Without it, you won't know if you've really progressed." },
+  { title: "Import your old mixes too", body: "Uploading a mix from six months ago shows what your ear has gained since. Valuable for calibrating your standards." },
+  { title: "Read the report in order", body: "Start with strengths, then points to rework, then technical measurements. That way you keep a balanced read of the mix." },
+  { title: "Print your key reports", body: "For important tracks, export or save a PDF of the report. You'll come back to it before mastering to validate final moves." },
+];
+
 function pickTip(pool, storageKey) {
   if (!pool?.length) return null;
   let lastIdx = -1;
@@ -395,15 +572,17 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0 }) {
 }
 
 function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onOpenFiche, onPlay, onToggle, playerState, projects = [], projectsLoaded = false, onMutate, addModalOpen, setAddModalOpen }) {
+  const { lang, s } = useLang();
+  const pool = (fr, en) => (lang === 'en' ? en : fr);
   // Rotation des conseils : un tip distinct à chaque ouverture, sans répétition consécutive
-  const [tip] = useState(() => pickTip(SAVIEZ_VOUS_TIPS, 'versions_tip_saviez'));
-  const [prochainPasTip] = useState(() => pickTip(PROCHAIN_PAS_TIPS, 'versions_tip_prochain'));
-  const [aQuoiTip] = useState(() => pickTip(A_QUOI_CA_SERT_TIPS, 'versions_tip_aquoi'));
-  const [pourquoiTip] = useState(() => pickTip(POURQUOI_VERSIONS_TIPS, 'versions_tip_pourquoi'));
-  const [conseilTip] = useState(() => pickTip(CONSEIL_TIPS, 'versions_tip_conseil'));
-  const [progressionNoScoreTip] = useState(() => pickTip(PROGRESSION_TIPS_NO_SCORE, 'versions_tip_progression_noscore'));
-  const [progressionWithScoreTip] = useState(() => pickTip(PROGRESSION_TIPS_WITH_SCORE, 'versions_tip_progression_score'));
-  const [homeTagline] = useState(() => pickTip(HOME_TAGLINES, 'versions_tip_tagline'));
+  const [tip] = useState(() => pickTip(pool(SAVIEZ_VOUS_TIPS, SAVIEZ_VOUS_TIPS_EN), 'versions_tip_saviez'));
+  const [prochainPasTip] = useState(() => pickTip(pool(PROCHAIN_PAS_TIPS, PROCHAIN_PAS_TIPS_EN), 'versions_tip_prochain'));
+  const [aQuoiTip] = useState(() => pickTip(pool(A_QUOI_CA_SERT_TIPS, A_QUOI_CA_SERT_TIPS_EN), 'versions_tip_aquoi'));
+  const [pourquoiTip] = useState(() => pickTip(pool(POURQUOI_VERSIONS_TIPS, POURQUOI_VERSIONS_TIPS_EN), 'versions_tip_pourquoi'));
+  const [conseilTip] = useState(() => pickTip(pool(CONSEIL_TIPS, CONSEIL_TIPS_EN), 'versions_tip_conseil'));
+  const [progressionNoScoreTip] = useState(() => pickTip(pool(PROGRESSION_TIPS_NO_SCORE, PROGRESSION_TIPS_NO_SCORE_EN), 'versions_tip_progression_noscore'));
+  const [progressionWithScoreTip] = useState(() => pickTip(pool(PROGRESSION_TIPS_WITH_SCORE, PROGRESSION_TIPS_WITH_SCORE_EN), 'versions_tip_progression_score'));
+  const [homeTagline] = useState(() => pickTip(pool(HOME_TAGLINES, HOME_TAGLINES_EN), 'versions_tip_tagline'));
   // Menu 3-points ouvert pour un projet donné (null = aucun)
   const [openProjectMenuId, setOpenProjectMenuId] = useState(null);
   // true si l'utilisateur a cliqué "+ Nouveau projet" depuis le picker "Nouveau titre"
@@ -451,8 +630,8 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       (sum, t) => sum + (t.versions?.length || 0),
       0
     );
-    const tLabel = `${nTracks} titre${nTracks > 1 ? 's' : ''}`;
-    const vLabel = `${nVersions} version${nVersions > 1 ? 's' : ''}`;
+    const tLabel = `${nTracks} ${nTracks > 1 ? s.home.trackPlural : s.home.trackSingular}`;
+    const vLabel = `${nVersions} ${nVersions > 1 ? s.home.versionPlural : s.home.versionSingular}`;
     return `${tLabel} · ${vLabel}`;
   };
 
@@ -527,22 +706,26 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const handleDeleteProject = async (project) => {
     if (projects.length <= 1) {
       await confirmDialog({
-        title: 'Impossible',
-        message: 'Au moins un projet est requis. Crée un autre projet avant de supprimer celui-ci.',
-        confirmLabel: 'OK',
+        title: s.home.impossible,
+        message: s.home.lastProjectMsg,
+        confirmLabel: s.home.ok,
         cancelLabel: null,
       });
       return;
     }
     const nTracks = (project.tracks || []).length;
+    const trackWord = nTracks > 1 ? s.home.trackPlural : s.home.trackSingular;
     const msg = nTracks === 0
-      ? `Supprimer le projet "${project.name}" ?`
-      : `Supprimer le projet "${project.name}" et ses ${nTracks} titre${nTracks > 1 ? 's' : ''} (avec toutes leurs versions et fichiers audio) ? Cette action est définitive.`;
+      ? s.home.deleteProjectMsgEmpty.replace('{name}', project.name)
+      : s.home.deleteProjectMsgWithTracks
+          .replace('{name}', project.name)
+          .replace('{n}', String(nTracks))
+          .replace('{trackWord}', trackWord);
     const ok = await confirmDialog({
-      title: 'Supprimer le projet ?',
+      title: s.home.deleteProjectTitle,
       message: msg,
-      confirmLabel: 'Supprimer',
-      cancelLabel: 'Annuler',
+      confirmLabel: s.home.delete,
+      cancelLabel: s.home.cancel,
       danger: true,
     });
     if (ok !== 'confirm') return;
@@ -550,9 +733,9 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       const res = await deleteProject(project.id);
       if (res?.ok === false && res?.reason === 'last-project') {
         await confirmDialog({
-          title: 'Impossible',
-          message: 'Au moins un projet est requis.',
-          confirmLabel: 'OK',
+          title: s.home.impossible,
+          message: s.home.lastProjectMsgShort,
+          confirmLabel: s.home.ok,
           cancelLabel: null,
         });
         return;
@@ -634,11 +817,15 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   // Supprimer titre
   const handleDeleteTrack = async (track) => {
     const n = (track.versions || []).length;
+    const versionWord = n > 1 ? s.home.versionPlural : s.home.versionSingular;
     const ok = await confirmDialog({
-      title: 'Supprimer le titre ?',
-      message: `Supprimer "${track.title}" et ses ${n} version${n > 1 ? 's' : ''} ? Cette action est définitive.`,
-      confirmLabel: 'Supprimer',
-      cancelLabel: 'Annuler',
+      title: s.home.deleteTrackTitle,
+      message: s.home.deleteTrackMsg
+        .replace('{name}', track.title)
+        .replace('{n}', String(n))
+        .replace('{versionWord}', versionWord),
+      confirmLabel: s.home.delete,
+      cancelLabel: s.home.cancel,
       danger: true,
     });
     if (ok !== 'confirm') return;
@@ -712,17 +899,17 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   // Date de la dernière activité (version la plus récente toutes confondues)
   const lastActivityMs = Math.max(0, ...allTracks.map(trackLastDateMs));
   const formatRelative = (ms) => {
-    if (!ms) return '—';
+    if (!ms) return s.home.relativeDash;
     // Label informatif "il y a X" — l'impureté de Date.now() est tolérée ici
     // car la valeur n'influence pas l'arbre (pas de condition de rendu).
     // eslint-disable-next-line react-hooks/purity
     const diff = Date.now() - ms;
     const day = 86400000;
-    if (diff < day) return "aujourd'hui";
-    if (diff < 2 * day) return 'hier';
-    if (diff < 7 * day) return `il y a ${Math.floor(diff / day)}j`;
-    if (diff < 30 * day) return `il y a ${Math.floor(diff / (7 * day))}sem`;
-    return `il y a ${Math.floor(diff / (30 * day))} mois`;
+    if (diff < day) return s.home.relativeToday;
+    if (diff < 2 * day) return s.home.relativeYesterday;
+    if (diff < 7 * day) return s.home.relativeDaysAgo.replace('{n}', String(Math.floor(diff / day)));
+    if (diff < 30 * day) return s.home.relativeWeeksAgo.replace('{n}', String(Math.floor(diff / (7 * day))));
+    return s.home.relativeMonthsAgo.replace('{n}', String(Math.floor(diff / (30 * day))));
   };
 
   // Score de la dernière analyse du héros (pour badge + CTA "Voir la fiche")
@@ -780,14 +967,14 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         onClick={() => setAddModalOpen(true)}
       >
         <span className="wh-action-icon">+</span>
-        <span>Ajouter</span>
+        <span>{s.home.add}</span>
       </button>
     </div>
   );
 
   const projectsAccordion = totalProjects > 0 ? (
     <div className="wh-tracklist">
-      <div className="wh-section-title">Mes <em>projets</em></div>
+      <div className="wh-section-title">{s.home.myProjects} <em>{s.home.myProjectsAccent}</em></div>
       <div className="wh-projects">
         {projects.map((project) => {
           const isOpen = project.id === currentProjectId;
@@ -844,7 +1031,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                   <button
                     className={`wh-acc-play${isProjectPlaying ? ' playing' : ''}`}
                     onClick={(e) => handlePlayProject(e, project)}
-                    title={isProjectPlaying ? 'En lecture' : 'Lire le projet'}
+                    title={isProjectPlaying ? s.home.playing : s.home.heroPlayProject}
                   >
                     {isProjectPlaying ? (
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
@@ -855,7 +1042,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 </div>
 
                 <div className="wh-acc-title">
-                  <div className="wh-acc-kicker">Projet</div>
+                  <div className="wh-acc-kicker">{s.home.projectKicker}</div>
                   <div className="wh-acc-name">{project.name}</div>
                   <div className="wh-acc-meta">{metaLine(project)}</div>
                 </div>
@@ -863,7 +1050,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 {/* Menu 3-points en haut à droite de la carte projet */}
                 <button
                   className="wh-acc-menu-btn"
-                  aria-label="Options du projet"
+                  aria-label={s.home.projectOptions}
                   onClick={(e) => {
                     e.stopPropagation();
                     setOpenProjectMenuId((cur) => (cur === project.id ? null : project.id));
@@ -880,22 +1067,22 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                     <button
                       className="wh-acc-menu-item"
                       onClick={() => { setOpenProjectMenuId(null); handleRenameProjectStart(project); }}
-                    >Renommer</button>
+                    >{s.home.rename}</button>
                     <button
                       className="wh-acc-menu-item"
                       onClick={() => { setOpenProjectMenuId(null); handleChangeCoverStart(project); }}
-                    >{project.coverImageUrl ? "Remplacer l'image" : "Changer l'image"}</button>
+                    >{project.coverImageUrl ? s.home.replaceImage : s.home.changeImage}</button>
                     {project.coverImageUrl && (
                       <button
                         className="wh-acc-menu-item"
                         onClick={() => { setOpenProjectMenuId(null); handleClearCover(project); }}
-                      >Retirer l'image</button>
+                      >{s.home.removeImage}</button>
                     )}
                     <div className="wh-acc-menu-sep" />
                     <button
                       className="wh-acc-menu-item danger"
                       onClick={() => { setOpenProjectMenuId(null); handleDeleteProject(project); }}
-                    >Supprimer</button>
+                    >{s.home.delete}</button>
                   </div>
                 )}
               </div>
@@ -921,12 +1108,12 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                     ))}
                   </div>
                 ) : (
-                  <div className="wh-acc-empty">Aucun titre pour l'instant.</div>
+                  <div className="wh-acc-empty">{s.home.emptyProject}</div>
                 )}
                 <button
                   className="wh-acc-add-track"
                   onClick={() => handleAddTrackToProject(project)}
-                >+ Nouveau titre</button>
+                >{s.home.newTrackInProject}</button>
               </div>
             </div>
           );
@@ -938,7 +1125,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const mobileEmpty = totalProjects === 0 ? (
     <div className="wh-empty">
       <img src="/logo-versions.svg" alt="" style={{ height: 60, width: "auto", opacity: 0.3 }} />
-      <div>Crée ton premier projet pour commencer l'aventure.</div>
+      <div>{s.home.emptyProjectsMobile}</div>
     </div>
   ) : null;
 
@@ -954,41 +1141,41 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       />
       {renameTrackTarget && (
         <RenameModal
-          title="Renommer le titre"
-          placeholder="Nom du titre"
+          title={s.home.renameTrackTitle}
+          placeholder={s.home.trackNamePlaceholder}
           value={renameValue}
           originalValue={renameTrackTarget.title}
           inputRef={renameInputRef}
           onChange={setRenameValue}
           onCancel={() => setRenameTrackTarget(null)}
           onSubmit={submitRenameTrack}
-          confirmLabel="Renommer"
+          confirmLabel={s.home.confirmRename}
         />
       )}
       {renameProjectTarget && (
         <RenameModal
-          title="Renommer le projet"
-          placeholder="Nom du projet"
+          title={s.home.renameProjectTitle}
+          placeholder={s.home.projectNamePlaceholder}
           value={renameValue}
           originalValue={renameProjectTarget.name}
           inputRef={renameInputRef}
           onChange={setRenameValue}
           onCancel={() => setRenameProjectTarget(null)}
           onSubmit={submitRenameProject}
-          confirmLabel="Renommer"
+          confirmLabel={s.home.confirmRename}
         />
       )}
       {newProjectOpen && (
         <RenameModal
-          title="Nouveau projet"
-          placeholder="Nom du projet"
+          title={s.home.newProject}
+          placeholder={s.home.projectNamePlaceholder}
           value={newProjectValue}
           originalValue=""
           inputRef={newProjectInputRef}
           onChange={setNewProjectValue}
           onCancel={() => setNewProjectOpen(false)}
           onSubmit={submitNewProject}
-          confirmLabel="Créer"
+          confirmLabel={s.home.confirmCreate}
         />
       )}
       {addModalOpen && (
@@ -1031,8 +1218,8 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         <button
           className="wh-hero-play"
           onClick={() => handlePlayTrack(heroInfo.track, heroInfo.project)}
-          title={heroIsPlaying ? 'En lecture' : 'Écouter'}
-          aria-label={heroIsPlaying ? 'Mettre en pause' : 'Lire ce titre'}
+          title={heroIsPlaying ? s.home.heroPlaying : s.home.heroListen}
+          aria-label={heroIsPlaying ? s.home.heroPause : s.home.heroPlayTrack}
         >
           {heroIsPlaying ? (
             <svg width="22" height="22" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
@@ -1043,10 +1230,10 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       </div>
       <div className="wh-hero-info">
         <div>
-          <div className="wh-hero-kicker">Reprends où tu étais</div>
+          <div className="wh-hero-kicker">{s.home.heroResume}</div>
           <div className="wh-hero-title">{heroInfo.track.title}</div>
           <div className="wh-hero-meta">
-            {heroInfo.project.name} · {heroInfo.track.versions?.length || 0} version{(heroInfo.track.versions?.length || 0) > 1 ? 's' : ''}
+            {heroInfo.project.name} · {heroInfo.track.versions?.length || 0} {(heroInfo.track.versions?.length || 0) > 1 ? s.home.versionPlural : s.home.versionSingular}
             {heroLatestVersion?.date ? ` · ${heroLatestVersion.date}` : ''}
           </div>
         </div>
@@ -1066,15 +1253,15 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 {Math.round(heroScore)}
                 <span className="num-suffix">/100</span>
               </span>
-              <span className="lbl">— Score du mix</span>
+              <span className="lbl">{s.home.heroScoreLabel}</span>
             </div>
           ) : <div />}
           <div className="wh-hero-ctas">
             <button className="wh-btn wh-btn-primary" onClick={() => handleViewFiche(heroInfo.track)}>
-              Voir la fiche
+              {s.home.viewFiche}
             </button>
             <button className="wh-btn" onClick={() => { if (onAddVersion) onAddVersion(heroInfo.track); }}>
-              Nouvelle version
+              {s.home.newVersionShort}
             </button>
           </div>
         </div>
@@ -1101,26 +1288,26 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const desktopStats = (
     <div className="wh-stats">
       <div className="wh-stat">
-        <div className="wh-stat-label">Titres</div>
+        <div className="wh-stat-label">{s.home.statsTracks}</div>
         <div className="wh-stat-value">{nTitres}</div>
-        <div className="wh-stat-hint">{totalProjects} projet{totalProjects > 1 ? 's' : ''}</div>
+        <div className="wh-stat-hint">{totalProjects} {totalProjects > 1 ? s.home.projectPlural : s.home.projectSingular}</div>
       </div>
       <div className="wh-stat">
-        <div className="wh-stat-label">Versions</div>
+        <div className="wh-stat-label">{s.home.statsVersions}</div>
         <div className="wh-stat-value">{nVersions}</div>
         <div className="wh-stat-hint">{formatRelative(lastActivityMs)}</div>
       </div>
       <div className="wh-stat">
-        <div className="wh-stat-label">Score moyen</div>
-        <div className="wh-stat-value">{avgScore != null ? avgScore : '—'}</div>
+        <div className="wh-stat-label">{s.home.statsAvgScore}</div>
+        <div className="wh-stat-value">{avgScore != null ? avgScore : s.home.relativeDash}</div>
         <div className="wh-stat-hint">
           {allScores.length
-            ? `sur ${allScores.length} analyse${allScores.length > 1 ? 's' : ''}`
-            : 'aucune analyse'}
+            ? `${s.home.statsOn} ${allScores.length} ${allScores.length > 1 ? s.home.analysisPlural : s.home.analysisSingular}`
+            : s.home.statsNoAnalysis}
         </div>
       </div>
       <div className="wh-stat">
-        <div className="wh-stat-label">Progression</div>
+        <div className="wh-stat-label">{s.home.statsProgress}</div>
         <div className="wh-stat-spark">
           {sparkPath ? (
             <svg width="100%" height="38" viewBox="0 0 120 24" preserveAspectRatio="none" aria-hidden>
@@ -1128,12 +1315,12 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
             </svg>
           ) : (
             <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', marginTop: 8, letterSpacing: 0.5 }}>
-              Analyse quelques titres pour voir ta courbe.
+              {s.home.statsEmptyCurve}
             </div>
           )}
         </div>
         <div className="wh-stat-hint">
-          {sparkScores.length >= 2 ? `${sparkScores.length} dernières analyses` : 'courbe en construction'}
+          {sparkScores.length >= 2 ? s.home.statsRecentAnalyses.replace('{n}', String(sparkScores.length)) : s.home.statsCurveBuilding}
         </div>
       </div>
     </div>
@@ -1143,20 +1330,20 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const tipsBlock = (
     <>
       <div className="wh-card amber">
-        <div className="wh-card-kicker">Le saviez-vous</div>
+        <div className="wh-card-kicker">{s.home.tipLabel}</div>
         <div className="wh-card-body">{tip}</div>
       </div>
       <div className="wh-card">
-        <div className="wh-card-kicker">Ta progression</div>
+        <div className="wh-card-kicker">{s.home.cardYourProgress}</div>
         <div className="wh-card-title">
-          {avgScore != null ? `Score moyen ${avgScore}/100` : 'Lance ta première analyse'}
+          {avgScore != null ? s.home.cardAvgScore.replace('{n}', String(avgScore)) : s.home.cardLaunchFirst}
         </div>
         <div className="wh-card-body">
           {avgScore != null ? progressionWithScoreTip : progressionNoScoreTip}
         </div>
       </div>
       <div className="wh-card">
-        <div className="wh-card-kicker">Prochain pas</div>
+        <div className="wh-card-kicker">{s.home.cardNextStep}</div>
         <div className="wh-card-title">{prochainPasTip?.title}</div>
         <div className="wh-card-body">{prochainPasTip?.body}</div>
       </div>
@@ -1175,17 +1362,17 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const pedagoBlock = (
     <>
       <div className="wh-card">
-        <div className="wh-card-kicker">À quoi ça sert</div>
+        <div className="wh-card-kicker">{s.home.cardWhyUseful}</div>
         <div className="wh-card-title">{aQuoiTip?.title}</div>
         <div className="wh-card-body">{aQuoiTip?.body}</div>
       </div>
       <div className="wh-card">
-        <div className="wh-card-kicker">Pourquoi « Versions »</div>
+        <div className="wh-card-kicker">{s.home.cardWhyVersions}</div>
         <div className="wh-card-title">{pourquoiTip?.title}</div>
         <div className="wh-card-body">{pourquoiTip?.body}</div>
       </div>
       <div className="wh-card">
-        <div className="wh-card-kicker">Conseil</div>
+        <div className="wh-card-kicker">{s.home.cardAdvice}</div>
         <div className="wh-card-title">{conseilTip?.title}</div>
         <div className="wh-card-body">{conseilTip?.body}</div>
       </div>
@@ -1194,10 +1381,10 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   /* ─── Desktop-only : hero d'onboarding (compte neuf) ──── */
   const onboardingChecks = [
-    { label: 'Créer ton premier projet', done: totalProjects > 0 },
-    { label: 'Analyser un premier titre', done: allTracks.length > 0 },
-    { label: 'Comparer deux versions', done: nVersions > 1 },
-    { label: 'Explorer les questions au chat', done: false },
+    { label: s.home.checkCreateProject, done: totalProjects > 0 },
+    { label: s.home.checkFirstTrack, done: allTracks.length > 0 },
+    { label: s.home.checkCompare, done: nVersions > 1 },
+    { label: s.home.checkExploreChat, done: false },
   ];
   const doneCount = onboardingChecks.filter((c) => c.done).length;
   const onboardingProgress = Math.round((doneCount / onboardingChecks.length) * 100);
@@ -1206,11 +1393,10 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     <div className="wh-onboarding">
       <div>
         <div className="wh-ob-welcome">
-          {displayName ? `Bienvenue, ${displayName}` : 'Bienvenue'}
+          {displayName ? s.home.welcomeHiName.replace('{name}', displayName) : s.home.welcomeHi}
         </div>
         <div className="wh-ob-tagline">
-          VERSIONS analyse tes mix et compare tes versions entre elles.
-          Commençons par un premier titre.
+          {s.home.onboardingTagline}
         </div>
         <div className="wh-ob-ctas">
           <button
@@ -1223,12 +1409,12 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 onNewTrack();
               }
             }}
-          >+ Mon premier titre</button>
-          <button className="wh-btn" onClick={handleNewProject}>Nouveau projet</button>
+          >{s.home.firstTrack}</button>
+          <button className="wh-btn" onClick={handleNewProject}>{s.home.newProject}</button>
         </div>
       </div>
       <div className="wh-ob-checklist">
-        <div className="wh-card-kicker">Mise en route</div>
+        <div className="wh-card-kicker">{s.home.gettingStarted}</div>
         <div className="wh-ob-progress">
           <div className="wh-ob-progress-fill" style={{ width: `${onboardingProgress}%` }} />
         </div>
@@ -1258,10 +1444,10 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         <button
           className="wh-action wh-action-primary wh-add-floating"
           onClick={() => setAddModalOpen(true)}
-          aria-label="Ajouter"
+          aria-label={s.home.add}
         >
           <span className="wh-action-icon">+</span>
-          <span>Ajouter</span>
+          <span>{s.home.add}</span>
         </button>
       )}
 
@@ -1315,6 +1501,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
 /* ─── Ligne titre dans Home (accordéon ouvert) ─────────────────────── */
 function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename, onDelete, drag, setDrag, onDropTrackOnTrack }) {
+  const { s } = useLang();
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropOver, setDropOver] = useState(null);
@@ -1392,8 +1579,8 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
           if (setDrag) setDrag({ type: 'track', trackId: track.id, sourceProjectId: project?.id });
         }}
         onDragEnd={() => { if (setDrag) setDrag(null); setDropOver(null); }}
-        title="Glisser pour déplacer le titre"
-        aria-label="Déplacer le titre"
+        title={s.home.trackDragHandle}
+        aria-label={s.home.trackMove}
         style={{ opacity: hover ? 0.55 : 0 }}
       >
         <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor" aria-hidden>
@@ -1407,7 +1594,7 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
       <button
         className={`wh-track-play${isThisPlaying ? ' playing' : ''}`}
         onClick={(e) => { e.stopPropagation(); onPlay?.(e); }}
-        title={isThisPlaying ? 'En lecture' : 'Écouter'}
+        title={isThisPlaying ? s.home.playing : s.home.play}
       >
         {isThisPlaying ? (
           <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
@@ -1421,7 +1608,7 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
         <div className="wh-track-title">{track.title}</div>
         <div className="wh-track-meta">
           {durStr && <>{durStr} · </>}
-          {track.versions?.length || 1} version{(track.versions?.length || 1) > 1 ? 's' : ''}
+          {track.versions?.length || 1} {(track.versions?.length || 1) > 1 ? s.home.versionPlural : s.home.versionSingular}
         </div>
       </div>
 
@@ -1432,7 +1619,7 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
       {hasFiche && (
         <button className="wh-track-fiche" onClick={(e) => { e.stopPropagation(); onViewFiche?.(e); }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <span>Analyse</span>
+          <span>{s.home.trackAnalysis}</span>
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3.5 2l3.5 3-3.5 3"/></svg>
         </button>
       )}
@@ -1442,7 +1629,7 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
         <button
           ref={btnRef}
           onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
-          title="Options"
+          title={s.home.trackOptions}
           style={{
             width: 26, height: 26, borderRadius: 6,
             background: menuOpen ? 'rgba(245,176,86,.15)' : 'transparent',
@@ -1463,9 +1650,9 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
             borderRadius: 10, padding: 6, boxShadow: '0 12px 32px rgba(0,0,0,.55)',
           }}
         >
-          <WhMenuItem label="Renommer" onClick={() => { setMenuOpen(false); onRename(); }} />
+          <WhMenuItem label={s.home.rename} onClick={() => { setMenuOpen(false); onRename(); }} />
           <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
-          <WhMenuItem label="Supprimer" danger onClick={() => { setMenuOpen(false); onDelete(); }} />
+          <WhMenuItem label={s.home.delete} danger onClick={() => { setMenuOpen(false); onDelete(); }} />
         </div>
       )}
     </div>

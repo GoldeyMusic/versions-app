@@ -4,23 +4,10 @@ import API from '../constants/api';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { hashAudioFile, findDuplicateAudio, loadTracks } from "../lib/storage";
 import { supabase } from "../lib/supabase";
-
-const TIPS = [
-  "Faire des pauses régulières permet de conserver une écoute attentive et objective.",
-  "Tes oreilles se fatiguent après 45 min — une pause de 10 min te fait gagner 2h de travail.",
-  "Les meilleurs mix se font en sessions courtes. La qualité bat toujours la quantité.",
-  "Écouter ton mix dans un autre contexte (voiture, écouteurs) révèle ce que le studio cache.",
-  "Baisser le volume de monitoring aide à repérer les déséquilibres de balance.",
-  "Prendre du recul sur un mix pendant 24h change complètement ta perception.",
-  "Tes décisions de mix sont meilleures le matin — profite de tes oreilles fraîches.",
-  "Un bon mix se fait en 10 décisions clés, pas en 100 micro-ajustements.",
-  "Comparer régulièrement avec une référence recalibre ton oreille et tes choix.",
-  "Le silence entre les sessions est aussi important que le travail lui-même.",
-  "Écouter à faible volume est le meilleur test : si le mix fonctionne bas, il fonctionnera fort.",
-  "La fatigue auditive est invisible — quand tu doutes d'un choix, c'est souvent le signe qu'il faut pauser.",
-];
+import useLang from '../hooks/useLang';
 
 const LoadingScreen = ({ config, onDone, onBackToInput }) => {
+  const { s } = useLang();
   const [phase, setPhase] = useState(0);
   const [error, setError] = useState(null);
   const jobIdRef = useRef(null);
@@ -29,12 +16,13 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
   const hasRef = !!config?.refFile;
 
   const steps = hasRef
-    ? ["Upload des fichiers…", "Écoute qualitative…", "Rédaction de la fiche…", "Analyse terminée…"]
-    : ["Upload du fichier…", "Écoute qualitative…", "Rédaction de la fiche…", "Analyse terminée…"];
+    ? [s.loading.stepUploadMulti, s.loading.stepListening, s.loading.stepWriting, s.loading.stepDone]
+    : [s.loading.stepUploadOne, s.loading.stepListening, s.loading.stepWriting, s.loading.stepDone];
 
   const bars = Array.from({ length: 32 }, () => Math.random());
+  const tipsSource = Array.isArray(s.loading.tips) ? s.loading.tips : [];
   const [shuffledTips] = useState(() => {
-    const arr = [...TIPS];
+    const arr = [...tipsSource];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -44,6 +32,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
   const [tipIdx, setTipIdx] = useState(0);
 
   useEffect(() => {
+    if (!shuffledTips.length) return;
     const id = setInterval(() => setTipIdx(i => (i + 1) % shuffledTips.length), 12000);
     return () => clearInterval(id);
   }, [shuffledTips.length]);
@@ -59,7 +48,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           config.audioHash = audioHash;
           const dup = await findDuplicateAudio(config.title || '', audioHash);
           if (dup) {
-            throw new Error(`Fichier identique à la version "${dup.name}" déjà uploadée pour ce titre. Importe un rendu différent.`);
+            throw new Error(s.loading.errorDuplicate.replace('{name}', dup.name));
           }
         }
 
@@ -92,16 +81,20 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           const prev = previousFiche.duration_seconds;
           const diff = Math.abs(durationSeconds - prev) / prev;
           if (diff > 0.10) {
-            const fmt = (s) => Math.floor(s/60) + ":" + String(Math.round(s%60)).padStart(2,"0");
+            const fmt = (sec) => Math.floor(sec/60) + ":" + String(Math.round(sec%60)).padStart(2,"0");
+            const message = s.loading.dupCheckMessage
+              .replace('{thisDur}', fmt(durationSeconds))
+              .replace('{prevDur}', fmt(prev))
+              .replace('{pct}', String(Math.round(diff*100)));
             const action = await confirmDialog({
-              title: "Est-ce bien une version du même titre ?",
-              message: "Cette version dure " + fmt(durationSeconds) + " alors que la version précédente dure " + fmt(prev) + " (écart " + Math.round(diff*100) + "%).",
-              confirmLabel: "Continuer l'analyse",
-              cancelLabel: "Annuler",
-              tertiaryLabel: "Créer un nouveau titre",
+              title: s.loading.dupCheckTitle,
+              message,
+              confirmLabel: s.loading.dupCheckContinue,
+              cancelLabel: s.loading.dupCheckCancel,
+              tertiaryLabel: s.loading.dupCheckNewTitle,
             });
             if (action === "tertiary") { onBackToInput?.(); return; }
-            if (action !== "confirm") throw new Error("Upload annulé");
+            if (action !== "confirm") throw new Error(s.loading.errorCancelled);
           }
         }
 
@@ -131,7 +124,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           method: "POST",
           body: formData,
         });
-        if (!startRes.ok) throw new Error(`Démarrage échoué (${startRes.status})`);
+        if (!startRes.ok) throw new Error(s.loading.errorStart.replace('{status}', String(startRes.status)));
         const { jobId } = await startRes.json();
         jobIdRef.current = jobId;
         console.log("✅ VERSIONS Job started:", jobId);
@@ -146,7 +139,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           console.log("🔄 Poll", attempts, "— status:", job.status, "stage:", job.stage, "pct:", job.pct);
 
           if (job.status === "error") {
-            throw new Error(job.error || "Analyse échouée");
+            throw new Error(job.error || s.loading.errorFailed);
           }
 
           // Stage: listening done → immediately go to FicheScreen with partial data
@@ -184,7 +177,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           attempts++;
         }
 
-        throw new Error("Timeout — analyse trop longue");
+        throw new Error(s.loading.errorTimeout);
       } catch (err) {
         console.error("❌ VERSIONS LoadingScreen error:", err.message);
         setError(err.message);
@@ -205,7 +198,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           onClick={() => window.location.reload()}
           style={{ fontFamily: T.mono, fontSize: 11, padding: "8px 20px", borderRadius: 8, background: T.s2, border: `1px solid ${T.border}`, color: T.muted, cursor: "pointer" }}
         >
-          Réessayer
+          {s.loading.errorRetry}
         </button>
       </div>
     );
@@ -226,7 +219,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           <div style={{ fontFamily: T.display, fontSize: 32, fontWeight: 400, color: "#ededed", letterSpacing: 5, textAlign: "center", textTransform: "uppercase" }}>
-            Analyse en cours
+            {s.loading.title}
           </div>
           <div style={{ fontFamily: T.mono, fontSize: 12, color: T.amber, fontWeight: 400, textAlign: "center", lineHeight: 1.6, letterSpacing: 1, opacity: 0.85 }}>
             {config?.title}{config?.version ? ` · ${config.version}` : ""}
@@ -304,7 +297,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           <div style={{
             fontFamily: "JetBrains Mono, monospace", fontSize: 9, letterSpacing: 2,
             color: T.amber, textTransform: "uppercase",
-          }}>Le saviez-vous</div>
+          }}>{s.loading.didYouKnow}</div>
           <div key={tipIdx} style={{
             fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#c5c5c7",
             lineHeight: 1.7, fontWeight: 300,
