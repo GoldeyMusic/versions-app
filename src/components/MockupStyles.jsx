@@ -1811,10 +1811,8 @@ export default function MockupStyles() {
     text-transform: uppercase; color: var(--amber);
   }
   .wh-hero-title {
-    /* Même typo/taille que la tagline desktop (.wh-tagline-mid .wh-tagline-text) :
-       DM Sans italic 400, 28px. */
+    /* Même taille que la tagline desktop (28px), sans italique. */
     font-family: var(--serif); font-size: 28px; font-weight: 400;
-    font-style: italic;
     line-height: 1.3; letter-spacing: 0.3px;
     margin: 4px 0 6px; color: var(--text);
   }
