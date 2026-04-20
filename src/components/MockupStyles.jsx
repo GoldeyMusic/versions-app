@@ -1747,13 +1747,31 @@ export default function MockupStyles() {
     font-weight: 400;
   }
 
-  /* Bouton Ajouter flottant en haut à droite (desktop uniquement).
-     Fixed pour rester visible quel que soit le scroll. */
-  .wh-add-floating {
-    position: fixed;
-    top: 16px;
-    right: 24px;
-    z-index: 20;
+  /* Bouton Ajouter dans la sidebar — en fin de liste de projets.
+     Remplace l'ancien bouton flottant (.wh-add-floating) pour un accès
+     permanent depuis n'importe quel écran. */
+  .sidebar-add-btn {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: var(--amber);
+    border: 1px solid var(--amber);
+    color: #141416;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 14px; letter-spacing: 1px; text-transform: uppercase;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(245,176,86,0.18);
+    transition: background .15s, transform .1s, box-shadow .15s;
+  }
+  .sidebar-add-btn:hover {
+    background: #ffc77a; border-color: #ffc77a;
+    box-shadow: 0 6px 16px rgba(245,176,86,0.28);
+    transform: translateY(-1px);
+  }
+  .sidebar-add-icon {
+    font-size: 18px; line-height: 1; font-weight: 500;
   }
   .wh-desktop .wh-header { margin-bottom: 4px; align-items: flex-start; }
   .wh-desktop .wh-greeting { font-size: 28px; letter-spacing: 2.5px; text-align: left; }

@@ -1460,18 +1460,8 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   return (
     <div className={`welcome-home${!isMobile ? ' wh-desktop' : ''}`}>
-      {/* Bouton Ajouter desktop : fixe en haut à droite de la page
-          pour rester en évidence, quel que soit le scroll. */}
-      {!isMobile && (
-        <button
-          className="wh-action wh-action-primary wh-add-floating"
-          onClick={() => setAddModalOpen(true)}
-          aria-label={s.home.add}
-        >
-          <span className="wh-action-icon">+</span>
-          <span>{s.home.add}</span>
-        </button>
-      )}
+      {/* Bouton Ajouter desktop : déplacé dans la sidebar (sous la liste
+          des projets) pour rester accessible quel que soit l'écran. */}
 
       {/* Header — même tagline desktop/mobile, avec mot en orange.
           En desktop, masquée ici et réinsérée sous les stats. */}
@@ -2381,6 +2371,7 @@ function VersionsAppAuthed() {
             onNewTrack={handleSidebarNewTrack}
             onGoReglages={() => setReglagesOpen(true)}
             onAskOpen={() => setAskOpen(true)}
+            onAdd={() => { goHome(); setHomeAddOpen(true); }}
             onPlay={play}
             onToggle={togglePlay}
             onMutate={refreshProjects}

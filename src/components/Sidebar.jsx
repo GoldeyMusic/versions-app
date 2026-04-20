@@ -25,6 +25,7 @@ export default function Sidebar({
   onSelectVersion,
   onGoReglages,
   onGoHome,
+  onAdd,
   onPlay,
   onToggle,
   playerState,
@@ -286,6 +287,19 @@ export default function Sidebar({
               />
             ));
           })()}
+
+          {/* Bouton Ajouter — toujours accessible, en fin de liste de projets */}
+          {onAdd && (
+            <button
+              type="button"
+              onClick={onAdd}
+              className="sidebar-add-btn"
+              aria-label={s.home.add}
+            >
+              <span className="sidebar-add-icon">+</span>
+              <span>{s.home.add}</span>
+            </button>
+          )}
         </div>
       </div>
 
