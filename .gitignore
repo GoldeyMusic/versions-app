@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# Caches
+.eslintcache
+.cache
+
+# Claude Code internal
+.claude/worktrees
+.claude/runs
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
