@@ -46,7 +46,7 @@ export default function MockupStyles() {
     position: sticky; top: 0; height: 100vh; overflow-y: auto;
   }
   .brand { display: flex; align-items: baseline; gap: 2px; font-family: var(--serif); font-size: 22px; letter-spacing: 1px; }
-  .brand .accent { color: var(--amber); font-style: italic; }
+  .brand .accent { color: var(--amber); }
   .user-pill {
     display: flex; align-items: center; gap: 10px;
     padding: 8px 10px;
@@ -118,7 +118,7 @@ export default function MockupStyles() {
     line-height: 1;
     display: flex; align-items: baseline; gap: 12px;
   }
-  .track-title .it { font-style: italic; color: var(--amber); }
+  .track-title .it { color: var(--amber); }
   .track-title .vsub {
     font-family: var(--mono);
     font-size: 10px;
@@ -248,7 +248,7 @@ export default function MockupStyles() {
     margin: 0 0 14px;
     max-width: 540px;
   }
-  .verdict-text h1 em { font-style: italic; color: var(--amber); font-weight: 600; }
+  .verdict-text h1 em { color: var(--amber); font-weight: 600; }
   .verdict-text p {
     font-family: var(--body);
     font-size: 15px;

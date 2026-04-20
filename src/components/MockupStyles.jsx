@@ -223,7 +223,7 @@ export default function MockupStyles() {
     line-height: 1;
     display: flex; align-items: baseline; gap: 12px;
   }
-  .track-title .it { font-style: italic; color: var(--amber); }
+  .track-title .it { color: var(--amber); }
   .track-title .vsub {
     font-family: var(--mono);
     font-size: 10px;
@@ -662,7 +662,7 @@ export default function MockupStyles() {
     margin: 0 0 14px;
     max-width: 900px;
   }
-  .verdict-text h1 em { font-style: italic; color: var(--amber); font-weight: 600; }
+  .verdict-text h1 em { color: var(--amber); font-weight: 600; }
   .verdict-text p {
     font-family: var(--body);
     font-size: 15px;
@@ -1943,7 +1943,7 @@ export default function MockupStyles() {
     color: var(--text); margin-bottom: 18px;
   }
   .wh-section-title em {
-    font-style: italic; color: var(--amber); font-weight: 400;
+    color: var(--amber); font-weight: 400;
   }
 
   /* Tracklist homepage */
