@@ -14,6 +14,7 @@ import {
   isVoiceCategory,
 } from '../lib/ficheHelpers.jsx';
 import { fetchPublicFiche } from '../lib/storage';
+import useLang from '../hooks/useLang';
 
 // FontLink dupliqué depuis App.jsx (évite l'import circulaire de App dans ce
 // composant qui peut tourner avant même l'auth). On garde juste la balise
@@ -32,6 +33,7 @@ function FontLink() {
 // (via SECURITY DEFINER) uniquement la fiche correspondant au token — aucune
 // autre version / projet / notes externes n'est exposé.
 export default function PublicFicheScreen({ token }) {
+  const { s } = useLang();
   // L'état initial dépend du token (présent ou non) — on évite un setState
   // synchrone dans l'effet (règle react-hooks/set-state-in-effect).
   const [state, setState] = useState(() => (
@@ -60,7 +62,7 @@ export default function PublicFicheScreen({ token }) {
         <GlobalStyles />
         <MockupStyles />
         <div className="public-fiche-shell">
-          <div className="public-fiche-loading">Chargement de la fiche…</div>
+          <div className="public-fiche-loading">{s.publicFiche.loading}</div>
         </div>
       </>
     );
@@ -75,12 +77,9 @@ export default function PublicFicheScreen({ token }) {
         <div className="public-fiche-shell">
           <div className="public-fiche-404">
             <div className="pfx-kicker">VERSIONS</div>
-            <h1>Lien introuvable</h1>
-            <p>
-              Ce lien de partage n&rsquo;est plus actif, ou il a été désactivé
-              par son propriétaire.
-            </p>
-            <a href="#/" className="pfx-home">Retour à l&rsquo;accueil</a>
+            <h1>{s.publicFiche.notFoundTitle}</h1>
+            <p>{s.publicFiche.notFoundBody}</p>
+            <a href="#/" className="pfx-home">{s.publicFiche.notFoundHome}</a>
           </div>
         </div>
       </>
@@ -114,10 +113,10 @@ export default function PublicFicheScreen({ token }) {
         <header className="public-fiche-topbar">
           <div className="pft-left">
             <span className="pft-brand">VERSIONS</span>
-            <span className="pft-subbrand">Fiche partagée</span>
+            <span className="pft-subbrand">{s.publicFiche.headerShared}</span>
           </div>
           <div className="pft-right">
-            <a href="#/" className="pft-cta">Découvrir Versions</a>
+            <a href="#/" className="pft-cta">{s.publicFiche.topbarCta}</a>
           </div>
         </header>
 
@@ -130,7 +129,7 @@ export default function PublicFicheScreen({ token }) {
                 <div className="verdict-text">
                   {(() => {
                     const vText = rawFiche.verdict || rawFiche.summary || '';
-                    if (!vText) return <h1>{data.trackTitle || 'Fiche'}</h1>;
+                    if (!vText) return <h1>{data.trackTitle || s.publicFiche.verdictFallback}</h1>;
                     if (rawFiche.verdict && rawFiche.summary && rawFiche.verdict !== rawFiche.summary) {
                       return (
                         <>
@@ -152,7 +151,9 @@ export default function PublicFicheScreen({ token }) {
                     {data.versionName && (
                       <>
                         <span className="pfm-sep">·</span>
-                        <span className="pfm-version">Version {data.versionName}</span>
+                        <span className="pfm-version">
+                          {s.publicFiche.versionPrefix.replace('{name}', data.versionName)}
+                        </span>
                       </>
                     )}
                   </div>
@@ -174,10 +175,10 @@ export default function PublicFicheScreen({ token }) {
                   {elements.length > 0 && (
                     <>
                       <div className="section-head">
-                        <span className="t">Diagnostic par éléments</span>
+                        <span className="t">{s.fiche.diagTitle}</span>
                         <span className="line" />
                         <span className="count">
-                          {elements.length} catégorie{elements.length > 1 ? 's' : ''}
+                          {elements.length} {elements.length > 1 ? s.fiche.categoryPlural : s.fiche.categorySingular}
                         </span>
                       </div>
                       {elements.map((el, idx) => {
@@ -194,8 +195,8 @@ export default function PublicFicheScreen({ token }) {
                               <span className="name">{catLabel}</span>
                               <span className="count">
                                 {isPendingVoice
-                                  ? 'étape à franchir'
-                                  : `${items.length} élément${items.length > 1 ? 's' : ''}${avg != null ? ` · moy. ${avg.toFixed(1).replace(/\.0$/, '')}` : ''}`}
+                                  ? s.fiche.pendingVoiceStep
+                                  : `${items.length} ${items.length > 1 ? s.fiche.elementPlural : s.fiche.elementSingular}${avg != null ? `${s.fiche.avgPrefix}${avg.toFixed(1).replace(/\.0$/, '')}` : ''}`}
                               </span>
                             </div>
                             <div className="diag-cat-body">
@@ -225,10 +226,10 @@ export default function PublicFicheScreen({ token }) {
                   {plan.length > 0 && (
                     <>
                       <div className="section-head">
-                        <span className="t">Plan d&rsquo;action</span>
+                        <span className="t">{s.fiche.planTitle}</span>
                         <span className="line" />
                         <span className="count">
-                          {plan.length} ajustement{plan.length > 1 ? 's' : ''}
+                          {plan.length} {plan.length > 1 ? s.fiche.adjustmentPlural : s.fiche.adjustmentSingular}
                         </span>
                       </div>
                       <div className="priority-list">
@@ -248,7 +249,7 @@ export default function PublicFicheScreen({ token }) {
                               <div className="priority-body">
                                 {p.daw && (
                                   <div className="daw-box">
-                                    <span className="daw-label">Action DAW</span>
+                                    <span className="daw-label">{s.fiche.focusDawLabel}</span>
                                     {p.daw}
                                   </div>
                                 )}
@@ -256,13 +257,13 @@ export default function PublicFicheScreen({ token }) {
                                   <div className="mt-grid">
                                     {p.metered && (
                                       <div className="mt-box m">
-                                        <div className="mt-label">Mesuré</div>
+                                        <div className="mt-label">{s.fiche.focusMeasured}</div>
                                         <div className="mt-val">{p.metered}</div>
                                       </div>
                                     )}
                                     {p.target && (
                                       <div className="mt-box t">
-                                        <div className="mt-label">Objectif</div>
+                                        <div className="mt-label">{s.fiche.focusTarget}</div>
                                         <div className="mt-val">{p.target}</div>
                                       </div>
                                     )}
@@ -270,7 +271,7 @@ export default function PublicFicheScreen({ token }) {
                                 )}
                                 {linkedItems.length > 0 && (
                                   <div className="linked-elements">
-                                    <div className="label">Éléments liés</div>
+                                    <div className="label">{s.fiche.focusLinkedItems}</div>
                                     <div className="le-list">
                                       {linkedItems.map((it) => (
                                         <div className="le" key={it.id}>
@@ -295,7 +296,7 @@ export default function PublicFicheScreen({ token }) {
                     <div className="notes-section">
                       <div className="notes-block read-only">
                         <div className="notes-head">
-                          <span className="notes-title">Notes de l&rsquo;artiste</span>
+                          <span className="notes-title">{s.publicFiche.artistNotesTitle}</span>
                         </div>
                         <div className="notes-body read-only">
                           <div className="notes-readonly">{userNotes}</div>
@@ -310,7 +311,7 @@ export default function PublicFicheScreen({ token }) {
         </main>
 
         <footer className="public-fiche-footer">
-          <span>Fiche générée avec Versions · lecture seule</span>
+          <span>{s.publicFiche.footerText}</span>
         </footer>
       </div>
     </>

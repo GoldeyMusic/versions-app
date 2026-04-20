@@ -614,6 +614,18 @@ const STRINGS = {
       confirmDeleteTrackBody: "Toutes les versions et analyses associées seront supprimées. Cette action est irréversible.",
       confirmDeleteVersionTitle: "Supprimer cette version ?",
       confirmDeleteVersionBody: "L'analyse et le fichier audio liés seront effacés. Cette action est irréversible.",
+
+      /* Mobile / stylised page */
+      mobileTitle: "MES TITRES",
+      trackSingular: "titre",
+      trackPlural: "titres",
+      versionSingular: "version",
+      versionPlural: "versions",
+      emptyMobile: "Aucun titre pour le moment",
+      emptyMobileSub: "Lance ta première analyse pour commencer",
+      stopAction: "Stop",
+      viewFicheCta: "Voir la fiche d'analyse",
+      addVersionCta: "Ajouter une version",
     },
 
     /* ─────────────── SIDEBAR ─────────────── */
@@ -853,6 +865,15 @@ const STRINGS = {
       ctaSub: "Crée ton compte et analyse tes propres titres.",
       expired: "Ce lien n'est plus actif.",
       notFound: "Fiche introuvable.",
+      loading: "Chargement de la fiche…",
+      notFoundTitle: "Lien introuvable",
+      notFoundBody: "Ce lien de partage n'est plus actif, ou il a été désactivé par son propriétaire.",
+      notFoundHome: "Retour à l'accueil",
+      topbarCta: "Découvrir Versions",
+      verdictFallback: "Fiche",
+      versionPrefix: "Version {name}",
+      footerText: "Fiche générée avec Versions · lecture seule",
+      artistNotesTitle: "Notes de l'artiste",
     },
 
     /* ─────────────── ERREURS / MESSAGES ──────────────── */
@@ -1495,6 +1516,18 @@ const STRINGS = {
       confirmDeleteTrackBody: "All versions and analyses will be removed. This action is irreversible.",
       confirmDeleteVersionTitle: "Delete this version?",
       confirmDeleteVersionBody: "The analysis and the linked audio file will be deleted. This action is irreversible.",
+
+      /* Mobile / stylised page */
+      mobileTitle: "MY TRACKS",
+      trackSingular: "track",
+      trackPlural: "tracks",
+      versionSingular: "version",
+      versionPlural: "versions",
+      emptyMobile: "No tracks yet",
+      emptyMobileSub: "Start your first analysis to get going",
+      stopAction: "Stop",
+      viewFicheCta: "View the analysis report",
+      addVersionCta: "Add a version",
     },
 
     /* ─────────────── SIDEBAR ─────────────── */
@@ -1727,6 +1760,15 @@ const STRINGS = {
       ctaSub: "Create your account and analyse your own tracks.",
       expired: "This link is no longer active.",
       notFound: "Report not found.",
+      loading: "Loading the report…",
+      notFoundTitle: "Link not found",
+      notFoundBody: "This share link is no longer active, or has been disabled by its owner.",
+      notFoundHome: "Back to home",
+      topbarCta: "Discover Versions",
+      verdictFallback: "Report",
+      versionPrefix: "Version {name}",
+      footerText: "Report generated with Versions · read-only",
+      artistNotesTitle: "Artist's notes",
     },
 
     /* ─────────────── ERRORS ─────────────── */
