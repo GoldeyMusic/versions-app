@@ -1546,7 +1546,8 @@ export default function MockupStyles() {
     display: flex; gap: 8px;
     align-items: center;
   }
-  .chat-input textarea {
+  .chat-input textarea,
+  .chat-input input {
     flex: 1;
     background: var(--s2) !important; border: 1px solid var(--border);
     padding: 10px 12px; border-radius: 8px;
@@ -1560,7 +1561,8 @@ export default function MockupStyles() {
     appearance: none;
     box-sizing: border-box;
   }
-  .chat-input textarea:focus { border-color: var(--amber); }
+  .chat-input textarea:focus,
+  .chat-input input:focus { border-color: var(--amber); }
   .chat-typing { display: inline-flex; gap: 4px; align-items: center; padding: 4px 0; }
   .chat-typing .dot {
     width: 6px; height: 6px; border-radius: 50%;
