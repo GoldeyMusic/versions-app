@@ -198,7 +198,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
         </div>
         <button
           onClick={() => window.location.reload()}
-          style={{ fontFamily: T.mono, fontSize: 11, padding: "8px 20px", borderRadius: 8, background: T.s2, border: `1px solid ${T.border}`, color: T.muted, cursor: "pointer" }}
+          style={{ fontFamily: T.mono, fontSize: 12, padding: "8px 20px", borderRadius: 8, background: T.s2, border: `1px solid ${T.border}`, color: T.muted, cursor: "pointer" }}
         >
           {s.loading.errorRetry}
         </button>
@@ -264,7 +264,7 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
                 </span>
                 <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
                 <span style={{
-                  fontFamily: "JetBrains Mono, monospace", fontSize: 11, letterSpacing: 1,
+                  fontFamily: "JetBrains Mono, monospace", fontSize: 12, letterSpacing: 1,
                   textTransform: "uppercase",
                   color: done ? "#c5c5c7" : active ? T.amber : "#7c7c80",
                 }}>{label}</span>
@@ -297,11 +297,11 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
           borderRadius: 10, minHeight: 70, display: "flex", flexDirection: "column", gap: 8,
         }}>
           <div style={{
-            fontFamily: "JetBrains Mono, monospace", fontSize: 11, letterSpacing: 2,
+            fontFamily: "JetBrains Mono, monospace", fontSize: 12, letterSpacing: 2,
             color: T.amber, textTransform: "uppercase",
           }}>{s.loading.didYouKnow}</div>
           <div key={tipIdx} style={{
-            fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#c5c5c7",
+            fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#c5c5c7",
             lineHeight: 1.7, fontWeight: 300,
             animation: "fadein .4s ease",
           }}>{shuffledTips[tipIdx]}</div>

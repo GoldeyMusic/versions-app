@@ -108,7 +108,7 @@ function ProjectPicker({ projects, projectId, onChange, onCreateNew, locked = fa
                   width: '100%', padding: '8px 10px', borderRadius: 8,
                   background: isCurrent ? 'rgba(245,176,86,.08)' : 'transparent',
                   border: 'none', cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: T.text,
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: T.text,
                   textAlign: 'left',
                 }}
                 onMouseEnter={(e) => { if (!isCurrent) e.currentTarget.style.background = 'rgba(255,255,255,.04)'; }}
@@ -132,7 +132,7 @@ function ProjectPicker({ projects, projectId, onChange, onCreateNew, locked = fa
               display: 'flex', alignItems: 'center', gap: 10,
               width: '100%', padding: '8px 10px', borderRadius: 8,
               background: 'transparent', border: 'none', cursor: 'pointer',
-              fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: T.amber,
+              fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: T.amber,
               textAlign: 'left',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(245,176,86,.08)'; }}
@@ -342,7 +342,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
               {/* Étape 2 : si instrumental, voix à venir ou définitif ? */}
               {vocalKind === 'instrumental' && (
                 <div style={{ marginTop: 10, animation: 'fadeup .2s ease' }}>
-                  <div style={{ fontSize: 11, color: T.muted, marginBottom: 6, fontFamily: T.mono, letterSpacing: 1 }}>
+                  <div style={{ fontSize: 12, color: T.muted, marginBottom: 6, fontFamily: T.mono, letterSpacing: 1 }}>
                     {s.input.vocalVoiceQuestion}
                   </div>
                   <div className="input-vkind">
@@ -363,7 +363,7 @@ const InputScreen = ({ onAnalyze, initialTitle = '', initialProjectId = null, lo
                       {s.input.vocalFinal}
                     </button>
                   </div>
-                  <div style={{ marginTop: 8, fontSize: 11, color: T.muted, fontFamily: T.mono, lineHeight: 1.5 }}>
+                  <div style={{ marginTop: 8, fontSize: 12, color: T.muted, fontFamily: T.mono, lineHeight: 1.5 }}>
                     {finalInstru === null && s.input.vocalHintIdle}
                     {finalInstru === false && s.input.vocalHintComing}
                     {finalInstru === true && s.input.vocalHintFinal}

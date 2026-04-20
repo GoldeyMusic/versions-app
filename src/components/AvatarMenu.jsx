@@ -125,10 +125,10 @@ const AvatarMenu = ({ user, onLogout }) => {
           >
             {/* User info */}
             <div style={{ padding: "14px 16px 12px", borderBottom: `1px solid ${T.border}` }}>
-              <div style={{ fontFamily: T.body, fontSize: 13, fontWeight: 600, color: T.text }}>
+              <div style={{ fontFamily: T.body, fontSize: 14, fontWeight: 600, color: T.text }}>
                 {user?.name || ls.avatarMenu.fallbackUser}
               </div>
-              <div style={{ fontFamily: T.mono, fontSize: 11, color: T.muted, marginTop: 2 }}>
+              <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, marginTop: 2 }}>
                 {user?.email || ls.avatarMenu.fallbackEmail}
               </div>
               <div
@@ -144,7 +144,7 @@ const AvatarMenu = ({ user, onLogout }) => {
                 }}
               >
                 <div style={{ width: 5, height: 5, borderRadius: "50%", background: T.amber }} />
-                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.amber, letterSpacing: 0.5 }}>
+                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.amber, letterSpacing: 0.5 }}>
                   {ls.avatarMenu.planFree}
                 </span>
               </div>
@@ -169,7 +169,7 @@ const AvatarMenu = ({ user, onLogout }) => {
                   borderBottom: i < items.length - 1 ? `1px solid ${T.border}` : "none",
                   cursor: "pointer",
                   fontFamily: T.body,
-                  fontSize: 13,
+                  fontSize: 14,
                   color: item.color || T.text,
                   transition: "background .1s",
                   textAlign: "left",

@@ -120,7 +120,7 @@ export default function AskModal({ onClose }) {
             <div
               style={{
                 fontFamily: T.mono,
-                fontSize: 11,
+                fontSize: 12,
                 color: T.muted,
                 marginTop: 2,
               }}
@@ -174,7 +174,7 @@ export default function AskModal({ onClose }) {
               <div
                 style={{
                   fontFamily: T.body,
-                  fontSize: 13,
+                  fontSize: 14,
                   color: T.muted,
                   textAlign: 'center',
                   lineHeight: 1.6,
@@ -200,7 +200,7 @@ export default function AskModal({ onClose }) {
                     }}
                     style={{
                       fontFamily: T.mono,
-                      fontSize: 11,
+                      fontSize: 12,
                       padding: '5px 10px',
                       borderRadius: 6,
                       background: T.s2,
@@ -239,7 +239,7 @@ export default function AskModal({ onClose }) {
               <div
                 style={{
                   fontFamily: T.body,
-                  fontSize: 13,
+                  fontSize: 14,
                   color: T.text,
                   lineHeight: 1.6,
                   fontWeight: m.role === 'user' ? 400 : 300,
@@ -252,7 +252,7 @@ export default function AskModal({ onClose }) {
           ))}
           {loading && (
             <div style={{ alignSelf: 'flex-start', padding: '10px 14px', borderRadius: 12, background: T.s2, border: `1px solid ${T.border}` }}>
-              <div style={{ fontFamily: T.mono, fontSize: 11, color: T.muted }}>
+              <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted }}>
                 {s.ask.thinkingShort}<span style={{ animation: 'blink 1s infinite' }}>…</span>
               </div>
             </div>

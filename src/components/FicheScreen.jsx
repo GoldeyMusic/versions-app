@@ -163,7 +163,7 @@ function ListeningSection({ listening }) {
             {sec.title && (
               <h3 style={{
                 fontFamily: 'JetBrains Mono, monospace',
-                fontSize: 11, letterSpacing: 2, fontWeight: 500,
+                fontSize: 12, letterSpacing: 2, fontWeight: 500,
                 color: '#f5b056', textTransform: 'uppercase',
                 margin: '0 0 10px',
               }}>{sec.title}</h3>
@@ -172,7 +172,7 @@ function ListeningSection({ listening }) {
               {sec.blocks.map((b, j) => b.type === 'bullet' ? (
                 <div key={j} style={{
                   display: 'flex', gap: 12, alignItems: 'flex-start',
-                  fontFamily: "'DM Sans', sans-serif", fontSize: 13,
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 14,
                   color: '#c5c5c7', lineHeight: 1.7, fontWeight: 300,
                 }}>
                   <span style={{
@@ -243,7 +243,7 @@ function AnalyzingState({ stage }) {
           color: '#ededed', margin: 0, textAlign: 'center', lineHeight: 1.2,
         }}>{s.fiche.analyzingTitle}</h1>
         <p style={{
-          fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#7c7c80',
+          fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#7c7c80',
           margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6,
         }}>
           {s.fiche.analyzingSub1}<br/>
@@ -287,7 +287,7 @@ function AnalyzingState({ stage }) {
               </span>
               <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
               <span style={{
-                fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: 1,
+                fontFamily: 'JetBrains Mono, monospace', fontSize: 12, letterSpacing: 1,
                 textTransform: 'uppercase',
                 color: done ? '#c5c5c7' : active ? '#f5b056' : '#7c7c80',
               }}>{s.label}</span>
@@ -303,11 +303,11 @@ function AnalyzingState({ stage }) {
         borderRadius: 10, minHeight: 80, display: 'flex', flexDirection: 'column', gap: 10,
       }}>
         <div style={{
-          fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: 2,
+          fontFamily: 'JetBrains Mono, monospace', fontSize: 12, letterSpacing: 2,
           color: '#f5b056', textTransform: 'uppercase',
         }}>{s.fiche.didYouKnow}</div>
         <div key={tipIdx} style={{
-          fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#c5c5c7',
+          fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#c5c5c7',
           lineHeight: 1.7, fontWeight: 300,
           animation: 'fadein .4s ease',
         }}>{tips[tipIdx]}</div>
@@ -382,7 +382,7 @@ function MenuItem({ label, onClick, danger }) {
         display: 'block', width: '100%', textAlign: 'left',
         padding: '8px 12px', borderRadius: 6, border: 'none',
         background: 'transparent', cursor: 'pointer',
-        fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 400,
+        fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 400,
         color: danger ? '#ef6b6b' : '#c5c5c7',
         transition: 'background .1s',
       }}
@@ -616,7 +616,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
         {/* En-tête : compteur + close */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <span style={{
-            fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: 2,
+            fontFamily: 'JetBrains Mono, monospace', fontSize: 12, letterSpacing: 2,
             color: '#7c7c80', textTransform: 'uppercase',
           }}>
             <b style={{ color: '#f5b056' }}>{idx + 1}</b> / {plan.length}

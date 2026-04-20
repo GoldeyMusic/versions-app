@@ -102,7 +102,7 @@ export default function CompareButton({ track, currentVersion }) {
                   display: 'block', width: '100%', textAlign: 'left',
                   padding: '8px 12px', borderRadius: 6, border: 'none',
                   background: 'transparent', cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#c5c5c7',
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#c5c5c7',
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(245,176,86,.08)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
@@ -136,7 +136,7 @@ export default function CompareButton({ track, currentVersion }) {
               }}
             >×</button>
             {loading && (
-              <div style={{ padding: '40px 0', textAlign: 'center', color: '#7c7c80', fontFamily: "'DM Sans', sans-serif", fontSize: 13, letterSpacing: 1.5 }}>
+              <div style={{ padding: '40px 0', textAlign: 'center', color: '#7c7c80', fontFamily: "'DM Sans', sans-serif", fontSize: 14, letterSpacing: 1.5 }}>
                 {s.compare.runningInline.replace('{a}', currentVersion?.name || '').replace('{b}', otherName || '')}
               </div>
             )}
@@ -178,7 +178,7 @@ function Column({ title, items, color }) {
         {title} <span style={{ color: '#555', marginLeft: 6 }}>{items?.length || 0}</span>
       </div>
       {(!items || items.length === 0) && (
-        <div style={{ color: '#555', fontSize: 13, fontStyle: 'italic' }}>—</div>
+        <div style={{ color: '#555', fontSize: 14, fontStyle: 'italic' }}>—</div>
       )}
       {(items || []).map((it, i) => (
         <div key={i} style={{ marginBottom: 14 }}>
