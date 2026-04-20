@@ -1554,7 +1554,7 @@ export default function MockupStyles() {
     background: var(--s2) !important; border: 1px solid var(--border);
     padding: 10px 12px; border-radius: 8px;
     color: var(--text); font-family: var(--body) !important;
-    font-size: 18px !important;
+    font-size: 16px !important;
     outline: none; resize: none;
     line-height: 1.4;
     height: 44px; min-height: 44px;
@@ -1567,7 +1567,7 @@ export default function MockupStyles() {
   .chat-input textarea:focus,
   .chat-input input:focus { border-color: var(--amber); }
   .chat-input textarea::placeholder,
-  .chat-input input::placeholder { font-size: 18px !important; color: var(--muted); opacity: 1; }
+  .chat-input input::placeholder { font-size: 16px !important; color: var(--muted); opacity: 1; }
   .chat-typing { display: inline-flex; gap: 4px; align-items: center; padding: 4px 0; }
   .chat-typing .dot {
     width: 6px; height: 6px; border-radius: 50%;
