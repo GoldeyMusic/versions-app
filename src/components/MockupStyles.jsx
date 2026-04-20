@@ -49,21 +49,28 @@ export default function MockupStyles() {
   .brand .accent { color: var(--amber); font-style: normal; }
   .user-pill {
     display: flex; align-items: center; gap: 14px;
-    padding: 12px 14px;
-    border-radius: 12px;
+    width: 100%; box-sizing: border-box;
+    padding: 16px 16px;
+    border-radius: 14px;
     background: var(--s1);
     border: 1px solid var(--border);
     cursor: pointer;
   }
+  .user-pill > div:last-child {
+    flex: 1; min-width: 0;
+  }
   .user-pill .avatar {
-    width: 40px; height: 40px; border-radius: 50%;
+    width: 52px; height: 52px; border-radius: 50%;
     background: linear-gradient(135deg, var(--amber), #e88855);
     display: flex; align-items: center; justify-content: center;
-    color: #000; font-family: var(--mono); font-weight: 600; font-size: 16px;
+    color: #000; font-family: var(--mono); font-weight: 600; font-size: 20px;
     flex-shrink: 0;
   }
-  .user-pill .who { font-size: 14px; color: var(--text); font-weight: 500; }
-  .user-pill .plan { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .user-pill .who {
+    font-size: 16px; color: var(--text); font-weight: 500;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .user-pill .plan { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 3px; }
 
   .new-track {
     padding: 9px 12px; border-radius: 8px;
