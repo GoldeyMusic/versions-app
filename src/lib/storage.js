@@ -480,7 +480,11 @@ export async function getOrCreateComparison(trackId, versionA, versionB, locale)
 
   const ficheA = versionA.analysisResult?.fiche || versionA.analysisResult || null;
   const ficheB = versionB.analysisResult?.fiche || versionB.analysisResult || null;
-  if (!ficheA || !ficheB) throw new Error('Les deux versions doivent avoir une fiche analysée');
+  if (!ficheA || !ficheB) {
+    const err = new Error('Les deux versions doivent avoir une fiche analysée');
+    err.code = 'COMPARE_NEEDS_FICHES';
+    throw err;
+  }
 
   const API = (await import('../constants/api')).default;
   const resp = await fetch(`${API}/api/compare`, {

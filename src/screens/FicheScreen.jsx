@@ -1551,7 +1551,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                       const scores = (el.items || []).map((it) => it.score).filter((s) => typeof s === 'number');
                       const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
                       const isVoice = isVoiceCategory(el?.cat);
-                      const catLabel = (isVoice && voiceLabelOverride) ? voiceLabelOverride : el.cat;
+                      const catLabel = (isVoice && voiceLabelOverride) ? s.fiche.voiceComingSoon : el.cat;
                       return (
                         <div key={el.id || el.cat || idx} className={`diag-cat${open ? ' open' : ''}${isVoice && voiceLabelOverride ? ' pending-voice' : ''}`}>
                           <div className="diag-cat-head" onClick={() => toggleCat(idx)}>

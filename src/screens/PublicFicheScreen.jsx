@@ -187,7 +187,7 @@ export default function PublicFicheScreen({ token }) {
                         const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
                         const isVoice = isVoiceCategory(el.cat);
                         const isPendingVoice = isVoice && voiceLabelOverride;
-                        const catLabel = isPendingVoice ? voiceLabelOverride : el.cat;
+                        const catLabel = isPendingVoice ? s.fiche.voiceComingSoon : el.cat;
                         const catClass = isPendingVoice ? 'diag-cat open pending-voice' : 'diag-cat open';
                         return (
                           <div key={el.id || el.cat || idx} className={catClass}>

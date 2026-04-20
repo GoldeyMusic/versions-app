@@ -45,7 +45,10 @@ export default function CompareButton({ track, currentVersion }) {
       const r = await getOrCreateComparison(track.id, A, B, lang);
       setResult({ ...r, _A: A.name, _B: B.name });
     } catch (e) {
-      setError(e.message || 'erreur');
+      const msg = e.code === 'COMPARE_NEEDS_FICHES'
+        ? s.errors.compareNeedsFiches
+        : (e.message || s.errors.generic);
+      setError(msg);
     } finally {
       setLoading(false);
     }

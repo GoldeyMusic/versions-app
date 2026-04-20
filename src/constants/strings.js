@@ -380,6 +380,7 @@ const STRINGS = {
       vocalTypeInstrumental: "Instrumental",
       vocalTypeInstrumentalPending: "Instrumental (voix à venir)",
       vocalTypeInstrumentalFinal: "Instrumental définitif",
+      voiceComingSoon: "VOIX À VENIR",
 
       /* FicheScreen — rendu détaillé */
       listeningTitle: "Écoute qualitative",
@@ -889,6 +890,8 @@ const STRINGS = {
       weakPassword: "Mot de passe trop court (6 caractères min.).",
       loadProfile: "Impossible de charger ton profil.",
       saveProfile: "Impossible d'enregistrer tes modifications.",
+      projectCreate: "La création a échoué, réessaye.",
+      compareNeedsFiches: "Les deux versions doivent avoir une fiche analysée",
     },
 
     /* ─────────────── DATE / TIME ─────────────────────── */
@@ -1282,6 +1285,7 @@ const STRINGS = {
       vocalTypeInstrumental: "Instrumental",
       vocalTypeInstrumentalPending: "Instrumental (vocals coming)",
       vocalTypeInstrumentalFinal: "Final instrumental",
+      voiceComingSoon: "VOCALS COMING",
 
       /* FicheScreen — detailed rendering */
       listeningTitle: "Qualitative listening",
@@ -1784,6 +1788,8 @@ const STRINGS = {
       weakPassword: "Password too short (6 characters min.).",
       loadProfile: "Unable to load your profile.",
       saveProfile: "Unable to save your changes.",
+      projectCreate: "Creation failed, please try again.",
+      compareNeedsFiches: "Both versions must have an analysis report",
     },
 
     /* ─────────────── DATE / TIME ───────────── */

@@ -1999,7 +1999,7 @@ function VersionsAppAuthed() {
 
   const handleOnboardingCreate = async (name) => {
     const created = await createProject(name);
-    if (!created?.id) throw new Error('La création a échoué, réessaye.');
+    if (!created?.id) throw new Error(s.errors.projectCreate);
     setCurrentProjectId(created.id);
     setNeedsOnboarding(false);
     refreshProjects();
