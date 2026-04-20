@@ -1812,6 +1812,7 @@ export default function MockupStyles() {
   }
   .wh-hero-title {
     font-family: var(--serif); font-size: 38px; font-weight: 400;
+    font-style: italic;
     line-height: 1.1; letter-spacing: 0.3px;
     margin: 4px 0 6px; color: var(--text);
   }
