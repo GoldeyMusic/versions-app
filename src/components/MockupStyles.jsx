@@ -281,6 +281,8 @@ export default function MockupStyles() {
     position: relative;
     display: inline-flex;
     align-self: center;
+    /* correction optique : la baseline serif 28px fait apparaître la pill plus haut que le centre visuel du titre */
+    transform: translateY(3px);
   }
   .vocal-pill {
     font-family: var(--mono);
@@ -1552,7 +1554,7 @@ export default function MockupStyles() {
     background: var(--s2) !important; border: 1px solid var(--border);
     padding: 10px 12px; border-radius: 8px;
     color: var(--text); font-family: var(--body) !important;
-    font-size: 18px !important;
+    font-size: 20px !important;
     outline: none; resize: none;
     line-height: 1.4;
     height: 44px; min-height: 44px;
