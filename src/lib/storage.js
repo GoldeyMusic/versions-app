@@ -254,12 +254,21 @@ export async function loadVersionLocalized(versionId, userLocale) {
   if (ficheT) translated.fiche = ficheT;
   if (listeningT) translated.listening = listeningT;
 
-  // Writeback cache — fire & forget, pas critique si RLS/réseau échoue
-  const newCache = { ...cache, [target]: translated };
-  supabase.from('versions')
-    .update({ analysis_translations: newCache })
-    .eq('id', versionId)
-    .then(({ error: werr }) => { if (werr) console.warn('[storage] translations cache write failed:', werr.message); });
+  // On ne cache que si TOUT ce qui devait être traduit l'a été.
+  // Sinon on retournerait le résultat partiel mais on re-tentera la prochaine fois.
+  const ficheOk = !original.fiche || !!ficheT;
+  const listeningOk = !original.listening || !!listeningT;
+  const fullyTranslated = ficheOk && listeningOk;
+
+  if (fullyTranslated) {
+    const newCache = { ...cache, [target]: translated };
+    supabase.from('versions')
+      .update({ analysis_translations: newCache })
+      .eq('id', versionId)
+      .then(({ error: werr }) => { if (werr) console.warn('[storage] translations cache write failed:', werr.message); });
+  } else {
+    console.warn('[storage] translation partielle → cache NON écrit, retry possible au prochain affichage');
+  }
 
   return translated;
 }
