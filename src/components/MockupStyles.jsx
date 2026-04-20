@@ -114,7 +114,7 @@ export default function MockupStyles() {
   }
   .sidebar-search-input::placeholder {
     color: var(--muted);
-    font-size: 14px;
+    font-size: 16px;
   }
   .sidebar-search-input:focus {
     border-color: var(--amber);
@@ -349,7 +349,7 @@ export default function MockupStyles() {
   .vocal-pill-menu .vpm-item.active { color: var(--accent, #f5a623); }
   .vocal-pill-menu .vpm-item:disabled { opacity: .6; cursor: progress; }
   .vocal-pill-menu .vpm-check {
-    font-size: 14px;
+    font-size: 16px;
     opacity: .85;
   }
 
@@ -676,7 +676,7 @@ export default function MockupStyles() {
   .verdict-text h1 em { color: var(--amber); font-weight: 500; font-style: italic; }
   .verdict-text p {
     font-family: var(--body);
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.7;
     color: var(--soft);
     font-weight: 300;
@@ -706,7 +706,7 @@ export default function MockupStyles() {
     min-width: 0;
   }
   .rv-left .verdict-text h1 { font-size: 28px; margin-bottom: 10px; }
-  .rv-left .verdict-text p { font-size: 14px; }
+  .rv-left .verdict-text p { font-size: 16px; }
   .rv-right {
     display: flex;
     min-width: 0;
@@ -1000,7 +1000,7 @@ export default function MockupStyles() {
 
   .ptitle {
     flex: 1;
-    font-family: var(--body); font-size: 15px; font-weight: 300; line-height: 1.4;
+    font-family: var(--body); font-size: 16px; font-weight: 300; line-height: 1.4;
     letter-spacing: 0.2px;
   }
   .done .ptitle { text-decoration: line-through; color: var(--muted); }
@@ -1221,8 +1221,8 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 14px; color: var(--muted);
   }
   .diag-item .di-body { flex: 1; }
-  .diag-item .di-name { font-family: var(--body); font-size: 15px; font-weight: 400; margin-bottom: 4px; }
-  .diag-item .di-detail { font-size: 14px; color: var(--soft); line-height: 1.6; font-weight: 300; margin-bottom: 10px; }
+  .diag-item .di-name { font-family: var(--body); font-size: 16px; font-weight: 400; margin-bottom: 4px; }
+  .diag-item .di-detail { font-size: 16px; color: var(--soft); line-height: 1.6; font-weight: 300; margin-bottom: 10px; }
   .diag-item .di-tools { display: flex; flex-wrap: wrap; gap: 6px; }
   .diag-item .di-tools span {
     font-family: var(--mono); font-size: 14px; color: var(--muted);
@@ -1521,7 +1521,7 @@ export default function MockupStyles() {
     max-width: 86%;
     padding: 10px 14px;
     border-radius: 12px;
-    font-size: 14px; line-height: 1.55; font-weight: 300;
+    font-size: 16px; line-height: 1.55; font-weight: 300;
   }
   .msg.user {
     align-self: flex-end;
@@ -1700,7 +1700,7 @@ export default function MockupStyles() {
   /* Variante primaire — CTA "Ajouter" unique, bien en évidence */
   .wh-action.wh-action-primary {
     background: var(--amber); border-color: var(--amber); color: #141416;
-    padding: 14px 28px; font-size: 14px; font-weight: 500;
+    padding: 14px 28px; font-size: 16px; font-weight: 500;
     letter-spacing: 0.3px;
     box-shadow: 0 8px 24px rgba(245,176,86,0.22);
   }
@@ -1926,11 +1926,11 @@ export default function MockupStyles() {
     text-transform: uppercase; color: var(--amber); margin-bottom: 8px;
   }
   .wh-card-title {
-    font-family: var(--body); font-size: 15px; font-weight: 500;
+    font-family: var(--body); font-size: 16px; font-weight: 500;
     margin-bottom: 8px; color: var(--text);
   }
   .wh-card-body {
-    font-size: 14px; line-height: 1.55; color: var(--soft); font-weight: 300;
+    font-size: 16px; line-height: 1.55; color: var(--soft); font-weight: 300;
   }
   .wh-card-link {
     display: inline-block; margin-top: 10px;
@@ -1944,7 +1944,7 @@ export default function MockupStyles() {
   .wh-checklist { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
   .wh-check-item {
     display: flex; align-items: center; gap: 10px; padding: 6px 0;
-    font-size: 14px;
+    font-size: 16px;
   }
   .wh-check-box {
     width: 16px; height: 16px; border-radius: 4px;
@@ -2100,7 +2100,7 @@ export default function MockupStyles() {
     color: var(--text);
   }
   .wh-picker-create .wh-action-icon {
-    font-size: 14px; line-height: 1; color: var(--amber); font-weight: 500;
+    font-size: 16px; line-height: 1; color: var(--amber); font-weight: 500;
   }
   .wh-picker-create:hover { color: var(--amber); }
 
@@ -2255,7 +2255,7 @@ export default function MockupStyles() {
     font-weight: 400;
   }
   .input-vpill.small {
-    font-size: 14px; padding: 9px 12px;
+    font-size: 16px; padding: 9px 12px;
   }
 
   .input-cta {
@@ -2369,7 +2369,7 @@ export default function MockupStyles() {
   }
   .wh-acc-item.open .wh-acc-kicker { display: block; }
   .wh-acc-name {
-    font-family: var(--body); font-size: 15px; font-weight: 500;
+    font-family: var(--body); font-size: 16px; font-weight: 500;
     color: var(--text);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
@@ -2450,7 +2450,7 @@ export default function MockupStyles() {
     display: flex; flex-direction: column; gap: 4px;
   }
   .wh-acc-empty {
-    padding: 24px 0; color: var(--muted); font-size: 14px;
+    padding: 24px 0; color: var(--muted); font-size: 16px;
     font-style: italic; text-align: center;
   }
   .wh-acc-add-track {
@@ -3387,7 +3387,7 @@ export default function MockupStyles() {
     text-transform: uppercase;
   }
   .public-fiche-topbar .pft-cta {
-    font-size: 14px; color: var(--text); text-decoration: none;
+    font-size: 16px; color: var(--text); text-decoration: none;
     padding: 8px 14px;
     border: 1px solid var(--border); border-radius: 8px;
     transition: border-color .15s ease, background .15s ease;
@@ -3411,7 +3411,7 @@ export default function MockupStyles() {
 
   .public-fiche-meta {
     display: flex; align-items: center; gap: 8px;
-    font-size: 14px; color: var(--muted);
+    font-size: 16px; color: var(--muted);
     margin-top: 10px;
   }
   .public-fiche-meta .pfm-track {
@@ -3472,12 +3472,12 @@ export default function MockupStyles() {
     margin: 0 0 12px;
   }
   .public-fiche-404 p {
-    color: var(--muted); font-size: 14px;
+    color: var(--muted); font-size: 16px;
     max-width: 460px; line-height: 1.6;
     margin: 0 0 24px;
   }
   .public-fiche-404 .pfx-home {
-    font-size: 14px; color: var(--text); text-decoration: none;
+    font-size: 16px; color: var(--text); text-decoration: none;
     padding: 10px 18px;
     border: 1px solid var(--accent); border-radius: 8px;
     background: transparent;
@@ -3489,7 +3489,7 @@ export default function MockupStyles() {
 
   .public-fiche-footer {
     padding: 20px 28px; border-top: 1px solid var(--border);
-    text-align: center; font-size: 14px; color: var(--muted);
+    text-align: center; font-size: 16px; color: var(--muted);
     letter-spacing: 0.5px;
   }
 
@@ -3519,7 +3519,7 @@ export default function MockupStyles() {
     border-radius: 8px;
     color: #e0c389;
     font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 500;
     cursor: pointer;
     letter-spacing: 0.1px;
