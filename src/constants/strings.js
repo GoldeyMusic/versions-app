@@ -490,7 +490,7 @@ const STRINGS = {
       chatClearConfirmTitle: "Effacer la conversation ?",
       chatClearConfirmBody: "La conversation de cette version sera supprimée définitivement.",
       chatClearConfirmLabel: "Effacer",
-      chatPlaceholderAnalysis: "Pose une question sur l'analyse…",
+      chatPlaceholderAnalysis: "…",
       chatFabTitle: "Discussion",
 
       /* EvolutionPanel */
@@ -1397,7 +1397,7 @@ const STRINGS = {
       chatClearConfirmTitle: "Clear the conversation?",
       chatClearConfirmBody: "The conversation for this version will be permanently deleted.",
       chatClearConfirmLabel: "Clear",
-      chatPlaceholderAnalysis: "Ask a question about the analysis…",
+      chatPlaceholderAnalysis: "…",
       chatFabTitle: "Discussion",
 
       /* EvolutionPanel */
