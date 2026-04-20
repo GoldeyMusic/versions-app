@@ -669,6 +669,7 @@ const STRINGS = {
       loadingInline: "chargement…",
       noAudio: "Audio indisponible",
       speed: "Vitesse",
+      volume: "Volume",
     },
 
     /* ─────────────── RÉGLAGES (propres au composant) ─────── */
@@ -1575,6 +1576,7 @@ const STRINGS = {
       loadingInline: "loading…",
       noAudio: "Audio unavailable",
       speed: "Speed",
+      volume: "Volume",
     },
 
     /* ─────────────── SETTINGS ─────────────── */

@@ -86,6 +86,13 @@ export default function BottomPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [loading, setLoading] = useState(false);
+  // Volume : persistant dans localStorage (0..1). Par défaut 1 = plein volume.
+  const [volume, setVolume] = useState(() => {
+    const raw = parseFloat(typeof localStorage !== 'undefined' ? localStorage.getItem('versions_volume') : '1');
+    return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : 1;
+  });
+  const [volumeOpen, setVolumeOpen] = useState(false);
+  const volumeBtnRef = useRef(null);
 
   const fmt = (secRaw) => {
     const sec = Math.floor(secRaw);
@@ -136,6 +143,8 @@ export default function BottomPlayer({
 
         if (prev && prev !== audio) prev.pause();
         activeAudioRef.current = audio;
+        // Applique le volume courant sur le nouvel audio (persistant entre versions)
+        audio.volume = volume;
 
         // Preload next tracks in playlist
         if (playlist?.length) preloadPlaylist(playlist, currentIdx || 0, 2);
@@ -178,6 +187,23 @@ export default function BottomPlayer({
 
     return () => { cancelled = true; };
   }, [storagePath, resetKey]);
+
+  // ── Sync volume sur l'audio actif + persist localStorage ──
+  useEffect(() => {
+    if (activeAudioRef.current) activeAudioRef.current.volume = volume;
+    try { localStorage.setItem('versions_volume', String(volume)); } catch {}
+  }, [volume]);
+
+  // Ferme le popup volume au clic dehors
+  useEffect(() => {
+    if (!volumeOpen) return;
+    const onDown = (e) => {
+      if (!volumeBtnRef.current) return;
+      if (!volumeBtnRef.current.contains(e.target)) setVolumeOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [volumeOpen]);
 
   // ── Sync play/pause ───────────────────────────────────────
   useEffect(() => {
@@ -316,6 +342,49 @@ export default function BottomPlayer({
           <span>—:— / —:—</span>
         ) : (
           <><b>{fmt(currentTime)}</b> / {fmt(duration)}</>
+        )}
+      </div>
+
+      {/* Volume — icône + popup slider */}
+      <div className="pl-volume" ref={volumeBtnRef}>
+        <button
+          type="button"
+          className="pl-ctrl pl-volume-btn"
+          onClick={() => setVolumeOpen((o) => !o)}
+          aria-label={s.player?.volume || 'Volume'}
+          title={s.player?.volume || 'Volume'}
+          style={{ opacity: idle ? 0.25 : 1 }}
+        >
+          {volume === 0 ? (
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path d="M3 6h2.5L9 3v10L5.5 10H3V6z" fill="currentColor" />
+              <path d="M11 6l4 4M15 6l-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
+          ) : volume < 0.5 ? (
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path d="M3 6h2.5L9 3v10L5.5 10H3V6z" fill="currentColor" />
+              <path d="M11.5 6.5c.7.7.7 2.3 0 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path d="M3 6h2.5L9 3v10L5.5 10H3V6z" fill="currentColor" />
+              <path d="M11.5 5c1.3 1.3 1.3 4.7 0 6M13.5 3.5c2 2 2 7 0 9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+            </svg>
+          )}
+        </button>
+        {volumeOpen && (
+          <div className="pl-volume-pop" role="dialog" aria-label={s.player?.volume || 'Volume'}>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              aria-label={s.player?.volume || 'Volume'}
+              autoFocus
+            />
+          </div>
         )}
       </div>
     </div>
