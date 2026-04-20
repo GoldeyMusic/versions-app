@@ -1,38 +1,148 @@
 /**
- * MockupStyles — CSS verbatim extrait de mockup-v3.html.
- * Source: /sessions/.../Versions/mockup-v3.html validé 2026-04-14.
+ * MockupStyles — CSS aligné sur versions-dark-identity-mockup-v2.html.
+ * Source: /sessions/.../Versions/versions-dark-identity-mockup-v2.html validé 2026-04-20.
  * Ne pas modifier sans mettre à jour la maquette en parallèle.
  */
 export default function MockupStyles() {
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500;1,9..144,600&family=JetBrains+Mono:wght@400;500&display=swap');`}</style>
       <style>{`
   :root {
-    --bg: #0c0c0d;
-    --s1: #141416;
-    --s2: #1b1b1d;
-    --s3: #222225;
-    --border: #2a2a2e;
+    /* Fond + surfaces — identité sombre v2 (cool, respirante).
+       Le fond tire très légèrement vers un bleu électrique très sombre
+       (B +10 vs R/G) — à peine perceptible, juste ce qu'il faut pour
+       que la page ne soit pas strictement grise/noire. */
+    --bg: #0a0b14;
+    --s1: #111218;
+    --s2: #16171e;
+    --s3: #1d1e26;
+    --card: #101118;
+    --border: rgba(255,255,255,0.06);
+    --border-strong: rgba(255,255,255,0.12);
+
+    /* Textes */
     --text: #ededed;
     --soft: #c5c5c7;
-    --muted: #7c7c80;
+    --muted: #8a8a90;
     --muted2: #5a5a5e;
-    --amber: #f5b056;
-    --amber-dim: #f5b05622;
-    --amber-glow: #f5b05611;
-    --green: #7bd88f;
-    --green-dim: #7bd88f33;
-    --red: #ef6b6b;
+
+    /* Accents — ambre principal, céruléen froid, violet en touche */
+    --amber: #f5a623;
+    --amber-dim: rgba(245,166,35,0.22);
+    --amber-glow: rgba(245,166,35,0.16);
+    --amber-line: rgba(245,166,35,0.35);
+
+    --cerulean: #5cb8cc;
+    --cerulean-glow: rgba(92,184,204,0.22);
+
+    --violet: #a67ef5;
+    --violet-glow: rgba(166,126,245,0.24);
+
+    --mint: #8ee07a;
+    --mint-glow: rgba(142,224,122,0.22);
+
+    --red: #ff5d5d;
+    --red-glow: rgba(255,93,93,0.22);
+
+    /* Alias rétro-compat (conservés le temps de la migration) */
+    --green: #8ee07a;
+    --green-dim: rgba(142,224,122,0.33);
     --black: #000;
-    --serif: 'DM Sans', sans-serif;
+
+    /* Typographies */
+    --serif: 'Fraunces', 'DM Sans', serif;
     --body: 'DM Sans', sans-serif;
     --mono: 'JetBrains Mono', monospace;
+    --display: 'Bebas Neue', sans-serif;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--body); font-weight: 300; font-size: 14px; scroll-behavior: smooth; }
   a { color: inherit; text-decoration: none; }
   button { font-family: inherit; color: inherit; background: none; border: none; cursor: pointer; padding: 0; }
+
+  /* ── Halo ambient (background de page) ──────────────────────
+     Grand halo diffus positionné de façon asymétrique sur la page —
+     jamais au centre, jamais pile dans un coin. Le halo est composé
+     de 3 calques superposés qui crossfade (chacun avec sa couleur +
+     position), pour donner une impression de couleur qui évolue
+     lentement au cours de la session. Seuls transform et opacity
+     sont animés (GPU-accelerated), blur calculé une seule fois. */
+  .ambient-halo {
+    position: fixed;
+    inset: -15vh -15vw;
+    pointer-events: none;
+    z-index: 0;
+    animation: ambient-drift 95s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+  @keyframes ambient-drift {
+    0%   { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(90px, -45px, 0) scale(1.05); }
+  }
+  .ambient-layer {
+    position: absolute;
+    inset: 0;
+    filter: blur(60px);
+    opacity: 0;
+    animation: ambient-fade 90s ease-in-out infinite;
+    will-change: opacity;
+  }
+  .ambient-halo.loaded .ambient-layer { animation-play-state: running; }
+  /* Crossfade 3 calques : chacun passe 1/3 du cycle à plein, avec
+     des offsets pour qu'il y ait toujours ~1 calque dominant et une
+     transition douce. */
+  .ambient-layer:nth-child(1) { animation-delay: 0s; }
+  .ambient-layer:nth-child(2) { animation-delay: -30s; }
+  .ambient-layer:nth-child(3) { animation-delay: -60s; }
+  @keyframes ambient-fade {
+    0%   { opacity: 0; }
+    15%  { opacity: 1; }
+    45%  { opacity: 1; }
+    60%  { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  /* 5 variantes de couleur/position, appliquées sur chaque calque.
+     Chaque halo est volontairement hors-axe (jamais 50/50, jamais
+     pile en coin). */
+  .ambient-layer[data-variant="0"] {
+    background: radial-gradient(ellipse 900px 620px at 78% 18%,
+      rgba(92,184,204,0.14), transparent 70%);
+  }
+  .ambient-layer[data-variant="1"] {
+    background: radial-gradient(ellipse 720px 900px at 22% 72%,
+      rgba(166,126,245,0.13), transparent 70%);
+  }
+  .ambient-layer[data-variant="2"] {
+    background: radial-gradient(ellipse 820px 720px at 85% 78%,
+      rgba(245,166,35,0.11), transparent 70%);
+  }
+  .ambient-layer[data-variant="3"] {
+    background: radial-gradient(ellipse 860px 700px at 18% 28%,
+      rgba(142,224,122,0.11), transparent 70%);
+  }
+  .ambient-layer[data-variant="4"] {
+    background: radial-gradient(ellipse 780px 820px at 68% 12%,
+      rgba(166,126,245,0.13), transparent 70%);
+  }
+  /* Fade-in global au premier load (avant que le crossfade prenne le relais). */
+  .ambient-halo { opacity: 0; transition: opacity 1.8s ease; }
+  .ambient-halo.loaded { opacity: 1; }
+  /* Respect des préférences système : si l'utilisateur a désactivé
+     les animations (reduced motion), on fige le halo et on garde
+     uniquement le premier calque visible. */
+  @media (prefers-reduced-motion: reduce) {
+    .ambient-halo { animation: none; }
+    .ambient-layer { animation: none; }
+    .ambient-layer:nth-child(1) { opacity: 1; }
+    .ambient-layer:nth-child(n+2) { opacity: 0; }
+  }
+  /* #root (racine React) doit passer explicitement au-dessus du halo —
+     sans z-index, un frère en position fixed même avec z-index 0 peindrait
+     par-dessus (règle CSS d'ordre de peinture des éléments positionnés).
+     Ici on crée un stacking context sur #root pour que tout son arbre
+     reste au-dessus du halo. */
+  #root { position: relative; z-index: 1; }
 
   /* ── Layout ──────────────────────────────────── */
   .app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
@@ -45,26 +155,48 @@ export default function MockupStyles() {
     display: flex; flex-direction: column; gap: 18px;
     position: sticky; top: 0; height: 100vh; overflow-y: auto;
   }
-  .brand { display: flex; align-items: center; gap: 12px; font-family: 'Bebas Neue', sans-serif; font-size: 34px; letter-spacing: 3px; color: var(--text); line-height: 1; }
+  /* Logo VERSiONS — même typo que le slogan "Écoute, compare, décide."
+     (DM Sans 700) pour unifier l'identité. Le "i" est en minuscule :
+     son point remonte quasi à cap height, ce qui garde la silhouette
+     compacte du mot sans alourdir la lecture. */
+  .brand { display: flex; align-items: center; gap: 12px; font-family: var(--body); font-weight: 700; font-size: 26px; letter-spacing: -0.5px; color: var(--text); line-height: 1; }
   .brand .accent { color: var(--amber); font-style: normal; }
+  /* Encadré utilisateur — même traitement que les cartes .wh-stat :
+     fond var(--card), halo diffus en pseudo ::before et contenu
+     remonté en z-index 1 pour passer au-dessus du halo. Overflow
+     hidden pour que la tache floue ne déborde pas des coins arrondis. */
   .user-pill {
     display: flex; align-items: center; gap: 14px;
     width: 100%; box-sizing: border-box;
     padding: 16px 16px;
     border-radius: 14px;
-    background: var(--s1);
+    background: var(--card);
     border: 1px solid var(--border);
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
   }
+  .user-pill::before {
+    content: ''; position: absolute; pointer-events: none;
+    border-radius: 50%; z-index: 0;
+    top: -35px; right: -30px;
+    width: 140px; height: 140px;
+    background: var(--amber); filter: blur(55px); opacity: .22;
+  }
+  .user-pill > * { position: relative; z-index: 1; }
   .user-pill > div:last-child {
     flex: 1; min-width: 0;
   }
   .user-pill .avatar {
-    width: 52px; height: 52px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--amber), #e88855);
+    width: 58px; height: 58px; border-radius: 50%;
+    /* Fond neutre sombre (plus de gradient ambre) — évite le ring
+       visible au bord de la photo. overflow hidden pour clipper
+       proprement l'image à la forme ronde. */
+    background: var(--s2);
     display: flex; align-items: center; justify-content: center;
-    color: #000; font-family: var(--mono); font-weight: 600; font-size: 20px;
+    color: var(--amber); font-family: var(--mono); font-weight: 600; font-size: 22px;
     flex-shrink: 0;
+    overflow: hidden;
   }
   .user-pill .who {
     font-size: 14px; color: var(--text); font-weight: 500;
@@ -1364,25 +1496,35 @@ export default function MockupStyles() {
   .resolve-action .box svg { display: none; }
   .resolve-action.done .box svg { display: block; }
 
-  /* ── Player bottom bar ───────────────────────── */
+  /* ── Player bottom bar (v2 dark identity) ─────────────────────
+     Fond transparent-noir + blur, border-top fine. Play en amber avec
+     un halo amber doux (amber-glow). État idle : play en amber semi,
+     transport & waveform à 25 %. */
   .player {
     position: fixed; bottom: 0; left: 0; right: 0;
     height: 68px;
-    background: rgba(18,18,20,0.96);
-    backdrop-filter: blur(14px);
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-top: 1px solid var(--border);
     display: flex; align-items: center;
     padding: 0 24px 0 260px; /* 240 sidebar + 20 */
-    gap: 20px;
+    gap: 18px;
     z-index: 90;
   }
   .player .pl-btn {
     width: 40px; height: 40px; border-radius: 50%;
-    background: var(--amber); color: #000;
+    background: var(--amber); color: #0a0a0c;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; flex-shrink: 0;
+    border: none;
+    box-shadow: 0 4px 20px var(--amber-glow);
+    transition: filter .15s, box-shadow .15s;
   }
-  .player .pl-btn:hover { filter: brightness(1.05); }
+  .player .pl-btn:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 4px 26px rgba(245,166,35,0.28);
+  }
   .player .pl-ctrl {
     width: 28px; height: 28px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
@@ -1415,6 +1557,16 @@ export default function MockupStyles() {
   /* Desktop : wavesurfer visible, scrubber mobile caché */
   .player .pl-wavesurfer { display: block; }
   .player .pl-scrubber { display: none; }
+  /* État idle : le wavesurfer n'a pas été instancié, on affiche un trait
+     discret (ligne horizontale) à la place pour que la barre reste lisible
+     et cohérente, même avant qu'une piste soit lancée. */
+  .player .pl-wavesurfer:empty {
+    background: linear-gradient(to bottom,
+      transparent calc(50% - 1px),
+      rgba(255,255,255,0.08) calc(50% - 1px),
+      rgba(255,255,255,0.08) calc(50% + 1px),
+      transparent calc(50% + 1px));
+  }
   .player .pl-time {
     font-family: var(--mono); font-size: 12px; color: var(--muted);
     flex-shrink: 0; min-width: 78px; text-align: right;
@@ -1732,7 +1884,8 @@ export default function MockupStyles() {
   }
   /* Tagline éditoriale masquée sur desktop (trop d'air avant le hero) ;
      conservée sur mobile où elle reste utile. */
-  .wh-desktop .wh-tagline-hero { display: none; }
+  /* Le tagline hero reste visible sur desktop avec le nouveau grand titre v2. */
+  /* .wh-desktop .wh-tagline-hero { display: none; } */
 
   /* Tagline ré-insérée sous les 4 cadres de stats : padding vertical
      pour respirer, mêmes glyphes que la version haute. */
@@ -1749,33 +1902,64 @@ export default function MockupStyles() {
 
   /* Bouton Ajouter dans la sidebar — en fin de liste de projets.
      Remplace l'ancien bouton flottant (.wh-add-floating) pour un accès
-     permanent depuis n'importe quel écran. */
+     permanent depuis n'importe quel écran. Style aligné sur le chip
+     violet de la maquette v2 (.v4-chip.violet) : pill, mono caps,
+     remplissage + bordure violet dilué. */
   .sidebar-add-btn {
-    display: flex; align-items: center; gap: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 6px;
+    /* align-self: center pour que dans un parent flex-column (qui stretch
+       ses enfants par défaut), le bouton reste à la largeur de son contenu
+       et se centre horizontalement dans la sidebar. */
+    align-self: center;
     margin-top: 12px;
-    padding: 10px 12px;
-    background: transparent;
-    border: 1px solid var(--amber);
-    color: var(--amber);
-    border-radius: 8px;
+    padding: 7px 14px;
+    background: rgba(166,126,245,0.1);
+    border: 1px solid rgba(166,126,245,0.35);
+    color: var(--violet);
+    border-radius: 999px;
     font-family: var(--mono);
-    font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+    font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase;
     font-weight: 500;
     cursor: pointer;
-    transition: background .15s, color .15s;
+    transition: background .15s, border-color .15s, color .15s;
   }
   .sidebar-add-btn:hover {
-    background: rgba(245,176,86,0.08);
-    color: #ffc77a; border-color: #ffc77a;
+    background: rgba(166,126,245,0.18);
+    border-color: rgba(166,126,245,0.55);
+    color: #b892ff;
   }
   .sidebar-add-icon {
-    font-size: 18px; line-height: 1; font-weight: 500;
+    font-size: 14px; line-height: 1; font-weight: 500;
+    margin-top: -1px;
   }
   .wh-desktop .wh-header { margin-bottom: 4px; align-items: flex-start; }
   .wh-desktop .wh-greeting { font-size: 28px; letter-spacing: 2.5px; text-align: left; }
   .wh-desktop .wh-actions { justify-content: flex-start; flex-wrap: wrap; }
   .wh-desktop .wh-tracklist { max-width: none; margin: 0; }
-  .wh-desktop .wh-section-title { font-size: 22px; margin-bottom: 14px; }
+  /* Titre "Mes projets" en desktop — aligné sur .v4-panel-title de la
+     maquette v2 (DM Sans 600, 16px, letter-spacing négatif). Placé à
+     l'intérieur du cadre .wh-projects (comme .v4-panel-head). */
+  .wh-desktop .wh-projects-title {
+    font-family: var(--body);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+    line-height: 1.2;
+    color: var(--text);
+    padding: 14px 18px 12px;
+    margin: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .wh-desktop .wh-projects-title em {
+    font-family: inherit; font-size: inherit; font-weight: inherit;
+    letter-spacing: inherit; font-style: normal;
+    color: inherit; /* même blanc que le reste, pas d'accent ambre sur desktop */
+  }
+  /* La 1re row n'a plus besoin d'arrondis au sommet (le titre coiffe le panneau) */
+  .wh-desktop .wh-projects-title + .wh-acc-item:first-of-type {
+    border-top-left-radius: 0; border-top-right-radius: 0;
+  }
   /* Colonne gauche sans cap : elle occupe toute la largeur disponible,
      les tips à droite s'étaleront moins en hauteur. */
   .wh-desktop .wh-col-left { max-width: none; }
@@ -1793,11 +1977,105 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 12px; letter-spacing: 3px;
     color: var(--amber); text-transform: uppercase;
   }
+  /* Tagline desktop : aligné à gauche et agrandi façon mockup v2.
+     Sur mobile, on garde la version centrée (règle par défaut ci-dessus). */
   .wh-tagline-text {
     font-family: var(--serif); font-style: italic; font-size: 34px;
     line-height: 1.25; color: var(--text); max-width: 760px;
     font-weight: 400;
   }
+  /* Bloc intro desktop : eyebrow + slogan fixe + tagline rotative.
+     La tagline rotative est placée à droite du slogan pour équilibrer
+     horizontalement. On garde l'eyebrow empilée au-dessus. */
+  .wh-desktop .wh-intro {
+    padding: 24px 0 18px;
+    display: flex; flex-direction: column; gap: 16px;
+    max-width: 1400px;
+  }
+  /* Grille alignée sur les 4 colonnes des stats en dessous : slogan occupe
+     les 2 premières colonnes, tagline les 2 dernières — elle se retrouve
+     ainsi centrée à cheval sur "Score moyen" et "Progression". */
+  .wh-desktop .wh-intro-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    align-items: center;
+    width: 100%;
+  }
+  .wh-desktop .wh-intro-row .wh-slogan {
+    grid-column: 1 / 3;
+    align-self: end;
+    overflow: visible;
+    min-width: 0;
+  }
+  /* Garantie absolue : "Écoute, compare," tient sur une seule ligne,
+     même si la cellule de grille est plus étroite. Le <br/> force
+     ensuite le passage à la ligne pour "décide.". */
+  .wh-desktop .wh-slogan .wh-slogan-line {
+    white-space: nowrap;
+  }
+  .wh-eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--violet);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .wh-eyebrow::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--violet);
+    box-shadow: 0 0 12px var(--violet-glow);
+  }
+  .wh-slogan {
+    font-family: var(--body); font-weight: 700;
+    font-size: 88px; line-height: 0.96;
+    letter-spacing: -3.5px; color: var(--text);
+    margin: 0;
+  }
+  .wh-slogan em {
+    font-family: inherit; font-style: normal; font-weight: inherit;
+    letter-spacing: inherit; color: var(--amber);
+  }
+  .wh-desktop .wh-intro .wh-tagline-text {
+    position: relative;
+    grid-column: 3 / 5;
+    justify-self: center;
+    align-self: center;
+    font-family: var(--serif); font-style: italic;
+    font-size: 20px; font-weight: 400;
+    line-height: 1.45; color: var(--soft);
+    max-width: 520px;
+    margin: 0;
+    padding-left: 42px;
+  }
+  .wh-desktop .wh-intro .wh-tagline-text::before {
+    content: '“';
+    position: absolute;
+    left: 4px; top: 50%;
+    transform: translateY(-38%);
+    font-family: var(--serif);
+    font-style: normal; font-weight: 400;
+    font-size: 86px; line-height: 1;
+    color: var(--text); opacity: 0.14;
+    pointer-events: none;
+  }
+  @media (max-width: 1100px) {
+    .wh-desktop .wh-intro-row {
+      display: flex; flex-direction: column;
+      align-items: flex-start; gap: 8px;
+    }
+    .wh-desktop .wh-intro-row .wh-slogan,
+    .wh-desktop .wh-intro .wh-tagline-text {
+      grid-column: auto;
+      justify-self: auto; align-self: auto;
+    }
+    .wh-desktop .wh-intro .wh-tagline-text {
+      padding-left: 0;
+      max-width: 720px; margin-top: 4px;
+    }
+    .wh-desktop .wh-intro .wh-tagline-text::before { display: none; }
+  }
+  /* Mobile : on cache l'ancien wh-tagline-hero de la Home desktop refondue —
+     sur mobile, le rendu mobile existant est inchangé. */
+  .wh-desktop .wh-tagline-hero { display: none; }
 
   /* ── Hero "Reprends où tu étais" ── */
   .wh-hero {
@@ -1898,27 +2176,56 @@ export default function MockupStyles() {
   }
   .wh-btn-primary:hover { background: #ffca7a; border-color: #ffca7a; color: #0a0a0b; }
 
-  /* ── Stats row ── */
+  /* ── Stats row — halos diffus varié par carte (identité v2) ── */
   .wh-stats {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
   }
   .wh-stat {
-    background: var(--s1); border: 1px solid var(--border); border-radius: 12px;
-    padding: 16px 18px; min-height: 110px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 22px; min-height: 120px;
     display: flex; flex-direction: column;
+    position: relative; overflow: hidden;
+  }
+  /* Halo propre à chaque stat — position / couleur / taille / blur variés */
+  .wh-stat::before {
+    content: ''; position: absolute; pointer-events: none;
+    border-radius: 50%; z-index: 0;
+  }
+  .wh-stat > * { position: relative; z-index: 1; }
+  .wh-stat:nth-child(1)::before {
+    top: -30px; right: -30px; width: 140px; height: 140px;
+    background: var(--cerulean); filter: blur(50px); opacity: .28;
+  }
+  .wh-stat:nth-child(2)::before {
+    bottom: -50px; left: -40px; width: 180px; height: 180px;
+    background: var(--amber); filter: blur(65px); opacity: .22;
+  }
+  .wh-stat:nth-child(3)::before {
+    top: -20px; left: 40%; width: 160px; height: 160px;
+    background: var(--mint); filter: blur(70px); opacity: .20;
+  }
+  .wh-stat:nth-child(4)::before {
+    bottom: -40px; right: -30px; width: 150px; height: 150px;
+    background: var(--violet); filter: blur(58px); opacity: .26;
   }
   .wh-stat-label {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 2px;
     text-transform: uppercase; color: var(--muted);
   }
   .wh-stat-value {
-    font-family: var(--serif); font-size: 34px; font-weight: 400;
-    margin-top: 8px; line-height: 1; color: var(--text);
+    font-family: var(--body); font-size: 42px; font-weight: 600;
+    margin-top: 10px; line-height: 1; color: var(--text);
+    letter-spacing: -1.2px;
   }
+  /* La dernière stat (progression / écart) prend le violet */
+  .wh-stat:nth-child(4) .wh-stat-value { color: var(--violet); }
   .wh-stat-hint {
-    font-family: var(--mono); font-size: 12px; color: var(--amber);
-    margin-top: auto; letter-spacing: 0.5px;
+    font-family: var(--mono); font-size: 10.5px; color: var(--muted);
+    margin-top: auto; letter-spacing: 1px; text-transform: uppercase;
   }
+  .wh-stat:nth-child(1) .wh-stat-hint { color: var(--cerulean); }
+  .wh-stat:nth-child(2) .wh-stat-hint { color: var(--amber); }
+  .wh-stat:nth-child(3) .wh-stat-hint { color: var(--mint); }
   .wh-stat-spark { margin-top: auto; }
 
   /* ── 2-col layout ──
@@ -1929,35 +2236,89 @@ export default function MockupStyles() {
   */
   .wh-cols {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(380px, 1fr);
+    /* Asymétrie : la colonne droite est un peu plus large pour casser
+       la symétrie de la page (~46 / 54). */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.18fr);
     gap: 22px;
     align-items: start;
   }
-  .wh-col-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; max-width: 560px; }
-  .wh-col-right { display: flex; flex-direction: column; gap: 12px; }
+  .wh-col-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; max-width: none; }
+  /* Colonne droite : cadre englobant (v4-panel). Les cards internes
+     passent par-dessus, leur fond est transparent (voir .wh-col-right .wh-card). */
+  .wh-col-right {
+    display: flex; flex-direction: column; gap: 12px;
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    position: relative;
+    min-width: 0;
+  }
+  /* Halo cerulean discret en bas-droite du panneau droit, accroché au coin. */
+  .wh-col-right::before {
+    content: '';
+    position: absolute;
+    right: 0; bottom: 0;
+    width: 240px; height: 180px;
+    background: radial-gradient(ellipse at bottom right,
+      rgba(92,184,204,0.07), transparent 70%);
+    border-bottom-right-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .wh-col-right > * { position: relative; z-index: 1; }
+  /* Les cards éditoriales placées à l'intérieur du panneau droit
+     deviennent des "tips" : fond très léger coloré, bordure fine colorée,
+     plus de glow interne qui ferait doublon avec le panneau englobant. */
+  .wh-col-right .wh-card {
+    overflow: visible;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .wh-col-right .wh-card::before { display: none; }
 
-  /* ── Editorial cards ── */
+  /* ── Editorial cards — variantes colorées + halos discrets ── */
   .wh-card {
-    background: var(--s1); border: 1px solid var(--border); border-radius: 12px;
-    padding: 16px 18px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px 20px;
+    position: relative; overflow: hidden;
   }
-  .wh-card.amber {
-    background: rgba(245,176,86,0.06); border-color: rgba(245,176,86,0.22);
+  .wh-card > * { position: relative; z-index: 1; }
+  .wh-card::before {
+    content: ''; position: absolute; pointer-events: none;
+    bottom: -40px; right: -40px; width: 140px; height: 140px;
+    border-radius: 50%; filter: blur(55px); opacity: .18;
+    background: var(--amber);
+    z-index: 0;
   }
+  /* Variantes de teinte pour différencier les conseils — cyclée en JSX */
+  .wh-card.amber::before { background: var(--amber); opacity: .22; }
+  .wh-card.cerulean::before { background: var(--cerulean); opacity: .20; }
+  .wh-card.mint::before { background: var(--mint); opacity: .18; }
+  .wh-card.violet::before { background: var(--violet); opacity: .22; }
+
+  .wh-card.amber { border-color: rgba(245,166,35,0.18); }
+  .wh-card.cerulean { border-color: rgba(92,184,204,0.18); }
+  .wh-card.mint { border-color: rgba(142,224,122,0.18); }
+  .wh-card.violet { border-color: rgba(166,126,245,0.18); }
+
   .wh-card-kicker {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 2px;
     text-transform: uppercase; color: var(--amber); margin-bottom: 8px;
   }
+  .wh-card.cerulean .wh-card-kicker { color: var(--cerulean); }
+  .wh-card.mint .wh-card-kicker { color: var(--mint); }
+  .wh-card.violet .wh-card-kicker { color: var(--violet); }
   .wh-card-title {
     font-family: var(--body); font-size: 14px; font-weight: 500;
     margin-bottom: 8px; color: var(--text);
   }
   .wh-card-body {
-    font-size: 14px; line-height: 1.55; color: var(--soft); font-weight: 300;
+    font-size: 13.5px; line-height: 1.55; color: var(--soft); font-weight: 300;
   }
   .wh-card-link {
     display: inline-block; margin-top: 10px;
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.2px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px;
     text-transform: uppercase; color: var(--amber);
     background: transparent; border: none; padding: 0; cursor: pointer;
   }
@@ -2078,17 +2439,19 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 12px; color: var(--muted);
     letter-spacing: 0.5px; margin-top: 2px;
   }
+  /* Chip "ANALYSE" — pilule cerulean alignée sur .v4-chip.cerulean de la
+     maquette v2 (même forme, même typo). Pas d'icône, juste le label. */
   .wh-track-fiche {
-    display: flex; align-items: center; gap: 6px;
-    padding: 6px 14px; border-radius: 8px;
-    background: rgba(245,176,86,0.08); border: 1px solid rgba(245,176,86,0.25);
-    color: var(--amber); cursor: pointer; flex-shrink: 0;
-    font-family: var(--mono); font-size: 12px; letter-spacing: 0.8px;
+    display: inline-flex; align-items: center;
+    padding: 5px 10px; border-radius: 20px;
+    background: rgba(92,184,204,0.10); border: 1px solid rgba(92,184,204,0.35);
+    color: var(--cerulean); cursor: pointer; flex-shrink: 0;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1.2px;
     text-transform: uppercase; font-weight: 500;
     transition: all .15s;
   }
   .wh-track-fiche:hover {
-    background: rgba(245,176,86,0.15); border-color: var(--amber);
+    background: rgba(92,184,204,0.18); border-color: var(--cerulean);
   }
 
   .wh-track-picker {
@@ -2302,11 +2665,52 @@ export default function MockupStyles() {
     color: var(--amber); opacity: 0.5; animation: fadeup .2s ease;
   }
 
-  /* ── Accordion projets (Home "Mes projets") ── */
+  /* ── Panneau "Mes projets" — un seul cadre englobant, rows séparés
+     par une bordure interne (v4-panel de la maquette). Les accordéons
+     s'ouvrent à l'intérieur du panneau.
+     Pas de overflow:hidden — on laisse les dropdowns (menu 3-points,
+     menu versions) déborder proprement. Le halo est intégré au background
+     (radial-gradient) au lieu d'un ::before blur, pour que la lueur reste
+     dans les limites du panneau sans clipping. */
   .wh-projects {
-    display: flex; flex-direction: column; gap: 10px;
+    display: flex; flex-direction: column;
     width: 100%;
+    /* Fond uni — les halos sont appliqués via ::before / ::after pour rester
+       accrochés aux coins physiques du panneau (sinon, quand un projet est
+       déplié, le panneau s'allonge et un halo en % bave au milieu des rows). */
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 0;
+    position: relative;
   }
+  /* Halo ambre en bas-droite — taille fixe, accroché aux coins. Tient dans
+     la boîte donc pas besoin de overflow:hidden (les dropdowns restent OK). */
+  .wh-projects::before {
+    content: '';
+    position: absolute;
+    right: 0; bottom: 0;
+    width: 260px; height: 180px;
+    background: radial-gradient(ellipse at bottom right,
+      rgba(245,166,35,0.09), transparent 70%);
+    border-bottom-right-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Halo cerulean en haut-gauche — plus doux, accroché au coin. */
+  .wh-projects::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0;
+    width: 240px; height: 160px;
+    background: radial-gradient(ellipse at top left,
+      rgba(92,184,204,0.06), transparent 70%);
+    border-top-left-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Les enfants passent au-dessus des halos. */
+  .wh-projects > * { position: relative; z-index: 1; }
   /* Teintes projet (valeurs RGB, alpha appliqué plus bas).
      Correspondent à la couleur claire du gradient de chaque teinte. */
   .wh-tint-0 { --project-tint: 198, 161, 91;  }  /* 0 ambre  */
@@ -2316,106 +2720,91 @@ export default function MockupStyles() {
   .wh-tint-4 { --project-tint: 198, 91, 91;   }  /* 4 rouge  */
   .wh-tint-5 { --project-tint: 140, 140, 160; }  /* 5 gris   */
 
+  /* Chaque projet est une LIGNE du panneau (v4-project-row) — pas de card
+     individuelle. Séparées par un border-bottom très discret. */
   .wh-acc-item {
-    /* Fond = teinte très douce (6%) superposée sur --s1 dark.
-       En mode fermé la teinte est légèrement visible sur la ligne projet. */
-    background:
-      linear-gradient(rgba(var(--project-tint, 255,255,255), 0.06),
-                      rgba(var(--project-tint, 255,255,255), 0.06)),
-      var(--s1);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden;
-    transition: border-color 0.2s ease, background 0.2s ease;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    transition: background 0.2s ease;
   }
-  .wh-acc-item:hover { border-color: rgba(245,176,86,.25); }
+  .wh-acc-item:last-child { border-bottom: none; }
+  /* Coins arrondis sur la 1re et dernière row pour qu'elles épousent
+     le border-radius du panneau — évite le liseré plat au sommet/au bas
+     quand la row est tintée (mode ouvert). */
+  .wh-acc-item:first-child { border-top-left-radius: 13px; border-top-right-radius: 13px; }
+  .wh-acc-item:last-child { border-bottom-left-radius: 13px; border-bottom-right-radius: 13px; }
+  .wh-acc-item:hover { background: rgba(255,255,255,0.02); }
   /* Quand le menu 3-points est ouvert sur un projet fermé, on laisse le
-     menu déborder hors de la carte (sinon overflow:hidden le tronque et
+     menu déborder hors de la ligne (sinon overflow:hidden le tronque et
      on ne voit que la première option). */
   .wh-acc-item.menu-open {
     overflow: visible;
     position: relative;
     z-index: 5;
   }
+  /* Mode ouvert : pas de surbrillance — le projet déplié reste sur le même
+     fond que les autres (éviter la démarcation en haut de ligne ouverte). */
   .wh-acc-item.open {
-    /* En mode ouvert, teinte un poil plus marquée (9%) pour bien détacher
-       le cadre du background général sur toute la hauteur de la carte. */
-    background:
-      linear-gradient(rgba(var(--project-tint, 255,255,255), 0.09),
-                      rgba(var(--project-tint, 255,255,255), 0.09)),
-      var(--s1);
-    border-color: rgba(245,176,86,.4);
-    box-shadow: 0 8px 32px rgba(0,0,0,.25);
+    background: transparent;
   }
+  /* ── Ligne projet compacte (alignée sur v4-project-row de la maquette) ─
+     Swatch 36x36 · body flex · score à droite. Le header reste identique
+     en fermé/ouvert : seul le body (tracklist) apparaît en mode ouvert.
+     La row fournit son propre padding horizontal pour que le tint en
+     mode ouvert remplisse bien toute la largeur du panneau. */
   .wh-acc-head {
     position: relative;
     display: grid;
-    grid-template-columns: 64px 1fr;
-    gap: 16px;
+    grid-template-columns: 36px 1fr auto;
+    gap: 14px;
     align-items: center;
     padding: 12px 16px;
     cursor: pointer;
-    transition: padding 0.25s ease;
-  }
-  .wh-acc-item.open .wh-acc-head {
-    /* Colonne vignette = auto (largeur pilotée par aspect-ratio 1/1),
-       colonne titre = 1fr. Stretch pour que la vignette prenne la hauteur totale. */
-    grid-template-columns: auto 1fr;
-    padding: 18px 18px 20px 12px;
-    align-items: stretch;
   }
   .wh-acc-cover {
     position: relative;
-    width: 64px; height: 64px;
+    width: 36px; height: 36px;
     border-radius: 10px;
     flex-shrink: 0;
-    transition: border-radius 0.25s ease, box-shadow 0.25s ease;
-  }
-  .wh-acc-item.open .wh-acc-cover {
-    /* Carré qui remplit la hauteur du header (titre + meta + actions).
-       aspect-ratio 1/1 + align-self stretch => largeur = hauteur. */
-    aspect-ratio: 1 / 1;
-    width: auto;
-    height: auto;
-    min-height: 96px;
-    min-width: 96px;
-    align-self: stretch;
-    border-radius: 12px;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.45);
   }
   .wh-acc-title { min-width: 0; overflow: hidden; }
-  .wh-acc-kicker {
-    display: none;
-    font-family: var(--mono); font-size: 12px;
-    letter-spacing: 2.5px; color: var(--amber);
-    text-transform: uppercase; margin-bottom: 6px;
-  }
-  .wh-acc-item.open .wh-acc-kicker { display: block; }
+  .wh-acc-kicker { display: none; }
   .wh-acc-name {
     font-family: var(--body); font-size: 14px; font-weight: 500;
-    color: var(--text);
+    color: var(--text); line-height: 1.2;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .wh-acc-item.open .wh-acc-name {
-    font-family: var(--serif); font-size: 28px; font-weight: 400;
-    letter-spacing: 0.3px; white-space: normal;
-    line-height: 1.1;
-  }
   .wh-acc-meta {
-    font-family: var(--mono); font-size: 12px;
-    color: var(--muted); letter-spacing: 0.5px;
-    margin-top: 3px;
+    font-family: var(--mono); font-size: 10px;
+    color: var(--muted); letter-spacing: 1px;
+    text-transform: uppercase; margin-top: 4px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .wh-acc-item.open .wh-acc-meta { margin-top: 8px; }
-  /* Play projet centré sur la vignette, apparaît au hover de la vignette.
-     Fonctionne identiquement que le projet soit ouvert ou fermé. */
+  /* Score à droite — même typo que la maquette (26px bold, coloré selon seuil) */
+  .wh-acc-score {
+    font-family: var(--body); font-weight: 600;
+    font-size: 26px; line-height: 1;
+    letter-spacing: -0.8px;
+    color: var(--muted2);
+    margin-right: 26px; /* place pour le menu 3-points (28px - 16 padding-head + 4 marge) */
+  }
+  .wh-acc-score.good { color: var(--mint); }
+  .wh-acc-score.mid { color: var(--amber); }
+  .wh-acc-score.low { color: var(--red); }
+  .wh-acc-score.dash {
+    color: var(--muted2); font-size: 22px; letter-spacing: 0;
+  }
+  /* Play projet : petit bouton qui apparaît sur hover du swatch, remplace
+     la couleur pour garder le rendu clean. */
   .wh-acc-play {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 40px; height: 40px; border-radius: 50%;
+    width: 30px; height: 30px; border-radius: 50%;
     background: rgba(0,0,0,0.55);
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.18);
     color: #fff;
     display: flex; align-items: center; justify-content: center;
     opacity: 0;
@@ -2433,14 +2822,14 @@ export default function MockupStyles() {
   }
   .wh-acc-play.playing {
     opacity: 1;
-    background: rgba(245,176,86,0.2);
+    background: rgba(245,166,35,0.2);
     border-color: var(--amber);
     color: var(--amber);
   }
 
   .wh-acc-body {
     display: none;
-    padding: 0 18px 18px;
+    padding: 0 16px 14px;
   }
   .wh-acc-item.open .wh-acc-body { display: block; }
 
@@ -2476,29 +2865,36 @@ export default function MockupStyles() {
     padding: 24px 0; color: var(--muted); font-size: 14px;
     font-style: italic; text-align: center;
   }
+  /* Bouton "+ Nouveau titre" en fin de liste d'un projet ouvert.
+     Aligné sur le langage des autres boutons pill de l'app (sidebar add,
+     chips v4) : pill, compact, centré. On conserve la bordure en pointillés
+     pour signaler l'action d'ajout (affordance "placeholder"). */
   .wh-acc-add-track {
     display: flex; align-items: center; justify-content: center; gap: 6px;
-    margin-top: 10px;
-    padding: 10px 14px;
-    border-radius: 10px;
+    /* Shrink-wrap + auto-margin horizontal pour centrer dans le .wh-acc-body
+       (qui est en display: block → align-self: center ne fonctionnerait pas). */
+    width: fit-content;
+    margin: 10px auto 0;
+    padding: 7px 16px;
+    border-radius: 999px;
     background: transparent;
     border: 1px dashed var(--border);
     color: var(--muted);
-    font-family: var(--body); font-size: 14px;
+    font-family: var(--body); font-size: 13px; font-weight: 500;
     cursor: pointer;
     transition: all .15s;
   }
   .wh-acc-add-track:hover {
-    border-color: var(--amber); color: var(--amber); background: rgba(245,176,86,0.04);
+    border-color: var(--amber); color: var(--amber); background: rgba(245,176,86,0.05);
   }
 
-  /* Gradients covers */
-  .wh-gradient-0 { background: linear-gradient(135deg, #4a3b2a, #8a6a3f 60%, #c6a15b); }
-  .wh-gradient-1 { background: linear-gradient(135deg, #2a3a4a, #3f6a8a 60%, #5ba1c6); }
-  .wh-gradient-2 { background: linear-gradient(135deg, #3a2a4a, #6a3f8a 60%, #a15bc6); }
-  .wh-gradient-3 { background: linear-gradient(135deg, #2a4a3a, #3f8a6a 60%, #5bc6a1); }
-  .wh-gradient-4 { background: linear-gradient(135deg, #4a2a2a, #8a3f3f 60%, #c65b5b); }
-  .wh-gradient-5 { background: linear-gradient(135deg, #24242c, #3a3a48 70%, #5a5a6e); }
+  /* Gradients covers — teintes punchy alignées sur le swatch de la maquette v2 */
+  .wh-gradient-0 { background: linear-gradient(135deg, #f5a623, #c77d10); }  /* 0 ambre   */
+  .wh-gradient-1 { background: linear-gradient(135deg, #5cb8cc, #3b7d8f); }  /* 1 bleu    */
+  .wh-gradient-2 { background: linear-gradient(135deg, #a67ef5, #6e4cc0); }  /* 2 violet  */
+  .wh-gradient-3 { background: linear-gradient(135deg, #8ee07a, #4ba63a); }  /* 3 vert    */
+  .wh-gradient-4 { background: linear-gradient(135deg, #ff7a7a, #c04444); }  /* 4 rouge   */
+  .wh-gradient-5 { background: linear-gradient(135deg, #5a5a6e, #33333c); }  /* 5 gris    */
   /* Quand une image custom est présente, on neutralise le gradient de fond
      (le style inline place l'image en background-image + cover). */
   .wh-acc-cover.has-image,
@@ -2552,25 +2948,13 @@ export default function MockupStyles() {
     height: 1px; background: #2a2a2e; margin: 4px 2px;
   }
 
-  /* Layout compact sur mobile (portrait OU paysage) : vignette figée a 80x80
-     alignee en haut, sinon aspect-ratio 1/1 + stretch la rend enorme et
-     cache les infos du projet. La clause max-height 500px attrape le mobile
-     paysage qui depasse 600px de large mais reste court en hauteur. */
+  /* Layout compact mobile — ligne projet inchangée, on réduit juste le score
+     et la taille typographique pour coller à l'écran étroit. */
   @media (max-width: 600px), (max-height: 500px) {
-    .wh-acc-item.open .wh-acc-head {
-      grid-template-columns: 80px 1fr;
-      padding: 14px 14px 16px 12px;
-      align-items: flex-start;
-    }
-    .wh-acc-item.open .wh-acc-cover {
-      width: 80px;
-      height: 80px;
-      aspect-ratio: auto;
-      min-width: 0;
-      min-height: 0;
-      align-self: flex-start;
-    }
-    .wh-acc-item.open .wh-acc-name { font-size: 22px; }
+    .wh-acc-head { padding: 11px 12px; gap: 12px; }
+    .wh-acc-name { font-size: 13px; }
+    .wh-acc-meta { font-size: 9.5px; }
+    .wh-acc-score { font-size: 22px; margin-right: 28px; }
     .wh-head-btn { font-size: 11px; padding: 7px 12px; }
   }
 

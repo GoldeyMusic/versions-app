@@ -198,6 +198,9 @@ const STRINGS = {
       relativeWeeksAgo: "il y a {n}sem",
       relativeMonthsAgo: "il y a {n} mois",
       relativeDash: "—",
+      // Ligne meta d'une carte projet sur la Home desktop (sous le titre).
+      lastAnalysis: "dernière analyse {when}",
+      noAnalysisYet: "aucune analyse",
       cardYourProgress: "Ta progression",
       cardAvgScore: "Score moyen {n}/100",
       cardLaunchFirst: "Lance ta première analyse",
@@ -208,6 +211,14 @@ const STRINGS = {
       welcomeHi: "Bienvenue",
       welcomeHiName: "Bienvenue, {name}",
       onboardingTagline: "VERSIONS analyse tes mix et compare tes versions entre elles. Commençons par un premier titre.",
+      // Slogan Home desktop — titre fixe (le mot accentué est italique ambre en CSS).
+      sloganStart: "Écoute, ",
+      sloganEm: "compare",
+      sloganEnd: ", décide.",
+      // Eyebrow au-dessus du slogan (violet). {name} et {n} interpolés.
+      heroEyebrowWelcome: "Bienvenue {name} — commençons ton premier titre",
+      heroEyebrowActive: "Bonjour {name} — {n} titres prêts à être écoutés",
+      heroEyebrowActiveSingle: "Bonjour {name} — 1 titre prêt à être écouté",
       firstTrack: "+ Mon premier titre",
       gettingStarted: "Mise en route",
       checkCreateProject: "Créer ton premier projet",
@@ -652,7 +663,7 @@ const STRINGS = {
       homeLink: "Accueil",
       settingsLink: "Réglages",
       signOut: "Se déconnecter",
-      premiumBadge: "Premier",
+      premiumBadge: "Premium",
     },
 
     /* ─────────────── PLAYER ─────────────── */
@@ -1105,6 +1116,8 @@ const STRINGS = {
       relativeWeeksAgo: "{n}w ago",
       relativeMonthsAgo: "{n}mo ago",
       relativeDash: "—",
+      lastAnalysis: "last analysis {when}",
+      noAnalysisYet: "no analysis yet",
       cardYourProgress: "Your progress",
       cardAvgScore: "Avg score {n}/100",
       cardLaunchFirst: "Launch your first analysis",
@@ -1115,6 +1128,12 @@ const STRINGS = {
       welcomeHi: "Welcome",
       welcomeHiName: "Welcome, {name}",
       onboardingTagline: "VERSIONS analyzes your mixes and compares your versions with each other. Let's start with your first track.",
+      sloganStart: "Listen, ",
+      sloganEm: "compare",
+      sloganEnd: ", decide.",
+      heroEyebrowWelcome: "Welcome {name} — let's start your first track",
+      heroEyebrowActive: "Hi {name} — {n} tracks ready to listen to",
+      heroEyebrowActiveSingle: "Hi {name} — 1 track ready to listen to",
       firstTrack: "+ My first track",
       gettingStarted: "Getting started",
       checkCreateProject: "Create your first project",
@@ -1559,7 +1578,7 @@ const STRINGS = {
       homeLink: "Home",
       settingsLink: "Settings",
       signOut: "Sign out",
-      premiumBadge: "Premier",
+      premiumBadge: "Premium",
     },
 
     /* ─────────────── PLAYER ─────────────── */

@@ -1,39 +1,44 @@
-// Palette refresh — sombre respirant (validée sur mockup fiche-mockup-v2.html)
+// Palette refresh — identité sombre v2 (alignée sur versions-dark-identity-mockup-v2.html)
+// IMPORTANT : ces valeurs doivent rester cohérentes avec les variables CSS
+// --bg/--s1/--amber/… de components/MockupStyles.jsx.
 const T = {
-  // Fond + surfaces (gris bleuté très foncé, repose les yeux vs noir pur)
-  black: "#0F1115",
-  s1: "#161A20",
-  s2: "#1D2229",
-  s3: "#262C35",
-  border: "#2A3038",
-  borderStrong: "#3A424D",
+  // Fond + surfaces — un cran plus sombres et plus cool qu'avant
+  black: "#0a0a0c",
+  s1: "#111115",
+  s2: "#16161b",
+  s3: "#1d1d23",
+  border: "rgba(255,255,255,0.06)",
+  borderStrong: "rgba(255,255,255,0.12)",
 
   // Textes
-  text: "#E4E6EB",      // texte principal — un cran sous le blanc pur
-  textSoft: "#B8BDC7",  // texte secondaire (lisible)
-  muted: "#7A828F",     // labels, métadonnées
-  muted2: "#4A5260",    // décoratif
+  text: "#ededed",
+  textSoft: "#c5c5c7",
+  muted: "#8a8a90",
+  muted2: "#5a5a5e",
 
-  // Accent ambre — vif partout, pas de variante désaturée
+  // Accent ambre — couleur principale des CTAs et accents éditoriaux
   amber: "#F5A623",
-  amberDim: "#F5A623",  // alias conservé pour compat (même couleur, plus de désaturé)
-  amberGlow: "rgba(245,166,35,0.10)",
-  amberLine: "rgba(245,166,35,0.25)",
+  amberDim: "#F5A623",  // alias conservé pour compat
+  amberGlow: "rgba(245,166,35,0.16)",
+  amberLine: "rgba(245,166,35,0.35)",
 
-  // États
+  // États + cool tones (céruléen remplace le violet comme couleur froide principale,
+  // violet conservé en touche d'accent seulement)
+  cerulean: "#5cb8cc",
+  violet: "#a67ef5",
+  mint: "#8ee07a",
   orange: "#E07B39",
   teal: "#1ECFB0",
-  green: "#5FB37C",
-  cyan: "#48CAE4",
-  red: "#D85666",
+  green: "#8ee07a",   // aligné sur --mint
+  cyan: "#5cb8cc",    // aligné sur --cerulean
+  red: "#ff5d5d",
 
-  // Typographies — DM Sans partout, Bebas Neue pour le logo, JetBrains Mono
-  // pour les labels capitales. IMPORTANT : doit rester aligné avec la variable
-  // CSS --mono dans MockupStyles.jsx (import Google Fonts) pour éviter un
-  // fallback silencieux sur la mono système.
+  // Typographies — DM Sans body, Bebas Neue logo, Fraunces sérif italique
+  // pour les touches éditoriales, JetBrains Mono labels capitales.
   mono: "'JetBrains Mono', ui-monospace, monospace",
   display: "'Bebas Neue', sans-serif",
   body: "'DM Sans', sans-serif",
+  serif: "'Fraunces', 'DM Sans', serif",
 };
 
 export default T;

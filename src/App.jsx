@@ -642,15 +642,31 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const displayName = userProfile?.prenom || null;
 
   // ── Helpers ──
+  // Score moyen du projet : moyenne des scores globaux des dernières versions
+  // de chaque titre. Retourne null si aucune analyse disponible.
+  const projectScore = (project) => {
+    const scores = (project.tracks || [])
+      .map((t) => t.versions?.[t.versions.length - 1]?.analysisResult?.fiche?.globalScore)
+      .filter((x) => typeof x === 'number');
+    if (!scores.length) return null;
+    return Math.round(scores.reduce((sum, x) => sum + x, 0) / scores.length);
+  };
+  // Classe CSS de couleur du score : mint (>=80), amber (60-79), red (<60).
+  const scoreClass = (score) => {
+    if (score == null) return 'dash';
+    if (score >= 80) return 'good';
+    if (score >= 60) return 'mid';
+    return 'low';
+  };
+  // Date la plus récente d'une activité du projet (dernière version créée).
+  const projectLastActivityMs = (project) =>
+    Math.max(0, ...(project.tracks || []).map(trackLastDateMs));
   const metaLine = (project) => {
     const nTracks = project.tracks?.length || 0;
-    const nVersions = (project.tracks || []).reduce(
-      (sum, t) => sum + (t.versions?.length || 0),
-      0
-    );
     const tLabel = `${nTracks} ${nTracks > 1 ? s.home.trackPlural : s.home.trackSingular}`;
-    const vLabel = `${nVersions} ${nVersions > 1 ? s.home.versionPlural : s.home.versionSingular}`;
-    return `${tLabel} · ${vLabel}`;
+    const ms = projectLastActivityMs(project);
+    const when = ms ? s.home.lastAnalysis.replace('{when}', formatRelative(ms)) : s.home.noAnalysisYet;
+    return `${tLabel} · ${when}`;
   };
 
   const buildProjectPlaylist = (project) =>
@@ -992,8 +1008,9 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   const projectsAccordion = totalProjects > 0 ? (
     <div className="wh-tracklist">
-      <div className="wh-section-title">{s.home.myProjects} <em>{s.home.myProjectsAccent}</em></div>
       <div className="wh-projects">
+        {/* Titre "Mes projets" à l'intérieur du cadre (v4-panel-head) */}
+        <div className="wh-section-title wh-projects-title">{s.home.myProjects} <em>{s.home.myProjectsAccent}</em></div>
         {projects.map((project) => {
           const isOpen = project.id === currentProjectId;
           const nTracks = project.tracks?.length || 0;
@@ -1065,6 +1082,17 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                   <div className="wh-acc-meta">{metaLine(project)}</div>
                 </div>
 
+                {/* Score projet — moyenne des dernières versions de chaque titre.
+                    Classe good/mid/low pour colorer selon les seuils 80/60. */}
+                {(() => {
+                  const pScore = projectScore(project);
+                  return (
+                    <div className={`wh-acc-score ${scoreClass(pScore)}`}>
+                      {pScore != null ? pScore : s.home.relativeDash}
+                    </div>
+                  );
+                })()}
+
                 {/* Menu 3-points en haut à droite de la carte projet */}
                 <button
                   className="wh-acc-menu-btn"
@@ -1109,7 +1137,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
               <div className="wh-acc-body">
                 {nTracks > 0 ? (
                   <div className="wh-acc-tracklist">
-                    {project.tracks.map((track) => (
+                    {project.tracks.map((track, i, arr) => (
                       <WhTrackRow
                         key={track.id}
                         track={track}
@@ -1122,6 +1150,8 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                         drag={drag}
                         setDrag={setDrag}
                         onDropTrackOnTrack={handleDropTrackOnTrack}
+                        prevTrackId={arr[i - 1]?.id ?? null}
+                        nextTrackId={arr[i + 1]?.id ?? null}
                       />
                     ))}
                   </div>
@@ -1355,7 +1385,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         <div className="wh-card-kicker">{s.home.tipLabel}</div>
         <div className="wh-card-body">{tip}</div>
       </div>
-      <div className="wh-card">
+      <div className="wh-card cerulean">
         <div className="wh-card-kicker">{s.home.cardYourProgress}</div>
         <div className="wh-card-title">
           {avgScore != null ? s.home.cardAvgScore.replace('{n}', String(avgScore)) : s.home.cardLaunchFirst}
@@ -1364,7 +1394,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           {avgScore != null ? progressionWithScoreTip : progressionNoScoreTip}
         </div>
       </div>
-      <div className="wh-card">
+      <div className="wh-card mint">
         <div className="wh-card-kicker">{s.home.cardNextStep}</div>
         <div className="wh-card-title">{prochainPasTip?.title}</div>
         <div className="wh-card-body">{prochainPasTip?.body}</div>
@@ -1383,17 +1413,17 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   */
   const pedagoBlock = (
     <>
-      <div className="wh-card">
+      <div className="wh-card violet">
         <div className="wh-card-kicker">{s.home.cardWhyUseful}</div>
         <div className="wh-card-title">{aQuoiTip?.title}</div>
         <div className="wh-card-body">{aQuoiTip?.body}</div>
       </div>
-      <div className="wh-card">
+      <div className="wh-card amber">
         <div className="wh-card-kicker">{s.home.cardWhyVersions}</div>
         <div className="wh-card-title">{pourquoiTip?.title}</div>
         <div className="wh-card-body">{pourquoiTip?.body}</div>
       </div>
-      <div className="wh-card">
+      <div className="wh-card mint">
         <div className="wh-card-kicker">{s.home.cardAdvice}</div>
         <div className="wh-card-title">{conseilTip?.title}</div>
         <div className="wh-card-body">{conseilTip?.body}</div>
@@ -1481,13 +1511,22 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         </>
       ) : hasContent ? (
         <>
-          {desktopHero}
-          {desktopStats}
-          {/* Tagline éditoriale sous les 4 stats — respire avec du padding
-              vertical pour rester lisible. */}
-          <div className="wh-tagline-mid">
-            <div className="wh-tagline-text">« {renderTagline(homeTagline)} »</div>
+          {/* Bloc intro desktop v2 — eyebrow violet, slogan fixe en 88px,
+              tagline rotative en petit italique. Remplace l'ancien desktopHero. */}
+          <div className="wh-intro">
+            <div className="wh-eyebrow">
+              {nTitres === 1
+                ? s.home.heroEyebrowActiveSingle.replace('{name}', displayName || '')
+                : s.home.heroEyebrowActive.replace('{name}', displayName || '').replace('{n}', String(nTitres))}
+            </div>
+            <div className="wh-intro-row">
+              <h1 className="wh-slogan">
+                <span className="wh-slogan-line">{s.home.sloganStart}<em>{s.home.sloganEm}</em>,</span><br />{s.home.sloganEnd.replace(/^,\s*/, '')}
+              </h1>
+              <div className="wh-tagline-text">{renderTagline(homeTagline)}</div>
+            </div>
           </div>
+          {desktopStats}
           <div className="wh-cols">
             <div className="wh-col-left">{projectsAccordion}</div>
             <div className="wh-col-right">
@@ -1512,7 +1551,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 }
 
 /* ─── Ligne titre dans Home (accordéon ouvert) ─────────────────────── */
-function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename, onDelete, drag, setDrag, onDropTrackOnTrack }) {
+function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename, onDelete, drag, setDrag, onDropTrackOnTrack, prevTrackId = null, nextTrackId = null }) {
   const { s } = useLang();
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -1557,6 +1596,12 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
         e.dataTransfer.dropEffect = 'move';
         const rect = e.currentTarget.getBoundingClientRect();
         const isAbove = (e.clientY - rect.top) < rect.height / 2;
+        // Pas de trait de dépôt si la position visée correspond à la
+        // position actuelle du titre déplacé (déplacement nul).
+        if (drag.sourceProjectId === project?.id) {
+          if (isAbove && drag.nextTrackId === track.id) { setDropOver(null); return; }
+          if (!isAbove && drag.prevTrackId === track.id) { setDropOver(null); return; }
+        }
         setDropOver(isAbove ? 'before' : 'after');
       }}
       onDragLeave={() => setDropOver(null)}
@@ -1588,7 +1633,7 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
           e.dataTransfer.setData('application/x-versions-dnd', 'track');
           const row = e.currentTarget.closest('.wh-track-row');
           if (row) e.dataTransfer.setDragImage(row, 10, 10);
-          if (setDrag) setDrag({ type: 'track', trackId: track.id, sourceProjectId: project?.id });
+          if (setDrag) setDrag({ type: 'track', trackId: track.id, sourceProjectId: project?.id, prevTrackId, nextTrackId });
         }}
         onDragEnd={() => { if (setDrag) setDrag(null); setDropOver(null); }}
         title={s.home.trackDragHandle}
@@ -1627,12 +1672,10 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
       {/* Date */}
       {dateStr && <span className="wh-track-date">{dateStr}</span>}
 
-      {/* Voir analyse */}
+      {/* Chip "ANALYSE" — pilule cerulean, label uniquement (pas d'icône). */}
       {hasFiche && (
         <button className="wh-track-fiche" onClick={(e) => { e.stopPropagation(); onViewFiche?.(e); }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <span>{s.home.trackAnalysis}</span>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3.5 2l3.5 3-3.5 3"/></svg>
+          {s.home.trackAnalysis}
         </button>
       )}
 
@@ -1702,9 +1745,9 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd }) {
     <>
       {/* ── Top bar ── */}
       <div className="mobile-topbar">
-        <div className="brand" onClick={() => go('welcome')} style={{ cursor: 'pointer', fontSize: 20, letterSpacing: 2, gap: 8 }}>
+        <div className="brand" onClick={() => go('welcome')} style={{ cursor: 'pointer', fontSize: 20, letterSpacing: '-0.3px', gap: 8 }}>
           <img src="/logo-versions.svg" alt="" style={{ height: 22, width: 'auto' }} />
-          <span>{"VER"}<span className="accent">{"SI"}</span>{"ONS"}</span>
+          <span>{"VER"}<span className="accent">{"Si"}</span>{"ONS"}</span>
         </div>
         <div className="mobile-avatar-wrap">
           <button
@@ -1841,16 +1884,40 @@ function VersionsAppAuthed() {
     }
   }, [screen]);
 
-  // Sur la home (welcome), le BottomPlayer est masqué : on retire la réserve
-  // de 68px appliquée globalement (padding-bottom du body + height de la
-  // sidebar) pour que la sidebar descende jusqu'en bas. Les autres écrans
-  // conservent la réserve, puisque le player y est toujours présent.
+  // Le BottomPlayer est maintenant toujours rendu (sticky bas de page),
+  // y compris sur la home — donc plus besoin de retirer la réserve de 68px :
+  // on la garde partout pour que rien ne passe sous la barre du player.
+
+  // ── Halo ambient — 3 calques qui crossfade au fil de la session ──
+  // On insère un conteneur `.ambient-halo` en premier enfant du body,
+  // avec 3 calques `.ambient-layer` à l'intérieur. Chaque calque a une
+  // variante différente (5 positions/couleurs préréglées dans
+  // MockupStyles) — le CSS les fait crossfader sur ~90s avec des
+  // offsets, donc la teinte/position dominante évolue lentement tout
+  // au long de la session. Le fade-in global se fait via `.loaded`
+  // ajoutée au next frame, pour éviter un flash dès le mount.
   useEffect(() => {
-    const cls = 'no-bottom-player';
-    if (screen === 'welcome') document.body.classList.add(cls);
-    else document.body.classList.remove(cls);
-    return () => { document.body.classList.remove(cls); };
-  }, [screen]);
+    const halo = document.createElement('div');
+    halo.className = 'ambient-halo';
+    halo.setAttribute('aria-hidden', 'true');
+    // 3 variantes distinctes pour éviter les doublons — on shuffle
+    // l'ordre [0..4] et on prend les 3 premières.
+    const variants = [0, 1, 2, 3, 4]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+    variants.forEach((v) => {
+      const layer = document.createElement('div');
+      layer.className = 'ambient-layer';
+      layer.setAttribute('data-variant', String(v));
+      halo.appendChild(layer);
+    });
+    document.body.insertBefore(halo, document.body.firstChild);
+    const raf = requestAnimationFrame(() => halo.classList.add('loaded'));
+    return () => {
+      cancelAnimationFrame(raf);
+      halo.remove();
+    };
+  }, []);
   const [config, setConfig] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [askOpen, setAskOpen] = useState(false);
@@ -2418,28 +2485,28 @@ function VersionsAppAuthed() {
           />
 
           {/* Content */}
-          <div ref={scrollContentRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: screen === "welcome" ? 0 : 80 }}>
+          <div ref={scrollContentRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: 80 }}>
             {renderContent()}
           </div>
 
-          {/* Bottom Player — masqué sur la home (doublon avec le hero) */}
-          {screen !== "welcome" && (
-            <BottomPlayer
-              trackTitle={playerState?.trackTitle}
-              versionName={playerState?.versionName}
-              storagePath={playerState?.storagePath}
-              isPlaying={!!playerState?.isPlaying}
-              onToggle={togglePlay}
-              onNext={playNext}
-              onPrev={playPrev}
-              hasNext={hasNext}
-              hasPrev={hasPrev}
-              resetKey={playerState?.resetKey || 0}
-              idle={!playerState}
-              playlist={playerState?.playlist}
-              currentIdx={playerState?.currentIdx}
-            />
-          )}
+          {/* Bottom Player — toujours présent (sticky), y compris sur la home.
+              État "idle" quand aucune piste n'est lancée : transport grisé,
+              waveform placeholder, meta vide. */}
+          <BottomPlayer
+            trackTitle={playerState?.trackTitle}
+            versionName={playerState?.versionName}
+            storagePath={playerState?.storagePath}
+            isPlaying={!!playerState?.isPlaying}
+            onToggle={togglePlay}
+            onNext={playNext}
+            onPrev={playPrev}
+            hasNext={hasNext}
+            hasPrev={hasPrev}
+            resetKey={playerState?.resetKey || 0}
+            idle={!playerState}
+            playlist={playerState?.playlist}
+            currentIdx={playerState?.currentIdx}
+          />
 
           {/* BottomNav retiré — remplacé par le hamburger menu */}
         </div>

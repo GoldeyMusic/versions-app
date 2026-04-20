@@ -242,7 +242,7 @@ export default function Sidebar({
     <aside className="sidebar">
       <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
         <img src="/logo-versions.svg" alt="" style={{ height: 38, width: 'auto' }} />
-        <span>{'VER'}<span className="accent">{'SI'}</span>{'ONS'}</span>
+        <span>{'VER'}<span className="accent">{'Si'}</span>{'ONS'}</span>
       </div>
 
       <div className="user-pill" onClick={onGoReglages} style={{ cursor: 'pointer' }}>
@@ -264,7 +264,7 @@ export default function Sidebar({
           {(() => {
             // Couleurs uniques par projet (même logique que la home).
             const colorMap = assignProjectColors(projects);
-            return projects.map((project) => (
+            return projects.map((project, i, arr) => (
               <ProjectAccordion
                 key={project.id}
                 project={project}
@@ -284,6 +284,8 @@ export default function Sidebar({
                 onDropTrackOnTrack={handleDropTrackOnTrack}
                 onDropTrackOnProject={handleDropTrackOnProject}
                 onDropProjectOnProject={handleDropProjectOnProject}
+                prevProjectId={arr[i - 1]?.id ?? null}
+                nextProjectId={arr[i + 1]?.id ?? null}
               />
             ));
           })()}
@@ -356,6 +358,8 @@ function ProjectAccordion({
   onDropTrackOnTrack,
   onDropTrackOnProject,
   onDropProjectOnProject,
+  prevProjectId = null,
+  nextProjectId = null,
 }) {
   const { s } = useLang();
   // Couleur projet : cover_gradient si défini (>0), sinon index unique
@@ -413,6 +417,11 @@ function ProjectAccordion({
           if (!rect) return;
           if (drag.type === 'project') {
             const isAbove = (e.clientY - rect.top) < rect.height / 2;
+            // Même garde que pour les titres : on n'affiche aucun trait
+            // de dépôt quand la position visée correspond à la position
+            // actuelle du projet déplacé (voisin immédiat + bon côté).
+            if (isAbove && drag.nextProjectId === project.id) { setDropOver(null); return; }
+            if (!isAbove && drag.prevProjectId === project.id) { setDropOver(null); return; }
             setDropOver(isAbove ? 'before' : 'after');
           } else if (drag.type === 'track' && drag.sourceProjectId !== project.id) {
             setDropOver('into');
@@ -455,7 +464,7 @@ function ProjectAccordion({
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('application/x-versions-dnd', 'project');
             if (headRef.current) e.dataTransfer.setDragImage(headRef.current, 10, 10);
-            setDrag({ type: 'project', projectId: project.id });
+            setDrag({ type: 'project', projectId: project.id, prevProjectId, nextProjectId });
           }}
           onDragEnd={() => { setDrag(null); setDropOver(null); }}
           title={s.sidebar.dragProject}
@@ -545,9 +554,14 @@ function ProjectAccordion({
       {/* Body : liste des tracks */}
       {open && (
         <div style={{ paddingLeft: 6, paddingBottom: 6 }}>
-          {(project.tracks || []).map((track) => {
+          {(project.tracks || []).map((track, i, arr) => {
             const active = track.title === currentTrackTitle;
             const isPlaying = playerState?.trackTitle === track.title && !!playerState?.isPlaying;
+            // IDs des voisins directs dans la liste du projet — servent
+            // à neutraliser le trait de dépôt quand il indiquerait la
+            // position actuelle du titre déplacé (donc un déplacement nul).
+            const prevTrackId = arr[i - 1]?.id ?? null;
+            const nextTrackId = arr[i + 1]?.id ?? null;
             return (
               <TrackRow
                 key={track.id}
@@ -562,6 +576,8 @@ function ProjectAccordion({
                 drag={drag}
                 setDrag={setDrag}
                 onDropTrackOnTrack={onDropTrackOnTrack}
+                prevTrackId={prevTrackId}
+                nextTrackId={nextTrackId}
               />
             );
           })}
@@ -577,7 +593,7 @@ function ProjectAccordion({
 }
 
 /* ─── Row titre (DnD Phase 6) ──────────────────────────────── */
-function TrackRow({ track, projectId, active, isPlaying, onClick, onPlay, onRename, onDelete, drag, setDrag, onDropTrackOnTrack }) {
+function TrackRow({ track, projectId, active, isPlaying, onClick, onPlay, onRename, onDelete, drag, setDrag, onDropTrackOnTrack, prevTrackId = null, nextTrackId = null }) {
   const { s } = useLang();
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -620,6 +636,16 @@ function TrackRow({ track, projectId, active, isPlaying, onClick, onPlay, onRena
         const rect = rowRef.current?.getBoundingClientRect();
         if (!rect) return;
         const isAbove = (e.clientY - rect.top) < rect.height / 2;
+        // Ne pas afficher de trait de dépôt si le geste en cours
+        // reviendrait à déposer le titre sur sa position actuelle :
+        //  - target est le voisin du dessous de la source ET on vise "avant" target
+        //    → la source serait replacée juste au-dessus de target, i.e. là où elle est déjà.
+        //  - target est le voisin du dessus de la source ET on vise "après" target
+        //    → idem : la source serait replacée juste en dessous de target, i.e. sa position actuelle.
+        if (drag.sourceProjectId === projectId) {
+          if (isAbove && drag.nextTrackId === track.id) { setDropOver(null); return; }
+          if (!isAbove && drag.prevTrackId === track.id) { setDropOver(null); return; }
+        }
         setDropOver(isAbove ? 'before' : 'after');
       }}
       onDragLeave={() => setDropOver(null)}
@@ -649,7 +675,7 @@ function TrackRow({ track, projectId, active, isPlaying, onClick, onPlay, onRena
           e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('application/x-versions-dnd', 'track');
           if (rowRef.current) e.dataTransfer.setDragImage(rowRef.current, 10, 10);
-          if (setDrag) setDrag({ type: 'track', trackId: track.id, sourceProjectId: projectId });
+          if (setDrag) setDrag({ type: 'track', trackId: track.id, sourceProjectId: projectId, prevTrackId, nextTrackId });
         }}
         onDragEnd={() => { if (setDrag) setDrag(null); setDropOver(null); }}
         title={s.home.trackDragHandle}

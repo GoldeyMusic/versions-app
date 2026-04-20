@@ -180,15 +180,39 @@ export default function BottomPlayer({
           wsRef.current = null;
         }
 
+        // Dégradé progress : cerulean → violet → amber, sur toute la largeur
+        // de la waveform. La partie "déjà lue" révèle la couleur prédestinée
+        // de chaque bar selon sa position dans le morceau.
+        const progressGradient = (() => {
+          const canvas = document.createElement('canvas');
+          const width = containerRef.current?.clientWidth || 1024;
+          const dpr = window.devicePixelRatio || 1;
+          canvas.width = Math.max(1, Math.floor(width * dpr));
+          canvas.height = 36 * dpr;
+          const ctx = canvas.getContext('2d');
+          const g = ctx.createLinearGradient(0, 0, canvas.width, 0);
+          // Versions punchy du gradient : on s'éloigne des valeurs
+          // "base theme" qui, appliquées sur des bars fines de 2px
+          // contre un background très sombre, paraissent ternes.
+          // On pousse saturation + clarté pour que les 3 teintes
+          // ressortent sans partir dans le fluo.
+          g.addColorStop(0.0, '#b4eef7');   // cerulean clair/électrique
+          g.addColorStop(0.5, '#dcc2ff');   // violet clair pastel
+          g.addColorStop(1.0, '#ffd470');   // amber clair chaud
+          return g;
+        })();
+
         const ws = WaveSurfer.create({
           container: containerRef.current,
-          waveColor: '#3a3a3e',
-          progressColor: '#f5b056',
-          cursorColor: '#f5b056',
-          cursorWidth: 1,
+          // Bars "à venir" en blanc très léger,
+          // bars "passés" en dégradé cerulean → violet → amber.
+          waveColor: 'rgba(255,255,255,0.15)',
+          progressColor: progressGradient,
+          cursorColor: '#f5a623',
+          cursorWidth: 2,
           barWidth: 2,
-          barGap: 1,
-          barRadius: 2,
+          barGap: 1.5,
+          barRadius: 1,
           height: 36,
           normalize: true,
           interact: true,
