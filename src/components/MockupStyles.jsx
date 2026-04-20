@@ -30,7 +30,7 @@ export default function MockupStyles() {
     --mono: 'JetBrains Mono', monospace;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--body); font-weight: 300; font-size: 14px; scroll-behavior: smooth; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--body); font-weight: 300; font-size: 16px; scroll-behavior: smooth; }
   a { color: inherit; text-decoration: none; }
   button { font-family: inherit; color: inherit; background: none; border: none; cursor: pointer; padding: 0; }
 
@@ -107,7 +107,7 @@ export default function MockupStyles() {
     border-radius: 8px;
     padding: 7px 32px 7px 30px;
     font-family: var(--body);
-    font-size: 14px;
+    font-size: 16px;
     color: var(--text);
     outline: none;
     transition: border-color .15s ease, background .15s ease;
@@ -138,7 +138,7 @@ export default function MockupStyles() {
   }
   .sidebar-search-empty {
     font-family: var(--body);
-    font-size: 14px;
+    font-size: 16px;
     color: var(--muted);
     padding: 12px 10px;
     font-style: italic;
@@ -146,7 +146,7 @@ export default function MockupStyles() {
   .track-list { display: flex; flex-direction: column; gap: 1px; }
   .track {
     padding: 7px 10px; border-radius: 6px;
-    font-family: var(--body); font-size: 14px; color: var(--soft);
+    font-family: var(--body); font-size: 16px; color: var(--soft);
     cursor: pointer;
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
   }
@@ -340,7 +340,7 @@ export default function MockupStyles() {
     border: 0;
     color: var(--text, #e8eaf0);
     font-family: var(--body);
-    font-size: 14px;
+    font-size: 16px;
     text-align: left;
     cursor: pointer;
     transition: background .12s ease;
@@ -382,12 +382,12 @@ export default function MockupStyles() {
     display: flex; flex-direction: column; gap: 3px;
   }
   .vocal-suggest .vs-title {
-    font-family: var(--body); font-size: 14px; font-weight: 500;
+    font-family: var(--body); font-size: 16px; font-weight: 500;
     color: var(--text);
     letter-spacing: 0.1px;
   }
   .vocal-suggest .vs-text {
-    font-family: var(--body); font-size: 14px; font-weight: 300;
+    font-family: var(--body); font-size: 16px; font-weight: 300;
     color: var(--textSoft, #b8bdc7);
     line-height: 1.4;
   }
@@ -607,7 +607,7 @@ export default function MockupStyles() {
     align-items: center;
     gap: 8px;
     font-family: var(--body);
-    font-size: 14px;
+    font-size: 16px;
     color: var(--text);
     margin-bottom: 10px;
   }
@@ -652,7 +652,7 @@ export default function MockupStyles() {
   }
   .ring-tooltip .rt-note {
     font-family: var(--body);
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1.5;
     color: var(--soft);
     font-weight: 300;
@@ -818,7 +818,7 @@ export default function MockupStyles() {
   .q-block.travail .q-title .dot { background: var(--red); }
 
   .q-block p {
-    font-family: var(--body); font-size: 14px; line-height: 1.65;
+    font-family: var(--body); font-size: 16px; line-height: 1.65;
     color: var(--soft); font-weight: 300;
     margin: 0 0 12px;
   }
@@ -828,7 +828,7 @@ export default function MockupStyles() {
     display: flex; flex-direction: column; gap: 10px;
   }
   .q-block ul li {
-    font-family: var(--body); font-size: 14px; line-height: 1.55;
+    font-family: var(--body); font-size: 16px; line-height: 1.55;
     color: var(--soft); font-weight: 300;
     padding-left: 16px; position: relative;
   }
@@ -1109,7 +1109,7 @@ export default function MockupStyles() {
     flex: 1;
     min-width: 0;
     font-family: var(--body);
-    font-size: 14px;
+    font-size: 16px;
     color: var(--soft);
     font-weight: 300;
     overflow: hidden;
@@ -1149,7 +1149,7 @@ export default function MockupStyles() {
     border-radius: 8px;
     padding: 12px 14px;
     font-family: var(--body);
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1.55;
     color: var(--text);
     resize: none;
@@ -1311,7 +1311,7 @@ export default function MockupStyles() {
   .mt-box.m .mt-label { color: var(--amber); }
   .mt-box.t .mt-label { color: var(--green); }
   .mt-box .mt-val {
-    font-family: var(--body); font-size: 14px; line-height: 1.6; color: var(--soft); font-weight: 300;
+    font-family: var(--body); font-size: 16px; line-height: 1.6; color: var(--soft); font-weight: 300;
   }
 
   .linked-elements { margin-top: 34px; }
@@ -1330,7 +1330,7 @@ export default function MockupStyles() {
     color: var(--muted); text-transform: uppercase;
     min-width: 60px;
   }
-  .le .name { flex: 1; font-family: var(--body); font-size: 14px; font-weight: 500; }
+  .le .name { flex: 1; font-family: var(--body); font-size: 16px; font-weight: 500; }
   .le .sring { width: 26px; height: 26px; position: relative; flex-shrink: 0; }
   .le .sring svg { transform: rotate(-90deg); }
   .le .sring .n {
@@ -1392,7 +1392,7 @@ export default function MockupStyles() {
     min-width: 140px; flex-shrink: 0;
   }
   .player .pl-meta .pl-title {
-    font-family: var(--body); font-size: 14px; font-weight: 300; color: var(--soft); line-height: 1; letter-spacing: 0.3px;
+    font-family: var(--body); font-size: 16px; font-weight: 300; color: var(--soft); line-height: 1; letter-spacing: 0.3px;
   }
   .player .pl-meta .pl-sub {
     font-family: var(--mono); font-size: 14px; color: var(--muted); letter-spacing: 1px;
@@ -1550,7 +1550,7 @@ export default function MockupStyles() {
     flex: 1;
     background: var(--s2) !important; border: 1px solid var(--border);
     padding: 10px 12px; border-radius: 8px;
-    color: var(--text); font-family: var(--body); font-size: 14px;
+    color: var(--text); font-family: var(--body); font-size: 16px;
     outline: none; resize: none;
     line-height: 1.4;
     height: 40px; min-height: 40px;
@@ -1677,7 +1677,7 @@ export default function MockupStyles() {
     color: var(--amber); text-transform: uppercase;
   }
   .wh-tip-text {
-    font-family: var(--body); font-size: 14px; color: var(--soft);
+    font-family: var(--body); font-size: 16px; color: var(--soft);
     line-height: 1.7; font-weight: 300;
   }
 
@@ -1688,7 +1688,7 @@ export default function MockupStyles() {
     display: flex; align-items: center; gap: 8px;
     padding: 12px 22px; border-radius: 10px;
     background: transparent; border: 1px solid var(--border);
-    color: var(--soft); font-family: var(--body); font-size: 14px; font-weight: 300;
+    color: var(--soft); font-family: var(--body); font-size: 16px; font-weight: 300;
     cursor: pointer; transition: all .2s;
   }
   .wh-action:hover {
@@ -2041,7 +2041,7 @@ export default function MockupStyles() {
   }
   .wh-track-info { flex: 1; min-width: 0; }
   .wh-track-title {
-    font-family: var(--body); font-size: 14px; font-weight: 400;
+    font-family: var(--body); font-size: 16px; font-weight: 400;
     color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .wh-track-date {
@@ -2084,7 +2084,7 @@ export default function MockupStyles() {
   .wh-picker-item {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     padding: 10px 12px; border-radius: 8px;
-    font-family: var(--body); font-size: 14px; font-weight: 300; color: var(--soft);
+    font-family: var(--body); font-size: 16px; font-weight: 300; color: var(--soft);
     cursor: pointer; transition: all .15s;
   }
   .wh-picker-item:hover {
@@ -2117,7 +2117,7 @@ export default function MockupStyles() {
     letter-spacing: 3px; color: var(--text); margin-bottom: 6px;
   }
   .input-tagline {
-    font-family: var(--body); font-size: 14px; font-weight: 300;
+    font-family: var(--body); font-size: 16px; font-weight: 300;
     letter-spacing: 3px; color: var(--amber); text-transform: uppercase;
     display: flex; align-items: center; justify-content: center; gap: 12px;
   }
@@ -2188,12 +2188,12 @@ export default function MockupStyles() {
     border-color: var(--muted); background: rgba(255,255,255,0.02);
   }
   .input-drop-name {
-    font-family: var(--body); font-size: 14px; font-weight: 400;
+    font-family: var(--body); font-size: 16px; font-weight: 400;
     color: #7bd88f; flex: 1;
   }
   .input-drop-text { flex: 1; }
   .input-drop-hint {
-    font-family: var(--body); font-size: 14px; font-weight: 300; color: var(--muted);
+    font-family: var(--body); font-size: 16px; font-weight: 300; color: var(--muted);
   }
   .input-drop-formats {
     font-family: var(--mono); font-size: 14px; color: #5a5a5e; margin-top: 3px;
@@ -2211,7 +2211,7 @@ export default function MockupStyles() {
   .input-input {
     width: 100%; background: var(--s2); border: 1px solid var(--border);
     border-radius: 8px; padding: 10px 14px;
-    font-family: var(--body); font-size: 14px; font-weight: 300;
+    font-family: var(--body); font-size: 16px; font-weight: 300;
     color: var(--text); outline: none; transition: border-color .2s;
     box-sizing: border-box;
   }
@@ -2221,7 +2221,7 @@ export default function MockupStyles() {
   .input-select {
     width: 100%; background: var(--s2); border: 1px solid var(--border);
     border-radius: 8px; padding: 11px 40px 11px 14px;
-    font-family: var(--body); font-size: 14px; font-weight: 300;
+    font-family: var(--body); font-size: 16px; font-weight: 300;
     color: var(--muted); outline: none; cursor: pointer;
     appearance: none; transition: border-color .2s;
   }
@@ -2239,7 +2239,7 @@ export default function MockupStyles() {
     flex: 1 1 auto; min-width: 0;
     background: var(--s2); border: 1px solid var(--border);
     border-radius: 8px; padding: 11px 14px;
-    font-family: var(--body); font-size: 14px; font-weight: 300;
+    font-family: var(--body); font-size: 16px; font-weight: 300;
     color: var(--textSoft, #b8bdc7);
     cursor: pointer; transition: all .15s;
     text-align: center;
@@ -2261,7 +2261,7 @@ export default function MockupStyles() {
   .input-cta {
     width: 100%; padding: 14px 16px; border-radius: 10px;
     background: var(--s2); border: 1px solid var(--border);
-    font-family: var(--body); font-size: 14px; font-weight: 400;
+    font-family: var(--body); font-size: 16px; font-weight: 400;
     letter-spacing: 1px; text-transform: uppercase;
     color: var(--muted); cursor: not-allowed; transition: all .2s;
   }
@@ -2430,7 +2430,7 @@ export default function MockupStyles() {
   .wh-head-btn {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 9px 16px; border-radius: 999px;
-    font-family: var(--body); font-size: 14px; font-weight: 500;
+    font-family: var(--body); font-size: 16px; font-weight: 500;
     background: transparent; border: 1px solid var(--border);
     color: var(--soft); cursor: pointer;
     transition: all .15s;
@@ -2461,7 +2461,7 @@ export default function MockupStyles() {
     background: transparent;
     border: 1px dashed var(--border);
     color: var(--muted);
-    font-family: var(--body); font-size: 14px;
+    font-family: var(--body); font-size: 16px;
     cursor: pointer;
     transition: all .15s;
   }
@@ -2515,7 +2515,7 @@ export default function MockupStyles() {
     display: block; width: 100%;
     padding: 8px 12px; text-align: left;
     background: transparent; border: none; border-radius: 6px;
-    color: var(--soft); font-family: var(--body); font-size: 14px; font-weight: 300;
+    color: var(--soft); font-family: var(--body); font-size: 16px; font-weight: 300;
     cursor: pointer; transition: all .12s;
   }
   .wh-acc-menu-item:hover {
@@ -2554,7 +2554,7 @@ export default function MockupStyles() {
   .wh-empty {
     display: flex; flex-direction: column; align-items: center; gap: 16px;
     padding: 40px 0;
-    font-family: var(--body); font-size: 14px; font-weight: 300;
+    font-family: var(--body); font-size: 16px; font-weight: 300;
     color: var(--muted); text-align: center;
   }
 
@@ -2578,7 +2578,7 @@ export default function MockupStyles() {
   }
   .auth-brand .accent { color: var(--amber); }
   .auth-tagline {
-    font-family: var(--body); font-size: 14px; font-weight: 300;
+    font-family: var(--body); font-size: 16px; font-weight: 300;
     letter-spacing: 3px; color: var(--amber); text-transform: uppercase;
     display: flex; align-items: center; gap: 10px;
   }
@@ -2592,7 +2592,7 @@ export default function MockupStyles() {
     width: 100%; padding: 13px 16px;
     background: var(--s1); border: 1px solid var(--border);
     border-radius: 10px; color: var(--text);
-    font-family: var(--body); font-size: 14px; font-weight: 300;
+    font-family: var(--body); font-size: 16px; font-weight: 300;
     outline: none; box-sizing: border-box; transition: border-color .2s;
   }
   .auth-input:focus { border-color: var(--amber); }
@@ -2609,7 +2609,7 @@ export default function MockupStyles() {
     width: 100%; padding: 14px;
     background: linear-gradient(135deg, var(--amber), #e08a00);
     color: #000; border: none; border-radius: 10px;
-    font-family: var(--body); font-size: 14px; font-weight: 600;
+    font-family: var(--body); font-size: 16px; font-weight: 600;
     letter-spacing: 1px; text-transform: uppercase;
     cursor: pointer; transition: all .2s;
     box-shadow: 0 4px 24px rgba(245,160,0,.25);
@@ -2634,7 +2634,7 @@ export default function MockupStyles() {
     width: 100%; padding: 12px 16px;
     background: var(--s1); border: 1px solid var(--border);
     border-radius: 10px; color: var(--text);
-    font-family: var(--body); font-size: 14px; font-weight: 400;
+    font-family: var(--body); font-size: 16px; font-weight: 400;
     cursor: pointer; transition: all .2s;
     display: flex; align-items: center; justify-content: center; gap: 10px;
   }
@@ -2645,7 +2645,7 @@ export default function MockupStyles() {
   .auth-toggle { text-align: center; }
   .auth-toggle-btn {
     background: transparent; border: none;
-    color: var(--muted); font-family: var(--body); font-size: 14px;
+    color: var(--muted); font-family: var(--body); font-size: 16px;
     cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
     transition: color .2s;
   }
@@ -2715,7 +2715,7 @@ export default function MockupStyles() {
     letter-spacing: 3px; color: var(--text); margin-bottom: 6px;
   }
   .reglages-subtitle {
-    font-family: var(--body); font-size: 14px; font-weight: 300;
+    font-family: var(--body); font-size: 16px; font-weight: 300;
     color: var(--muted); letter-spacing: 0.3px;
   }
   .reglages-body {
@@ -2765,7 +2765,7 @@ export default function MockupStyles() {
   }
   .reglages-avatar:hover .reglages-avatar-overlay { opacity: 1; }
   .reglages-avatar-hint {
-    font-family: var(--body); font-size: 14px; font-weight: 300;
+    font-family: var(--body); font-size: 16px; font-weight: 300;
     color: var(--muted); line-height: 1.5;
   }
 
@@ -2780,7 +2780,7 @@ export default function MockupStyles() {
   .reglages-input {
     width: 100%; background: var(--s2); border: 1px solid var(--border);
     border-radius: 8px; padding: 10px 14px;
-    font-family: var(--body); font-size: 14px; font-weight: 300;
+    font-family: var(--body); font-size: 16px; font-weight: 300;
     color: var(--text); outline: none; transition: border-color .2s;
     box-sizing: border-box;
   }
@@ -2793,7 +2793,7 @@ export default function MockupStyles() {
   .reglages-select {
     width: 100%; background: var(--s2); border: 1px solid var(--border);
     border-radius: 8px; padding: 11px 40px 11px 14px;
-    font-family: var(--body); font-size: 14px; font-weight: 300;
+    font-family: var(--body); font-size: 16px; font-weight: 300;
     color: var(--text); outline: none; cursor: pointer;
     appearance: none; transition: border-color .2s;
   }
@@ -2810,7 +2810,7 @@ export default function MockupStyles() {
   .reglages-lang-btn {
     flex: 1; padding: 11px 14px; border-radius: 8px;
     background: var(--s2); border: 1px solid var(--border);
-    color: var(--muted); font-family: var(--body); font-size: 14px;
+    color: var(--muted); font-family: var(--body); font-size: 16px;
     font-weight: 300; cursor: pointer; transition: all .2s;
     text-align: center;
   }
@@ -2834,7 +2834,7 @@ export default function MockupStyles() {
     width: 100%; padding: 14px 16px; border-radius: 10px;
     background: linear-gradient(135deg, var(--amber), #e08a00);
     border: none; color: #000;
-    font-family: var(--body); font-size: 14px; font-weight: 600;
+    font-family: var(--body); font-size: 16px; font-weight: 600;
     letter-spacing: 1px; text-transform: uppercase;
     cursor: pointer; transition: all .2s;
     box-shadow: 0 4px 24px rgba(245,160,0,.25);
@@ -2937,7 +2937,7 @@ export default function MockupStyles() {
   .versions-s-empty {
     display: flex; flex-direction: column; align-items: center; gap: 14px;
     padding: 60px 0;
-    font-family: var(--body); font-size: 14px; font-weight: 300;
+    font-family: var(--body); font-size: 16px; font-weight: 300;
     color: var(--muted); text-align: center;
   }
 
@@ -2964,7 +2964,7 @@ export default function MockupStyles() {
   }
   .versions-s-card-info { flex: 1; min-width: 0; }
   .versions-s-card-title {
-    font-family: var(--body); font-size: 14px; font-weight: 400;
+    font-family: var(--body); font-size: 16px; font-weight: 400;
     color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .versions-s-card-meta {
@@ -2997,7 +2997,7 @@ export default function MockupStyles() {
   }
   .versions-s-version-info { flex: 1; min-width: 0; }
   .versions-s-version-name {
-    font-family: var(--body); font-size: 14px; font-weight: 300; color: var(--soft);
+    font-family: var(--body); font-size: 16px; font-weight: 300; color: var(--soft);
   }
   .versions-s-version-date {
     font-family: var(--mono); font-size: 14px; color: var(--muted2);
@@ -3110,7 +3110,7 @@ export default function MockupStyles() {
     border-bottom: 1px solid var(--border);
   }
   .mobile-avatar-popover-who {
-    font-family: var(--body); font-size: 14px; font-weight: 500; color: var(--text);
+    font-family: var(--body); font-size: 16px; font-weight: 500; color: var(--text);
   }
   .mobile-avatar-popover-mail {
     font-family: var(--mono); font-size: 14px; color: var(--muted);
@@ -3124,7 +3124,7 @@ export default function MockupStyles() {
     padding: 12px 14px;
     background: transparent; border: none;
     border-bottom: 1px solid var(--border);
-    font-family: var(--body); font-size: 14px; font-weight: 400;
+    font-family: var(--body); font-size: 16px; font-weight: 400;
     color: var(--text);
     cursor: pointer; text-align: left;
     transition: background .12s;
@@ -3442,7 +3442,7 @@ export default function MockupStyles() {
   }
   .notes-readonly {
     font-family: var(--body);
-    font-size: 14px; line-height: 1.6;
+    font-size: 16px; line-height: 1.6;
     color: var(--text);
     white-space: pre-wrap;
     background: var(--s2);

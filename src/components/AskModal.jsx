@@ -174,7 +174,7 @@ export default function AskModal({ onClose }) {
               <div
                 style={{
                   fontFamily: T.body,
-                  fontSize: 14,
+                  fontSize: 16,
                   color: T.muted,
                   textAlign: 'center',
                   lineHeight: 1.6,
@@ -239,7 +239,7 @@ export default function AskModal({ onClose }) {
               <div
                 style={{
                   fontFamily: T.body,
-                  fontSize: 14,
+                  fontSize: 16,
                   color: T.text,
                   lineHeight: 1.6,
                   fontWeight: m.role === 'user' ? 400 : 300,

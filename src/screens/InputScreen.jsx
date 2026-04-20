@@ -108,7 +108,7 @@ function ProjectPicker({ projects, projectId, onChange, onCreateNew, locked = fa
                   width: '100%', padding: '8px 10px', borderRadius: 8,
                   background: isCurrent ? 'rgba(245,176,86,.08)' : 'transparent',
                   border: 'none', cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: T.text,
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: T.text,
                   textAlign: 'left',
                 }}
                 onMouseEnter={(e) => { if (!isCurrent) e.currentTarget.style.background = 'rgba(255,255,255,.04)'; }}
@@ -132,7 +132,7 @@ function ProjectPicker({ projects, projectId, onChange, onCreateNew, locked = fa
               display: 'flex', alignItems: 'center', gap: 10,
               width: '100%', padding: '8px 10px', borderRadius: 8,
               background: 'transparent', border: 'none', cursor: 'pointer',
-              fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: T.amber,
+              fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: T.amber,
               textAlign: 'left',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(245,176,86,.08)'; }}

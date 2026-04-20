@@ -125,7 +125,7 @@ const AvatarMenu = ({ user, onLogout }) => {
           >
             {/* User info */}
             <div style={{ padding: "14px 16px 12px", borderBottom: `1px solid ${T.border}` }}>
-              <div style={{ fontFamily: T.body, fontSize: 14, fontWeight: 600, color: T.text }}>
+              <div style={{ fontFamily: T.body, fontSize: 16, fontWeight: 600, color: T.text }}>
                 {user?.name || ls.avatarMenu.fallbackUser}
               </div>
               <div style={{ fontFamily: T.mono, fontSize: 14, color: T.muted, marginTop: 2 }}>
@@ -169,7 +169,7 @@ const AvatarMenu = ({ user, onLogout }) => {
                   borderBottom: i < items.length - 1 ? `1px solid ${T.border}` : "none",
                   cursor: "pointer",
                   fontFamily: T.body,
-                  fontSize: 14,
+                  fontSize: 16,
                   color: item.color || T.text,
                   transition: "background .1s",
                   textAlign: "left",

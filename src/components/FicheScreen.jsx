@@ -172,11 +172,11 @@ function ListeningSection({ listening }) {
               {sec.blocks.map((b, j) => b.type === 'bullet' ? (
                 <div key={j} style={{
                   display: 'flex', gap: 12, alignItems: 'flex-start',
-                  fontFamily: "'DM Sans', sans-serif", fontSize: 14,
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 16,
                   color: '#c5c5c7', lineHeight: 1.7, fontWeight: 300,
                 }}>
                   <span style={{
-                    color: '#f5b056', fontSize: 14, lineHeight: 1.5,
+                    color: '#f5b056', fontSize: 16, lineHeight: 1.5,
                     flexShrink: 0, marginTop: 1,
                   }}>▸</span>
                   <span>{renderWithEmphasis(b.text)}</span>
@@ -243,7 +243,7 @@ function AnalyzingState({ stage }) {
           color: '#ededed', margin: 0, textAlign: 'center', lineHeight: 1.2,
         }}>{s.fiche.analyzingTitle}</h1>
         <p style={{
-          fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#7c7c80',
+          fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: '#7c7c80',
           margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6,
         }}>
           {s.fiche.analyzingSub1}<br/>
@@ -382,7 +382,7 @@ function MenuItem({ label, onClick, danger }) {
         display: 'block', width: '100%', textAlign: 'left',
         padding: '8px 12px', borderRadius: 6, border: 'none',
         background: 'transparent', cursor: 'pointer',
-        fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 400,
+        fontFamily: "'DM Sans', sans-serif", fontSize: 16, fontWeight: 400,
         color: danger ? '#ef6b6b' : '#c5c5c7',
         transition: 'background .1s',
       }}

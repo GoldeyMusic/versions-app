@@ -212,10 +212,10 @@ function ListeningSection({ listening }) {
   const Bullet = ({ children }) => (
     <div style={{
       display: 'flex', gap: 12, alignItems: 'flex-start',
-      fontFamily: "'DM Sans', sans-serif", fontSize: 14,
+      fontFamily: "'DM Sans', sans-serif", fontSize: 16,
       color: '#c5c5c7', lineHeight: 1.7, fontWeight: 300,
     }}>
-      <span style={{ color: '#f5b056', fontSize: 14, lineHeight: 1.5, flexShrink: 0, marginTop: 1 }}>▸</span>
+      <span style={{ color: '#f5b056', fontSize: 16, lineHeight: 1.5, flexShrink: 0, marginTop: 1 }}>▸</span>
       <span>{renderWithEmphasis(children)}</span>
     </div>
   );
@@ -324,7 +324,7 @@ function AnalyzingState({ stage }) {
           letterSpacing: 5, textTransform: 'uppercase',
         }}>{s.fiche.finalizingTitle}</h1>
         <p style={{
-          fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#7c7c80',
+          fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: '#7c7c80',
           margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6, letterSpacing: 1,
         }}>
           {s.fiche.finalizingSubtitle}
