@@ -57,8 +57,12 @@ export async function loadTracks() {
 /**
  * Save an analysis. Finds or creates track by title (case-insensitive),
  * then inserts or updates the version.
+ *
+ * `analysisLocale` (optionnel) : langue dans laquelle l'IA a généré la fiche
+ * et l'écoute. Persisté dans versions.analysis_locale pour que le helper
+ * loadVersionLocalized puisse décider s'il doit traduire.
  */
-export async function saveAnalysis(config, analysisResult, storagePath = null) {
+export async function saveAnalysis(config, analysisResult, storagePath = null, analysisLocale = null) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     console.warn('[storage] saveAnalysis: no user');
@@ -131,12 +135,16 @@ export async function saveAnalysis(config, analysisResult, storagePath = null) {
   await supabase.from('versions').update({ is_main: false }).eq('track_id', track.id);
 
   const finalStoragePath = storagePath || analysisResult?.storagePath || null;
+  const localeToPersist = (analysisLocale || 'fr').toString().toLowerCase().slice(0, 2);
 
   if (existing) {
     const updatePayload = {
       date: formatDate(),
       is_main: true,
       analysis_result: analysisResult,
+      analysis_locale: localeToPersist,
+      // Nouvelle analyse = les anciennes traductions cachées sont obsolètes.
+      analysis_translations: {},
       audio_hash: config?.audioHash || analysisResult?.audioHash || null,
     };
     if (finalStoragePath) updatePayload.storage_path = finalStoragePath;
@@ -155,6 +163,7 @@ export async function saveAnalysis(config, analysisResult, storagePath = null) {
         date: formatDate(),
         is_main: true,
         analysis_result: analysisResult,
+        analysis_locale: localeToPersist,
         audio_hash: config?.audioHash || analysisResult?.audioHash || null,
         storage_path: finalStoragePath,
       })
@@ -180,6 +189,79 @@ export async function getAnalysis(trackId, versionId) {
     return null;
   }
   return data?.analysis_result || null;
+}
+
+/**
+ * Retourne l'analysisResult d'une version dans la langue demandée.
+ *  - Si la langue demandée = langue d'origine → renvoie l'objet original
+ *  - Sinon, check le cache analysis_translations[userLocale]
+ *  - Sinon, appelle /api/translate (fiche + listening), persiste le cache,
+ *    et retourne l'objet traduit.
+ *
+ * Si quoi que ce soit échoue, fallback sur l'objet original.
+ */
+export async function loadVersionLocalized(versionId, userLocale) {
+  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return null;
+  const target = (userLocale || 'fr').toString().toLowerCase().slice(0, 2);
+
+  const { data, error } = await supabase
+    .from('versions')
+    .select('analysis_result, analysis_locale, analysis_translations')
+    .eq('id', versionId)
+    .single();
+  if (error || !data) {
+    console.warn('[storage] loadVersionLocalized read error:', error?.message);
+    return null;
+  }
+
+  const original = data.analysis_result || null;
+  if (!original) return null;
+
+  const source = (data.analysis_locale || 'fr').toString().toLowerCase().slice(0, 2);
+  // Cas 1 : langue identique → on sert l'original
+  if (source === target) return original;
+
+  // Cas 2 : cache existant
+  const cache = data.analysis_translations || {};
+  if (cache[target]) return cache[target];
+
+  // Cas 3 : cache miss → traduction à la volée
+  const API = (await import('../constants/api')).default;
+  const callTranslate = async (type, content) => {
+    if (!content || typeof content !== 'object') return null;
+    try {
+      const r = await fetch(`${API}/api/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, content, targetLocale: target, sourceLocale: source }),
+      });
+      if (!r.ok) throw new Error(`translate ${type}: ${r.status}`);
+      const j = await r.json();
+      return j?.translated || null;
+    } catch (e) {
+      console.warn('[storage] translate fallback (original):', e.message);
+      return null;
+    }
+  };
+
+  const [ficheT, listeningT] = await Promise.all([
+    callTranslate('fiche', original.fiche),
+    callTranslate('listening', original.listening),
+  ]);
+
+  // Construction du résultat : on préserve les champs non-textuels (storagePath, _stage…)
+  const translated = { ...original };
+  if (ficheT) translated.fiche = ficheT;
+  if (listeningT) translated.listening = listeningT;
+
+  // Writeback cache — fire & forget, pas critique si RLS/réseau échoue
+  const newCache = { ...cache, [target]: translated };
+  supabase.from('versions')
+    .update({ analysis_translations: newCache })
+    .eq('id', versionId)
+    .then(({ error: werr }) => { if (werr) console.warn('[storage] translations cache write failed:', werr.message); });
+
+  return translated;
 }
 
 /**
@@ -464,20 +546,61 @@ export async function findDuplicateAudio(title, audioHash) {
 }
 
 /** Compare two versions (A = older, B = newer). Returns {resume, progres, regressions, inchanges}.
- * Caches results in the `comparisons` table keyed by (trackId, vA, vB). */
+ * Caches results in the `comparisons` table keyed by (trackId, vA, vB).
+ *
+ * Multi-langues : le `result` persisté est l'original (dans result_locale).
+ * Les autres langues sont cachées dans result_translations.
+ */
 export async function getOrCreateComparison(trackId, versionA, versionB, locale) {
   if (!trackId || !versionA?.id || !versionB?.id) throw new Error('trackId + 2 versions requis');
+  const target = (locale || 'fr').toString().toLowerCase().slice(0, 2);
 
-  // Lookup cache (try both orderings)
+  // Lookup cache
   const { data: cached } = await supabase
     .from('comparisons')
-    .select('result')
+    .select('result, result_locale, result_translations')
     .eq('track_id', trackId)
     .eq('version_a_id', versionA.id)
     .eq('version_b_id', versionB.id)
     .maybeSingle();
-  if (cached?.result) return cached.result;
 
+  if (cached?.result) {
+    const source = (cached.result_locale || 'fr').toString().toLowerCase().slice(0, 2);
+    // Même langue que l'origine → sert le résultat original
+    if (source === target) return cached.result;
+    // Cache hit dans la langue cible
+    const trCache = cached.result_translations || {};
+    if (trCache[target]) return trCache[target];
+
+    // Cache miss : on traduit à la demande
+    const API = (await import('../constants/api')).default;
+    try {
+      const r = await fetch(`${API}/api/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'comparison', content: cached.result, targetLocale: target, sourceLocale: source }),
+      });
+      if (!r.ok) throw new Error(`translate compare: ${r.status}`);
+      const j = await r.json();
+      const translated = j?.translated;
+      if (!translated) throw new Error('translate compare: empty result');
+
+      const newCache = { ...trCache, [target]: translated };
+      supabase.from('comparisons')
+        .update({ result_translations: newCache })
+        .eq('track_id', trackId)
+        .eq('version_a_id', versionA.id)
+        .eq('version_b_id', versionB.id)
+        .then(({ error }) => { if (error) console.warn('[compare] translations cache write failed:', error.message); });
+
+      return translated;
+    } catch (e) {
+      console.warn('[compare] translate fallback (original):', e.message);
+      return cached.result; // fallback : on sert l'original même si langue ≠
+    }
+  }
+
+  // Pas de cache du tout : on génère un compare neuf dans la langue demandée.
   const ficheA = versionA.analysisResult?.fiche || versionA.analysisResult || null;
   const ficheB = versionB.analysisResult?.fiche || versionB.analysisResult || null;
   if (!ficheA || !ficheB) {
@@ -490,7 +613,7 @@ export async function getOrCreateComparison(trackId, versionA, versionB, locale)
   const resp = await fetch(`${API}/api/compare`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ficheA, ficheB, nameA: versionA.name, nameB: versionB.name, locale: locale || 'fr' }),
+    body: JSON.stringify({ ficheA, ficheB, nameA: versionA.name, nameB: versionB.name, locale: target }),
   });
   if (!resp.ok) {
     const err = await resp.text();
@@ -504,6 +627,7 @@ export async function getOrCreateComparison(trackId, versionA, versionB, locale)
     version_a_id: versionA.id,
     version_b_id: versionB.id,
     result,
+    result_locale: target,
   }).then(({ error }) => { if (error) console.warn('[compare] cache save failed:', error.message); });
 
   return result;

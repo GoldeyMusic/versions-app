@@ -2142,7 +2142,7 @@ function VersionsAppAuthed() {
             savedRef.current = true;
             setAnalysisResult(prev => {
               const full = { ...prev, fiche: job.fiche || prev?.fiche, listening: job.listening || prev?.listening, storagePath: job.storagePath || prev?.storagePath || null, _stage: "all_done" };
-              saveAnalysis(config, full, job.storagePath || prev?.storagePath || null)
+              saveAnalysis(config, full, job.storagePath || prev?.storagePath || null, lang)
                 .then(() => refreshProjects())
                 .catch(e => console.warn("saveAnalysis failed:", e));
               return full;
@@ -2179,7 +2179,7 @@ function VersionsAppAuthed() {
       } else if (result._stage === "all_done" && !savedRef.current) {
         // Analysis completed in one shot — save immediately
         savedRef.current = true;
-        saveAnalysis(cfgWithHash, merged, merged.storagePath || null)
+        saveAnalysis(cfgWithHash, merged, merged.storagePath || null, lang)
           .then(() => refreshProjects())
           .catch(e => console.warn("saveAnalysis failed:", e));
       }
