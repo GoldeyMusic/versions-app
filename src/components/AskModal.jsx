@@ -2,8 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import T from '../constants/theme';
 import API from '../constants/api';
 import { IconX, IconSend } from './Icons';
+import useLang from '../hooks/useLang';
 
 export default function AskModal({ onClose }) {
+  const { s, lang } = useLang();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,6 +31,7 @@ export default function AskModal({ onClose }) {
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
         body: JSON.stringify({
+          locale: lang,
           messages: [
             ...messages,
             { role: 'user', content: userMessage },
@@ -40,7 +43,7 @@ export default function AskModal({ onClose }) {
       });
       clearTimeout(timeout);
       const data = await res.json();
-      const txt = data.reply || data.error || 'Pas de réponse.';
+      const txt = data.reply || data.error || s.ask.noReply;
       setMessages((prev) => [...prev, { role: 'assistant', text: txt }]);
     } catch (e) {
       // Fallback for mobile or API errors
@@ -112,7 +115,7 @@ export default function AskModal({ onClose }) {
                 color: T.amber,
               }}
             >
-              ASSISTANT VERSIONS
+              {s.ask.heroTitle}
             </div>
             <div
               style={{
@@ -122,7 +125,7 @@ export default function AskModal({ onClose }) {
                 marginTop: 2,
               }}
             >
-              Expert production musicale · Tous DAWs · Base de connaissance active
+              {s.ask.heroSub}
             </div>
           </div>
           <button
@@ -175,11 +178,10 @@ export default function AskModal({ onClose }) {
                   color: T.muted,
                   textAlign: 'center',
                   lineHeight: 1.6,
+                  whiteSpace: 'pre-line',
                 }}
               >
-                Tips de production, mixage, plugins,
-                <br />
-                techniques — demande ce que tu veux.
+                {s.ask.emptyHint}
               </div>
               <div
                 style={{
@@ -190,12 +192,7 @@ export default function AskModal({ onClose }) {
                   marginTop: 4,
                 }}
               >
-                {[
-                  'Comment bien compresser une voix ?',
-                  'Réglages EQ pour un kick EDM',
-                  'Différence entre reverb plate et hall',
-                  'Meilleur bus master chain',
-                ].map((q) => (
+                {s.ask.examplesShort.map((q) => (
                   <button
                     key={q}
                     onClick={() => {
@@ -256,7 +253,7 @@ export default function AskModal({ onClose }) {
           {loading && (
             <div style={{ alignSelf: 'flex-start', padding: '10px 14px', borderRadius: 12, background: T.s2, border: `1px solid ${T.border}` }}>
               <div style={{ fontFamily: T.mono, fontSize: 11, color: T.muted }}>
-                Réflexion<span style={{ animation: 'blink 1s infinite' }}>…</span>
+                {s.ask.thinkingShort}<span style={{ animation: 'blink 1s infinite' }}>…</span>
               </div>
             </div>
           )}
@@ -281,7 +278,7 @@ export default function AskModal({ onClose }) {
                 handleSend();
               }
             }}
-            placeholder="Ta question…"
+            placeholder={s.ask.placeholder}
             rows={1}
             style={{
               flex: 1,

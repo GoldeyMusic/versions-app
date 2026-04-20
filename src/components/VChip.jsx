@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { renameVersion, deleteVersion } from '../lib/storage';
+import useLang from '../hooks/useLang';
 
 export default function VChip({ track, version, idx, isActive, score, onSelect, onRefresh, onDeleted }) {
+  const { s } = useLang();
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
@@ -65,10 +67,10 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
     e.stopPropagation();
     setMenuOpen(false);
     const ok = await confirmDialog({
-      title: "Supprimer la version ?",
-      message: `Voulez-vous supprimer la version "${version.name}" ? Cette action est définitive.`,
-      confirmLabel: "Supprimer",
-      cancelLabel: "Annuler",
+      title: s.vchip.confirmDeleteTitle,
+      message: s.vchip.confirmDeleteBody.replace('{name}', version.name || ''),
+      confirmLabel: s.vchip.confirmDeleteConfirm,
+      cancelLabel: s.common.cancel,
       danger: true,
     });
     if (ok !== "confirm") return;
@@ -98,7 +100,7 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
         <span ref={btnRef} role="button" tabIndex={0}
           onClick={openMenu}
           onMouseDown={(e) => e.stopPropagation()}
-          title="Options de la version"
+          title={s.vchip.optionsTitle}
           style={{
             position: 'absolute', top: 2, right: 2, zIndex: 30,
             width: 22, height: 22, borderRadius: 4,
@@ -119,9 +121,9 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
             borderRadius: 10, padding: 6, boxShadow: '0 12px 32px rgba(0,0,0,.55)',
           }}
         >
-          <Item label="Renommer" onClick={openRename} />
+          <Item label={s.vchip.menuRename} onClick={openRename} />
           <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
-          <Item label="Supprimer" danger onClick={handleDelete} />
+          <Item label={s.vchip.menuDelete} danger onClick={handleDelete} />
         </div>,
         document.body
       )}
@@ -143,7 +145,7 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
             }}
           >
             <div style={{ fontSize: 14, color: '#e8e8ea', marginBottom: 14, fontWeight: 500 }}>
-              Renommer la version
+              {s.vchip.renameVersionTitle}
             </div>
             <input
               ref={inputRef}
@@ -153,7 +155,7 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
                 if (e.key === 'Enter') submitRename();
                 if (e.key === 'Escape') setRenameOpen(false);
               }}
-              placeholder="Nom de la version"
+              placeholder={s.vchip.renameVersionPlaceholder}
               style={{
                 width: '100%', padding: '10px 12px', fontSize: 13,
                 background: '#0e0e10', border: '1px solid #2a2a2e',
@@ -167,14 +169,14 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
                   padding: '8px 16px', fontSize: 12, borderRadius: 8,
                   background: 'transparent', border: '1px solid #2a2a2e',
                   color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
-                }}>Annuler</button>
+                }}>{s.common.cancel}</button>
               <button onClick={submitRename} disabled={busy || !renameValue.trim()}
                 style={{
                   padding: '8px 16px', fontSize: 12, borderRadius: 8,
                   background: '#f5b056', border: 'none',
                   color: '#141416', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit',
                   opacity: busy || !renameValue.trim() ? 0.5 : 1,
-                }}>{busy ? '...' : 'Renommer'}</button>
+                }}>{busy ? '...' : s.vchip.renameSubmit}</button>
             </div>
           </div>
         </div>,

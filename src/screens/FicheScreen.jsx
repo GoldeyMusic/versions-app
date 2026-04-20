@@ -11,6 +11,7 @@ import { exportFicheToPdf } from '../lib/exportPdf';
 import { renderWithEmphasis, formatAnalyzedAt, splitVerdict, applyVocalTypeToFiche, isVoiceCategory } from '../lib/ficheHelpers.jsx';
 import useMobile from '../hooks/useMobile';
 import useNarrowDesktop from '../hooks/useNarrowDesktop';
+import useLang from '../hooks/useLang';
 
 /**
  * FicheScreen — rendu fidèle à mockup-v3.html.
@@ -43,10 +44,11 @@ function TrackTitleText({ title }) {
 
 // Anneau de score 140x140 — formule identique à la maquette : dasharray=276
 export function ScoreRingBig({ value, prevScore = null }) {
+  const { s } = useLang();
   const v = Math.max(0, Math.min(100, Number(value) || 0));
   const offset = 276 - (276 * v) / 100;
   const color = v < 50 ? '#ef6b6b' : v < 75 ? '#f5b056' : '#7bd88f';
-  const band = v < 50 ? 'À retravailler' : v < 75 ? 'En progression' : 'Solide';
+  const band = v < 50 ? s.fiche.scoreBandLow : v < 75 ? s.fiche.scoreBandMid : s.fiche.scoreBandHigh;
   const [tipOpen, setTipOpen] = useState(false);
   const delta = typeof prevScore === 'number' ? Math.round(v - prevScore) : null;
   return (
@@ -57,7 +59,7 @@ export function ScoreRingBig({ value, prevScore = null }) {
       onClick={() => setTipOpen((v) => !v)}
       role="button"
       tabIndex={0}
-      aria-label="Voir les détails du score"
+      aria-label={s.fiche.scoreAriaLabel}
     >
       <svg viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="44" fill="none" stroke={`${color}22`} strokeWidth="5" />
@@ -83,26 +85,26 @@ export function ScoreRingBig({ value, prevScore = null }) {
         <div className="rt-bands">
           <div className={`rt-band${v < 50 ? ' active' : ''}`}>
             <span className="dot" style={{ background: '#ef6b6b' }} />
-            <span>0–49 · À retravailler</span>
+            <span>{s.fiche.scoreBandLowRange}</span>
           </div>
           <div className={`rt-band${v >= 50 && v < 75 ? ' active' : ''}`}>
             <span className="dot" style={{ background: '#f5b056' }} />
-            <span>50–74 · En progression</span>
+            <span>{s.fiche.scoreBandMidRange}</span>
           </div>
           <div className={`rt-band${v >= 75 ? ' active' : ''}`}>
             <span className="dot" style={{ background: '#7bd88f' }} />
-            <span>75–100 · Solide</span>
+            <span>{s.fiche.scoreBandHighRange}</span>
           </div>
         </div>
         {delta != null && (
           <div className="rt-calib">
             {delta === 0
-              ? 'Calibré sur la version précédente · stable'
-              : `Calibré sur la version précédente · ${delta > 0 ? '+' : ''}${delta} pts`}
+              ? s.fiche.scoreCalibStable
+              : s.fiche.scoreCalibDelta.replace('{delta}', `${delta > 0 ? '+' : ''}${delta}`)}
           </div>
         )}
         <div className="rt-note">
-          Le score reflète la cohérence du mix (spatialisation, dynamique, équilibre, clarté). Il est calibré pour rester comparable d'une version à l'autre du même titre.
+          {s.fiche.scoreNote}
         </div>
       </div>
     </div>
@@ -168,6 +170,7 @@ function parseListening(text) {
 }
 
 function ListeningSection({ listening }) {
+  const { s } = useLang();
   const [expanded, setExpanded] = useState(false);
   if (!listening) return null;
 
@@ -220,20 +223,20 @@ function ListeningSection({ listening }) {
   return (
     <section className="listening-section">
       <div className="section-head">
-        <span className="t">Écoute qualitative</span>
+        <span className="t">{s.fiche.listeningTitle}</span>
         <span className="line" />
       </div>
       <div className="listening-box">
         {hasStructured ? (
           <>
-            {impression && <Block title="Impression"><P>{impression}</P></Block>}
+            {impression && <Block title={s.fiche.blockImpression}><P>{impression}</P></Block>}
             {expanded && (
               <>
-                {points.length > 0 && <Block title="Points forts">{points.map((p, i) => <Bullet key={i}>{p}</Bullet>)}</Block>}
-                {aTravailler.length > 0 && <Block title="À travailler">{aTravailler.map((p, i) => <Bullet key={i}>{p}</Bullet>)}</Block>}
-                {espace && <Block title="Espace"><P>{espace}</P></Block>}
-                {dynamique && <Block title="Dynamique"><P>{dynamique}</P></Block>}
-                {potentiel && <Block title="Potentiel"><P>{potentiel}</P></Block>}
+                {points.length > 0 && <Block title={s.fiche.blockPointsForts}>{points.map((p, i) => <Bullet key={i}>{p}</Bullet>)}</Block>}
+                {aTravailler.length > 0 && <Block title={s.fiche.blockATravailler}>{aTravailler.map((p, i) => <Bullet key={i}>{p}</Bullet>)}</Block>}
+                {espace && <Block title={s.fiche.blockEspace}><P>{espace}</P></Block>}
+                {dynamique && <Block title={s.fiche.blockDynamique}><P>{dynamique}</P></Block>}
+                {potentiel && <Block title={s.fiche.blockPotentiel}><P>{potentiel}</P></Block>}
               </>
             )}
             {hasMore && (
@@ -248,7 +251,7 @@ function ListeningSection({ listening }) {
                   display: 'flex', alignItems: 'center', gap: 6,
                 }}
               >
-                {expanded ? '— Réduire' : '+ Voir l\u2019écoute complète'}
+                {expanded ? s.fiche.toggleReduce : s.fiche.toggleExpandListening}
               </button>
             )}
           </>
@@ -269,34 +272,23 @@ function ListeningSection({ listening }) {
 
 // ── AnalyzingState (page d'attente riche) ─────────────────
 
-const ANALYSIS_TIPS = [
-  "Une caisse claire qui manque d'air : essaie une reverb courte en send, pas en insert.",
-  "Mix qui manque de punch : compression parallèle sur la bus drums, ratio 4:1 avec beaucoup de blend.",
-  "Voix qui perce trop : un de-esser après le compresseur, pas avant.",
-  "Kick et basse qui se battent : sidechain léger sur la basse, attack rapide, release ~120ms.",
-  "Mix qui sonne plat : checke la phase entre overhead et close mics sur la batterie.",
-  "Graves brouillons : EQ soustractive entre 200 et 400 Hz sur les instruments du bas.",
-  "Manque de profondeur : varie les temps de reverb — courte devant, longue derrière.",
-  "Voix qui chante en avant : automation du volume note par note plutôt que compression forte.",
-  "Trop d'aigus agressifs : un shelf très doux à partir de 10 kHz, -1 à -2 dB suffit souvent.",
-  "Stéréo qui s'effondre en mono : checke le bus mix en mono dès le début, pas à la fin.",
-];
-
 function AnalyzingState({ stage }) {
-  const [tipIdx, setTipIdx] = useState(() => Math.floor(Math.random() * ANALYSIS_TIPS.length));
+  const { s } = useLang();
+  const tips = s.fiche.analysisTips;
+  const [tipIdx, setTipIdx] = useState(() => Math.floor(Math.random() * tips.length));
   // Track the highest stage reached to prevent checkboxes from unchecking
   const [maxIdx, setMaxIdx] = useState(0);
   useEffect(() => {
     const id = setInterval(() => {
-      setTipIdx((i) => (i + 1) % ANALYSIS_TIPS.length);
+      setTipIdx((i) => (i + 1) % tips.length);
     }, 10000);
     return () => clearInterval(id);
-  }, []);
+  }, [tips.length]);
 
   const steps = [
-    { id: 'upload', label: 'Upload audio' },
-    { id: 'listening', label: 'Écoute qualitative' },
-    { id: 'fiche', label: 'Génération de la fiche' },
+    { id: 'upload', label: s.fiche.stepUpload },
+    { id: 'listening', label: s.fiche.stepListening },
+    { id: 'fiche', label: s.fiche.stepFiche },
   ];
 
   // Derive progress from stage — monotonic (never goes backward)
@@ -330,12 +322,12 @@ function AnalyzingState({ stage }) {
           fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, fontWeight: 400,
           color: '#ededed', margin: 0, textAlign: 'center', lineHeight: 1.2,
           letterSpacing: 5, textTransform: 'uppercase',
-        }}>Finalisation de l'analyse</h1>
+        }}>{s.fiche.finalizingTitle}</h1>
         <p style={{
           fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#7c7c80',
           margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6, letterSpacing: 1,
         }}>
-          La fiche d'analyse se génère. Encore quelques secondes.
+          {s.fiche.finalizingSubtitle}
         </p>
       </div>
 
@@ -410,12 +402,12 @@ function AnalyzingState({ stage }) {
         <div style={{
           fontFamily: 'JetBrains Mono, monospace', fontSize: 9, letterSpacing: 2,
           color: '#f5b056', textTransform: 'uppercase',
-        }}>Le saviez-vous</div>
+        }}>{s.fiche.didYouKnow}</div>
         <div key={tipIdx} style={{
           fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#c5c5c7',
           lineHeight: 1.7, fontWeight: 300,
           animation: 'fadein .4s ease',
-        }}>{ANALYSIS_TIPS[tipIdx]}</div>
+        }}>{tips[tipIdx]}</div>
       </div>
     </div>
   );
@@ -426,19 +418,20 @@ function AnalyzingState({ stage }) {
 // à l'utilisateur de le changer. Utile si on s'est trompé à l'import, ou si un
 // instrumental temporaire devient définitif.
 function VocalTypePill({ track, onRefresh }) {
+  const { s } = useLang();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const ref = useRef(null);
   const current = track?.vocalType || 'vocal';
   const LABELS = {
-    vocal: 'Chanté',
-    instrumental_pending: 'Voix à venir',
-    instrumental_final: 'Instrumental',
+    vocal: s.fiche.vocalTypeVocal,
+    instrumental_pending: s.fiche.vocalPillInstrumentalPending,
+    instrumental_final: s.fiche.vocalTypeInstrumental,
   };
   const TITLES = {
-    vocal: 'Morceau chanté — la voix est évaluée',
-    instrumental_pending: 'Voix à venir sur les prochaines versions',
-    instrumental_final: 'Œuvre purement instrumentale — la voix n\'est pas évaluée',
+    vocal: s.fiche.vocalPillVocalTitle,
+    instrumental_pending: s.fiche.vocalPillInstrumentalPendingTitle,
+    instrumental_final: s.fiche.vocalPillInstrumentalFinalTitle,
   };
 
   // Ferme le popover au clic extérieur
@@ -498,6 +491,7 @@ function VocalTypePill({ track, onRefresh }) {
 // ── Timeline (sticky bar avec chips versions) ──────────────
 
 function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onShareVersion, onExportVersion, onTracksRefresh, onGoHome }) {
+  const { s } = useLang();
   const scrollRef = useRef(null);
   const [showFadeRight, setShowFadeRight] = useState(false);
   const [showFadeLeft, setShowFadeLeft] = useState(false);
@@ -540,16 +534,16 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
   if (!track) return null;
 
   const stageLabel =
-    stage === 'all_done' ? 'Version actuelle' :
-    stage === 'fiche_done' ? 'Écoute en cours' :
-    'Analyse en cours';
+    stage === 'all_done' ? s.fiche.stageAllDone :
+    stage === 'fiche_done' ? s.fiche.stageFicheDone :
+    s.fiche.stageOther;
 
   return (
     <div className="timeline">
       <div className="track-title">
         <span className="track-title-left">
           {onGoHome && (
-            <button className="fiche-back" onClick={onGoHome} title="Accueil">
+            <button className="fiche-back" onClick={onGoHome} title={s.fiche.timelineBackHome}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13l-5-5 5-5"/></svg>
             </button>
           )}
@@ -575,14 +569,14 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
               className="fiche-head-btn"
               onClick={() => onShareVersion(track, current)}
               disabled={!current?.id || current.id === '__pending_v__'}
-              title={!current?.id || current.id === '__pending_v__' ? 'Enregistrement en cours…' : 'Générer un lien public lecture seule'}
+              title={!current?.id || current.id === '__pending_v__' ? s.fiche.timelineSavingInProgress : s.fiche.timelineShareTitle}
             >
               {/* Icône share iOS-style : flèche vers le haut depuis un carré */}
               <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M8 9V2M5.5 4.5L8 2l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M4 8v4.5h8V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <span className="fhb-label">Partager un lien</span>
+              <span className="fhb-label">{s.fiche.timelineShareBtn}</span>
             </button>
           )}
           {onExportVersion && (
@@ -590,14 +584,14 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
               type="button"
               className="fiche-head-btn"
               onClick={() => onExportVersion(track, current)}
-              title="Générer un PDF partageable de cette version"
+              title={s.fiche.timelineExportTitle}
             >
               {/* Icône export PDF : flèche vers le bas dans un plateau */}
               <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12v1.5A1.5 1.5 0 004.5 15h7A1.5 1.5 0 0013 13.5V12"
                       stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <span className="fhb-label">Exporter en PDF</span>
+              <span className="fhb-label">{s.fiche.timelineExportBtn}</span>
             </button>
           )}
         </div>
@@ -605,7 +599,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
 
       <div className="versions-block">
         {/* CompareButton retiré — en sommeil */}
-        <span className="versions-label">Versions</span>
+        <span className="versions-label">{s.fiche.versionsLabel}</span>
         <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
           <div
             ref={scrollRef}
@@ -635,7 +629,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
             })}
             <button
               className="new-version-btn"
-              title="Nouvelle version"
+              title={s.fiche.newVersionTitle}
               onClick={() => onAddVersion && onAddVersion(track)}
               style={{ flexShrink: 0 }}
             >+</button>
@@ -664,6 +658,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
 // ── FocusModal (modale centrée, click-outside, flèches latérales) ───
 
 function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isResolved, onToggleResolved }) {
+  const { s } = useLang();
   useEffect(() => {
     if (!open) return;
     const h = (e) => {
@@ -701,12 +696,12 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
       <button
         className={`focus-arrow focus-arrow-left${atFirst ? ' disabled' : ''}`}
         onClick={(e) => { e.stopPropagation(); if (!atFirst) onPrev(); }}
-        aria-label="Précédent"
+        aria-label={s.fiche.ariaPrev}
       >‹</button>
       <button
         className={`focus-arrow focus-arrow-right${atLast ? ' disabled' : ''}`}
         onClick={(e) => { e.stopPropagation(); if (!atLast) onNext(); }}
-        aria-label="Suivant"
+        aria-label={s.fiche.ariaNext}
       >›</button>
 
       <div className="focus-container" onClick={(e) => e.stopPropagation()}>
@@ -726,7 +721,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
               border: '1px solid #2a2a2e', color: '#7c7c80', cursor: 'pointer',
               fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
-            aria-label="Fermer"
+            aria-label={s.fiche.ariaClose}
           >✕</button>
         </div>
 
@@ -741,7 +736,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
 
         {p.daw && (
           <div className="daw-box" style={{ marginBottom: 16 }}>
-            <span className="daw-label">Action DAW</span>
+            <span className="daw-label">{s.fiche.focusDawLabel}</span>
             {p.daw}
           </div>
         )}
@@ -750,13 +745,13 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
           <div className="mt-grid" style={{ marginBottom: 16 }}>
             {p.metered && (
               <div className="mt-box m">
-                <div className="mt-label">Mesuré</div>
+                <div className="mt-label">{s.fiche.focusMeasured}</div>
                 <div className="mt-val">{p.metered}</div>
               </div>
             )}
             {p.target && (
               <div className="mt-box t">
-                <div className="mt-label">Objectif</div>
+                <div className="mt-label">{s.fiche.focusTarget}</div>
                 <div className="mt-val">{p.target}</div>
               </div>
             )}
@@ -765,7 +760,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
 
         {linkedItems.length > 0 && (
           <div className="linked-elements" style={{ marginBottom: 20 }}>
-            <div className="label">Éléments liés</div>
+            <div className="label">{s.fiche.focusLinkedItems}</div>
             <div className="le-list">
               {linkedItems.map((it) => (
                 <div className="le" key={it.id}>
@@ -787,7 +782,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
               <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
-          {isResolved ? 'Résolu' : 'Marquer comme résolu'}
+          {isResolved ? s.fiche.focusResolved : s.fiche.focusMarkResolved}
         </button>
       </div>
       </div>
@@ -798,6 +793,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
 // ── VersionChat (panneau glissant) ─────────────────────────
 
 function VersionChat({ versionId, config, analysisResult, open, onClose, anchored = false }) {
+  const { lang, s } = useLang();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -834,6 +830,7 @@ function VersionChat({ versionId, config, analysisResult, open, onClose, anchore
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
         body: JSON.stringify({
+          locale: lang,
           messages: withUser,
           title: config?.title || '',
           version: config?.version || '',
@@ -850,7 +847,7 @@ function VersionChat({ versionId, config, analysisResult, open, onClose, anchore
       saveChatHistory(versionId, next);
     } catch (e) {
       if (e.name !== 'AbortError') {
-        const next = [...withUser, { role: 'assistant', content: 'Erreur de connexion.' }];
+        const next = [...withUser, { role: 'assistant', content: s.fiche.chatError }];
         setMessages(next);
         saveChatHistory(versionId, next);
       }
@@ -862,10 +859,10 @@ function VersionChat({ versionId, config, analysisResult, open, onClose, anchore
   const handleClear = async () => {
     if (!messages.length || loading) return;
     const res = await confirmDialog({
-      title: 'Effacer la conversation ?',
-      message: 'La conversation de cette version sera supprimée définitivement.',
-      confirmLabel: 'Effacer',
-      cancelLabel: 'Annuler',
+      title: s.fiche.chatClearConfirmTitle,
+      message: s.fiche.chatClearConfirmBody,
+      confirmLabel: s.fiche.chatClearConfirmLabel,
+      cancelLabel: s.common.cancel,
       danger: true,
     });
     if (res !== 'confirm') return;
@@ -878,7 +875,7 @@ function VersionChat({ versionId, config, analysisResult, open, onClose, anchore
       {!anchored && <div className="chat-backdrop" onClick={onClose} />}
       <aside className={`chat-panel${anchored ? ' chat-panel-anchored' : ''}`}>
         <div className="chat-head">
-          <span className="ctitle">Discussion</span>
+          <span className="ctitle">{s.fiche.chatTitle}</span>
           <div className="chat-head-actions">
             {messages.length > 0 && (
               <button
@@ -886,8 +883,8 @@ function VersionChat({ versionId, config, analysisResult, open, onClose, anchore
                 className="cclear"
                 onClick={handleClear}
                 disabled={loading}
-                title="Effacer la conversation"
-                aria-label="Effacer la conversation"
+                title={s.fiche.chatClearTitle}
+                aria-label={s.fiche.chatClearTitle}
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                   <path d="M3 4h10M6.5 4V2.5a1 1 0 011-1h1a1 1 0 011 1V4m-5 0v9a1.5 1.5 0 001.5 1.5h4a1.5 1.5 0 001.5-1.5V4"
@@ -901,19 +898,19 @@ function VersionChat({ versionId, config, analysisResult, open, onClose, anchore
         <div className="chat-body">
           {messages.length === 0 && (
             <div className="msg ai">
-              <span className="ai-label">Versions</span>
-              Pose une question sur cette version — je regarde l'analyse et je te réponds.
+              <span className="ai-label">{s.fiche.chatAiName}</span>
+              {s.fiche.chatEmpty}
             </div>
           )}
           {messages.map((m, i) => (
             <div key={i} className={`msg ${m.role === 'assistant' ? 'ai' : m.role}`}>
-              {m.role === 'assistant' && <span className="ai-label">Versions</span>}
+              {m.role === 'assistant' && <span className="ai-label">{s.fiche.chatAiName}</span>}
               {m.content}
             </div>
           ))}
           {loading && (
             <div className="msg ai">
-              <span className="ai-label">Versions</span>
+              <span className="ai-label">{s.fiche.chatAiName}</span>
               <span className="chat-typing">
                 <span className="dot" /><span className="dot" /><span className="dot" />
               </span>
@@ -930,10 +927,10 @@ function VersionChat({ versionId, config, analysisResult, open, onClose, anchore
               e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
             }}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-            placeholder="Pose une question sur l'analyse…"
+            placeholder={s.fiche.chatPlaceholderAnalysis}
             rows={1}
           />
-          <button onClick={send}>Envoyer</button>
+          <button onClick={send}>{s.fiche.chatSend}</button>
         </div>
       </aside>
     </>
@@ -948,16 +945,16 @@ function fmtDuration(sec) {
   const s = Math.floor(sec % 60);
   return `${m}:${String(s).padStart(2, '0')}`;
 }
-function fmtScoreDelta(cur, prev) {
+function fmtScoreDelta(cur, prev, eqLabel = '= v. préc.') {
   if (cur == null || prev == null) return null;
   const d = cur - prev;
-  if (d === 0) return '= v. préc.';
+  if (d === 0) return eqLabel;
   return `${d > 0 ? '+' : '−'}${Math.abs(Math.round(d))} pts`;
 }
-function fmtDurationDelta(cur, prev) {
+function fmtDurationDelta(cur, prev, eqLabel = '= v. préc.') {
   if (cur == null || prev == null) return null;
   const d = Math.round(cur - prev);
-  if (d === 0) return '= v. préc.';
+  if (d === 0) return eqLabel;
   return `${d > 0 ? '+' : '−'}${Math.abs(d)}s`;
 }
 function scoreTier(v) {
@@ -970,17 +967,18 @@ function scoreTier(v) {
 // ── EvolutionPanel (sparkline + 2 stats) ──────────────────
 
 function EvolutionPanel({ versionScores, currentVersionName, currentScore, currentDuration, prevScore, prevDuration }) {
-  const scores = versionScores.map((v) => v.score).filter((s) => typeof s === 'number');
+  const { s } = useLang();
+  const scores = versionScores.map((v) => v.score).filter((x) => typeof x === 'number');
   const hasMultiple = scores.length >= 2;
   const maxScore = scores.length ? Math.max(...scores, 100) : 100;
   const firstName = versionScores[0]?.name;
   const lastName = versionScores[versionScores.length - 1]?.name;
-  const deltaLabel = fmtScoreDelta(currentScore, prevScore);
+  const deltaLabel = fmtScoreDelta(currentScore, prevScore, s.fiche.deltaEqualPrev);
 
   return (
     <div className="evolution-panel">
       <div className="vr-title">
-        {hasMultiple ? `Évolution ${firstName} → ${lastName}` : 'Évolution'}
+        {hasMultiple ? s.fiche.evolutionFromTo.replace('{first}', firstName).replace('{last}', lastName) : s.fiche.evolutionTitle}
       </div>
 
       <div className="spark">
@@ -1011,19 +1009,19 @@ function EvolutionPanel({ versionScores, currentVersionName, currentScore, curre
 
       <div className="stats-grid">
         <div className="stat">
-          <div className="k">Version active</div>
+          <div className="k">{s.fiche.statVersionActive}</div>
           <div className="v" title={currentVersionName || ''}>{currentVersionName || '—'}</div>
           <div className="d">
             {prevScore != null && currentScore != null
-              ? (fmtScoreDelta(currentScore, prevScore) || `${currentScore} pts`)
+              ? (fmtScoreDelta(currentScore, prevScore, s.fiche.deltaEqualPrev) || `${currentScore} pts`)
               : (currentScore != null ? `${currentScore} pts` : '—')}
           </div>
         </div>
         <div className="stat">
-          <div className="k">Durée</div>
+          <div className="k">{s.fiche.statDuration}</div>
           <div className="v">{fmtDuration(currentDuration)}</div>
           <div className="d">
-            {fmtDurationDelta(currentDuration, prevDuration) || '—'}
+            {fmtDurationDelta(currentDuration, prevDuration, s.fiche.deltaEqualPrev) || '—'}
           </div>
         </div>
       </div>
@@ -1071,6 +1069,7 @@ function blocksToBullets(blocks) {
 }
 
 export function QualitativeSection({ listening }) {
+  const { s } = useLang();
   const [expanded, setExpanded] = useState(false);
   const [fortsOpen, setFortsOpen] = useState(false);
   const [travailOpen, setTravailOpen] = useState(false);
@@ -1121,7 +1120,7 @@ export function QualitativeSection({ listening }) {
     <section className={`row-qualitative${expanded ? ' expanded' : ''}`}>
       {/* Colonne gauche : Impression (+ Potentiel) → déploie Espace + Dynamique */}
       <div className="q-block impression">
-        <div className="q-title"><span className="dot" />Impression</div>
+        <div className="q-title"><span className="dot" />{s.fiche.blockImpression}</div>
 
         <div className="impression-summary">
           {impression && <p>{renderWithEmphasis(impression)}</p>}
@@ -1130,19 +1129,19 @@ export function QualitativeSection({ listening }) {
         <div className="impression-full">
           {potentiel && (
             <>
-              <div className="subq-title">Potentiel</div>
+              <div className="subq-title">{s.fiche.blockPotentiel}</div>
               <p>{renderWithEmphasis(potentiel)}</p>
             </>
           )}
           {espace && (
             <>
-              <div className="subq-title">Espace</div>
+              <div className="subq-title">{s.fiche.blockEspace}</div>
               <p>{renderWithEmphasis(espace)}</p>
             </>
           )}
           {dynamique && (
             <>
-              <div className="subq-title">Dynamique</div>
+              <div className="subq-title">{s.fiche.blockDynamique}</div>
               <p>{renderWithEmphasis(dynamique)}</p>
             </>
           )}
@@ -1150,7 +1149,7 @@ export function QualitativeSection({ listening }) {
 
         {hasDeploy && (
           <button className="impression-toggle" onClick={() => setExpanded((v) => !v)}>
-            {expanded ? '− Réduire' : "+ Voir l\u2019écoute complète"}
+            {expanded ? s.fiche.toggleReduceDash : s.fiche.toggleExpandListening}
           </button>
         )}
       </div>
@@ -1165,7 +1164,7 @@ export function QualitativeSection({ listening }) {
               onClick={() => setFortsOpen((v) => !v)}
               aria-expanded={fortsOpen}
             >
-              <span className="q-title"><span className="dot" />Points forts</span>
+              <span className="q-title"><span className="dot" />{s.fiche.blockPointsForts}</span>
               <span className="q-count">{points.length}</span>
               <span className="q-chev" aria-hidden="true">
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -1188,7 +1187,7 @@ export function QualitativeSection({ listening }) {
               onClick={() => setTravailOpen((v) => !v)}
               aria-expanded={travailOpen}
             >
-              <span className="q-title"><span className="dot" />À travailler</span>
+              <span className="q-title"><span className="dot" />{s.fiche.blockATravailler}</span>
               <span className="q-count">{aTravailler.length}</span>
               <span className="q-chev" aria-hidden="true">
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -1211,6 +1210,7 @@ export function QualitativeSection({ listening }) {
 // ── NotesSection (bloc notes perso, 1 par fiche) ───────────
 
 function NotesSection({ versionId, initialNotes }) {
+  const { s } = useLang();
   const [notes, setNotes] = useState(initialNotes || '');
   const [open, setOpen] = useState(() => Boolean(initialNotes && initialNotes.trim()));
   const [status, setStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
@@ -1236,7 +1236,7 @@ function NotesSection({ versionId, initialNotes }) {
   }, []);
 
   const canEdit = Boolean(versionId) && versionId !== '__pending_v__' && versionId !== '__pending__';
-  const label = status === 'saving' ? 'Sauvegarde…' : status === 'saved' ? 'Sauvegardé' : null;
+  const label = status === 'saving' ? s.fiche.notesStatusSaving : status === 'saved' ? s.fiche.notesStatusSaved : null;
 
   const handleChange = (e) => {
     const next = e.target.value;
@@ -1270,7 +1270,7 @@ function NotesSection({ versionId, initialNotes }) {
               <path d="M5.5 8.5h5M5.5 10.5h3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
             </svg>
           </span>
-          <span className="notes-title">Mes notes</span>
+          <span className="notes-title">{s.fiche.notesTitle}</span>
           {notes && notes.trim() && !open && (
             <span className="notes-preview">{notes.trim().slice(0, 80)}{notes.trim().length > 80 ? '…' : ''}</span>
           )}
@@ -1288,8 +1288,8 @@ function NotesSection({ versionId, initialNotes }) {
             value={notes}
             onChange={handleChange}
             placeholder={canEdit
-              ? 'Tes observations, rappels, TODOs pour le prochain mix…'
-              : 'Notes disponibles une fois l\u2019analyse sauvegardée.'}
+              ? s.fiche.notesPlaceholder
+              : s.fiche.notesPlaceholderDisabled}
             disabled={!canEdit}
             rows={3}
           />
@@ -1302,6 +1302,7 @@ function NotesSection({ versionId, initialNotes }) {
 // ── FicheScreen (principal) ────────────────────────────────
 
 export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onGoHome, refreshKey }) {
+  const { s } = useLang();
   const [tracks, setTracks] = useState([]);
   const [openCat, setOpenCat] = useState(0); // un seul accordéon ouvert à la fois
   const [openPlanIdx, setOpenPlanIdx] = useState(null);
@@ -1495,7 +1496,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   // Priorité : verdict (phrase accrocheuse) pour le titre, summary pour le paragraphe.
                   // Si un seul des deux existe → on découpe en 1ʳᵉ phrase (titre) + reste (paragraphe).
                   const vText = rawFiche?.verdict || rawFiche?.summary || '';
-                  if (!vText) return <h1>Analyse en cours…</h1>;
+                  if (!vText) return <h1>{s.fiche.pendingVerdict}</h1>;
                   if (rawFiche?.verdict && rawFiche?.summary && rawFiche.verdict !== rawFiche.summary) {
                     return (
                       <>
@@ -1540,9 +1541,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 {elements.length > 0 && (
                   <>
                     <div className="section-head">
-                      <span className="t">Diagnostic par éléments</span>
+                      <span className="t">{s.fiche.diagTitle}</span>
                       <span className="line" />
-                      <span className="count">{elements.length} catégorie{elements.length > 1 ? 's' : ''}</span>
+                      <span className="count">{elements.length} {elements.length > 1 ? s.fiche.categoryPlural : s.fiche.categorySingular}</span>
                     </div>
                     {elements.map((el, idx) => {
                       const open = openCat === idx;
@@ -1562,8 +1563,8 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                             <span className="name">{catLabel}</span>
                             <span className="count">
                               {isVoice && voiceLabelOverride
-                                ? 'étape à franchir'
-                                : `${count} élément${count > 1 ? 's' : ''}${avg != null ? ` · moy. ${avg.toFixed(1).replace(/\.0$/, '')}` : ''}`}
+                                ? s.fiche.pendingVoiceStep
+                                : `${count} ${count > 1 ? s.fiche.elementPlural : s.fiche.elementSingular}${avg != null ? `${s.fiche.avgPrefix}${avg.toFixed(1).replace(/\.0$/, '')}` : ''}`}
                             </span>
                           </div>
                           <div className="diag-cat-body">
@@ -1596,21 +1597,21 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   return (
                   <>
                     <div className="section-head">
-                      <span className="t">Plan d'action</span>
+                      <span className="t">{s.fiche.planTitle}</span>
                       <span className="line" />
                       <span className="count">
                         {hasResolved
-                          ? `${resolvedCount}/${plan.length} résolu${resolvedCount > 1 ? 's' : ''}`
-                          : `${plan.length} ajustement${plan.length > 1 ? 's' : ''}`}
+                          ? `${resolvedCount}/${plan.length} ${resolvedCount > 1 ? s.fiche.planResolvedPlural : s.fiche.planResolvedSingular}`
+                          : `${plan.length} ${plan.length > 1 ? s.fiche.adjustmentPlural : s.fiche.adjustmentSingular}`}
                       </span>
                       {hasResolved && (
                         <button
                           type="button"
                           className={`plan-filter-toggle${hideResolved ? ' active' : ''}`}
                           onClick={() => setHideResolved((v) => !v)}
-                          title={hideResolved ? 'Afficher tous les ajustements' : 'Masquer les ajustements résolus'}
+                          title={hideResolved ? s.fiche.planShowAllTitle : s.fiche.planHideResolvedTitle}
                         >
-                          {hideResolved ? 'Tout afficher' : 'Masquer résolus'}
+                          {hideResolved ? s.fiche.planShowAll : s.fiche.planHideResolved}
                         </button>
                       )}
                     </div>
@@ -1658,7 +1659,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                             <div className="priority-body">
                               {p.daw && (
                                 <div className="daw-box">
-                                  <span className="daw-label">Action DAW</span>
+                                  <span className="daw-label">{s.fiche.focusDawLabel}</span>
                                   {p.daw}
                                 </div>
                               )}
@@ -1666,13 +1667,13 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                                 <div className="mt-grid">
                                   {p.metered && (
                                     <div className="mt-box m">
-                                      <div className="mt-label">Mesuré</div>
+                                      <div className="mt-label">{s.fiche.focusMeasured}</div>
                                       <div className="mt-val">{p.metered}</div>
                                     </div>
                                   )}
                                   {p.target && (
                                     <div className="mt-box t">
-                                      <div className="mt-label">Objectif</div>
+                                      <div className="mt-label">{s.fiche.focusTarget}</div>
                                       <div className="mt-val">{p.target}</div>
                                     </div>
                                   )}
@@ -1680,7 +1681,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                               )}
                               {linkedItems.length > 0 && (
                                 <div className="linked-elements">
-                                  <div className="label">Éléments liés</div>
+                                  <div className="label">{s.fiche.focusLinkedItems}</div>
                                   <div className="le-list">
                                     {linkedItems.map((it) => (
                                       <div className="le" key={it.id}>
@@ -1701,7 +1702,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                                     <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                   </svg>
                                 </span>
-                                {done ? 'Résolu' : 'Marquer comme résolu'}
+                                {done ? s.fiche.focusResolved : s.fiche.focusMarkResolved}
                               </button>
                             </div>
                           </div>
@@ -1799,7 +1800,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
       {/* Chat — bulle + panneau (mobile + desktop étroit <1200px) */}
       {chatAsDrawer && (
         <>
-          <button className="chat-fab" onClick={() => setChatOpen(true)} title="Discussion">
+          <button className="chat-fab" onClick={() => setChatOpen(true)} title={s.fiche.chatFabTitle}>
             <svg width="22" height="22" viewBox="0 0 16 16" fill="none">
               <path d="M2 3h12v8H7l-3 3v-3H2V3z" stroke="#000" strokeWidth="1.5" strokeLinejoin="round" />
             </svg>

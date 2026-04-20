@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { updateTrackVocalType } from '../lib/storage';
+import useLang from '../hooks/useLang';
 
 // Clé localStorage pour mémoriser le refus de la suggestion sur une version donnée.
 // Permet de ne pas réafficher le bandeau si l'utilisateur l'a décliné, sans pour
@@ -16,6 +17,7 @@ const DISMISS_KEY = (versionId) => `vocal-suggest-dismissed:${versionId}`;
  * Sur "Non merci" → mémorise le refus (localStorage) et cache le bandeau.
  */
 export default function VocalTypeSuggestionBanner({ track, versionId, listening, onRefresh }) {
+  const { s } = useLang();
   const [busy, setBusy] = useState(false);
   const [dismissed, setDismissed] = useState(() => {
     if (!versionId) return false;
@@ -51,7 +53,7 @@ export default function VocalTypeSuggestionBanner({ track, versionId, listening,
   };
 
   return (
-    <div className="vocal-suggest" role="region" aria-label="Suggestion de type vocal">
+    <div className="vocal-suggest" role="region" aria-label={s.modals.vocalSuggestAria}>
       <div className="vs-icon" aria-hidden="true">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
@@ -61,15 +63,15 @@ export default function VocalTypeSuggestionBanner({ track, versionId, listening,
         </svg>
       </div>
       <div className="vs-body">
-        <div className="vs-title">On a entendu de la voix sur cette version</div>
-        <div className="vs-text">Ce titre est encore marqué « Voix à venir ». Le passer en « Chanté » ?</div>
+        <div className="vs-title">{s.modals.vocalSuggestTitle}</div>
+        <div className="vs-text">{s.modals.vocalSuggestBody}</div>
       </div>
       <div className="vs-actions">
         <button type="button" className="vs-btn vs-btn-primary" onClick={handleAccept} disabled={busy}>
-          {busy ? '…' : 'Oui, passer en Chanté'}
+          {busy ? '…' : s.modals.vocalSuggestAccept}
         </button>
         <button type="button" className="vs-btn vs-btn-ghost" onClick={handleDismiss} disabled={busy}>
-          Non merci
+          {s.modals.vocalSuggestDismiss}
         </button>
       </div>
     </div>

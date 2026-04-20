@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import API from '../constants/api';
 import { loadTracks, deleteTrack, renameTrack } from '../lib/storage';
+import useLang from '../hooks/useLang';
 
 /**
  * FicheScreen — rendu fidèle à mockup-v3.html.
@@ -132,6 +133,7 @@ function parseListening(text) {
 }
 
 function ListeningSection({ listening }) {
+  const { s } = useLang();
   // Accepte string OU objet { text: "..." } OU { sections: [...] }
   let text = null;
   if (typeof listening === 'string') text = listening;
@@ -144,9 +146,9 @@ function ListeningSection({ listening }) {
   return (
     <section style={{ marginTop: 48, marginBottom: 8 }}>
       <div className="section-head">
-        <span className="t">Écoute qualitative</span>
+        <span className="t">{s.fiche.listeningTitle}</span>
         <span className="line" />
-        <span className="count">{sections.length} section{sections.length > 1 ? 's' : ''}</span>
+        <span className="count">{sections.length} {sections.length > 1 ? s.fiche.sectionPlural : s.fiche.sectionSingular}</span>
       </div>
 
       <div style={{
@@ -197,32 +199,22 @@ function ListeningSection({ listening }) {
 
 // ── AnalyzingState (page d'attente riche) ─────────────────
 
-const ANALYSIS_TIPS = [
-  "Une caisse claire qui manque d'air : essaie une reverb courte en send, pas en insert.",
-  "Mix qui manque de punch : compression parallèle sur la bus drums, ratio 4:1 avec beaucoup de blend.",
-  "Voix qui perce trop : un de-esser après le compresseur, pas avant.",
-  "Kick et basse qui se battent : sidechain léger sur la basse, attack rapide, release ~120ms.",
-  "Mix qui sonne plat : checke la phase entre overhead et close mics sur la batterie.",
-  "Graves brouillons : EQ soustractive entre 200 et 400 Hz sur les instruments du bas.",
-  "Manque de profondeur : varie les temps de reverb — courte devant, longue derrière.",
-  "Voix qui chante en avant : automation du volume note par note plutôt que compression forte.",
-  "Trop d'aigus agressifs : un shelf très doux à partir de 10 kHz, -1 à -2 dB suffit souvent.",
-  "Stéréo qui s'effondre en mono : checke le bus mix en mono dès le début, pas à la fin.",
-];
-
 function AnalyzingState({ stage }) {
-  const [tipIdx, setTipIdx] = useState(() => Math.floor(Math.random() * ANALYSIS_TIPS.length));
+  const { s } = useLang();
+  const tips = s.fiche.analysisTips || [];
+  const [tipIdx, setTipIdx] = useState(() => Math.floor(Math.random() * Math.max(1, tips.length)));
   useEffect(() => {
+    if (!tips.length) return;
     const id = setInterval(() => {
-      setTipIdx((i) => (i + 1) % ANALYSIS_TIPS.length);
+      setTipIdx((i) => (i + 1) % tips.length);
     }, 10000);
     return () => clearInterval(id);
-  }, []);
+  }, [tips.length]);
 
   const steps = [
-    { id: 'upload', label: 'Upload audio' },
-    { id: 'listening', label: 'Écoute qualitative' },
-    { id: 'fiche', label: 'Génération de la fiche' },
+    { id: 'upload', label: s.fiche.stepUpload },
+    { id: 'listening', label: s.fiche.stepListening },
+    { id: 'fiche', label: s.fiche.stepFiche },
   ];
   // Derive progress from stage
   const currentIdx =
@@ -249,13 +241,13 @@ function AnalyzingState({ stage }) {
         <h1 style={{
           fontFamily: "'DM Sans', sans-serif", fontSize: 32, fontWeight: 400,
           color: '#ededed', margin: 0, textAlign: 'center', lineHeight: 1.2,
-        }}>Analyse en cours</h1>
+        }}>{s.fiche.analyzingTitle}</h1>
         <p style={{
           fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#7c7c80',
           margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6,
         }}>
-          L'écoute qualitative et la fiche se génèrent en parallèle.<br/>
-          Compte 30 à 90 secondes selon la longueur du titre.
+          {s.fiche.analyzingSub1}<br/>
+          {s.fiche.analyzingSub2}
         </p>
       </div>
 
@@ -313,12 +305,12 @@ function AnalyzingState({ stage }) {
         <div style={{
           fontFamily: 'JetBrains Mono, monospace', fontSize: 9, letterSpacing: 2,
           color: '#f5b056', textTransform: 'uppercase',
-        }}>Le saviez-vous</div>
+        }}>{s.fiche.didYouKnow}</div>
         <div key={tipIdx} style={{
           fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#c5c5c7',
           lineHeight: 1.7, fontWeight: 300,
           animation: 'fadein .4s ease',
-        }}>{ANALYSIS_TIPS[tipIdx]}</div>
+        }}>{tips[tipIdx]}</div>
       </div>
     </div>
   );
@@ -327,6 +319,7 @@ function AnalyzingState({ stage }) {
 // ── Menu contextuel du titre (⋯) ───────────────────────────
 
 function TrackMenu({ track, onRename, onDelete, onExport }) {
+  const { s } = useLang();
   const [open, setOpen] = useState(false);
   const btnRef = useRef(null);
   const menuRef = useRef(null);
@@ -351,7 +344,7 @@ function TrackMenu({ track, onRename, onDelete, onExport }) {
       <button
         ref={btnRef}
         onClick={() => setOpen((o) => !o)}
-        title="Options du titre"
+        title={s.fiche.trackOptionsTitle}
         style={{
           width: 28, height: 28, borderRadius: 8,
           background: open ? 'rgba(245,176,86,.12)' : 'transparent',
@@ -371,10 +364,10 @@ function TrackMenu({ track, onRename, onDelete, onExport }) {
             animation: 'popin .12s ease',
           }}
         >
-          <MenuItem label="Renommer" onClick={() => { setOpen(false); onRename?.(track); }} />
-          <MenuItem label="Exporter la fiche" onClick={() => { setOpen(false); onExport?.(track); }} />
+          <MenuItem label={s.fiche.menuRenameTrack} onClick={() => { setOpen(false); onRename?.(track); }} />
+          <MenuItem label={s.fiche.menuExportTrack} onClick={() => { setOpen(false); onExport?.(track); }} />
           <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
-          <MenuItem label="Supprimer le titre" danger onClick={() => { setOpen(false); onDelete?.(track); }} />
+          <MenuItem label={s.fiche.menuDeleteTrack} danger onClick={() => { setOpen(false); onDelete?.(track); }} />
         </div>
       )}
     </div>
@@ -402,6 +395,7 @@ function MenuItem({ label, onClick, danger }) {
 // ── Timeline (sticky bar avec chips versions) ──────────────
 
 function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onRenameTrack, onDeleteTrack, onExportTrack }) {
+  const { s } = useLang();
   const scrollRef = useRef(null);
   const [showFadeRight, setShowFadeRight] = useState(false);
   const [showFadeLeft, setShowFadeLeft] = useState(false);
@@ -444,9 +438,9 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
   if (!track) return null;
 
   const stageLabel =
-    stage === 'all_done' ? 'Version actuelle' :
-    stage === 'fiche_done' ? 'Écoute en cours' :
-    'Analyse en cours';
+    stage === 'all_done' ? s.fiche.stageAllDone :
+    stage === 'fiche_done' ? s.fiche.stageFicheDone :
+    s.fiche.stageOther;
 
   return (
     <div className="timeline">
@@ -469,7 +463,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
       </div>
 
       <div className="versions-block" style={{ minWidth: 0, maxWidth: "55%" }}>
-        <span className="versions-label">Versions</span>
+        <span className="versions-label">{s.fiche.versionsLabel}</span>
         <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
           <div
             ref={scrollRef}
@@ -508,7 +502,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
             })}
             <button
               className="new-version-btn"
-              title="Nouvelle version"
+              title={s.fiche.newVersionTitle}
               onClick={() => onAddVersion && onAddVersion(track)}
               style={{ flexShrink: 0 }}
             >+</button>
@@ -537,6 +531,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
 // ── FocusModal (modale centrée, click-outside, flèches latérales) ───
 
 function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isResolved, onToggleResolved }) {
+  const { s } = useLang();
   useEffect(() => {
     if (!open) return;
     const h = (e) => {
@@ -606,14 +601,14 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
       <button
         style={arrowBtn(atFirst, 'left')}
         onClick={(e) => { e.stopPropagation(); if (!atFirst) onPrev(); }}
-        aria-label="Précédent"
+        aria-label={s.fiche.ariaPrev}
       >‹</button>
 
       {/* Flèche droite — fixed à droite du panneau */}
       <button
         style={arrowBtn(atLast, 'right')}
         onClick={(e) => { e.stopPropagation(); if (!atLast) onNext(); }}
-        aria-label="Suivant"
+        aria-label={s.fiche.ariaNext}
       >›</button>
 
       <div style={{ width: 640, maxWidth: 'calc(100vw - 160px)', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
@@ -633,7 +628,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
               border: '1px solid #2a2a2e', color: '#7c7c80', cursor: 'pointer',
               fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
-            aria-label="Fermer"
+            aria-label={s.fiche.ariaClose}
           >✕</button>
         </div>
 
@@ -648,7 +643,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
 
         {p.daw && (
           <div className="daw-box" style={{ marginBottom: 16 }}>
-            <span className="daw-label">Action DAW</span>
+            <span className="daw-label">{s.fiche.focusDawLabel}</span>
             {p.daw}
           </div>
         )}
@@ -657,13 +652,13 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
           <div className="mt-grid" style={{ marginBottom: 16 }}>
             {p.metered && (
               <div className="mt-box m">
-                <div className="mt-label">Mesuré</div>
+                <div className="mt-label">{s.fiche.focusMeasured}</div>
                 <div className="mt-val">{p.metered}</div>
               </div>
             )}
             {p.target && (
               <div className="mt-box t">
-                <div className="mt-label">Objectif</div>
+                <div className="mt-label">{s.fiche.focusTarget}</div>
                 <div className="mt-val">{p.target}</div>
               </div>
             )}
@@ -672,7 +667,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
 
         {linkedItems.length > 0 && (
           <div className="linked-elements" style={{ marginBottom: 20 }}>
-            <div className="label">Éléments liés</div>
+            <div className="label">{s.fiche.focusLinkedItems}</div>
             <div className="le-list">
               {linkedItems.map((it) => (
                 <div className="le" key={it.id}>
@@ -694,7 +689,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
               <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
-          {isResolved ? 'Résolu' : 'Marquer comme résolu'}
+          {isResolved ? s.fiche.focusResolved : s.fiche.focusMarkResolved}
         </button>
       </div>
       </div>
@@ -705,6 +700,7 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
 // ── VersionChat (panneau glissant) ─────────────────────────
 
 function VersionChat({ config, analysisResult, open, onClose }) {
+  const { s, lang } = useLang();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -718,12 +714,12 @@ function VersionChat({ config, analysisResult, open, onClose }) {
       const res = await fetch(`${API}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, userMsg], config, analysisResult }),
+        body: JSON.stringify({ locale: lang, messages: [...messages, userMsg], config, analysisResult }),
       });
       const json = await res.json();
       setMessages((m) => [...m, { role: 'ai', content: json.reply || '…' }]);
     } catch {
-      setMessages((m) => [...m, { role: 'ai', content: 'Erreur de connexion.' }]);
+      setMessages((m) => [...m, { role: 'ai', content: s.fiche.chatError }]);
     } finally { setLoading(false); }
   };
 
@@ -732,19 +728,19 @@ function VersionChat({ config, analysisResult, open, onClose }) {
       <div className="chat-backdrop" onClick={onClose} />
       <aside className="chat-panel">
         <div className="chat-head">
-          <span className="ctitle">Discussion</span>
+          <span className="ctitle">{s.fiche.chatTitle}</span>
           <button className="cclose" onClick={onClose}>✕</button>
         </div>
         <div className="chat-body">
           {messages.length === 0 && (
             <div className="msg ai">
-              <span className="ai-label">Versions</span>
-              Pose une question sur cette version — je regarde l'analyse et je te réponds.
+              <span className="ai-label">{s.fiche.chatAiName}</span>
+              {s.fiche.chatEmpty}
             </div>
           )}
           {messages.map((m, i) => (
             <div key={i} className={`msg ${m.role}`}>
-              {m.role === 'ai' && <span className="ai-label">Versions</span>}
+              {m.role === 'ai' && <span className="ai-label">{s.fiche.chatAiName}</span>}
               {m.content}
             </div>
           ))}
@@ -754,9 +750,9 @@ function VersionChat({ config, analysisResult, open, onClose }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') send(); }}
-            placeholder="Écris ta question…"
+            placeholder={s.fiche.chatPlaceholder}
           />
-          <button onClick={send}>Envoyer</button>
+          <button onClick={send}>{s.fiche.chatSend}</button>
         </div>
       </aside>
     </>
@@ -766,6 +762,7 @@ function VersionChat({ config, analysisResult, open, onClose }) {
 // ── FicheScreen (principal) ────────────────────────────────
 
 export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onTrackDeleted, onTrackRenamed }) {
+  const { s } = useLang();
   const [tracks, setTracks] = useState([]);
   const [openCat, setOpenCat] = useState(0); // un seul accordéon ouvert à la fois
   const [focusIdx, setFocusIdx] = useState(null);
@@ -825,7 +822,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
 
   // Handlers ⋯ track
   const handleRenameTrack = async (track) => {
-    const next = window.prompt('Nouveau nom du titre :', track.title);
+    const next = window.prompt(s.fiche.renameTrackPrompt, track.title);
     if (!next || next.trim() === '' || next.trim() === track.title) return;
     try {
       await renameTrack(track.id, next.trim());
@@ -836,7 +833,11 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   };
   const handleDeleteTrack = async (track) => {
     const n = (track.versions || []).length;
-    const msg = `Supprimer "${track.title}" et ses ${n} version${n > 1 ? 's' : ''} ? Cette action est définitive.`;
+    const versionWord = n > 1 ? s.fiche.versionPlural : s.fiche.versionSingular;
+    const msg = (s.fiche.deleteTrackConfirm || '')
+      .replace('{title}', track.title || '')
+      .replace('{n}', String(n))
+      .replace('{versionWord}', versionWord);
     if (!window.confirm(msg)) return;
     try {
       await deleteTrack(track.id);
@@ -885,7 +886,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 // Priorité : verdict (phrase accrocheuse) pour le titre, summary pour le paragraphe.
                 // Si un seul des deux existe → on découpe en 1ʳᵉ phrase (titre) + reste (paragraphe).
                 const vText = fiche?.verdict || fiche?.summary || '';
-                if (!vText) return <h1>Analyse en cours…</h1>;
+                if (!vText) return <h1>{s.fiche.analyzingTitleEllipsis}</h1>;
                 if (fiche?.verdict && fiche?.summary && fiche.verdict !== fiche.summary) {
                   return (
                     <>
@@ -912,9 +913,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           {plan.length > 0 && (
             <>
               <div className="section-head">
-                <span className="t">Plan d'action</span>
+                <span className="t">{s.fiche.planTitle}</span>
                 <span className="line" />
-                <span className="count">{plan.length} ajustement{plan.length > 1 ? 's' : ''}</span>
+                <span className="count">{plan.length} {plan.length > 1 ? s.fiche.adjustmentPlural : s.fiche.adjustmentSingular}</span>
               </div>
               <div className="priority-list">
                 {plan.map((p, i) => {
@@ -945,9 +946,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           {elements.length > 0 && (
             <>
               <div className="section-head">
-                <span className="t">Diagnostic par éléments</span>
+                <span className="t">{s.fiche.diagTitle}</span>
                 <span className="line" />
-                <span className="count">{elements.length} catégorie{elements.length > 1 ? 's' : ''}</span>
+                <span className="count">{elements.length} {elements.length > 1 ? s.fiche.categoryPlural : s.fiche.categorySingular}</span>
               </div>
               {elements.map((el, idx) => {
                 const open = openCat === idx;
@@ -964,7 +965,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                       </span>
                       <span className="name">{el.cat}</span>
                       <span className="count">
-                        {count} élément{count > 1 ? 's' : ''}{avg != null ? ` · moy. ${avg.toFixed(1).replace(/\.0$/, '')}` : ''}
+                        {count} {count > 1 ? s.fiche.elementPlural : s.fiche.elementSingular}{avg != null ? `${s.fiche.avgPrefix}${avg.toFixed(1).replace(/\.0$/, '')}` : ''}
                       </span>
                     </div>
                     <div className="diag-cat-body">
@@ -1010,7 +1011,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
       />
 
       {/* Chat — bulle + panneau */}
-      <button className="chat-fab" onClick={() => setChatOpen(true)} title="Discussion">
+      <button className="chat-fab" onClick={() => setChatOpen(true)} title={s.fiche.chatTitle}>
         <svg width="22" height="22" viewBox="0 0 16 16" fill="none">
           <path d="M2 3h12v8H7l-3 3v-3H2V3z" stroke="#000" strokeWidth="1.5" strokeLinejoin="round" />
         </svg>

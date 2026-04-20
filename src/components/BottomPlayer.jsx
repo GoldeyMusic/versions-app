@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import API from '../constants/api';
+import useLang from '../hooks/useLang';
 
 /**
  * BottomPlayer — WaveSurfer + HTMLMediaElement pool.
@@ -75,6 +76,7 @@ export default function BottomPlayer({
   playlist,
   currentIdx,
 }) {
+  const { s } = useLang();
   const containerRef = useRef(null);
   const wsRef = useRef(null);
   const activeAudioRef = useRef(null);
@@ -83,8 +85,8 @@ export default function BottomPlayer({
   const [duration, setDuration] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  const fmt = (s) => {
-    const sec = Math.floor(s);
+  const fmt = (secRaw) => {
+    const sec = Math.floor(secRaw);
     return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   };
 
@@ -204,7 +206,7 @@ export default function BottomPlayer({
         className="pl-ctrl"
         onClick={hasPrev && !idle ? onPrev : undefined}
         style={{ opacity: hasPrev && !idle ? 1 : 0.25, cursor: hasPrev && !idle ? 'pointer' : 'default' }}
-        aria-label="Précédent"
+        aria-label={s.player.prev}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M4 3v10M13 3l-7 5 7 5V3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
@@ -219,7 +221,7 @@ export default function BottomPlayer({
           background: idle ? 'rgba(245,176,86,.25)' : '#f5b056',
           cursor: idle ? 'default' : 'pointer',
         }}
-        aria-label={isPlaying ? 'Pause' : 'Lecture'}
+        aria-label={isPlaying ? s.player.pause : s.player.play}
       >
         {isPlaying ? (
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -238,7 +240,7 @@ export default function BottomPlayer({
         className="pl-ctrl"
         onClick={hasNext && !idle ? onNext : undefined}
         style={{ opacity: hasNext && !idle ? 1 : 0.25, cursor: hasNext && !idle ? 'pointer' : 'default' }}
-        aria-label="Suivant"
+        aria-label={s.player.next}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M12 3v10M3 3l7 5-7 5V3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
@@ -249,7 +251,7 @@ export default function BottomPlayer({
       <div className="pl-meta">
         {idle ? (
           <>
-            <div className="pl-title" style={{ color: '#7c7c80' }}>Aucune lecture</div>
+            <div className="pl-title" style={{ color: '#7c7c80' }}>{s.player.idleShort}</div>
             <div className="pl-sub">—</div>
           </>
         ) : (
@@ -258,7 +260,7 @@ export default function BottomPlayer({
               {trackTitle}
             </div>
             <div className="pl-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {versionName}{loading ? ' · chargement…' : ''}
+              {versionName}{loading ? ` · ${s.player.loadingInline}` : ''}
             </div>
           </>
         )}

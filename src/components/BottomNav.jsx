@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import T from '../constants/theme';
 import { IconHome, IconHistory, IconQuestion, IconSettings } from './Icons';
+import useLang from '../hooks/useLang';
 
 export default function BottomNav({ active, onChange, onAsk }) {
+  const { s } = useLang();
   const tabs = [
-    { id: 'input', label: 'Accueil', Icon: IconHome },
-    { id: 'historique', label: 'Versions', Icon: IconHistory },
-    { id: 'ask', label: 'Chat', Icon: IconQuestion },
-    { id: 'reglages', label: 'Réglages', Icon: IconSettings },
+    { id: 'input', label: s.nav.home, Icon: IconHome },
+    { id: 'historique', label: s.nav.versions, Icon: IconHistory },
+    { id: 'ask', label: s.nav.chat, Icon: IconQuestion },
+    { id: 'reglages', label: s.nav.reglages, Icon: IconSettings },
   ];
 
   return (

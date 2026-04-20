@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import useLang from '../hooks/useLang';
 
 /**
  * AddModal — modale unifiée d'ajout depuis la home.
@@ -24,6 +25,7 @@ export default function AddModal({
   projects = [],
   allTracks = [],
 }) {
+  const { s } = useLang();
   // step: 'root' | 'pick-project' | 'pick-track'
   const [step, setStep] = useState('root');
 
@@ -122,13 +124,13 @@ export default function AddModal({
       <div onClick={(e) => e.stopPropagation()} style={cardStyle}>
         <div style={headerStyle}>
           {step === 'root' ? (
-            <div style={titleStyle}>Ajouter</div>
+            <div style={titleStyle}>{s.addModal.title}</div>
           ) : (
             <button style={backBtnStyle} onClick={() => setStep('root')}>
-              ← Retour
+              {s.addModal.back}
             </button>
           )}
-          <button style={closeBtnStyle} onClick={onClose} aria-label="Fermer">×</button>
+          <button style={closeBtnStyle} onClick={onClose} aria-label={s.addModal.close}>×</button>
         </div>
 
         {step === 'root' && (
@@ -141,8 +143,8 @@ export default function AddModal({
             >
               <span style={iconStyle}>+</span>
               <span>
-                <div style={choiceLabel}>Nouveau projet</div>
-                <div style={choiceDesc}>Un dossier pour regrouper plusieurs titres (EP, album, single…).</div>
+                <div style={choiceLabel}>{s.addModal.choiceNewProjectLabel}</div>
+                <div style={choiceDesc}>{s.addModal.choiceNewProjectDesc}</div>
               </span>
             </button>
             <button
@@ -153,8 +155,8 @@ export default function AddModal({
             >
               <span style={iconStyle}>+</span>
               <span>
-                <div style={choiceLabel}>Nouveau titre</div>
-                <div style={choiceDesc}>Un morceau et sa première version. Tu pourras en ajouter d'autres ensuite.</div>
+                <div style={choiceLabel}>{s.addModal.choiceNewTrackLabel}</div>
+                <div style={choiceDesc}>{s.addModal.choiceNewTrackDesc}</div>
               </span>
             </button>
             <button
@@ -166,11 +168,11 @@ export default function AddModal({
             >
               <span style={iconStyle}>↻</span>
               <span>
-                <div style={choiceLabel}>Ajouter une version</div>
+                <div style={choiceLabel}>{s.addModal.choiceAddVersionLabel}</div>
                 <div style={choiceDesc}>
                   {hasTracks
-                    ? 'Une nouvelle itération d\'un titre existant, comparée à la précédente.'
-                    : 'Crée d\'abord un titre pour pouvoir ajouter des versions.'}
+                    ? s.addModal.choiceAddVersionDesc
+                    : s.addModal.choiceAddVersionDescDisabled}
                 </div>
               </span>
             </button>
@@ -180,7 +182,7 @@ export default function AddModal({
         {step === 'pick-project' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ fontSize: 11, color: '#9a9a9e', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
-              Dans quel projet ?
+              {s.addModal.pickProjectTitle}
             </div>
             {projects.map((p) => {
               const n = p.tracks?.length || 0;
@@ -193,7 +195,7 @@ export default function AddModal({
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2e'; e.currentTarget.style.color = '#e8e8ea'; }}
                 >
                   <span>{p.name}</span>
-                  <span style={pickCountStyle}>{n} titre{n > 1 ? 's' : ''}</span>
+                  <span style={pickCountStyle}>{n} {n > 1 ? s.addModal.trackPlural : s.addModal.trackSingular}</span>
                 </button>
               );
             })}
@@ -204,7 +206,7 @@ export default function AddModal({
               onMouseLeave={(e) => { e.currentTarget.style.color = '#e8e8ea'; }}
             >
               <span style={{ color: '#f5b056', fontSize: 14 }}>+</span>
-              <span>Créer un nouveau projet</span>
+              <span>{s.addModal.createNewProject}</span>
             </button>
           </div>
         )}
@@ -212,7 +214,7 @@ export default function AddModal({
         {step === 'pick-track' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ fontSize: 11, color: '#9a9a9e', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
-              À quel titre ?
+              {s.addModal.pickTrackTitle}
             </div>
             {allTracks.map((t) => {
               const n = t.versions?.length || 0;
@@ -225,7 +227,7 @@ export default function AddModal({
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2e'; e.currentTarget.style.color = '#e8e8ea'; }}
                 >
                   <span>{t.title}</span>
-                  <span style={pickCountStyle}>{n} version{n > 1 ? 's' : ''}</span>
+                  <span style={pickCountStyle}>{n} {n > 1 ? s.addModal.versionPlural : s.addModal.versionSingular}</span>
                 </button>
               );
             })}

@@ -4,11 +4,13 @@ import {
   disablePublicShare,
   getPublicShareToken,
 } from '../lib/storage';
+import useLang from '../hooks/useLang';
 
 // Modale de partage d'une fiche par lien public (lecture seule).
 // Elle porte l'état du token : on le charge au mount, et on laisse l'utilisateur
 // activer / désactiver et copier l'URL finale dans le presse-papiers.
 export default function ShareLinkModal({ versionId, trackTitle, versionName, onClose }) {
+  const { s } = useLang();
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -92,24 +94,22 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
         }}
       >
         <div style={{ fontSize: 14, color: '#e8e8ea', marginBottom: 4, fontWeight: 500 }}>
-          Partager un lien public
+          {s.modals.shareModalTitle}
         </div>
         <div style={{ fontSize: 12, color: '#8a8a8f', marginBottom: 16 }}>
-          {trackTitle}{versionName ? ` — Version ${versionName}` : ''}
+          {trackTitle}{versionName ? ` — ${s.modals.shareVersionPrefix} ${versionName}` : ''}
         </div>
 
         {loading ? (
           <div style={{ fontSize: 12, color: '#8a8a8f', padding: '18px 0' }}>
-            Chargement…
+            {s.modals.shareLoading}
           </div>
         ) : token ? (
           <>
             <div style={{
               fontSize: 12, color: '#c5c5c7', lineHeight: 1.6, marginBottom: 14,
             }}>
-              Lien actif. Toute personne avec cette URL pourra consulter la fiche
-              en lecture seule (aucune connexion requise). Vous pouvez le
-              désactiver à tout moment.
+              {s.modals.shareActiveBody}
             </div>
             <div style={{
               display: 'flex', gap: 8, alignItems: 'stretch', marginBottom: 16,
@@ -140,7 +140,7 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
                   fontFamily: 'inherit', whiteSpace: 'nowrap',
                 }}
               >
-                {copied ? 'Copié' : 'Copier'}
+                {copied ? s.modals.shareCopiedShort : s.modals.shareCopyShort}
               </button>
             </div>
 
@@ -157,7 +157,7 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
                   fontFamily: 'inherit',
                 }}
               >
-                {busy ? '…' : 'Désactiver le lien'}
+                {busy ? '…' : s.modals.shareDisable}
               </button>
               <button
                 onClick={onClose}
@@ -167,7 +167,7 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
                   color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
-                Fermer
+                {s.modals.shareClose}
               </button>
             </div>
           </>
@@ -176,10 +176,7 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
             <div style={{
               fontSize: 12, color: '#c5c5c7', lineHeight: 1.6, marginBottom: 16,
             }}>
-              Génère une URL unique pour cette version. Toute personne ayant le
-              lien pourra consulter la fiche en lecture seule (aucune connexion
-              requise). Aucune autre version, projet ou notes externes ne sont
-              exposés. Le lien peut être désactivé à tout moment.
+              {s.modals.shareInactiveBody}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <button
@@ -192,7 +189,7 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
                   fontFamily: 'inherit',
                 }}
               >
-                Annuler
+                {s.modals.shareCancel}
               </button>
               <button
                 onClick={handleEnable}
@@ -204,7 +201,7 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
                   fontWeight: 500, fontFamily: 'inherit',
                 }}
               >
-                {busy ? 'Activation…' : 'Activer le lien'}
+                {busy ? s.modals.shareEnabling : s.modals.shareEnable}
               </button>
             </div>
           </>

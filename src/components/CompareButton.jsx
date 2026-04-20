@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { getOrCreateComparison } from '../lib/storage';
+import useLang from '../hooks/useLang';
 
 export default function CompareButton({ track, currentVersion }) {
+  const { s } = useLang();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -73,9 +75,9 @@ export default function CompareButton({ track, currentVersion }) {
             alignItems: 'center',
             gap: 6,
           }}
-          title={hasOthers ? 'Comparer à une autre version' : 'Aucune autre version disponible'}
+          title={hasOthers ? s.compare.btnTitleEnabled : s.compare.btnTitleDisabled}
         >
-          Comparer <span style={{ fontSize: 8 }}>▾</span>
+          {s.compare.btn} <span style={{ fontSize: 8 }}>▾</span>
         </button>
         {open && hasOthers && (
           <div
@@ -87,7 +89,7 @@ export default function CompareButton({ track, currentVersion }) {
             }}
           >
             <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, color: '#7c7c80', letterSpacing: 1.5, padding: '6px 10px 8px' }}>
-              COMPARER À
+              {s.compare.dropdownKicker}
             </div>
             {others.map((v) => (
               <button
@@ -132,16 +134,16 @@ export default function CompareButton({ track, currentVersion }) {
             >×</button>
             {loading && (
               <div style={{ padding: '40px 0', textAlign: 'center', color: '#7c7c80', fontFamily: "'DM Sans', sans-serif", fontSize: 11, letterSpacing: 1.5 }}>
-                COMPARAISON EN COURS — {currentVersion?.name} VS {otherName}…
+                {s.compare.runningInline.replace('{a}', currentVersion?.name || '').replace('{b}', otherName || '')}
               </div>
             )}
             {error && (
-              <div style={{ padding: 24, color: '#ef6b6b' }}>Erreur : {error}</div>
+              <div style={{ padding: 24, color: '#ef6b6b' }}>{s.compare.errorPrefix} : {error}</div>
             )}
             {result && (
               <>
                 <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: '#7c7c80', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
-                  Comparaison — {result._A} → {result._B}
+                  {s.compare.headerKicker} — {result._A} → {result._B}
                 </div>
                 {result.resume && (
                   <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 24, color: '#e7e7e9', lineHeight: 1.3, margin: '0 0 24px' }}>
@@ -149,9 +151,9 @@ export default function CompareButton({ track, currentVersion }) {
                   </h2>
                 )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-                  <Column title="Progrès" items={result.progres} color="#7bd88f" />
-                  <Column title="Régressions" items={result.regressions} color="#ef6b6b" />
-                  <Column title="Inchangé" items={result.inchanges} color="#7c7c80" />
+                  <Column title={s.compare.colProgress} items={result.progres} color="#7bd88f" />
+                  <Column title={s.compare.colRegressions} items={result.regressions} color="#ef6b6b" />
+                  <Column title={s.compare.colUnchanged} items={result.inchanges} color="#7c7c80" />
                 </div>
               </>
             )}

@@ -1,16 +1,21 @@
 import { useEffect, useRef } from 'react';
+import useLang from '../hooks/useLang';
 
 export default function ConfirmModal({
-  title = 'Confirmer',
+  title,
   message = '',
-  confirmLabel = 'Confirmer',
-  cancelLabel = 'Annuler',
+  confirmLabel,
+  cancelLabel,
   tertiaryLabel = null,
   danger = false,
   onConfirm,
   onCancel,
   onTertiary,
 }) {
+  const { s } = useLang();
+  const effTitle = title ?? s.common.confirm;
+  const effConfirm = confirmLabel ?? s.common.confirm;
+  const effCancel = cancelLabel === undefined ? s.common.cancel : cancelLabel;
   const okRef = useRef(null);
 
   useEffect(() => {
@@ -42,13 +47,13 @@ export default function ConfirmModal({
         }}
       >
         <div style={{ fontSize: 14, color: '#e8e8ea', marginBottom: 10, fontWeight: 500 }}>
-          {title}
+          {effTitle}
         </div>
         <div style={{ fontSize: 13, color: '#c5c5c7', lineHeight: 1.6, marginBottom: 20 }}>
           {message}
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
-          {cancelLabel && (
+          {effCancel && (
             <button
               onClick={onCancel}
               style={{
@@ -57,7 +62,7 @@ export default function ConfirmModal({
                 color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
-              {cancelLabel}
+              {effCancel}
             </button>
           )}
           {tertiaryLabel && (
@@ -81,7 +86,7 @@ export default function ConfirmModal({
               color: '#141416', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit',
             }}
           >
-            {confirmLabel}
+            {effConfirm}
           </button>
         </div>
       </div>

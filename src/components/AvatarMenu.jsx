@@ -8,7 +8,7 @@ const AvatarMenu = ({ user, onLogout }) => {
 
   const items = [
     {
-      label: ls.menu_premium || "Passer en Premium",
+      label: ls.avatarMenu.premium,
       color: "#F9E04B",
       icon: (
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -22,7 +22,7 @@ const AvatarMenu = ({ user, onLogout }) => {
       ),
     },
     {
-      label: ls.menu_settings || "Réglages",
+      label: ls.avatarMenu.settings,
       color: T.text,
       icon: (
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -37,7 +37,7 @@ const AvatarMenu = ({ user, onLogout }) => {
       ),
     },
     {
-      label: ls.menu_help || "Aide & support",
+      label: ls.avatarMenu.help,
       color: T.text,
       icon: (
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -53,7 +53,7 @@ const AvatarMenu = ({ user, onLogout }) => {
       ),
     },
     {
-      label: ls.menu_logout || "Se déconnecter",
+      label: ls.avatarMenu.logout,
       color: T.red,
       action: onLogout,
       icon: (
@@ -126,10 +126,10 @@ const AvatarMenu = ({ user, onLogout }) => {
             {/* User info */}
             <div style={{ padding: "14px 16px 12px", borderBottom: `1px solid ${T.border}` }}>
               <div style={{ fontFamily: T.body, fontSize: 13, fontWeight: 600, color: T.text }}>
-                {user?.name || "User"}
+                {user?.name || ls.avatarMenu.fallbackUser}
               </div>
               <div style={{ fontFamily: T.mono, fontSize: 10, color: T.muted, marginTop: 2 }}>
-                {user?.email || "user@example.com"}
+                {user?.email || ls.avatarMenu.fallbackEmail}
               </div>
               <div
                 style={{
@@ -145,7 +145,7 @@ const AvatarMenu = ({ user, onLogout }) => {
               >
                 <div style={{ width: 5, height: 5, borderRadius: "50%", background: T.amber }} />
                 <span style={{ fontFamily: T.mono, fontSize: 9, color: T.amber, letterSpacing: 0.5 }}>
-                  FREE
+                  {ls.avatarMenu.planFree}
                 </span>
               </div>
             </div>

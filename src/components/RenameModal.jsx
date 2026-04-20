@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import useLang from '../hooks/useLang';
 
 /**
  * RenameModal — modale unifiée pour renommer / créer (projet, titre, version…).
@@ -17,8 +18,10 @@ export default function RenameModal({
   onChange,
   onCancel,
   onSubmit,
-  confirmLabel = 'Enregistrer',
+  confirmLabel,
 }) {
+  const { s } = useLang();
+  const effConfirm = confirmLabel ?? s.common.save;
   const trimmed = (value || '').trim();
   const disabled = !trimmed || trimmed === originalValue;
   return createPortal((
@@ -66,7 +69,7 @@ export default function RenameModal({
               background: 'transparent', border: '1px solid #2a2a2e',
               color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
             }}
-          >Annuler</button>
+          >{s.common.cancel}</button>
           <button
             onClick={onSubmit}
             disabled={disabled}
@@ -76,7 +79,7 @@ export default function RenameModal({
               color: '#141416', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit',
               opacity: disabled ? 0.5 : 1,
             }}
-          >{confirmLabel}</button>
+          >{effConfirm}</button>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import useLang from '../hooks/useLang';
 
 /**
  * OnboardingModal — modale bloquante affichée au premier login
@@ -10,7 +11,8 @@ import { createPortal } from 'react-dom';
  * - Pré-rempli avec une suggestion que l'utilisateur peut éditer
  */
 export default function OnboardingModal({ displayName, onCreate }) {
-  const [value, setValue] = useState('Mon premier projet');
+  const { s } = useLang();
+  const [value, setValue] = useState(s.onboardingFirst.projectDefault);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const inputRef = useRef(null);
@@ -33,12 +35,14 @@ export default function OnboardingModal({ displayName, onCreate }) {
     try {
       await onCreate(trimmed);
     } catch (err) {
-      setError(err?.message || 'Impossible de créer le projet.');
+      setError(err?.message || s.onboardingFirst.errorGeneric);
       setSubmitting(false);
     }
   };
 
-  const greeting = displayName ? `Bienvenue, ${displayName}.` : 'Bienvenue sur VERSIONS.';
+  const greeting = displayName
+    ? s.onboardingFirst.welcomeNamed.replace('{name}', displayName)
+    : s.onboardingFirst.welcome;
 
   return createPortal((
     <div
@@ -62,26 +66,24 @@ export default function OnboardingModal({ displayName, onCreate }) {
         }}
       >
         <div style={{ fontSize: 11, color: '#f5b056', letterSpacing: '0.12em', marginBottom: 10, textTransform: 'uppercase' }}>
-          Premier pas
+          {s.onboardingFirst.kicker}
         </div>
         <div style={{ fontSize: 22, color: '#e8e8ea', marginBottom: 10, fontWeight: 500 }}>
           {greeting}
         </div>
         <div style={{ fontSize: 13, color: '#a0a0a8', lineHeight: 1.5, marginBottom: 20 }}>
-          Pour commencer, crée ton premier projet. C'est un dossier
-          qui regroupera tes titres (un album, un EP, une session de travail…).
-          Tu pourras en créer d'autres plus tard.
+          {s.onboardingFirst.body}
         </div>
 
         <label style={{ display: 'block', fontSize: 10, color: '#8a8a95', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
-          Nom du projet
+          {s.onboardingFirst.projectNameLabel}
         </label>
         <input
           ref={inputRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !disabled) submit(); }}
-          placeholder="Mon premier projet"
+          placeholder={s.onboardingFirst.projectPlaceholder}
           style={{
             width: '100%', padding: '12px 14px', fontSize: 14,
             background: '#0e0e10', border: '1px solid #2a2a2e',
@@ -113,7 +115,7 @@ export default function OnboardingModal({ displayName, onCreate }) {
             transition: 'opacity .15s',
           }}
         >
-          {submitting ? 'Création…' : 'Créer mon projet'}
+          {submitting ? s.onboardingFirst.creating : s.onboardingFirst.cta}
         </button>
       </div>
     </div>

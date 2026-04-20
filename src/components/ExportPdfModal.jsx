@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import useLang from '../hooks/useLang';
 
 // Modale d'export PDF. L'utilisateur choisit quelles sections embarquer
 // dans le fichier téléchargé. Par défaut tout est coché, car sur une vraie
@@ -14,6 +15,7 @@ export default function ExportPdfModal({
   onExport,
   onCancel,
 }) {
+  const { s } = useLang();
   const [sections, setSections] = useState({
     qualitatif: true,
     diagnostic: true,
@@ -35,10 +37,10 @@ export default function ExportPdfModal({
   const toggle = (k) => setSections((s) => ({ ...s, [k]: !s[k] }));
 
   const options = [
-    { key: 'qualitatif', label: 'Écoute qualitative', hint: 'Impression, points forts, à travailler…', available: hasListening },
-    { key: 'diagnostic', label: 'Diagnostic par éléments', hint: 'Notes et détails par catégorie', available: hasDiagnostic },
-    { key: 'plan', label: 'Plan d\u2019action', hint: 'Ajustements priorisés', available: hasPlan },
-    { key: 'notes', label: 'Mes notes', hint: 'Vos remarques personnelles sur la fiche', available: hasNotes },
+    { key: 'qualitatif', label: s.modals.exportPdfOptListeningLabel, hint: s.modals.exportPdfOptListeningHint, available: hasListening },
+    { key: 'diagnostic', label: s.modals.exportPdfOptDiagnosticLabel, hint: s.modals.exportPdfOptDiagnosticHint, available: hasDiagnostic },
+    { key: 'plan', label: s.modals.exportPdfOptPlanLabel, hint: s.modals.exportPdfOptPlanHint, available: hasPlan },
+    { key: 'notes', label: s.modals.exportPdfOptNotesLabel, hint: s.modals.exportPdfOptNotesHint, available: hasNotes },
   ];
 
   const anyChecked = options.some((o) => o.available && sections[o.key]);
@@ -74,14 +76,14 @@ export default function ExportPdfModal({
         }}
       >
         <div style={{ fontSize: 14, color: '#e8e8ea', marginBottom: 4, fontWeight: 500 }}>
-          Exporter la fiche en PDF
+          {s.modals.exportPdfModalTitle}
         </div>
         <div style={{ fontSize: 12, color: '#8a8a8f', marginBottom: 16 }}>
-          {title}{versionName ? ` — Version ${versionName}` : ''}
+          {title}{versionName ? ` — ${s.modals.exportPdfVersionPrefix} ${versionName}` : ''}
         </div>
 
         <div style={{ fontSize: 11, color: '#8a8a8f', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 }}>
-          Sections à inclure
+          {s.modals.exportPdfSections}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
@@ -129,7 +131,7 @@ export default function ExportPdfModal({
                   <span style={{ display: 'block', fontSize: 13, color: '#e8e8ea', lineHeight: 1.3 }}>
                     {opt.label}
                     {disabled && (
-                      <span style={{ marginLeft: 6, fontSize: 11, color: '#6a6a6e' }}>— non renseigné</span>
+                      <span style={{ marginLeft: 6, fontSize: 11, color: '#6a6a6e' }}>{s.modals.exportPdfNotAvailable}</span>
                     )}
                   </span>
                   <span style={{ display: 'block', fontSize: 11, color: '#8a8a8f', marginTop: 2 }}>
@@ -152,7 +154,7 @@ export default function ExportPdfModal({
               fontFamily: 'inherit',
             }}
           >
-            Annuler
+            {s.modals.exportPdfCancel}
           </button>
           <button
             ref={okRef}
@@ -167,7 +169,7 @@ export default function ExportPdfModal({
               opacity: busy ? 0.7 : 1,
             }}
           >
-            {busy ? 'Génération…' : 'Exporter'}
+            {busy ? s.modals.exportPdfGeneratingShort : s.modals.exportPdfExport}
           </button>
         </div>
       </div>
