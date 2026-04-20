@@ -660,14 +660,14 @@ export default function MockupStyles() {
 
   .verdict-text { flex: 1; min-width: 0; }
   .verdict-text h1 {
-    /* Même typo que la tagline aléatoire de la Home (.wh-tagline-text) :
-       DM Sans italic 400, pour cohérence visuelle. On garde la couleur
+    /* Même typo ET même taille que la tagline aléatoire de la Home
+       (.wh-tagline-text) : DM Sans italic 400, 34px. On garde la couleur
        d'accent ambre pour les passages entre *astérisques*. */
     font-family: var(--serif);
     font-style: italic;
-    font-size: 42px;
+    font-size: 34px;
     font-weight: 400;
-    line-height: 1.15;
+    line-height: 1.25;
     letter-spacing: 0.3px;
     margin: 0 0 14px;
     max-width: 900px;
