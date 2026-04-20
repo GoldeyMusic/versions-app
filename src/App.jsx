@@ -434,7 +434,7 @@ function renderTagline(text) {
    BottomPlayer : play/pause/seek sont synchrones entre les deux vues,
    sans double décodage coûteux puisque WaveSurfer partage le media.
 */
-function HeroWaveform({ storagePath, isActive, resetKey = 0 }) {
+function HeroWaveform({ storagePath, isActive, resetKey = 0, onFinish }) {
   const containerRef = useRef(null);
   const wsRef = useRef(null);
   const audioRef = useRef(null);
@@ -444,6 +444,10 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0 }) {
   // (évite de devoir re-déclencher l'effet à chaque toggle play/pause)
   const isActiveRef = useRef(isActive);
   useEffect(() => { isActiveRef.current = isActive; }, [isActive]);
+  // Ref miroir pour onFinish : permet d'attacher un seul listener 'ended' par
+  // audio sans devoir re-binder quand la prop change.
+  const onFinishRef = useRef(onFinish);
+  useEffect(() => { onFinishRef.current = onFinish; }, [onFinish]);
 
   // Charge audio + WaveSurfer. Sur changement de storagePath OU resetKey
   // (relance du même titre), on remet currentTime=0 et on lance si actif.
@@ -452,6 +456,7 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0 }) {
     if (!storagePath || !containerRef.current) return;
 
     let cancelled = false;
+    let endedCleanup = null;
     (async () => {
       try {
         const audio = await resolveAudio(storagePath);
@@ -490,6 +495,18 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0 }) {
         audioRef.current = audio;
         lastPathRef.current = storagePath;
 
+        // Écoute la fin du titre pour enchaîner la playlist sur la home
+        // (le BottomPlayer est masqué ici, donc son propre handler 'finish'
+        // ne tire pas — on pilote l'auto-advance depuis le hero).
+        const handleEnded = () => {
+          const cb = onFinishRef.current;
+          if (typeof cb === 'function') cb();
+        };
+        audio.addEventListener('ended', handleEnded);
+        endedCleanup = () => {
+          try { audio.removeEventListener('ended', handleEnded); } catch { /* noop */ }
+        };
+
         // Si on doit être en lecture (heroIsPlaying), on lance maintenant
         if (isActiveRef.current) {
           try { await audio.play(); } catch { /* autoplay bloqué, user-gesture requis */ }
@@ -501,6 +518,7 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0 }) {
 
     return () => {
       cancelled = true;
+      if (endedCleanup) endedCleanup();
     };
   }, [storagePath, resetKey]);
 
@@ -571,7 +589,7 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0 }) {
   );
 }
 
-function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onOpenFiche, onPlay, onToggle, playerState, projects = [], projectsLoaded = false, onMutate, addModalOpen, setAddModalOpen }) {
+function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onOpenFiche, onPlay, onToggle, onNext, playerState, projects = [], projectsLoaded = false, onMutate, addModalOpen, setAddModalOpen }) {
   const { lang, s } = useLang();
   const pool = (fr, en) => (lang === 'en' ? en : fr);
   // Rotation des conseils : un tip distinct à chaque ouverture, sans répétition consécutive
@@ -1243,6 +1261,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
               storagePath={heroWaveStoragePath}
               isActive={heroIsPlaying}
               resetKey={playerState?.resetKey || 0}
+              onFinish={onNext}
             />
             <VolumeControl idle={!heroWaveStoragePath} />
           </div>
@@ -2260,6 +2279,7 @@ function VersionsAppAuthed() {
             onOpenFiche={handleOpenFiche}
             onPlay={play}
             onToggle={togglePlay}
+            onNext={playNext}
             playerState={playerState}
             projects={projects}
             projectsLoaded={projectsLoaded}
