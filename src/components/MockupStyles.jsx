@@ -684,7 +684,7 @@ export default function MockupStyles() {
   /* ── ROW 1 : Verdict + Évolution (2 colonnes) ── */
   .row-verdict {
     display: grid;
-    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+    grid-template-columns: 1fr 340px;
     gap: 32px;
     align-items: stretch;
     padding: 20px 0 40px;
