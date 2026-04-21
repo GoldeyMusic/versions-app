@@ -780,6 +780,7 @@ export async function loadProjects() {
       tracks(
         id,
         title,
+        cover_image_url,
         created_at,
         position_in_project,
         versions(id, name, date, bpm, key, lufs, is_main, analysis_result, storage_path, created_at)
@@ -808,6 +809,7 @@ export async function loadProjects() {
         id: t.id,
         title: t.title,
         projectId: p.id,
+        coverImageUrl: t.cover_image_url || null,
         createdAt: t.created_at,
         positionInProject: t.position_in_project,
         versions: (t.versions || [])
@@ -935,6 +937,65 @@ export async function clearProjectCoverImage(projectId) {
     .eq('id', projectId);
   if (error) {
     console.warn('[storage] clearProjectCoverImage update error:', error.message);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Upload / replace a track cover image.
+ * Bucket `track-covers` (public). Path = `{user_id}/{track_id}.{ext}`.
+ * Renvoie l'URL publique, ou null en cas d'échec.
+ */
+export async function setTrackCoverImage(trackId, file) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !file) return null;
+
+  const ext = (file.name || '').split('.').pop()?.toLowerCase() || 'jpg';
+  const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) ? ext : 'jpg';
+  const path = `${user.id}/${trackId}.${safeExt}`;
+
+  const { error: uploadErr } = await supabase.storage
+    .from('track-covers')
+    .upload(path, file, { upsert: true, contentType: file.type || `image/${safeExt}` });
+  if (uploadErr) {
+    console.warn('[storage] setTrackCoverImage upload error:', uploadErr.message);
+    return null;
+  }
+
+  const { data: urlData } = supabase.storage.from('track-covers').getPublicUrl(path);
+  // Cache-buster pour forcer le reload après remplacement.
+  const publicUrl = urlData?.publicUrl ? `${urlData.publicUrl}?v=${Date.now()}` : null;
+  if (!publicUrl) return null;
+
+  const { error: updateErr } = await supabase
+    .from('tracks')
+    .update({ cover_image_url: publicUrl })
+    .eq('id', trackId);
+  if (updateErr) {
+    console.warn('[storage] setTrackCoverImage update error:', updateErr.message);
+    return null;
+  }
+  return publicUrl;
+}
+
+/**
+ * Clear a track's cover image — supprime le fichier du bucket et met
+ * cover_image_url à null en base.
+ */
+export async function clearTrackCoverImage(trackId) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const paths = ['jpg', 'jpeg', 'png', 'webp', 'gif'].map(ext => `${user.id}/${trackId}.${ext}`);
+  await supabase.storage.from('track-covers').remove(paths).catch(() => {});
+
+  const { error } = await supabase
+    .from('tracks')
+    .update({ cover_image_url: null })
+    .eq('id', trackId);
+  if (error) {
+    console.warn('[storage] clearTrackCoverImage update error:', error.message);
     return false;
   }
   return true;

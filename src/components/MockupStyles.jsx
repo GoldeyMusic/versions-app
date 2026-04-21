@@ -3866,18 +3866,53 @@ export default function MockupStyles() {
   .wh-track-row:hover {
     border-color: rgba(245,176,86,0.3); background: rgba(245,176,86,0.04);
   }
+  /* Bouton play + cover illustration fusionnés (carré 40x40).
+     Sans image : fond transparent + icône ♪ (note de musique).
+     Avec image : image en fond, triangle play en overlay au hover/playing. */
   .wh-track-play {
-    width: 34px; height: 34px; border-radius: 50%;
+    position: relative;
+    width: 40px; height: 40px; border-radius: 8px;
     background: transparent; border: 1px solid var(--border);
     color: var(--muted); cursor: pointer; flex-shrink: 0; padding: 0;
     display: flex; align-items: center; justify-content: center;
     transition: all .15s;
+    overflow: hidden;
+    background-color: rgba(255,255,255,0.02);
   }
   .wh-track-play:hover { color: var(--amber); border-color: var(--amber); }
   .wh-track-play.playing {
     color: var(--amber); border-color: var(--amber);
-    background: rgba(245,176,86,0.12);
+    background-color: rgba(245,176,86,0.12);
   }
+  /* Icône ♪ de fallback (affichée quand pas d'image) */
+  .wh-track-play .wh-track-note {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 100%;
+  }
+  /* Overlay play/pause par-dessus l'image : invisible par défaut, visible au hover
+     OU en continu quand le titre joue. Scrim sombre pour lisibilité sur image claire. */
+  .wh-track-play .wh-track-play-overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text);
+    background: rgba(0,0,0,0.45);
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .wh-track-play:not(.has-image) .wh-track-play-overlay {
+    background: transparent;
+    color: var(--amber);
+  }
+  .wh-track-play:hover .wh-track-play-overlay,
+  .wh-track-play.playing .wh-track-play-overlay {
+    opacity: 1;
+  }
+  /* Quand il y a une image, on masque la note ♪ (redondante) — image gère seule
+     et l'overlay prend le relais au hover. Également pas de tint amber au hover
+     sur une image (l'overlay fait déjà le boulot). */
+  .wh-track-play.has-image { background-color: transparent; border-color: transparent; }
+  .wh-track-play.has-image:hover { border-color: rgba(245,176,86,0.6); }
+  .wh-track-play.has-image.playing { border-color: var(--amber); }
   .wh-track-info { flex: 1; min-width: 0; }
   .wh-track-title {
     font-family: var(--body); font-size: 14px; font-weight: 400;

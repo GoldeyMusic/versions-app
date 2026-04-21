@@ -18,7 +18,7 @@ import LoadingScreen from "./screens/LoadingScreen";
 import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
 
-import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage } from "./lib/storage";
+import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage, setTrackCoverImage, clearTrackCoverImage } from "./lib/storage";
 import { assignProjectColors, PROJECT_COLOR_COUNT } from "./lib/projectColors";
 import { resizeImageFile } from "./lib/image";
 import { supabase } from "./lib/supabase";
@@ -808,6 +808,35 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     } catch (err) { console.warn('clearProjectCoverImage failed', err); }
   };
 
+  // ─── Image d'illustration par titre (track) ────────────────────────
+  // Même pattern que le projet : un file input caché + target courante.
+  // Propagé vers WhTrackRow via onChangeCover / onClearCover.
+  const trackCoverFileInputRef = useRef(null);
+  const [trackCoverUploadTarget, setTrackCoverUploadTarget] = useState(null);
+  const handleChangeTrackCoverStart = (track) => {
+    setTrackCoverUploadTarget(track);
+    if (trackCoverFileInputRef.current) trackCoverFileInputRef.current.value = '';
+    trackCoverFileInputRef.current?.click();
+  };
+  const handleTrackCoverFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    const target = trackCoverUploadTarget;
+    e.target.value = '';
+    if (!file || !target) { setTrackCoverUploadTarget(null); return; }
+    try {
+      const resized = await resizeImageFile(file).catch(() => file);
+      await setTrackCoverImage(target.id, resized || file);
+      if (onMutate) onMutate();
+    } catch (err) { console.warn('setTrackCoverImage failed', err); }
+    setTrackCoverUploadTarget(null);
+  };
+  const handleClearTrackCover = async (track) => {
+    try {
+      await clearTrackCoverImage(track.id);
+      if (onMutate) onMutate();
+    } catch (err) { console.warn('clearTrackCoverImage failed', err); }
+  };
+
   // Nouveau projet
   const handleNewProject = () => {
     setNewProjectValue('');
@@ -1147,6 +1176,8 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                         onViewFiche={() => handleViewFiche(track)}
                         onRename={() => handleRenameTrackStart(track)}
                         onDelete={() => handleDeleteTrack(track)}
+                        onChangeCover={() => handleChangeTrackCoverStart(track)}
+                        onClearCover={() => handleClearTrackCover(track)}
                         drag={drag}
                         setDrag={setDrag}
                         onDropTrackOnTrack={handleDropTrackOnTrack}
@@ -1179,13 +1210,21 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   const modalsSlot = (
     <>
-      {/* File input caché — déclenché via le menu "Changer l'image" */}
+      {/* File input caché — déclenché via le menu "Changer l'image" (projet) */}
       <input
         ref={coverFileInputRef}
         type="file"
         accept="image/png,image/jpeg,image/webp,image/gif"
         style={{ display: 'none' }}
         onChange={handleCoverFileChange}
+      />
+      {/* File input caché — déclenché via le menu "Changer l'image" (titre) */}
+      <input
+        ref={trackCoverFileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        style={{ display: 'none' }}
+        onChange={handleTrackCoverFileChange}
       />
       {renameTrackTarget && (
         <RenameModal
@@ -1551,7 +1590,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 }
 
 /* ─── Ligne titre dans Home (accordéon ouvert) ─────────────────────── */
-function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename, onDelete, drag, setDrag, onDropTrackOnTrack, prevTrackId = null, nextTrackId = null }) {
+function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename, onDelete, onChangeCover, onClearCover, drag, setDrag, onDropTrackOnTrack, prevTrackId = null, nextTrackId = null }) {
   const { s } = useLang();
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -1647,17 +1686,33 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
         </svg>
       </span>
 
-      {/* Play */}
+      {/* Play + cover fusionnés : image en fond si définie, sinon icône note ♪ */}
       <button
-        className={`wh-track-play${isThisPlaying ? ' playing' : ''}`}
+        className={`wh-track-play${isThisPlaying ? ' playing' : ''}${track.coverImageUrl ? ' has-image' : ''}`}
         onClick={(e) => { e.stopPropagation(); onPlay?.(e); }}
         title={isThisPlaying ? s.home.playing : s.home.play}
+        style={track.coverImageUrl ? {
+          backgroundImage: `url("${track.coverImageUrl}")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        } : undefined}
       >
-        {isThisPlaying ? (
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
-        ) : (
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9-5.5z"/></svg>
+        {/* Icône note de musique (fallback quand pas d'image) */}
+        {!track.coverImageUrl && (
+          <span className="wh-track-note" aria-hidden>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+              <path d="M11 1.5v7.2a2.3 2.3 0 1 1-1.2-2V3.8L5.2 5v5.7a2.3 2.3 0 1 1-1.2-2V3.8z"/>
+            </svg>
+          </span>
         )}
+        {/* Overlay : triangle play (ou carrés pause) par-dessus l'image au survol */}
+        <span className="wh-track-play-overlay">
+          {isThisPlaying ? (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9-5.5z"/></svg>
+          )}
+        </span>
       </button>
 
       {/* Info */}
@@ -1706,6 +1761,18 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
           }}
         >
           <WhMenuItem label={s.home.rename} onClick={() => { setMenuOpen(false); onRename(); }} />
+          {onChangeCover && (
+            <WhMenuItem
+              label={track.coverImageUrl ? s.home.trackReplaceImage : s.home.trackChangeImage}
+              onClick={() => { setMenuOpen(false); onChangeCover(); }}
+            />
+          )}
+          {onClearCover && track.coverImageUrl && (
+            <WhMenuItem
+              label={s.home.trackRemoveImage}
+              onClick={() => { setMenuOpen(false); onClearCover(); }}
+            />
+          )}
           <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
           <WhMenuItem label={s.home.delete} danger onClick={() => { setMenuOpen(false); onDelete(); }} />
         </div>
