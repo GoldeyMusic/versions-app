@@ -13,7 +13,6 @@ import WaveSurfer from 'wavesurfer.js';
 import BottomPlayer, { resolveAudio, VolumeControl } from "./components/BottomPlayer";
 import AskModal from "./components/AskModal";
 import Sidebar from "./components/Sidebar";
-import InputScreen from "./screens/InputScreen";
 import LoadingScreen from "./screens/LoadingScreen";
 import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
@@ -589,7 +588,7 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0, onFinish }) {
   );
 }
 
-function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onOpenFiche, onPlay, onToggle, onNext, playerState, projects = [], projectsLoaded = false, onMutate, addModalOpen, setAddModalOpen }) {
+function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onAnalyze, onSelectVersion, onOpenFiche, onPlay, onToggle, onNext, playerState, projects = [], projectsLoaded = false, onMutate, addModalOpen, setAddModalOpen, addModalCtx = null, setAddModalCtx }) {
   const { lang, s } = useLang();
   const pool = (fr, en) => (lang === 'en' ? en : fr);
   // Rotation des conseils : un tip distinct à chaque ouverture, sans répétition consécutive
@@ -632,7 +631,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   }, [openProjectMenuId]);
 
   // Liste à plat de tous les titres (pour le picker "À quel titre ?")
-  const allTracks = projects.flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectName: p.name })));
+  const allTracks = projects.flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectName: p.name, projectId: p.id })));
 
   // Map projectId → index de couleur. Garantit l'unicité tant que
   // le nombre de projets ≤ PROJECT_COLOR_COUNT. Recalculée à chaque render,
@@ -959,6 +958,21 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     .slice(-8)
     .map((e) => e.score);
 
+  // Dernier titre analysé : track dont la dernière version a une fiche,
+  // avec la date la plus récente (priorité à v.date puis v.createdAt).
+  // Sert la carte "Dernier titre analysé" du bloc utilisateur (colonne droite).
+  const lastAnalyzedInfo = (() => {
+    let best = null;
+    for (const t of allTracks) {
+      const last = t.versions?.[t.versions.length - 1];
+      const fiche = last?.analysisResult?.fiche;
+      if (!fiche) continue;
+      const ts = new Date(last?.date || last?.createdAt || 0).getTime();
+      if (!best || ts > best.ts) best = { track: t, version: last, fiche, ts };
+    }
+    return best;
+  })();
+
   // Date de la dernière activité (version la plus récente toutes confondues)
   const lastActivityMs = Math.max(0, ...allTracks.map(trackLastDateMs));
   const formatRelative = (ms) => {
@@ -1267,20 +1281,29 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       )}
       {addModalOpen && (
         <AddModal
-          onClose={() => setAddModalOpen(false)}
+          onClose={() => { setAddModalOpen(false); if (setAddModalCtx) setAddModalCtx(null); }}
           projects={projects}
           allTracks={allTracks}
-          onNewProject={handleNewProject}
-          onNewTrackInProject={(projectId) => {
-            if (onSetCurrentProject) onSetCurrentProject(projectId);
-            if (onNewTrack) onNewTrack();
+          initialContext={addModalCtx}
+          defaultDaw={userProfile?.default_daw || ''}
+          onCreateProject={async (name) => {
+            // Création inline depuis l'étape 'new-project-name'.
+            // On retourne le projet créé pour que la modale puisse enchaîner sur l'upload si besoin.
+            try {
+              const created = await createProject(name);
+              if (onMutate) onMutate();
+              if (created?.id && onSetCurrentProject) onSetCurrentProject(created.id);
+              return created;
+            } catch (err) {
+              console.warn('createProject from AddModal failed', err);
+              throw err;
+            }
           }}
-          onNewProjectThenTrack={() => {
-            pendingNewTrackRef.current = true;
-            handleNewProject();
-          }}
-          onAddVersionToTrack={(track) => {
-            if (onAddVersion) onAddVersion(track);
+          onAnalyze={(cfg) => {
+            // Appelé depuis l'étape 'upload' quand l'utilisateur clique sur Lancer l'analyse.
+            // La modale se ferme elle-même, on route vers l'écran de chargement ici.
+            if (cfg.projectId && onSetCurrentProject) onSetCurrentProject(cfg.projectId);
+            onAnalyze?.(cfg);
           }}
         />
       )}
@@ -1417,57 +1440,94 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     </div>
   );
 
-  /* ─── Cartes conseils (colonne droite) : saviez-vous / progression / prochain pas ──── */
-  const tipsBlock = (
-    <>
-      <div className="wh-card amber">
-        <div className="wh-card-kicker">{s.home.tipLabel}</div>
-        <div className="wh-card-body">{tip}</div>
+  /* ─── Colonne droite : 2 blocs distincts ────────────────────────────
+     Bloc 1 « Toi »            : cartes centrées utilisateur (progression,
+                                  prochain pas, dernier titre analysé).
+     Bloc 2 « Le saviez-vous » : cartes pédagogiques (tip rotatif,
+                                  à quoi ça sert, pourquoi VERSIONS, conseil).
+  */
+  const userBlock = (
+    <section className="wh-rcol-section">
+      <div className="wh-rcol-title">
+        <span className="wh-rcol-dot" />
+        {s.home.rightSectionYou}
       </div>
-      <div className="wh-card cerulean">
-        <div className="wh-card-kicker">{s.home.cardYourProgress}</div>
-        <div className="wh-card-title">
-          {avgScore != null ? s.home.cardAvgScore.replace('{n}', String(avgScore)) : s.home.cardLaunchFirst}
+      <div className="wh-rcol-cards">
+        <div className="wh-card cerulean">
+          <div className="wh-card-kicker">{s.home.cardYourProgress}</div>
+          <div className="wh-card-title">
+            {avgScore != null ? s.home.cardAvgScore.replace('{n}', String(avgScore)) : s.home.cardLaunchFirst}
+          </div>
+          <div className="wh-card-body">
+            {avgScore != null ? progressionWithScoreTip : progressionNoScoreTip}
+          </div>
         </div>
-        <div className="wh-card-body">
-          {avgScore != null ? progressionWithScoreTip : progressionNoScoreTip}
+        <div className="wh-card mint">
+          <div className="wh-card-kicker">{s.home.cardNextStep}</div>
+          <div className="wh-card-title">{prochainPasTip?.title}</div>
+          <div className="wh-card-body">{prochainPasTip?.body}</div>
+        </div>
+        <div className="wh-card amber">
+          <div className="wh-card-kicker">{s.home.cardLastAnalyzed}</div>
+          {lastAnalyzedInfo ? (
+            <>
+              <button
+                type="button"
+                className="wh-card-title wh-card-title-link"
+                onClick={() => handleViewFiche(lastAnalyzedInfo.track)}
+                title={s.home.trackAnalysis}
+              >
+                {lastAnalyzedInfo.track.title}
+              </button>
+              <div className="wh-card-body">
+                {typeof lastAnalyzedInfo.fiche.globalScore === 'number'
+                  ? `${lastAnalyzedInfo.fiche.globalScore}/100 · ${formatRelative(lastAnalyzedInfo.ts)}`
+                  : formatRelative(lastAnalyzedInfo.ts)}
+              </div>
+            </>
+          ) : (
+            <div className="wh-card-body">{s.home.cardLastAnalyzedEmpty}</div>
+          )}
         </div>
       </div>
-      <div className="wh-card mint">
-        <div className="wh-card-kicker">{s.home.cardNextStep}</div>
-        <div className="wh-card-title">{prochainPasTip?.title}</div>
-        <div className="wh-card-body">{prochainPasTip?.body}</div>
-      </div>
-    </>
-  );
-  const editorialSidebar = (
-    <div className="wh-col-right">
-      {tipsBlock}
-    </div>
+    </section>
   );
 
-  /* ─── Bloc pédagogique (À quoi ça sert / Pourquoi / Conseil) ────
-     Visible sur la home compte neuf ET sur la home avec contenu
-     (David veut garder ces repères en permanence, avec rotation).
-  */
-  const pedagoBlock = (
-    <>
-      <div className="wh-card violet">
-        <div className="wh-card-kicker">{s.home.cardWhyUseful}</div>
-        <div className="wh-card-title">{aQuoiTip?.title}</div>
-        <div className="wh-card-body">{aQuoiTip?.body}</div>
+  const knowBlock = (
+    <section className="wh-rcol-section">
+      <div className="wh-rcol-title">
+        <span className="wh-rcol-dot wh-rcol-dot-violet" />
+        {s.home.rightSectionKnow}
       </div>
-      <div className="wh-card amber">
-        <div className="wh-card-kicker">{s.home.cardWhyVersions}</div>
-        <div className="wh-card-title">{pourquoiTip?.title}</div>
-        <div className="wh-card-body">{pourquoiTip?.body}</div>
+      <div className="wh-rcol-cards">
+        <div className="wh-card violet">
+          <div className="wh-card-kicker">{s.home.cardWhyUseful}</div>
+          <div className="wh-card-title">{aQuoiTip?.title}</div>
+          <div className="wh-card-body">{aQuoiTip?.body}</div>
+        </div>
+        <div className="wh-card amber">
+          <div className="wh-card-kicker">{s.home.cardWhyVersions}</div>
+          <div className="wh-card-title">{pourquoiTip?.title}</div>
+          <div className="wh-card-body">{pourquoiTip?.body}</div>
+        </div>
+        <div className="wh-card mint">
+          <div className="wh-card-kicker">{s.home.cardAdvice}</div>
+          <div className="wh-card-title">{conseilTip?.title}</div>
+          <div className="wh-card-body">{conseilTip?.body}</div>
+        </div>
       </div>
-      <div className="wh-card mint">
-        <div className="wh-card-kicker">{s.home.cardAdvice}</div>
-        <div className="wh-card-title">{conseilTip?.title}</div>
-        <div className="wh-card-body">{conseilTip?.body}</div>
-      </div>
-    </>
+    </section>
+  );
+
+  // Compat : les noms `tipsBlock` / `pedagoBlock` restent utilisés ailleurs
+  // (écran onboarding, mobile). On les réexporte vers les nouveaux blocs.
+  const tipsBlock = userBlock;
+  const pedagoBlock = knowBlock;
+  const editorialSidebar = (
+    <div className="wh-col-right">
+      {userBlock}
+      {knowBlock}
+    </div>
   );
 
   /* ─── Desktop-only : hero d'onboarding (compte neuf) ──── */
@@ -1569,8 +1629,8 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           <div className="wh-cols">
             <div className="wh-col-left">{projectsAccordion}</div>
             <div className="wh-col-right">
-              {tipsBlock}
-              {pedagoBlock}
+              {userBlock}
+              {knowBlock}
             </div>
           </div>
         </>
@@ -1624,7 +1684,7 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
 
   return (
     <div
-      className="wh-track-row"
+      className={`wh-track-row${menuOpen ? ' menu-open' : ''}`}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onDragOver={(e) => {
@@ -1695,6 +1755,7 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
           backgroundImage: `url("${track.coverImageUrl}")`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
         } : undefined}
       >
         {/* Icône note de musique (fallback quand pas d'image) */}
@@ -1884,7 +1945,6 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd }) {
    et Vercel n'a pas besoin de règle de rewrite côté serveur. */
 const SCREEN_HASH = {
   welcome: '#/',
-  input: '#/nouveau',
   loading: '#/analyse',
   fiche: '#/fiche',
   versions: '#/versions',
@@ -1892,7 +1952,6 @@ const SCREEN_HASH = {
 const HASH_SCREEN = {
   '': 'welcome',
   '#/': 'welcome',
-  '#/nouveau': 'input',
   '#/analyse': 'loading',
   '#/fiche': 'fiche',
   '#/versions': 'versions',
@@ -1937,6 +1996,17 @@ function VersionsAppAuthed() {
   // On desktop, default = "welcome" (neutral empty state); on mobile, old default = "input"
   const [screen, setScreen] = useState("welcome");
   const [homeAddOpen, setHomeAddOpen] = useState(false);
+  // Contexte transmis à AddModal pour ouvrir directement dans un flow
+  // précis (ex. "Nouveau titre" depuis la hero, "Ajouter version" depuis
+  // le menu d'une version). Null = modale ouverte sur le menu racine.
+  const [addModalCtx, setAddModalCtx] = useState(null);
+  // États app-level pour la modale AddModal + prompt "Nouveau projet"
+  // utilisés quand l'utilisateur clique sur "+ AJOUTER" dans la sidebar
+  // depuis un écran autre que la Home (WelcomeHome a sa propre copie).
+  const [newProjectOpenApp, setNewProjectOpenApp] = useState(false);
+  const [newProjectValueApp, setNewProjectValueApp] = useState('');
+  const newProjectInputRefApp = useRef(null);
+  const pendingNewTrackRefApp = useRef(false);
   const isHashSyncRef = useRef(false);
   const routeInitRef = useRef(false);
   const prevScreenRef = useRef(null);
@@ -2033,6 +2103,25 @@ function VersionsAppAuthed() {
       .single()
       .then(({ data }) => { if (data) setUserProfile(data); })
       .catch(() => {});
+  }, [user]);
+
+  // ── Logout : reset de la route + forçage retour Home ──────
+  // Après un signOut, on veut que le prochain login arrive toujours sur la
+  // Home, même si la dernière page visitée avant déconnexion était une fiche
+  // (#/fiche). Sans ça, routeInitRef reste à true et le hash reste sur
+  // #/fiche → au relogin, on voit soit la fiche figée, soit welcome avec un
+  // hash incohérent. On neutralise tout ici pour repartir propre.
+  useEffect(() => {
+    if (user) return;
+    routeInitRef.current = false;
+    if (typeof window !== 'undefined' && window.location.hash && window.location.hash !== '#/') {
+      window.history.replaceState({ screen: 'welcome' }, '', '#/');
+    }
+    if (screen !== 'welcome') {
+      isHashSyncRef.current = true;
+      setScreen('welcome');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // ── Hash routing : lecture initiale de l'URL ─────────────
@@ -2314,7 +2403,7 @@ function VersionsAppAuthed() {
 
   // ── Handlers ──
   const handleAnalyze = (cfg) => {
-    // Injecte le projet cible (choisi explicitement dans InputScreen ou déduit du contexte)
+    // Injecte le projet cible (choisi explicitement dans AddModal ou déduit du contexte)
     const cfgWithProject = { ...cfg, projectId: cfg.projectId || currentProjectId || null };
     setConfig(cfgWithProject);
     setAnalysisResult(null);
@@ -2382,20 +2471,49 @@ function VersionsAppAuthed() {
     setScreen("fiche");
   };
   const handleSidebarNewTrack = () => {
+    // Ouvre la modale d'ajout dans le flow "Nouveau titre".
+    // AddModal se charge de la suite (pick-project / upload selon le
+    // nombre de projets). Plus d'écran isolé /nouveau.
     setPrefillTitle("");
     setAutoSelectTrackTitle("");
     setAnalysisResult(null);
     setConfig(null);
-    setScreen("input");
+    setAddModalCtx({ mode: 'new-track' });
+    setHomeAddOpen(true);
   };
   const handleAddVersionFromPicker = (track) => {
-    // Pré-sélectionne le projet du titre pour que l'upload y atterrisse
+    // Pré-sélectionne le projet du titre pour que l'upload y atterrisse.
+    // On ouvre la modale directement à l'étape upload, titre verrouillé.
     if (track?.projectId) setCurrentProjectId(track.projectId);
     setPrefillTitle(track.title);
     setAutoSelectTrackTitle(track.title);
     setAnalysisResult(null);
     setConfig(null);
-    setScreen("input");
+    setAddModalCtx({ mode: 'add-version', trackId: track?.id });
+    setHomeAddOpen(true);
+  };
+
+  // Handlers app-level pour AddModal — miroir de ceux définis
+  // localement dans WelcomeHome (utilisés hors de l'écran Home).
+  const handleNewProjectApp = () => {
+    setNewProjectValueApp('');
+    setNewProjectOpenApp(true);
+    setTimeout(() => newProjectInputRefApp.current?.focus(), 50);
+  };
+  const submitNewProjectApp = async () => {
+    const name = newProjectValueApp.trim();
+    if (!name) return;
+    try {
+      const created = await createProject(name);
+      setNewProjectOpenApp(false);
+      setNewProjectValueApp('');
+      refreshProjects();
+      if (created?.id) setCurrentProjectId(created.id);
+      if (pendingNewTrackRefApp.current) {
+        pendingNewTrackRefApp.current = false;
+        handleSidebarNewTrack();
+      }
+    } catch (err) { console.warn('createProject failed', err); }
   };
 
   // ── Screen routing ──
@@ -2409,6 +2527,7 @@ function VersionsAppAuthed() {
             onSetCurrentProject={setCurrentProjectId}
             onNewTrack={handleSidebarNewTrack}
             onAddVersion={handleAddVersionFromPicker}
+            onAnalyze={handleAnalyze}
             onSelectVersion={handleSidebarSelectVersion}
             onOpenFiche={handleOpenFiche}
             onPlay={play}
@@ -2420,10 +2539,10 @@ function VersionsAppAuthed() {
             onMutate={refreshProjects}
             addModalOpen={homeAddOpen}
             setAddModalOpen={setHomeAddOpen}
+            addModalCtx={addModalCtx}
+            setAddModalCtx={setAddModalCtx}
           />
         );
-      case "input":
-        return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialTitle={prefillTitle} initialProjectId={currentProjectId} lockProject={!!prefillTitle} onRefreshProjects={refreshProjects} />;
       case "loading":
         return <LoadingScreen config={config} onDone={handleLoaded} onBackToInput={handleSidebarNewTrack} />;
       case "fiche":
@@ -2451,7 +2570,31 @@ function VersionsAppAuthed() {
           />
         );
       default:
-        return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialProjectId={currentProjectId} onRefreshProjects={refreshProjects} />;
+        // Fallback si screen invalide : on retombe sur la home
+        // (plus de page /nouveau dédiée : tout passe par la modale Add).
+        return (
+          <WelcomeHome
+            userProfile={userProfile}
+            currentProjectId={currentProjectId}
+            onSetCurrentProject={setCurrentProjectId}
+            onNewTrack={handleSidebarNewTrack}
+            onAddVersion={handleAddVersionFromPicker}
+            onAnalyze={handleAnalyze}
+            onSelectVersion={handleSidebarSelectVersion}
+            onOpenFiche={handleOpenFiche}
+            onPlay={play}
+            onToggle={togglePlay}
+            onNext={playNext}
+            playerState={playerState}
+            projects={projects}
+            projectsLoaded={projectsLoaded}
+            onMutate={refreshProjects}
+            addModalOpen={homeAddOpen}
+            setAddModalOpen={setHomeAddOpen}
+            addModalCtx={addModalCtx}
+            setAddModalCtx={setAddModalCtx}
+          />
+        );
     }
   };
 
@@ -2505,7 +2648,7 @@ function VersionsAppAuthed() {
             onNewTrack={handleSidebarNewTrack}
             onGoReglages={() => setReglagesOpen(true)}
             onAskOpen={() => setAskOpen(true)}
-            onAdd={() => { goHome(); setHomeAddOpen(true); }}
+            onAdd={() => setHomeAddOpen(true)}
             onPlay={play}
             onToggle={togglePlay}
             onMutate={refreshProjects}
@@ -2529,7 +2672,6 @@ function VersionsAppAuthed() {
                 setAskOpen(false);
                 // Réglages → modale, pas d'écran dédié
                 if (target === 'reglages') { setReglagesOpen(true); return; }
-                if (target === 'input') setPrefillTitle('');
                 setScreen(target);
               }}
               onSignOut={signOut}
@@ -2550,6 +2692,47 @@ function VersionsAppAuthed() {
             onSignOut={signOut}
             onProfileUpdate={setUserProfile}
           />
+
+          {/* AddModal accessible depuis la sidebar sur n'importe quel
+              écran autre que la Home (la Home garde ses propres instances
+              pour ne pas casser ses flux internes). */}
+          {screen !== "welcome" && newProjectOpenApp && (
+            <RenameModal
+              title={s.home.newProject}
+              placeholder={s.home.projectNamePlaceholder}
+              value={newProjectValueApp}
+              originalValue=""
+              inputRef={newProjectInputRefApp}
+              onChange={setNewProjectValueApp}
+              onCancel={() => setNewProjectOpenApp(false)}
+              onSubmit={submitNewProjectApp}
+              confirmLabel={s.home.confirmCreate}
+            />
+          )}
+          {screen !== "welcome" && homeAddOpen && (
+            <AddModal
+              onClose={() => { setHomeAddOpen(false); setAddModalCtx(null); }}
+              projects={projects}
+              allTracks={projects.flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectName: p.name, projectId: p.id })))}
+              initialContext={addModalCtx}
+              defaultDaw={userProfile?.default_daw || ''}
+              onCreateProject={async (name) => {
+                try {
+                  const created = await createProject(name);
+                  refreshProjects();
+                  if (created?.id) setCurrentProjectId(created.id);
+                  return created;
+                } catch (err) {
+                  console.warn('createProject from AddModal (app) failed', err);
+                  throw err;
+                }
+              }}
+              onAnalyze={(cfg) => {
+                if (cfg.projectId) setCurrentProjectId(cfg.projectId);
+                handleAnalyze(cfg);
+              }}
+            />
+          )}
 
           {/* Content */}
           <div ref={scrollContentRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: 80 }}>

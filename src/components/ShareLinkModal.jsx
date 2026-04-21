@@ -7,8 +7,14 @@ import {
 import useLang from '../hooks/useLang';
 
 // Modale de partage d'une fiche par lien public (lecture seule).
-// Elle porte l'état du token : on le charge au mount, et on laisse l'utilisateur
-// activer / désactiver et copier l'URL finale dans le presse-papiers.
+// Elle porte l'état du token : on le charge au mount, et on laisse
+// l'utilisateur activer / désactiver et copier l'URL finale dans le
+// presse-papiers.
+//
+// Habillage v2 : mini-modal (dark card, un mot amber dans le titre,
+// URL en pill mono + bouton COPIER amber filled, ligne de statut mint,
+// DÉSACTIVER en rouge outline). Partage le même langage visuel que
+// Réglages, AddModal et ExportPdfModal.
 export default function ShareLinkModal({ versionId, trackTitle, versionName, onClose }) {
   const { s } = useLang();
   const [loading, setLoading] = useState(true);
@@ -29,7 +35,13 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
   useEffect(() => {
     const h = (e) => { if (e.key === 'Escape' && !busy) onClose?.(); };
     document.addEventListener('keydown', h);
-    return () => document.removeEventListener('keydown', h);
+    // Empêche le scroll du fond pendant que la modale est ouverte
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', h);
+      document.body.style.overflow = prev;
+    };
   }, [onClose, busy]);
 
   // URL construite à partir de l'origine courante + hash route #/p/<token>
@@ -75,97 +87,94 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
     }
   };
 
+  // Sous-titre : "Pour {trackTitle} · Version {versionName}"
+  const subParts = [];
+  if (trackTitle) subParts.push(trackTitle);
+  if (versionName) subParts.push(`${s.modals.shareVersionPrefix} ${versionName}`);
+  const sub = subParts.length
+    ? `${s.modals.shareSubPrefix} ${subParts.join(' · ')}`
+    : null;
+
   return (
     <div
+      className="add-mini-backdrop"
       onClick={busy ? undefined : onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 10000,
-        background: 'rgba(0,0,0,.55)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: "'DM Sans', sans-serif",
-      }}
+      role="presentation"
     >
       <div
+        className="add-mini-card"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: 480, maxWidth: '92vw',
-          background: '#141416', border: '1px solid #2a2a2e',
-          borderRadius: 14, padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,.6)',
-        }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={s.modals.shareModalTitle}
       >
-        <div style={{ fontSize: 14, color: '#e8e8ea', marginBottom: 4, fontWeight: 500 }}>
-          {s.modals.shareModalTitle}
+        <button
+          type="button"
+          className="add-mini-close"
+          onClick={onClose}
+          disabled={busy}
+          aria-label={s.common?.close || 'Fermer'}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+
+        <div className="add-mini-title">
+          {s.modals.shareTitleBefore}{' '}
+          <em>{s.modals.shareTitleEm}</em>
         </div>
-        <div style={{ fontSize: 14, color: '#8a8a8f', marginBottom: 16 }}>
-          {trackTitle}{versionName ? ` — ${s.modals.shareVersionPrefix} ${versionName}` : ''}
-        </div>
+        {sub && <div className="add-mini-sub">{sub}</div>}
 
         {loading ? (
-          <div style={{ fontSize: 14, color: '#8a8a8f', padding: '18px 0' }}>
-            {s.modals.shareLoading}
-          </div>
+          <div className="add-mini-body-text">{s.modals.shareLoading}</div>
         ) : token ? (
           <>
-            <div style={{
-              fontSize: 14, color: '#c5c5c7', lineHeight: 1.6, marginBottom: 14,
-            }}>
+            <div className="add-mini-body-text">
               {s.modals.shareActiveBody}
             </div>
-            <div style={{
-              display: 'flex', gap: 8, alignItems: 'stretch', marginBottom: 16,
-            }}>
+
+            <div className="add-mini-url-row">
               <input
                 ref={inputRef}
                 readOnly
+                className="add-mini-url-input"
                 value={shareUrl}
                 onFocus={(e) => e.target.select()}
-                style={{
-                  flex: 1,
-                  padding: '10px 12px',
-                  fontSize: 14,
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                  color: '#e8e8ea',
-                  background: '#1a1a1d',
-                  border: '1px solid #2a2a2e',
-                  borderRadius: 8,
-                  outline: 'none',
-                }}
               />
               <button
+                type="button"
+                className={`add-mini-btn ${copied ? 'is-mint' : 'is-primary'}`}
                 onClick={handleCopy}
-                style={{
-                  padding: '0 14px', fontSize: 14, borderRadius: 8,
-                  background: copied ? '#7ac48e' : '#f5b056', border: 'none',
-                  color: '#141416', cursor: 'pointer', fontWeight: 500,
-                  fontFamily: 'inherit', whiteSpace: 'nowrap',
-                }}
               >
                 {copied ? s.modals.shareCopiedShort : s.modals.shareCopyShort}
               </button>
             </div>
 
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap',
-            }}>
+            <div className="add-mini-status" aria-live="polite">
+              <span className="add-mini-status-check" aria-hidden="true">
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2.5 6.2l2.3 2.3L9.5 3.5" />
+                </svg>
+              </span>
+              {s.modals.shareStatusActive}
+            </div>
+
+            <div className="add-mini-foot">
               <button
+                type="button"
+                className="add-mini-btn is-danger"
                 onClick={handleDisable}
                 disabled={busy}
-                style={{
-                  padding: '8px 14px', fontSize: 14, borderRadius: 8,
-                  background: 'transparent', border: '1px solid #ef6b6b66',
-                  color: '#ef6b6b', cursor: busy ? 'not-allowed' : 'pointer',
-                  fontFamily: 'inherit',
-                }}
               >
                 {busy ? '…' : s.modals.shareDisable}
               </button>
               <button
+                type="button"
+                className="add-mini-btn"
                 onClick={onClose}
-                style={{
-                  padding: '8px 16px', fontSize: 14, borderRadius: 8,
-                  background: '#1a1a1d', border: '1px solid #2a2a2e',
-                  color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
-                }}
+                disabled={busy}
               >
                 {s.modals.shareClose}
               </button>
@@ -173,33 +182,23 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
           </>
         ) : (
           <>
-            <div style={{
-              fontSize: 14, color: '#c5c5c7', lineHeight: 1.6, marginBottom: 16,
-            }}>
+            <div className="add-mini-body-text">
               {s.modals.shareInactiveBody}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <div className="add-mini-foot">
               <button
+                type="button"
+                className="add-mini-btn"
                 onClick={onClose}
                 disabled={busy}
-                style={{
-                  padding: '8px 16px', fontSize: 14, borderRadius: 8,
-                  background: 'transparent', border: '1px solid #2a2a2e',
-                  color: '#c5c5c7', cursor: busy ? 'not-allowed' : 'pointer',
-                  fontFamily: 'inherit',
-                }}
               >
                 {s.modals.shareCancel}
               </button>
               <button
+                type="button"
+                className="add-mini-btn is-primary"
                 onClick={handleEnable}
                 disabled={busy}
-                style={{
-                  padding: '8px 16px', fontSize: 14, borderRadius: 8,
-                  background: '#f5b056', border: 'none',
-                  color: '#141416', cursor: busy ? 'not-allowed' : 'pointer',
-                  fontWeight: 500, fontFamily: 'inherit',
-                }}
               >
                 {busy ? s.modals.shareEnabling : s.modals.shareEnable}
               </button>

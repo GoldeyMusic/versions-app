@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import T from '../constants/theme';
 import DAWS from '../constants/daws';
 import { useAuth } from '../hooks/useAuth';
 import useLang from '../hooks/useLang';
 import { supabase } from '../lib/supabase';
 
 /* ═══════════════════════════════════════════════════════════ */
-/* RÉGLAGES                                                    */
+/* RÉGLAGES — mini-modal v2                                    */
+/* Style aligné sur la maquette _refonte-fiche-ref :           */
+/* head mono · titre avec un mot en amber italique · rangées  */
+/* .rg-row compactes (label + hint à gauche, widget à droite) */
+/* + footer Se déconnecter / Enregistrer.                      */
 /* ═══════════════════════════════════════════════════════════ */
-export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate }) {
+export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, onClose }) {
   const { user } = useAuth();
   const { s, lang, setLang } = useLang();
   const fileRef = useRef(null);
@@ -19,13 +22,8 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [defaultDaw, setDefaultDaw] = useState('');
-  // La langue affichée dans le switch suit en temps réel la langue globale
-  // de l'app (via useLang). Pas besoin d'un state local dédié.
-  const langue = lang;
-  // Coordonnées bancaires (display only for now)
   const [iban, setIban] = useState('');
   const [bic, setBic] = useState('');
-
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -45,8 +43,6 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
           setNom(data.nom || '');
           setAvatarUrl(data.avatar_url || null);
           setDefaultDaw(data.default_daw || '');
-          // La langue est gérée via LangContext (App.jsx synchronise automatiquement
-          // quand userProfile change), donc on n'a rien à faire ici.
           setIban(data.iban || '');
           setBic(data.bic || '');
         }
@@ -71,13 +67,12 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
         nom: nom.trim(),
         avatar_url: avatarUrl,
         default_daw: defaultDaw,
-        // langue : gérée en direct par setLang (useLang), pas besoin de la ré-écrire ici
         iban: iban.trim(),
         bic: bic.trim(),
         updated_at: new Date().toISOString(),
       });
       setSaved(true);
-      if (onProfileUpdate) onProfileUpdate({ prenom: prenom.trim(), nom: nom.trim(), avatar_url: avatarUrl, default_daw: defaultDaw, langue });
+      if (onProfileUpdate) onProfileUpdate({ prenom: prenom.trim(), nom: nom.trim(), avatar_url: avatarUrl, default_daw: defaultDaw, langue: lang });
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
       console.warn('save profile:', e);
@@ -112,165 +107,193 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate })
     if (onGoHome) onGoHome();
   };
 
+  const handleClose = () => {
+    if (onClose) onClose();
+    else if (onGoHome) onGoHome();
+  };
+
+  // Tant que la facturation n'est pas branchée, David est affiché Premium manuellement.
+  // À remplacer par user?.plan === 'premium' quand les abonnements seront actifs.
+  const planLabel = s.reglages.miniAccountPlanPremium;
+
   return (
-    <div className="reglages-screen">
-      <div className="reglages-header">
-        <div className="reglages-title">{s.reglages.title}</div>
-        <div className="reglages-subtitle">{s.reglages.subtitle}</div>
+    <div className="rg-mini">
+      <div className="rg-mm-title">
+        {s.reglages.miniTitleBefore} <em>{s.reglages.miniTitleEm}</em>
       </div>
 
       {loadingProfile ? (
-        <div style={{ textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 14, letterSpacing: 1, padding: 40 }}>
-          {s.common.loading}
-        </div>
+        <div className="rg-loading">{s.common.loading}</div>
       ) : (
-        <div className="reglages-body">
-
-          {/* ── PHOTO DE PROFIL ── */}
-          <div className="reglages-section">
-            <div className="reglages-section-label">
-              {s.reglages.sectionAvatar} <div className="reglages-section-line" />
+        <>
+          {/* ── Avatar ── */}
+          <div className="rg-row">
+            <div>
+              <div className="rg-label">{s.reglages.miniAvatarLabel}</div>
+              <div className="rg-hint">{s.reglages.miniAvatarHint}</div>
             </div>
-            <div className="reglages-avatar-row">
-              <div className="reglages-avatar" onClick={() => fileRef.current?.click()}>
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-                ) : (
-                  <span className="reglages-avatar-initial">{initial}</span>
-                )}
-                <div className="reglages-avatar-overlay">
-                  {uploading ? '...' : '✎'}
-                </div>
-              </div>
-              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
-              <div className="reglages-avatar-hint">
-                {s.reglages.avatarHint}
-              </div>
+            <div
+              className="rg-avatar"
+              onClick={() => fileRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              aria-label={s.reglages.miniAvatarLabel}
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" />
+              ) : (
+                <span className="rg-avatar-initial">{initial}</span>
+              )}
+              <div className="rg-avatar-overlay">{uploading ? '…' : '✎'}</div>
             </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleAvatarUpload}
+            />
           </div>
 
-          {/* ── PROFIL ── */}
-          <div className="reglages-section">
-            <div className="reglages-section-label">
-              {s.reglages.sectionProfile} <div className="reglages-section-line" />
+          {/* ── Nom complet ── */}
+          <div className="rg-row is-stack">
+            <div>
+              <div className="rg-label">{s.reglages.miniProfileLabel}</div>
+              {s.reglages.miniProfileHint ? (
+                <div className="rg-hint">{s.reglages.miniProfileHint}</div>
+              ) : null}
             </div>
-            <div className="reglages-fields">
-              <div className="reglages-field">
-                <label className="reglages-label">{s.reglages.firstName}</label>
-                <input
-                  value={prenom}
-                  onChange={(e) => setPrenom(e.target.value)}
-                  placeholder={s.reglages.firstNamePlaceholder}
-                  className="reglages-input"
-                />
-              </div>
-              <div className="reglages-field">
-                <label className="reglages-label">{s.reglages.lastName}</label>
-                <input
-                  value={nom}
-                  onChange={(e) => setNom(e.target.value)}
-                  placeholder={s.reglages.lastNamePlaceholder}
-                  className="reglages-input"
-                />
-              </div>
-            </div>
-            <div className="reglages-field" style={{ marginTop: 12 }}>
-              <label className="reglages-label">{s.reglages.emailLabel}</label>
+            <div className="rg-inputs">
               <input
-                value={user?.email || ''}
-                disabled
-                className="reglages-input disabled"
+                className="rg-input"
+                value={prenom}
+                onChange={(e) => setPrenom(e.target.value)}
+                placeholder={s.reglages.firstNamePlaceholder}
+              />
+              <input
+                className="rg-input"
+                value={nom}
+                onChange={(e) => setNom(e.target.value)}
+                placeholder={s.reglages.lastNamePlaceholder}
               />
             </div>
           </div>
 
-          {/* ── DAW PAR DÉFAUT ── */}
-          <div className="reglages-section">
-            <div className="reglages-section-label">
-              {s.reglages.sectionDaw} <div className="reglages-section-line" />
+          {/* ── Langue ── */}
+          <div className="rg-row">
+            <div>
+              <div className="rg-label">{s.reglages.miniLangLabel}</div>
+              {s.reglages.miniLangHint ? (
+                <div className="rg-hint">{s.reglages.miniLangHint}</div>
+              ) : null}
             </div>
-            <div style={{ position: 'relative' }}>
+            <div className="rg-toggle" role="group" aria-label={s.reglages.miniLangLabel}>
+              <button
+                type="button"
+                className={lang === 'fr' ? 'on' : ''}
+                onClick={() => setLang('fr')}
+              >
+                FR
+              </button>
+              <button
+                type="button"
+                className={lang === 'en' ? 'on' : ''}
+                onClick={() => setLang('en')}
+              >
+                EN
+              </button>
+            </div>
+          </div>
+
+          {/* ── DAW par défaut ── */}
+          <div className="rg-row">
+            <div>
+              <div className="rg-label">{s.reglages.miniDawLabel}</div>
+              <div className="rg-hint">{s.reglages.miniDawHint}</div>
+            </div>
+            <div className="rg-select-wrap">
               <select
+                className="rg-select"
                 value={defaultDaw}
                 onChange={(e) => setDefaultDaw(e.target.value)}
-                className="reglages-select"
               >
                 <option value="">{s.reglages.dawNone}</option>
                 {DAWS.map((d) => (
                   <option key={d} value={d}>{d}</option>
                 ))}
               </select>
-              <div className="reglages-select-arrow">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M2 4 L6 8 L10 4" stroke={defaultDaw ? 'var(--amber)' : '#7c7c80'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <div className="rg-select-arrow">
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 4 L6 8 L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
             </div>
           </div>
 
-          {/* ── LANGUE ── */}
-          <div className="reglages-section">
-            <div className="reglages-section-label">
-              {s.reglages.sectionLang} <div className="reglages-section-line" />
+          {/* ── Coordonnées bancaires (Premium) ── */}
+          <div className="rg-row is-stack">
+            <div>
+              <div className="rg-label">
+                {s.reglages.miniBankLabel}
+                <span className="rg-premium-pill">{s.reglages.bankPremium}</span>
+              </div>
+              {s.reglages.miniBankHint ? (
+                <div className="rg-hint">{s.reglages.miniBankHint}</div>
+              ) : null}
             </div>
-            <div className="reglages-lang-row">
-              <button
-                className={`reglages-lang-btn${langue === 'fr' ? ' active' : ''}`}
-                onClick={() => setLang('fr')}
-              >
-                {s.reglages.langFrench}
-              </button>
-              <button
-                className={`reglages-lang-btn${langue === 'en' ? ' active' : ''}`}
-                onClick={() => setLang('en')}
-              >
-                {s.reglages.langEnglish}
-              </button>
+            <div className="rg-inputs">
+              <input
+                className="rg-input"
+                value={iban}
+                onChange={(e) => setIban(e.target.value)}
+                placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX"
+              />
+              <input
+                className="rg-input"
+                value={bic}
+                onChange={(e) => setBic(e.target.value)}
+                placeholder="BNPAFRPP"
+              />
             </div>
           </div>
 
-          {/* ── COORDONNÉES BANCAIRES (PREMIUM) ── */}
-          <div className="reglages-section premium">
-            <div className="reglages-section-label">
-              {s.reglages.sectionBank} <div className="reglages-section-line" />
-              <span className="reglages-premium-badge">{s.reglages.bankPremium}</span>
+          {/* ── Compte ── */}
+          <div className="rg-row">
+            <div>
+              <div className="rg-label">{s.reglages.miniAccountLabel}</div>
+              <div className="rg-hint">{user?.email || ''}</div>
             </div>
-            <div className="reglages-fields">
-              <div className="reglages-field">
-                <label className="reglages-label">{s.reglages.ibanLabel}</label>
-                <input
-                  value={iban}
-                  onChange={(e) => setIban(e.target.value)}
-                  placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX"
-                  className="reglages-input"
-                />
-              </div>
-              <div className="reglages-field">
-                <label className="reglages-label">{s.reglages.bicLabel}</label>
-                <input
-                  value={bic}
-                  onChange={(e) => setBic(e.target.value)}
-                  placeholder="BNPAFRPP"
-                  className="reglages-input"
-                />
-              </div>
-            </div>
-            <div className="reglages-bank-hint">
-              {s.reglages.bankHint}
-            </div>
+            <div className="rg-value muted">{planLabel}</div>
           </div>
 
-          {/* ── ACTIONS ── */}
-          <div className="reglages-actions">
-            <button onClick={handleSave} disabled={saving} className="reglages-save">
-              {saving ? s.reglages.saving : saved ? s.reglages.saved : s.reglages.save}
-            </button>
-            <button onClick={handleSignOut} className="reglages-signout">
+          {saved && <div className="rg-saved-chip">{s.reglages.saved}</div>}
+
+          {/* ── Footer ── */}
+          <div className="rg-foot">
+            <button
+              type="button"
+              className="rg-btn is-danger"
+              onClick={handleSignOut}
+            >
               {s.reglages.signOut}
             </button>
+            <button
+              type="button"
+              className="rg-btn is-primary"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? s.reglages.saving : s.reglages.save}
+            </button>
+            <button
+              type="button"
+              className="rg-btn"
+              onClick={handleClose}
+            >
+              {s.reglages.close}
+            </button>
           </div>
-
-        </div>
+        </>
       )}
     </div>
   );

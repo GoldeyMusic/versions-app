@@ -159,42 +159,39 @@ export default function MockupStyles() {
      (DM Sans 700) pour unifier l'identité. Le "i" est en minuscule :
      son point remonte quasi à cap height, ce qui garde la silhouette
      compacte du mot sans alourdir la lecture. */
-  .brand { display: flex; align-items: center; gap: 12px; font-family: var(--body); font-weight: 700; font-size: 26px; letter-spacing: -0.5px; color: var(--text); line-height: 1; }
+  .brand { display: flex; align-items: center; gap: 8px; font-family: var(--body); font-weight: 700; font-size: 27px; letter-spacing: -0.5px; color: var(--text); line-height: 1; }
   .brand .accent { color: var(--amber); font-style: normal; }
   /* Encadré utilisateur — même traitement que les cartes .wh-stat :
      fond var(--card), halo diffus en pseudo ::before et contenu
      remonté en z-index 1 pour passer au-dessus du halo. Overflow
      hidden pour que la tache floue ne déborde pas des coins arrondis. */
+  /* Bloc utilisateur en haut de sidebar — version "à plat".
+     Plus de cadre (pas de background, pas de border, pas de halo ambre) :
+     juste l'avatar rond et le texte, posés directement sur la sidebar.
+     Hover très discret pour signaler que c'est cliquable (→ Réglages). */
   .user-pill {
     display: flex; align-items: center; gap: 14px;
     width: 100%; box-sizing: border-box;
-    padding: 16px 16px;
-    border-radius: 14px;
-    background: var(--card);
-    border: 1px solid var(--border);
+    padding: 6px 4px;
+    border-radius: 10px;
+    background: transparent;
+    border: none;
     cursor: pointer;
     position: relative;
-    overflow: hidden;
+    transition: background .15s;
   }
-  .user-pill::before {
-    content: ''; position: absolute; pointer-events: none;
-    border-radius: 50%; z-index: 0;
-    top: -35px; right: -30px;
-    width: 140px; height: 140px;
-    background: var(--amber); filter: blur(55px); opacity: .22;
+  .user-pill:hover {
+    background: rgba(255,255,255,0.025);
   }
-  .user-pill > * { position: relative; z-index: 1; }
   .user-pill > div:last-child {
     flex: 1; min-width: 0;
   }
   .user-pill .avatar {
-    width: 58px; height: 58px; border-radius: 50%;
-    /* Fond neutre sombre (plus de gradient ambre) — évite le ring
-       visible au bord de la photo. overflow hidden pour clipper
-       proprement l'image à la forme ronde. */
+    width: 44px; height: 44px; border-radius: 50%;
+    /* Fond neutre sombre pour l'état "initiale" (pas de photo). */
     background: var(--s2);
     display: flex; align-items: center; justify-content: center;
-    color: var(--amber); font-family: var(--mono); font-weight: 600; font-size: 22px;
+    color: var(--amber); font-family: var(--mono); font-weight: 600; font-size: 18px;
     flex-shrink: 0;
     overflow: hidden;
   }
@@ -202,7 +199,32 @@ export default function MockupStyles() {
     font-size: 14px; color: var(--text); font-weight: 500;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .user-pill .plan { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .user-pill .plan { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; }
+
+  /* Mini switch FR/EN à droite du nom utilisateur — raccourci depuis la
+     sidebar. Posé à côté du bloc texte (flex-shrink: 0) : deux pill mono
+     minuscules, la langue active en amber, l'inactive en muted.
+     Le conteneur stoppe la propagation pour ne pas déclencher onGoReglages. */
+  .sb-lang-switch {
+    display: flex; gap: 2px;
+    padding: 2px;
+    background: rgba(255,255,255,0.035);
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+  .sb-lang-switch button {
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    letter-spacing: 0.5px;
+    padding: 4px 8px; border-radius: 999px;
+    background: transparent; color: var(--muted);
+    border: none; cursor: pointer;
+    transition: color .15s, background .15s;
+  }
+  .sb-lang-switch button:hover { color: var(--soft); }
+  .sb-lang-switch button.on {
+    background: rgba(245,166,35,0.14);
+    color: var(--amber);
+  }
 
   .new-track {
     padding: 9px 12px; border-radius: 8px;
@@ -532,8 +554,8 @@ export default function MockupStyles() {
   }
   .vocal-suggest .vs-btn {
     font-family: var(--body); font-size: 12.5px; font-weight: 500;
-    border-radius: 8px;
-    padding: 8px 14px;
+    border-radius: 999px;
+    padding: 8px 16px;
     cursor: pointer;
     transition: background .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;
     white-space: nowrap;
@@ -659,15 +681,23 @@ export default function MockupStyles() {
   /* ══════════════════════════════════════════════════════════════════ */
   .fiche-topbar-wrap {
     position: sticky; top: 0; z-index: 10;
-    background: rgba(12,12,13,0.92);
-    backdrop-filter: blur(14px);
+    /* Aucun background solide : la topbar doit laisser transparaître le
+       halo ambient de la page (comme sur la Home) pour éviter la barre
+       sombre distincte qui créait une démarcation en haut de page.
+       Le backdrop-filter prend le relais dès qu'on scrolle : le contenu
+       qui passe sous la topbar est flouté, donc la topbar reste lisible
+       sans avoir besoin d'un fond opaque. */
+    background: transparent;
+    backdrop-filter: blur(20px) saturate(1.1);
+    -webkit-backdrop-filter: blur(20px) saturate(1.1);
     padding: 16px 40px 0;
     display: flex; flex-direction: column;
   }
   .fiche-topbar-wrap .fiche-topbar {
     display: flex; align-items: center; gap: 14px;
     padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
+    /* Pas de border-bottom : on veut que la topbar se fonde visuellement
+       avec la page (pas de "barre header" délimitée). */
   }
   .fiche-topbar-wrap .fiche-back {
     background: transparent; border: 1px solid var(--border);
@@ -689,7 +719,11 @@ export default function MockupStyles() {
     min-width: 0;
   }
   .fiche-topbar-title em {
-    font-family: var(--serif); font-style: italic; font-weight: 400;
+    /* Même typo/poids que le reste du titre — seul l'accent amber change.
+       (Auparavant en serif italic amber comme la maquette "Comme un rêve".) */
+    font-family: inherit;
+    font-style: normal;
+    font-weight: inherit;
     color: var(--amber);
   }
   .fiche-topbar-title .fiche-title-text {
@@ -766,8 +800,8 @@ export default function MockupStyles() {
   /* VChip v2 (row layout) — scopé à .versions-row-v2 pour préserver le mobile */
   .versions-row-v2 .vchip {
     flex-shrink: 0;
-    padding: 8px 12px;
-    border-radius: 10px;
+    padding: 8px 14px;
+    border-radius: 999px;
     background: var(--card);
     border: 1px solid var(--border);
     display: flex; flex-direction: row; align-items: center; gap: 10px;
@@ -812,8 +846,8 @@ export default function MockupStyles() {
 
   .vchip-new {
     flex-shrink: 0;
-    padding: 8px 14px;
-    border-radius: 10px;
+    padding: 8px 16px;
+    border-radius: 999px;
     background: transparent;
     border: 1px dashed rgba(245,166,35,0.6);
     color: var(--amber);
@@ -834,28 +868,130 @@ export default function MockupStyles() {
   /* ══════════════════════════════════════════════════════════════════ */
 
   /* ══════════════════════════════════════════════════════════════════════
-     FICHE v2 — LAYOUT 2 COLONNES (col-gauche Score+Diag / col-droite Qualitative+Plan)
+     FICHE v2 — LAYOUT 2 COLONNES INDÉPENDANTES + bandeau qualitative en bas
+     Col 1 (.f2-col-main) : Score global + Diagnostic
+     Col 2 (.f2-col-side) : Plan d'action + Notes
+     Pleine largeur sous les colonnes : Écoute qualitative (.row-qualitative)
+     Chaque colonne est un flex column → pas de rangée partagée, pas de gap.
      Le chat reste ancré en aside (3ᵉ colonne via .fiche-layout.has-chat).
-     Technique : display: contents sur .row-two pour faire remonter col-diag
-     et col-plan au niveau du grid parent .page.
      ══════════════════════════════════════════════════════════════════════ */
   .fiche-v2 .page {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-auto-flow: dense;
     column-gap: 20px;
     row-gap: 18px;
     align-items: start;
     padding: 20px 28px 80px;
   }
-  .fiche-v2 .page > .vocal-suggest { grid-column: 1 / -1; }
-  .fiche-v2 .page > .row-verdict { grid-column: 1; }
-  .fiche-v2 .page > .row-qualitative { grid-column: 2; }
-  .fiche-v2 .page > .row-two {
-    display: contents; /* casse le wrapper pour que col-diag et col-plan
-                          deviennent directement enfants du grid .page */
+  /* f2-col-* deviennent transparents → leurs enfants montent au niveau .page
+     pour permettre le placement explicite en grid (row/col alignés). */
+  .fiche-v2 .page > .f2-col-main,
+  .fiche-v2 .page > .f2-col-side { display: contents; }
+  .fiche-v2 .page .vocal-suggest   { grid-column: 1 / -1; }
+  .fiche-v2 .page .row-verdict     { grid-column: 1; }
+  .fiche-v2 .page .col-cover       { grid-column: 2; }
+  .fiche-v2 .page .col-diag        { grid-column: 1; }
+  .fiche-v2 .page .col-plan        { grid-column: 2; }
+  .fiche-v2 .page .row-qualitative { grid-column: 1 / -1; }
+  .fiche-v2 .page .notes-section   { grid-column: 1 / -1; }
+
+  /* Mobile / drawer : les wrappers f2-col-* doivent s'effacer pour ne pas
+     perturber le flow vertical historique. display: contents remonte les
+     enfants au niveau du parent. */
+  .f2-col-main, .f2-col-side { display: contents; }
+
+  /* ══════════════════════════════════════════════════════════════════
+     COL-COVER — pochette type artwork de single
+     Fallback : patchwork de halos color\u00e9s d\u00e9satur\u00e9s (seed\u00e9s par titre)
+     + titre en grosses capitales dans la police du logo VERSIONS.
+     Image utilisateur remplace enti\u00e8rement le fallback.
+     ══════════════════════════════════════════════════════════════════ */
+  .fiche-v2 .col-cover-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 250px;
+    aspect-ratio: 1 / 1;
+    justify-self: center;
+    align-self: center;
+    margin: 12px 0;
+    isolation: isolate;
   }
-  .fiche-v2 .page > .row-two > .col-diag { grid-column: 1; }
-  .fiche-v2 .page > .row-two > .col-plan { grid-column: 2; }
+  .fiche-v2 .col-cover {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+    background: #1a1725;
+    box-shadow:
+      0 24px 60px rgba(0,0,0,0.5),
+      0 6px 16px rgba(0,0,0,0.35),
+      inset 0 0 0 1px rgba(255,255,255,0.04);
+    container-type: inline-size;
+    isolation: isolate;
+  }
+  .fiche-v2 .col-cover .cover-img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  /* Halos color\u00e9s en fond (fallback sans image) — blend normal pour
+     pr\u00e9server la saturation des couleurs individuelles, flou doux. */
+  .fiche-v2 .col-cover .ca-halo {
+    position: absolute;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    filter: blur(32px);
+    pointer-events: none;
+    z-index: 1;
+  }
+  /* Grain subtil par-dessus pour la texture (simule un papier/film grain).
+     Impl\u00e9ment\u00e9 via un SVG base64 en feTurbulence \u2192 noise al\u00e9atoire. */
+  .fiche-v2 .col-cover.no-image::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.25 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity: 0.14;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: 2;
+  }
+  /* Tr\u00e8s l\u00e9ger voile sombre au bas pour la lisibilit\u00e9 du titre sans casser
+     la saturation color\u00e9e du patchwork. */
+  .fiche-v2 .col-cover.no-image::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 35%;
+    background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.22) 70%, rgba(0,0,0,0.38) 100%);
+    pointer-events: none;
+    z-index: 3;
+  }
+  /* Titre en gros \u2014 police du logo VERSIONS (DM Sans bold), tracking n\u00e9gatif.
+     Taille proportionnelle au container pour que \u00e7a reste "grand" m\u00eame
+     si la pochette change de taille. */
+  .fiche-v2 .col-cover .cover-big-title {
+    position: absolute;
+    left: 14px; right: 14px; bottom: 12px;
+    font-family: var(--body, 'DM Sans', sans-serif);
+    font-weight: 800;
+    font-size: clamp(32px, 22cqw, 84px);
+    line-height: 0.86;
+    letter-spacing: -2.2px;
+    color: rgba(245,240,230,0.85);
+    text-transform: uppercase;
+    text-align: left;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-shadow: 0 2px 14px rgba(0,0,0,0.38);
+    z-index: 4;
+    pointer-events: none;
+  }
 
   /* Row verdict : en col-1 étroite, on empile score-panel et evolution
      comme 2 cartes indépendantes (pas de fond/bordure sur le wrapper). */
@@ -878,19 +1014,27 @@ export default function MockupStyles() {
     border: 1px solid rgba(245,166,35,0.18);
     border-radius: 16px;
     padding: 22px 24px 24px;
-    overflow: hidden;
+    overflow: visible; /* était hidden → empêchait les tooltips mix de déborder en bas */
   }
-  /* Halo ambre en haut-droite du panel score (cf. .panel.amber-glow maquette L325) */
-  .fiche-v2 .row-verdict .rv-left::before {
+  /* Halo ambre isolé dans un calque clippé pour éviter d'avoir
+     à mettre overflow:hidden sur le panel parent. */
+  .fiche-v2 .row-verdict .rv-left .rv-halo {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .fiche-v2 .row-verdict .rv-left .rv-halo::before {
     content: ''; position: absolute; pointer-events: none;
     top: -80px; right: -80px;
     width: 280px; height: 280px;
     border-radius: 50%;
     background: var(--amber);
     filter: blur(80px); opacity: 0.22;
-    z-index: 0;
   }
-  .fiche-v2 .row-verdict .rv-left > * { position: relative; z-index: 1; }
+  .fiche-v2 .row-verdict .rv-left > *:not(.rv-halo) { position: relative; z-index: 1; }
 
   /* Eyebrow "SCORE GLOBAL" façon maquette (.eyebrow.amber L303) */
   .fiche-v2 .row-verdict .rv-left .score-eyebrow {
@@ -918,12 +1062,23 @@ export default function MockupStyles() {
     margin: 6px auto 4px;
   }
 
-  /* Ring + 6 tuiles mix-indicators côte-à-côte (ring à gauche, grid 2×3 à droite) */
+  /* Ring + 6 tuiles mix-indicators côte-à-côte (ring à gauche, grid 2×3 à droite).
+     z-index élevé pour que le tooltip du score global (qui descend sous le ring)
+     passe au-dessus du .verdict-text qui suit dans le DOM — sinon le texte
+     d'explication apparaît "transparent" parce qu'un autre bloc peint par-dessus. */
   .fiche-v2 .row-verdict .rv-left .rv-top {
     display: flex;
     align-items: center;
     gap: 14px;
     margin: 4px 0 2px;
+    position: relative;
+    z-index: 20;
+  }
+  /* Boost supplémentaire quand le tooltip est ouvert, pour être safe
+     même si un autre overlay (chat drawer, modale, etc.) s'intercale. */
+  .fiche-v2 .row-verdict .rv-left .rv-top:has(.score-ring.tip-open),
+  .fiche-v2 .row-verdict .rv-left .rv-top:has(.score-ring:hover) {
+    z-index: 50;
   }
   .fiche-v2 .row-verdict .rv-left .rv-top .score-ring {
     align-self: center;
@@ -1063,29 +1218,77 @@ export default function MockupStyles() {
     margin-top: 10px;
     text-align: left;
   }
+  /* Bouton-toggle pour ouvrir/fermer le verdict */
+  .fiche-v2 .row-verdict .rv-left .verdict-text .verdict-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+    transition: opacity .18s ease;
+  }
+  .fiche-v2 .row-verdict .rv-left .verdict-text .verdict-toggle:hover h1 {
+    color: var(--amber, #f5a623);
+  }
+  .fiche-v2 .row-verdict .rv-left .verdict-text .verdict-toggle:focus-visible {
+    outline: 2px solid var(--amber, #f5a623);
+    outline-offset: 4px;
+    border-radius: 6px;
+  }
+  .fiche-v2 .row-verdict .rv-left .verdict-text .verdict-toggle h1 {
+    flex: 1;
+    min-width: 0;
+    transition: color .18s ease;
+  }
+  .fiche-v2 .row-verdict .rv-left .verdict-text .verdict-caret {
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    margin-top: 10px;
+    border-right: 1.5px solid var(--muted, rgba(255,255,255,0.5));
+    border-bottom: 1.5px solid var(--muted, rgba(255,255,255,0.5));
+    transform: rotate(45deg);
+    transition: transform .22s ease, border-color .18s ease;
+  }
+  .fiche-v2 .row-verdict .rv-left .verdict-text.expanded .verdict-caret {
+    transform: rotate(225deg);
+    margin-top: 14px;
+  }
+  .fiche-v2 .row-verdict .rv-left .verdict-text .verdict-toggle:hover .verdict-caret {
+    border-color: var(--amber, #f5a623);
+  }
+  /* Verdict — homogénéisé avec le reste de la fiche (DM Sans, pas de serif italique).
+     Le h1 reprend la recette .di-name (DM Sans 14 / 400) mais un cran au-dessus
+     pour rester la "phrase d'accroche". Le p suit .di-detail (14 / 300 / soft). */
   .fiche-v2 .row-verdict .rv-left .verdict-text h1 {
-    font-family: var(--serif, 'Cormorant Garamond', serif);
-    font-size: 20px;
-    line-height: 1.45;
-    font-weight: 400;
-    font-style: italic;
+    font-family: var(--body, 'DM Sans', sans-serif);
+    font-size: 18px;
+    line-height: 1.4;
+    font-weight: 500;
+    font-style: normal;
     color: var(--text, #f5f4ef);
     letter-spacing: 0;
-    margin: 0 0 6px;
+    margin: 0 0 8px;
   }
   .fiche-v2 .row-verdict .rv-left .verdict-text h1 em,
   .fiche-v2 .row-verdict .rv-left .verdict-text h1 b,
   .fiche-v2 .row-verdict .rv-left .verdict-text h1 strong {
     color: var(--amber, #f5a623);
     font-weight: 600;
-    font-style: italic;
+    font-style: normal;
   }
   .fiche-v2 .row-verdict .rv-left .verdict-text p {
-    font-family: var(--serif, 'Cormorant Garamond', serif);
-    font-size: 16px;
-    line-height: 1.55;
-    font-weight: 400;
-    font-style: italic;
+    font-family: var(--body, 'DM Sans', sans-serif);
+    font-size: 14px;
+    line-height: 1.6;
+    font-weight: 300;
+    font-style: normal;
     color: var(--soft, rgba(255,255,255,0.78));
     margin: 0 0 6px;
   }
@@ -1167,15 +1370,30 @@ export default function MockupStyles() {
     margin-bottom: 2px;
   }
   .fiche-v2 .row-qualitative.stacked .q-citation p {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 15px;
+    /* Même famille que le verdict (row-verdict p : DM Sans) pour garder une
+       cohérence typographique. Corps un cran au-dessus (16 vs 14) pour
+       accentuer le rôle de "citation d'accroche" dans Écoute qualitative. */
+    font-family: var(--body, 'DM Sans', sans-serif);
+    font-style: normal;
+    font-size: 16px;
     line-height: 1.55;
+    font-weight: 300;
     color: var(--soft, rgba(255,255,255,0.78));
     margin: 0;
   }
   .fiche-v2 .row-qualitative.stacked .q-citation p::before { content: '« '; }
   .fiche-v2 .row-qualitative.stacked .q-citation p::after { content: ' »'; }
+
+  /* Emphases *mot* dans l'écoute qualitative : renderWithEmphasis() produit des
+     <em>, par défaut italiques. David veut éviter l'italique → on neutralise
+     le style et on garde l'emphase via une couleur amber légère (lisible sans
+     déstabiliser le rythme typographique). S'applique à la citation, aux
+     puces points forts / à travailler et aux sous-blocs déployables. */
+  .row-qualitative em,
+  .fiche-v2 .row-qualitative em {
+    font-style: normal;
+    color: var(--amber);
+  }
 
   /* Grille des sous-items — flex column avec gap (cf. .ecoute-sub L827) */
   .fiche-v2 .row-qualitative.stacked .q-subgrid {
@@ -1604,6 +1822,9 @@ export default function MockupStyles() {
     background: rgba(255,255,255,0.025);
     border: 1px solid var(--border, rgba(255,255,255,0.08));
     border-left: 3px solid var(--cerulean);
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .fiche-v2 .plan-card.p0 {
     border-left-color: var(--red);
@@ -1619,16 +1840,100 @@ export default function MockupStyles() {
   }
   .fiche-v2 .plan-card.resolved { opacity: 0.55; }
 
-  /* Header : check rond + tag pill + DAW à droite (cf. .p-head maquette L904) */
+  /* Collapsible : cursor pointer + chevron ; ouvert au clic */
+  .fiche-v2 .plan-card.collapsible {
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+    position: relative;
+  }
+  .fiche-v2 .plan-card.collapsible:hover {
+    background: rgba(255,255,255,0.055);
+    box-shadow: inset 0 0 0 1px rgba(245,166,35,0.22);
+  }
+  .fiche-v2 .plan-card.collapsible.p0:hover { background: rgba(255,93,93,0.1); }
+  .fiche-v2 .plan-card.collapsible.p1:hover { background: rgba(245,166,35,0.1); }
+  .fiche-v2 .plan-card.collapsible.p2:hover { background: rgba(142,224,122,0.1); }
+  .fiche-v2 .plan-card.collapsible:focus-visible {
+    outline: 2px solid var(--amber, #f5a623);
+    outline-offset: 2px;
+  }
+  /* Chevron rond discret mais visible à côté du DAW / au bout de p-head */
+  /* Ligne titre : chevron à gauche (sous le cercle .p-check) + titre.
+     Le chevron reprend exactement la recette de .diag-cat-head .chev :
+     SVG nu, couleur muted, rotate 90° quand la card est ouverte. */
+  .fiche-v2 .plan-card .p-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .fiche-v2 .plan-card .p-chev {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    color: var(--muted, rgba(255,255,255,0.5));
+    transform: rotate(0deg);
+    transition: transform .18s ease, color .18s ease;
+    flex-shrink: 0;
+  }
+  .fiche-v2 .plan-card.open .p-chev {
+    transform: rotate(90deg);
+    color: var(--amber, #f5a623);
+  }
+  .fiche-v2 .plan-card.collapsible:hover .p-chev {
+    color: var(--text, #fff);
+  }
+  /* Body déplié (mesures + liens) — cursor auto : seule la barre
+     de titre est cliquable pour refermer la card. */
+  .fiche-v2 .plan-card .p-body {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: auto;
+  }
+  /* Le bouton 'marquer comme résolu' garde son propre curseur pointer */
+  .fiche-v2 .plan-card .p-body .p-resolve {
+    cursor: pointer;
+  }
+  .fiche-v2 .plan-card .p-body .p-measure,
+  .fiche-v2 .plan-card .p-body .p-links {
+    margin-top: 0;
+  }
+
+  /* Header : juste le tag pill (le bouton 'résolu' a été déplacé en bas du body) */
   .fiche-v2 .plan-card .p-head {
     display: flex;
     align-items: center;
     gap: 10px;
     margin-bottom: 6px;
+    min-width: 0;
+    flex-wrap: wrap;
   }
-  /* p-check — EXACT maquette L920 : 20x20 rond border 1.5 muted */
-  .fiche-v2 .plan-card .p-check {
-    width: 20px; height: 20px;
+
+  /* Bouton 'marquer comme résolu' en pied de body (visible uniquement quand
+     la card est dépliée). Rond 20x20 + petite légende à côté. */
+  .fiche-v2 .plan-card .p-resolve {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    padding: 4px 8px 4px 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    cursor: pointer;
+    align-self: flex-start;
+    transition: background .15s, border-color .15s;
+  }
+  .fiche-v2 .plan-card .p-resolve:hover {
+    background: rgba(142,224,122,0.06);
+    border-color: rgba(142,224,122,0.25);
+  }
+  .fiche-v2 .plan-card .p-resolve .p-check {
+    width: 14px; height: 14px;
     border-radius: 50%;
     border: 1.5px solid var(--muted, rgba(255,255,255,0.35));
     background: transparent;
@@ -1636,19 +1941,33 @@ export default function MockupStyles() {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
     flex-shrink: 0;
-    padding: 0;
-    font-size: 11px;
     transition: border-color .15s, background .15s;
   }
-  .fiche-v2 .plan-card .p-check:hover {
+  .fiche-v2 .plan-card .p-resolve .p-check svg {
+    width: 8px;
+    height: 8px;
+  }
+  .fiche-v2 .plan-card .p-resolve:hover .p-check {
     border-color: var(--mint, #8ee07a);
   }
-  .fiche-v2 .plan-card.resolved .p-check {
+  .fiche-v2 .plan-card .p-resolve.done .p-check {
     background: var(--mint, #8ee07a);
     border-color: var(--mint, #8ee07a);
     color: #0a0a0c;
+  }
+  .fiche-v2 .plan-card .p-resolve .p-resolve-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1.4px;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: var(--muted, rgba(255,255,255,0.55));
+    transition: color .15s;
+  }
+  .fiche-v2 .plan-card .p-resolve:hover .p-resolve-label,
+  .fiche-v2 .plan-card .p-resolve.done .p-resolve-label {
+    color: var(--mint, #8ee07a);
   }
 
   /* Tag pill — EXACT maquette L908 : mono 9.5 / ls 1.5 / weight 500 */
@@ -1677,41 +1996,55 @@ export default function MockupStyles() {
     color: var(--mint, #8ee07a);
   }
 
-  /* DAW à droite — EXACT maquette L916 : mono 9.5 / ls 1 / muted / ml auto */
+  /* Description longue (DAW / hint) — aligné sur .diag-item .di-detail :
+     body 14 / weight 300 / soft / lh 1.6 / casse naturelle (pas d'uppercase). */
   .fiche-v2 .plan-card .p-daw {
-    font-family: var(--mono);
-    font-weight: 400;
-    font-size: 9.5px;
-    letter-spacing: 1px;
-    color: var(--muted, rgba(255,255,255,0.5));
-    text-transform: uppercase;
-    margin-left: auto;
-    line-height: 1;
-    flex-shrink: 0;
+    font-family: var(--body);
+    font-weight: 300;
+    font-size: 14px;
+    letter-spacing: 0;
+    color: var(--soft, rgba(255,255,255,0.78));
+    text-transform: none;
+    line-height: 1.6;
+    flex: 1 1 100%;
+    min-width: 0;
+    margin-left: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
   }
 
-  /* Titre de l'item — EXACT maquette L931 : 13.5px / 600 / mb 3px */
+  /* Titre de l'item — aligné sur .diag-item .di-name : body 14 / weight 400.
+     Dans .p-title-row (flex) : flex:1 pour prendre toute la largeur
+     après le chevron. */
   .fiche-v2 .plan-card .p-title {
     font-family: var(--body);
-    font-weight: 600;
-    font-size: 13.5px;
-    line-height: 1.35;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.4;
     color: var(--text);
     letter-spacing: 0;
-    margin: 0 0 3px;
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
   }
 
-  /* Description — EXACT maquette L934 : 13px / soft / lh 1.55 */
+  /* Description — alignée sur .di-detail : body 14 / weight 300 / soft / lh 1.6 */
   .fiche-v2 .plan-card .p-desc {
     font-family: var(--body);
-    font-weight: 400;
-    font-size: 13px;
-    line-height: 1.55;
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 1.6;
     color: var(--soft, rgba(255,255,255,0.78));
     margin: 0;
   }
 
-  /* MESURÉ / CIBLE — EXACT maquette L937 : gap 8 / mt 10 / pt 10 / border top dashed */
+  /* MESURÉ / OBJECTIF — 2 colonnes, même recette typo que diagnostic :
+     labels en mono 9.5/1.5/500 (comme .diag-cat-head .name),
+     valeurs en body 14/300/soft (comme .di-detail). */
   .fiche-v2 .plan-card .p-measure {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1722,45 +2055,57 @@ export default function MockupStyles() {
   }
   .fiche-v2 .plan-card .p-measure .m-label {
     font-family: var(--mono);
-    font-weight: 400;
+    font-weight: 500;
     font-size: 9.5px;
-    letter-spacing: 1.2px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     color: var(--muted, rgba(255,255,255,0.5));
     margin: 0;
   }
+  /* Valeur MESURÉ / OBJECTIF — strictement identique à .diag-item .di-detail :
+     DM Sans 14 / weight 300 / color --soft / line-height 1.6 / casse naturelle. */
   .fiche-v2 .plan-card .p-measure .m-val {
-    font-family: var(--mono);
-    font-weight: 400;
-    font-size: 12px;
-    color: var(--text);
-    margin-top: 2px;
+    font-family: var(--body, 'DM Sans', sans-serif);
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 1.6;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--soft, #c5c5c7);
+    margin-top: 4px;
   }
   .fiche-v2 .plan-card .p-measure .m-val.target {
+    font-family: var(--body, 'DM Sans', sans-serif);
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 1.6;
+    letter-spacing: 0;
+    text-transform: none;
     color: var(--mint, #8ee07a);
   }
 
-  /* Chips d'éléments liés — EXACT maquette L952 : gap 5 / mt 10 */
+  /* Chips d'éléments liés — alignés sur .di-tools span :
+     mono 12 / muted / border / padding 3x8 / casse naturelle. */
   .fiche-v2 .plan-card .p-links {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: 6px;
     margin-top: 10px;
   }
   .fiche-v2 .plan-card .p-links .chip {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 9px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: transparent;
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
     font-family: var(--mono);
     font-weight: 400;
-    font-size: 9.5px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--soft, rgba(255,255,255,0.78));
+    font-size: 12px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--muted, rgba(255,255,255,0.5));
     line-height: 1.2;
   }
   .fiche-v2 .plan-card .p-links .chip.cerulean {
@@ -2019,8 +2364,10 @@ export default function MockupStyles() {
     transform: translateY(-4px);
     width: 300px;
     max-width: min(300px, calc(100vw - 40px));
-    background: var(--s1);
-    border: 1px solid var(--s4);
+    /* Fond solide un peu plus clair que --s1 pour bien trancher sur le halo
+     ambre derrière le panel score (sinon l'explication paraît transparente). */
+    background: #1a1b24;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     padding: 14px 16px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
@@ -2091,6 +2438,156 @@ export default function MockupStyles() {
     line-height: 1.5;
     color: var(--soft);
     font-weight: 300;
+  }
+
+  /* ── Tooltips sur les 6 tuiles mix indicators ─────────────
+     Même pattern que .ring-tooltip : hover / tip-open togglent
+     l'opacité. Positionnement adapté à la grille 2x3 (les tuiles
+     de la colonne droite et de la dernière ligne retournent
+     l'ancrage pour éviter les débordements). */
+  .fiche-v2 .row-verdict .rv-left .mi-tile {
+    position: relative;
+    cursor: help;
+    transition: background-color .16s ease, border-color .16s ease;
+  }
+  .fiche-v2 .row-verdict .rv-left .mi-tile:hover,
+  .fiche-v2 .row-verdict .rv-left .mi-tile.tip-open {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.12);
+  }
+  .fiche-v2 .row-verdict .rv-left .mi-tile .mi-help {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--s3, rgba(255,255,255,0.06));
+    color: var(--muted, rgba(255,255,255,0.5));
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity .18s ease;
+    pointer-events: none;
+  }
+  .fiche-v2 .row-verdict .rv-left .mi-tile:hover .mi-help,
+  .fiche-v2 .row-verdict .rv-left .mi-tile.tip-open .mi-help { opacity: 0.8; }
+
+  .fiche-v2 .row-verdict .rv-left .mi-tile .mi-tooltip {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    transform: translateY(-4px);
+    width: 280px;
+    max-width: min(280px, calc(100vw - 40px));
+    background: #1a1b24;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 12px 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .16s ease, transform .16s ease;
+    z-index: 210;
+    text-align: left;
+  }
+  /* Tuiles de la colonne de droite → ancrage à droite */
+  .fiche-v2 .row-verdict .rv-left .mix-indicators .mi-tile:nth-child(even) .mi-tooltip {
+    left: auto;
+    right: 0;
+  }
+  /* Dernière ligne (5e et 6e tuile) → tooltip au-dessus */
+  .fiche-v2 .row-verdict .rv-left .mix-indicators .mi-tile:nth-child(n+5) .mi-tooltip {
+    top: auto;
+    bottom: calc(100% + 8px);
+  }
+  .fiche-v2 .row-verdict .rv-left .mi-tile:hover .mi-tooltip,
+  .fiche-v2 .row-verdict .rv-left .mi-tile.tip-open .mi-tooltip {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  /* Boost de z-index sur les containers quand un tooltip est ouvert,
+     pour passer au-dessus des sections sticky environnantes. */
+  .fiche-v2 .row-verdict .rv-left .rv-top:has(.mi-tile.tip-open),
+  .fiche-v2 .row-verdict .rv-left .rv-top:has(.mi-tile:hover) {
+    z-index: 120;
+    position: relative;
+  }
+
+  .mi-tooltip .mt-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--body, 'DM Sans', sans-serif);
+    font-size: 13px;
+    color: var(--text, #f5f4ef);
+    margin-bottom: 10px;
+  }
+  .mi-tooltip .mt-head .mt-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .mi-tooltip .mt-head strong { font-weight: 500; }
+  .mi-tooltip .mt-head .mt-val {
+    margin-left: auto;
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    color: var(--muted, rgba(255,255,255,0.5));
+  }
+  .mi-tooltip .mt-section { margin-bottom: 8px; }
+  .mi-tooltip .mt-section:last-of-type { margin-bottom: 4px; }
+  .mi-tooltip .mt-h {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 9.5px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--muted, rgba(255,255,255,0.5));
+    margin-bottom: 3px;
+    font-weight: 500;
+  }
+  .mi-tooltip .mt-p {
+    font-family: var(--body, 'DM Sans', sans-serif);
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--soft, rgba(255,255,255,0.8));
+    font-weight: 300;
+  }
+  .mi-tooltip .mt-sources {
+    margin-top: 4px;
+    margin-bottom: 8px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+  }
+  .mi-tooltip .mt-sources ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .mi-tooltip .mt-sources li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    color: var(--soft, rgba(255,255,255,0.75));
+  }
+  .mi-tooltip .mt-sources .mt-src-val {
+    color: var(--muted, rgba(255,255,255,0.55));
+  }
+  .mi-tooltip .mt-note {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 10px;
+    letter-spacing: 0.3px;
+    color: var(--muted, rgba(255,255,255,0.5));
+    font-style: italic;
+    margin-top: 6px;
   }
 
   .verdict-text { flex: 1; min-width: 0; }
@@ -3165,14 +3662,23 @@ export default function MockupStyles() {
     30% { opacity: 1; transform: translateY(-4px); }
   }
   .chat-input button {
-    background: var(--amber); color: #000;
-    padding: 0 16px; border-radius: 8px;
+    background: transparent; color: var(--amber);
+    border: 1px solid rgba(245,176,86,0.45);
+    padding: 0 18px; border-radius: 999px;
     font-family: var(--mono); font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
     font-weight: 500;
     height: 40px; min-height: 40px;
     flex-shrink: 0;
     cursor: pointer;
     box-sizing: border-box;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .chat-input button:hover:not(:disabled) {
+    border-color: var(--amber);
+    background: rgba(245,176,86,0.06);
+  }
+  .chat-input button:disabled {
+    opacity: 0.5; cursor: not-allowed;
   }
 
   /* ── Chat ancré en colonne droite (fiche desktop) ──
@@ -3190,11 +3696,15 @@ export default function MockupStyles() {
   }
   .fiche-chat-side {
     position: fixed;
-    top: 124px;           /* largement sous la timeline sticky (qui peut faire 90-110px) */
+    /* Juste sous la ligne du titre de la version (topbar = 16px pad-top
+       + ~34px row + ~10-14px respiration ≈ 66-72px). Le panel recouvre
+       la row des chips de versions, d'où le z-index > topbar (10) pour
+       rester au 1er plan quand on scrolle. */
+    top: 72px;
     right: 16px;
     bottom: 84px;         /* 68px player + 16px respiration */
     width: 384px;
-    z-index: 8;
+    z-index: 12;
     display: flex;
   }
   .chat-panel.chat-panel-anchored {
@@ -3390,24 +3900,31 @@ export default function MockupStyles() {
   .wh-desktop .wh-greeting { font-size: 28px; letter-spacing: 2.5px; text-align: left; }
   .wh-desktop .wh-actions { justify-content: flex-start; flex-wrap: wrap; }
   .wh-desktop .wh-tracklist { max-width: none; margin: 0; }
-  /* Titre "Mes projets" en desktop — aligné sur .v4-panel-title de la
-     maquette v2 (DM Sans 600, 16px, letter-spacing négatif). Placé à
-     l'intérieur du cadre .wh-projects (comme .v4-panel-head). */
+  /* Titre "Mes projets" en desktop — même recette eyebrow que les titres
+     de section de la colonne droite (.wh-rcol-title) : mono 10.5px,
+     letter-spacing 2.2px, uppercase, pastille amber en tête. */
   .wh-desktop .wh-projects-title {
-    font-family: var(--body);
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: -0.2px;
-    line-height: 1.2;
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 2.2px;
+    line-height: 1;
     color: var(--text);
-    padding: 14px 18px 12px;
+    text-transform: uppercase;
+    padding: 16px 18px 14px;
     margin: 0;
     border-bottom: 1px solid var(--border);
+  }
+  .wh-desktop .wh-projects-title::before {
+    content: '';
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--amber); flex-shrink: 0;
   }
   .wh-desktop .wh-projects-title em {
     font-family: inherit; font-size: inherit; font-weight: inherit;
     letter-spacing: inherit; font-style: normal;
-    color: inherit; /* même blanc que le reste, pas d'accent ambre sur desktop */
+    color: inherit; text-transform: inherit;
   }
   /* La 1re row n'a plus besoin d'arrondis au sommet (le titre coiffe le panneau) */
   .wh-desktop .wh-projects-title + .wh-acc-item:first-of-type {
@@ -3698,39 +4215,85 @@ export default function MockupStyles() {
     align-items: start;
   }
   .wh-col-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; max-width: none; }
-  /* Colonne droite : cadre englobant (v4-panel). Les cards internes
-     passent par-dessus, leur fond est transparent (voir .wh-col-right .wh-card). */
+  /* Colonne droite : simple conteneur de 2 panneaux (userBlock + knowBlock).
+     Le fond et la bordure vivent sur chaque .wh-rcol-section ci-dessous. */
   .wh-col-right {
-    display: flex; flex-direction: column; gap: 12px;
+    display: flex; flex-direction: column; gap: 16px;
+    position: relative;
+    min-width: 0;
+  }
+  /* Chaque bloc de la colonne droite = un panneau framé avec son titre. */
+  .wh-rcol-section {
+    position: relative;
     background: var(--s1);
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 16px;
-    position: relative;
-    min-width: 0;
+    overflow: hidden;
+    display: flex; flex-direction: column; gap: 12px;
   }
-  /* Halo cerulean discret en bas-droite du panneau droit, accroché au coin. */
-  .wh-col-right::before {
+  /* Halo discret sur chaque panneau (amber pour "Toi", violet pour "Le saviez-vous"). */
+  .wh-rcol-section::after {
     content: '';
     position: absolute;
     right: 0; bottom: 0;
-    width: 240px; height: 180px;
+    width: 200px; height: 160px;
     background: radial-gradient(ellipse at bottom right,
-      rgba(92,184,204,0.07), transparent 70%);
+      rgba(245,166,35,0.06), transparent 70%);
     border-bottom-right-radius: inherit;
     pointer-events: none;
     z-index: 0;
   }
-  .wh-col-right > * { position: relative; z-index: 1; }
-  /* Les cards éditoriales placées à l'intérieur du panneau droit
-     deviennent des "tips" : fond très léger coloré, bordure fine colorée,
-     plus de glow interne qui ferait doublon avec le panneau englobant. */
-  .wh-col-right .wh-card {
+  .wh-rcol-section:nth-of-type(2)::after {
+    background: radial-gradient(ellipse at bottom right,
+      rgba(166,126,245,0.07), transparent 70%);
+  }
+  .wh-rcol-section > * { position: relative; z-index: 1; }
+
+  /* Titre de section (eyebrow mono) + pastille colorée. */
+  .wh-rcol-title {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 2.2px;
+    text-transform: uppercase; color: var(--text);
+    line-height: 1; margin: 2px 0 4px;
+  }
+  .wh-rcol-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--amber); flex-shrink: 0;
+  }
+  .wh-rcol-dot-violet { background: var(--violet); }
+
+  /* Stack des cartes à l'intérieur d'une section. */
+  .wh-rcol-cards {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  /* Titre cliquable (carte "Dernier titre analysé") : on neutralise
+     l'apparence bouton + on souligne discrètement au survol. */
+  .wh-card-title.wh-card-title-link {
+    display: inline-block;
+    padding: 0; margin: 0 0 8px;
+    background: none; border: none; cursor: pointer;
+    text-align: left;
+    color: var(--text);
+    font-family: var(--body); font-size: 14px; font-weight: 500;
+    transition: color .15s;
+  }
+  .wh-card-title.wh-card-title-link:hover {
+    color: var(--amber);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+
+  /* Les cards internes gardent leur habillage allégé (bord coloré, pas de
+     glow redondant avec le panneau englobant). */
+  .wh-rcol-section .wh-card {
     overflow: visible;
     border-radius: 10px;
     padding: 14px 16px;
   }
-  .wh-col-right .wh-card::before { display: none; }
+  .wh-rcol-section .wh-card::before { display: none; }
 
   /* ── Editorial cards — variantes colorées + halos discrets ── */
   .wh-card {
@@ -3878,16 +4441,25 @@ export default function MockupStyles() {
     transition: all .15s;
     overflow: hidden;
     background-color: rgba(255,255,255,0.02);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
   }
-  .wh-track-play:hover { color: var(--amber); border-color: var(--amber); }
+  .wh-track-play:hover { color: var(--text); border-color: var(--text); }
   .wh-track-play.playing {
     color: var(--amber); border-color: var(--amber);
     background-color: rgba(245,176,86,0.12);
   }
-  /* Icône ♪ de fallback (affichée quand pas d'image) */
+  /* Icône ♪ de fallback (affichée quand pas d'image).
+     Disparaît au hover / quand le titre joue → laisse place au triangle play. */
   .wh-track-play .wh-track-note {
     display: flex; align-items: center; justify-content: center;
     width: 100%; height: 100%;
+    transition: opacity .15s;
+  }
+  .wh-track-play:hover .wh-track-note,
+  .wh-track-play.playing .wh-track-note {
+    opacity: 0;
   }
   /* Overlay play/pause par-dessus l'image : invisible par défaut, visible au hover
      OU en continu quand le titre joue. Scrim sombre pour lisibilité sur image claire. */
@@ -3901,6 +4473,9 @@ export default function MockupStyles() {
   }
   .wh-track-play:not(.has-image) .wh-track-play-overlay {
     background: transparent;
+    color: var(--text);
+  }
+  .wh-track-play:not(.has-image).playing .wh-track-play-overlay {
     color: var(--amber);
   }
   .wh-track-play:hover .wh-track-play-overlay,
@@ -3911,7 +4486,7 @@ export default function MockupStyles() {
      et l'overlay prend le relais au hover. Également pas de tint amber au hover
      sur une image (l'overlay fait déjà le boulot). */
   .wh-track-play.has-image { background-color: transparent; border-color: transparent; }
-  .wh-track-play.has-image:hover { border-color: rgba(245,176,86,0.6); }
+  .wh-track-play.has-image:hover { border-color: var(--text); }
   .wh-track-play.has-image.playing { border-color: var(--amber); }
   .wh-track-info { flex: 1; min-width: 0; }
   .wh-track-title {
@@ -4234,6 +4809,14 @@ export default function MockupStyles() {
     position: relative;
     z-index: 5;
   }
+  /* Quand un menu 3-points de TITRE (à l'intérieur d'un projet ouvert)
+     est ouvert, on élève le projet parent au-dessus des siblings suivants
+     pour que son popup ne passe pas derrière les scores /100 en dessous.
+     Les siblings ont eux aussi z-index:1 (via .wh-projects > *), ils
+     peindraient sinon par-dessus en source order. */
+  .wh-acc-item:has(.wh-track-row.menu-open) {
+    z-index: 6;
+  }
   /* Mode ouvert : pas de surbrillance — le projet déplié reste sur le même
      fond que les autres (éviter la démarcation en haut de ligne ouverte). */
   .wh-acc-item.open {
@@ -4455,94 +5038,119 @@ export default function MockupStyles() {
     color: var(--muted); text-align: center;
   }
 
-  /* ── Auth Screen ── */
+  /* ── Auth Screen — habillage v2 ──
+     Même grammaire que LoadingScreen (ap-scaffold) : logo SVG à plat,
+     titre simple avec mot amber, tagline mono, inputs dark avec focus amber,
+     boutons pill outline (amber pour submit, dark pour OAuth). */
   .auth-screen {
     min-height: 100vh; display: grid; place-items: center;
-    padding: 40px 24px; background: var(--bg); box-sizing: border-box;
+    padding: 40px 24px; background: var(--body); box-sizing: border-box;
   }
   .auth-card {
-    width: 100%; max-width: 380px;
-    display: flex; flex-direction: column; gap: 24px;
+    width: 100%; max-width: 400px;
+    display: flex; flex-direction: column; gap: 22px;
     animation: fadeup .35s ease;
   }
   .auth-logo {
-    display: flex; flex-direction: column; align-items: center; gap: 8px;
-    margin-bottom: 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    margin-bottom: 6px;
+  }
+  .auth-logo img {
+    height: 52px !important; width: auto !important;
+    filter: drop-shadow(0 0 28px rgba(245,166,35,0.20));
   }
   .auth-brand {
-    font-family: 'Bebas Neue', sans-serif; font-size: 42px;
-    letter-spacing: 5px; color: var(--text); line-height: 1;
+    font-family: var(--heading, 'Inter'), sans-serif;
+    font-size: 26px; font-weight: 600;
+    letter-spacing: 4px; color: var(--text); line-height: 1;
+    text-transform: uppercase;
   }
-  .auth-brand .accent { color: var(--amber); }
+  .auth-brand .accent { color: var(--amber); font-style: normal; }
   .auth-tagline {
-    font-family: var(--body); font-size: 16px; font-weight: 300;
-    letter-spacing: 3px; color: var(--amber); text-transform: uppercase;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 2px; color: var(--amber); text-transform: uppercase;
     display: flex; align-items: center; gap: 10px;
   }
   .auth-tagline-dot {
-    font-size: 14px; line-height: 1; letter-spacing: 0; opacity: 0.5;
+    font-size: 11px; line-height: 1; letter-spacing: 0; opacity: 0.6;
   }
   .auth-form {
-    display: flex; flex-direction: column; gap: 12px;
+    display: flex; flex-direction: column; gap: 10px;
+    margin-top: 8px;
   }
   .auth-input {
-    width: 100%; padding: 13px 16px;
+    width: 100%; padding: 14px 16px;
     background: var(--s1); border: 1px solid var(--border);
-    border-radius: 10px; color: var(--text);
-    font-family: var(--body); font-size: 14px; font-weight: 300;
-    outline: none; box-sizing: border-box; transition: border-color .2s;
+    border-radius: 12px; color: var(--text);
+    font-family: var(--body); font-size: 14px; font-weight: 400;
+    outline: none; box-sizing: border-box;
+    transition: border-color .15s, background .15s;
   }
-  .auth-input:focus { border-color: var(--amber); }
-  .auth-input::placeholder { color: #5a5a5e; }
+  .auth-input:focus {
+    border-color: rgba(245,166,35,0.55);
+    background: rgba(245,166,35,0.04);
+  }
+  .auth-input::placeholder { color: var(--muted); }
   .auth-error {
-    color: var(--red); font-family: var(--mono); font-size: 12px;
-    text-align: center; letter-spacing: 0.3px;
+    color: var(--red); font-family: var(--mono); font-size: 11px;
+    text-align: center; letter-spacing: 1px; text-transform: uppercase;
+    padding: 8px 12px; background: rgba(255,93,93,0.06);
+    border: 1px solid rgba(255,93,93,0.22); border-radius: 10px;
   }
   .auth-info {
-    color: var(--green); font-family: var(--mono); font-size: 12px;
-    text-align: center; letter-spacing: 0.3px;
+    color: var(--mint); font-family: var(--mono); font-size: 11px;
+    text-align: center; letter-spacing: 1px; text-transform: uppercase;
+    padding: 8px 12px; background: rgba(142,224,122,0.06);
+    border: 1px solid rgba(142,224,122,0.22); border-radius: 10px;
   }
+  /* Submit = pill mono uppercase, outline amber (grammaire add-mini-btn.is-primary) */
   .auth-submit {
-    width: 100%; padding: 14px;
-    background: linear-gradient(135deg, var(--amber), #e08a00);
-    color: #000; border: none; border-radius: 10px;
-    font-family: var(--body); font-size: 16px; font-weight: 600;
-    letter-spacing: 1px; text-transform: uppercase;
-    cursor: pointer; transition: all .2s;
-    box-shadow: 0 4px 24px rgba(245,160,0,.25);
+    width: 100%; padding: 14px 24px;
+    background: transparent; color: var(--amber);
+    border: 1px solid rgba(245,166,35,0.45); border-radius: 999px;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    cursor: pointer; transition: all .15s;
+    margin-top: 6px;
   }
-  .auth-submit:hover {
-    box-shadow: 0 6px 32px rgba(245,160,0,.4); transform: translateY(-1px);
+  .auth-submit:hover:not(:disabled) {
+    border-color: var(--amber);
+    background: rgba(245,166,35,0.06);
   }
+  .auth-submit:disabled { cursor: not-allowed; }
 
   .auth-sep {
     display: flex; align-items: center; gap: 14px;
+    margin: 2px 0;
   }
   .auth-sep-line { flex: 1; height: 1px; background: var(--border); }
   .auth-sep-text {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 2px;
-    color: var(--muted2);
+    font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+    color: var(--muted); text-transform: uppercase;
   }
 
   .auth-oauth {
     display: flex; flex-direction: column; gap: 10px;
   }
+  /* OAuth = pill mono dark, outline soft (secondary look) */
   .auth-oauth-btn {
-    width: 100%; padding: 12px 16px;
-    background: var(--s1); border: 1px solid var(--border);
-    border-radius: 10px; color: var(--text);
-    font-family: var(--body); font-size: 14px; font-weight: 400;
-    cursor: pointer; transition: all .2s;
+    width: 100%; padding: 12px 18px;
+    background: transparent; color: var(--text);
+    border: 1px solid var(--border); border-radius: 999px;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    cursor: pointer; transition: all .15s;
     display: flex; align-items: center; justify-content: center; gap: 10px;
   }
   .auth-oauth-btn:hover {
-    border-color: var(--muted); background: var(--s2);
+    border-color: rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.02);
   }
 
-  .auth-toggle { text-align: center; }
+  .auth-toggle { text-align: center; margin-top: 4px; }
   .auth-toggle-btn {
     background: transparent; border: none;
-    color: var(--muted); font-family: var(--body); font-size: 14px;
+    color: var(--muted); font-family: var(--body); font-size: 13px;
     cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
     transition: color .2s;
   }
@@ -4752,7 +5360,884 @@ export default function MockupStyles() {
   }
 
   /* ══════════════════════════════════════════════════════ */
-  /* FICHE SCREEN — responsive helpers                      */
+  /* RÉGLAGES — mini-modal v2 (aligné maquette)            */
+  /* ══════════════════════════════════════════════════════ */
+  /* Le panel lui-même devient la mini-modal quand on ajoute .mini-modal.
+     Pas de halo externe : la modale est pleinement opaque (cohérent avec
+     la modale Ajouter). Le fond est assez foncé pour couvrir le halo score
+     global qui peut se trouver derrière. */
+  .reglages-modal-panel.mini-modal {
+    /* Fond volontairement plus sombre que les lignes : dans la maquette
+       les rows ressortent en étant légèrement plus clairs que le panel. */
+    background: #0a0b10;
+    border: 1px solid rgba(255,255,255,0.06);
+    max-width: 560px;
+    overflow: hidden;
+  }
+  .reglages-modal-panel.mini-modal .reglages-modal-scroll {
+    position: relative;
+    z-index: 1;
+  }
+
+  .rg-mini {
+    position: relative;
+    padding: 26px 28px 22px;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .rg-mini .rg-mm-head {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .rg-mini .rg-mm-title {
+    font-family: var(--body); font-weight: 600; font-size: 18px;
+    letter-spacing: -0.2px; color: var(--text);
+    margin-bottom: 18px;
+  }
+  .rg-mini .rg-mm-title em {
+    font-family: inherit; font-style: normal; font-weight: inherit; color: var(--amber);
+  }
+
+  /* Row de réglage */
+  .rg-mini .rg-row {
+    /* Row légèrement plus claire que le panel, avec un subtil highlight
+       haut pour l'effet "surélevé" de la maquette. */
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; padding: 12px 14px;
+    border-radius: 10px;
+    background: #111216;
+    border: 1px solid rgba(255,255,255,0.05);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+    margin-bottom: 7px;
+    transition: border-color .15s, background .15s;
+  }
+  .rg-mini .rg-row:hover {
+    border-color: rgba(245,176,86,0.22);
+    background: #13141a;
+  }
+  .rg-mini .rg-row.is-stack {
+    flex-direction: column; align-items: stretch; gap: 10px;
+  }
+
+  .rg-mini .rg-label {
+    font-family: var(--body); font-size: 13px; font-weight: 500;
+    color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .rg-mini .rg-hint {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.5px;
+    color: var(--muted); margin-top: 3px;
+    max-width: 280px;
+  }
+
+  /* Toggle pill (FR/EN + notifs) */
+  .rg-mini .rg-toggle {
+    display: inline-flex; align-items: center; gap: 0;
+    background: rgba(0,0,0,0.35); border: 1px solid var(--border);
+    border-radius: 999px; padding: 2px; flex-shrink: 0;
+  }
+  .rg-mini .rg-toggle button {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1px;
+    color: var(--muted); text-transform: uppercase;
+    padding: 5px 12px; border-radius: 999px; cursor: pointer;
+    background: transparent; border: none;
+    transition: color .15s, background .15s;
+  }
+  .rg-mini .rg-toggle button:hover { color: var(--text); }
+  .rg-mini .rg-toggle button.on {
+    background: var(--amber); color: #0a0a0c;
+  }
+  .rg-mini .rg-toggle button.on:hover { color: #0a0a0c; }
+
+  /* Valeur lecture seule (compte, range) */
+  .rg-mini .rg-value {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.5px;
+    color: var(--cerulean); flex-shrink: 0;
+  }
+  .rg-mini .rg-value.muted { color: var(--muted); }
+
+  /* Avatar compact à droite d'une row */
+  .rg-mini .rg-avatar {
+    width: 46px; height: 46px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--amber), #e88855);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative; overflow: hidden; flex-shrink: 0;
+    transition: transform .15s;
+  }
+  .rg-mini .rg-avatar:hover { transform: scale(1.06); }
+  .rg-mini .rg-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .rg-mini .rg-avatar-initial {
+    font-family: var(--mono); font-size: 18px; font-weight: 600; color: #000;
+  }
+  .rg-mini .rg-avatar-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.5); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; opacity: 0; transition: opacity .2s;
+    border-radius: 50%;
+  }
+  .rg-mini .rg-avatar:hover .rg-avatar-overlay { opacity: 1; }
+
+  /* Inputs compacts en grille 2 colonnes (profil + bank) */
+  .rg-mini .rg-inputs {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%;
+  }
+  .rg-mini .rg-input {
+    background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 12px;
+    color: var(--text); font-family: var(--body); font-size: 13px;
+    outline: none; transition: border-color .15s;
+    width: 100%; box-sizing: border-box;
+  }
+  .rg-mini .rg-input:focus { border-color: rgba(245,176,86,0.5); }
+  .rg-mini .rg-input::placeholder { color: #5a5a5e; }
+  .rg-mini .rg-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Select DAW compact */
+  .rg-mini .rg-select-wrap {
+    position: relative; min-width: 180px; flex-shrink: 0;
+  }
+  .rg-mini .rg-select {
+    background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 32px 8px 12px;
+    color: var(--text); font-family: var(--body); font-size: 13px;
+    outline: none; cursor: pointer; appearance: none;
+    width: 100%; box-sizing: border-box;
+  }
+  .rg-mini .rg-select:focus { border-color: rgba(245,176,86,0.5); }
+  .rg-mini .rg-select option { background: var(--s1); color: var(--text); }
+  .rg-mini .rg-select-arrow {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    pointer-events: none; color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Pill Premium dans le label bank */
+  .rg-mini .rg-premium-pill {
+    font-family: var(--mono); font-size: 8px; letter-spacing: 1.5px;
+    background: var(--amber); color: #000;
+    padding: 2px 6px; border-radius: 4px; font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  /* Feedback saved subtil */
+  .rg-mini .rg-saved-chip {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1px;
+    color: var(--mint); text-transform: uppercase;
+    align-self: flex-end; margin-top: 4px;
+  }
+
+  /* Footer boutons — aligné maquette : mono uppercase, pill outline,
+     boîte stable (line-height en px), même grammaire que la maquette v2. */
+  .rg-mini .rg-foot {
+    display: flex; gap: 10px; justify-content: flex-end; align-items: center;
+    margin-top: 18px; padding-top: 4px;
+  }
+  .rg-mini .rg-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 20px; border-radius: 999px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--soft);
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    line-height: 16px;       /* fixe en px → boîte stable pour tous les glyphs */
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    cursor: pointer; transition: all .15s;
+    appearance: none; -webkit-appearance: none;
+  }
+  .rg-mini .rg-btn:hover {
+    border-color: rgba(245,176,86,.4); color: var(--amber);
+  }
+  .rg-mini .rg-btn.is-danger {
+    color: var(--red); border-color: rgba(255,93,93,0.35);
+  }
+  .rg-mini .rg-btn.is-danger:hover {
+    border-color: var(--red); color: var(--red);
+    background: rgba(255,93,93,0.06);
+  }
+  /* Primaire pill transparent (aligné sur le style danger) : ambre bordé,
+     pas de fond plein. Hover = léger voile ambre. */
+  .rg-mini .rg-btn.is-primary {
+    color: var(--amber); background: transparent; border-color: rgba(245,176,86,0.45);
+  }
+  .rg-mini .rg-btn.is-primary:hover {
+    border-color: var(--amber); color: var(--amber);
+    background: rgba(245,176,86,0.06);
+  }
+  .rg-mini .rg-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* Loader interne */
+  .rg-mini .rg-loading {
+    padding: 28px 10px;
+    text-align: center;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 1px;
+    color: var(--muted);
+  }
+
+  /* Responsive serré */
+  @media (max-width: 640px) {
+    .rg-mini { padding: 22px 18px 18px; }
+    .rg-mini .rg-row { padding: 10px 12px; }
+    .rg-mini .rg-select-wrap { min-width: 150px; }
+  }
+
+  /* ══════════════════════════════════════════════════════ */
+  /* ADD MODAL — mini-modal                                  */
+  /* Alignée sur le style Réglages : card sombre #0a0b10,    */
+  /* rows #111216 surélevées (inset highlight), boutons mono */
+  /* uppercase pill outline. Titre « Ajouter quoi ? » avec   */
+  /* un mot amber (via em, font-style forcé normal).         */
+  /* ══════════════════════════════════════════════════════ */
+  .add-mini-backdrop {
+    position: fixed; inset: 0; z-index: 10000;
+    background: rgba(0,0,0,.55);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px; font-family: var(--body);
+  }
+  .add-mini-card {
+    position: relative;
+    background: #0a0b10;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    padding: 26px 28px 22px;
+    width: 440px; max-width: 92vw;
+    max-height: 92vh; overflow-y: auto;
+    box-sizing: border-box;
+  }
+  .add-mini-card.is-upload { width: 520px; }
+
+  .add-mini-close {
+    position: absolute; top: 14px; right: 14px;
+    background: transparent; border: none;
+    color: var(--muted); cursor: pointer;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; transition: color .15s, background .15s;
+  }
+  .add-mini-close:hover { color: var(--text); background: var(--s2); }
+
+  .add-mini-back {
+    background: transparent; border: none; color: var(--muted);
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1.2px;
+    text-transform: uppercase; cursor: pointer;
+    padding: 0; margin-bottom: 12px;
+    transition: color .15s;
+  }
+  .add-mini-back:hover { color: var(--text); }
+
+  .add-mini-title {
+    font-family: var(--body); font-weight: 600; font-size: 18px;
+    letter-spacing: -0.2px; color: var(--text);
+    margin-bottom: 18px;
+  }
+  .add-mini-title em {
+    font-family: inherit; font-style: normal; font-weight: inherit;
+    color: var(--amber);
+  }
+
+  /* Eyebrow au-dessus d'un titre de modale (mono uppercase discret) */
+  .add-mini-eyebrow {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 1.6px; text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .add-mini-eyebrow::before {
+    content: '';
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--amber);
+    flex-shrink: 0;
+  }
+  /* Quand la modale commence par un eyebrow, on resserre l'écart avec le titre */
+  .add-mini-eyebrow + .add-mini-title { margin-top: 2px; }
+
+  /* Root : 3 choix */
+  .add-mini-choices {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .add-mini-choice {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; text-align: left;
+    padding: 14px 16px; border-radius: 12px;
+    background: #111216;
+    border: 1px solid rgba(255,255,255,0.05);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+    color: var(--text); cursor: pointer;
+    font-family: var(--body);
+    transition: border-color .15s, background .15s;
+  }
+  .add-mini-choice:hover:not(:disabled) {
+    border-color: rgba(245,176,86,0.28);
+    background: #13141a;
+  }
+  .add-mini-choice:disabled {
+    opacity: 0.45; cursor: not-allowed;
+  }
+  .add-mini-choice-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .add-mini-choice-icon.is-amber {
+    background: rgba(245,176,86,0.10); color: var(--amber);
+    border: 1px solid rgba(245,176,86,0.20);
+  }
+  .add-mini-choice-icon.is-cerulean {
+    background: rgba(100,176,240,0.10); color: var(--cerulean);
+    border: 1px solid rgba(100,176,240,0.20);
+  }
+  .add-mini-choice-icon.is-mint {
+    background: rgba(123,216,143,0.10); color: var(--mint);
+    border: 1px solid rgba(123,216,143,0.20);
+  }
+  .add-mini-choice-body { flex: 1; min-width: 0; padding-top: 1px; }
+  .add-mini-choice-label {
+    font-size: 14px; font-weight: 500; color: var(--text);
+    margin-bottom: 2px;
+  }
+  .add-mini-choice-desc {
+    font-family: var(--mono); font-size: 9.5px;
+    letter-spacing: 0.5px; color: var(--muted);
+  }
+
+  /* Picker (pick-project, pick-track, new-project-name) */
+  .add-mini-section-title {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 10px;
+  }
+  .add-mini-pick {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; width: 100%; text-align: left;
+    padding: 12px 14px; border-radius: 10px;
+    background: #111216;
+    border: 1px solid rgba(255,255,255,0.05);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+    color: var(--text); cursor: pointer;
+    font-family: var(--body); font-size: 13px;
+    margin-bottom: 7px;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .add-mini-pick:hover {
+    border-color: rgba(245,176,86,0.28);
+    background: #13141a;
+    color: var(--amber);
+  }
+  .add-mini-pick-count {
+    font-family: var(--mono); font-size: 9.5px;
+    letter-spacing: 0.5px; color: var(--muted);
+  }
+  .add-mini-pick:hover .add-mini-pick-count { color: var(--amber); }
+
+  .add-mini-create-new {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; text-align: left;
+    padding: 12px 14px; border-radius: 10px;
+    background: transparent;
+    border: 1px dashed rgba(245,176,86,0.3);
+    color: var(--amber); cursor: pointer;
+    font-family: var(--body); font-size: 13px;
+    margin-top: 4px;
+    transition: all .15s;
+  }
+  .add-mini-create-new:hover {
+    border-color: var(--amber);
+    background: rgba(245,176,86,0.05);
+  }
+
+  /* Inputs (new project, upload form) */
+  .add-mini-input {
+    width: 100%; box-sizing: border-box;
+    background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+    color: var(--text); font-family: var(--body); font-size: 13px;
+    outline: none; transition: border-color .15s;
+  }
+  .add-mini-input:focus { border-color: rgba(245,176,86,0.5); }
+  .add-mini-input:disabled { opacity: 0.5; cursor: not-allowed; }
+  .add-mini-input::placeholder { color: #5a5a5e; }
+
+  .add-mini-field { display: flex; flex-direction: column; margin-bottom: 12px; }
+  .add-mini-field-label {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px;
+  }
+
+  /* Upload : bandeau projet */
+  .add-mini-upload-banner {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px;
+    background: rgba(245,176,86,0.06);
+    border: 1px solid rgba(245,176,86,0.25);
+    margin-bottom: 14px;
+  }
+  .add-mini-upload-banner-kicker {
+    font-family: var(--mono); font-size: 9px;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .add-mini-upload-banner-name {
+    font-size: 13px; color: var(--text); font-weight: 500;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* Upload : drop zone */
+  .add-mini-drop {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; border-radius: 10px;
+    background: rgba(0,0,0,0.3);
+    border: 1px dashed var(--border);
+    cursor: pointer; transition: all .15s;
+  }
+  .add-mini-drop.is-active {
+    background: rgba(245,176,86,0.06);
+    border-color: var(--amber);
+  }
+  .add-mini-drop.is-filled {
+    background: rgba(123,216,143,0.04);
+    border-color: rgba(123,216,143,0.33);
+  }
+
+  /* Upload : pill (vocal) + select wrap (daw) */
+  .add-mini-pill {
+    padding: 8px 14px; border-radius: 999px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--soft);
+    cursor: pointer; font-family: var(--body);
+    font-size: 13px; font-weight: 500;
+    transition: all .15s;
+    appearance: none; -webkit-appearance: none;
+  }
+  .add-mini-pill.on {
+    background: var(--amber); border-color: var(--amber);
+    color: #0a0a0c;
+  }
+  .add-mini-select-wrap { position: relative; }
+  .add-mini-select {
+    width: 100%; box-sizing: border-box;
+    background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 32px 10px 12px;
+    color: var(--text); font-family: var(--body); font-size: 13px;
+    outline: none; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    transition: border-color .15s;
+  }
+  .add-mini-select:focus { border-color: rgba(245,176,86,0.5); }
+  .add-mini-select option { background: var(--s1); color: var(--text); }
+  .add-mini-select-arrow {
+    position: absolute; right: 10px; top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none; color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Footer boutons */
+  .add-mini-foot {
+    display: flex; gap: 10px; justify-content: flex-end;
+    align-items: center; margin-top: 18px; padding-top: 4px;
+  }
+  .add-mini-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 6px; padding: 10px 20px; border-radius: 999px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--soft);
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    line-height: 16px; box-sizing: border-box;
+    flex: 0 0 auto; cursor: pointer;
+    transition: all .15s;
+    appearance: none; -webkit-appearance: none;
+  }
+  .add-mini-btn:hover:not(:disabled) {
+    border-color: rgba(245,176,86,.4); color: var(--amber);
+  }
+  .add-mini-btn.is-primary {
+    color: var(--amber); background: transparent;
+    border-color: rgba(245,176,86,0.45);
+  }
+  .add-mini-btn.is-primary:hover:not(:disabled) {
+    border-color: var(--amber);
+    background: rgba(245,176,86,0.06);
+  }
+  .add-mini-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* CTA large (upload) */
+  .add-mini-cta {
+    width: 100%; padding: 12px 16px; border-radius: 999px;
+    background: transparent;
+    border: 1px solid rgba(245,176,86,0.45);
+    color: var(--amber);
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    line-height: 16px; cursor: pointer;
+    transition: all .15s; margin-top: 6px;
+    appearance: none; -webkit-appearance: none;
+  }
+  .add-mini-cta:hover:not(:disabled) {
+    border-color: var(--amber);
+    background: rgba(245,176,86,0.06);
+  }
+  .add-mini-cta:disabled {
+    opacity: 0.4; cursor: not-allowed;
+    border-color: var(--border); color: var(--muted);
+  }
+
+  /* Variantes de boutons partagées (Export PDF, Share link) */
+  .add-mini-btn.is-filled-amber {
+    color: var(--body); background: var(--amber);
+    border-color: var(--amber);
+  }
+  .add-mini-btn.is-filled-amber:hover:not(:disabled) {
+    background: #f7bd6e; border-color: #f7bd6e; color: var(--body);
+  }
+  .add-mini-btn.is-filled-mint {
+    color: var(--body); background: var(--mint);
+    border-color: var(--mint);
+  }
+  .add-mini-btn.is-mint {
+    color: var(--mint); background: transparent;
+    border-color: rgba(122,196,142,0.45);
+  }
+  .add-mini-btn.is-mint:hover:not(:disabled) {
+    border-color: var(--mint); background: rgba(122,196,142,0.06);
+    color: var(--mint);
+  }
+  .add-mini-btn.is-danger {
+    color: var(--red); border-color: rgba(239,107,107,0.38);
+  }
+  .add-mini-btn.is-danger:hover:not(:disabled) {
+    border-color: var(--red);
+    background: rgba(239,107,107,0.06); color: var(--red);
+  }
+
+  /* Sous-titre sous le titre principal */
+  .add-mini-sub {
+    font-size: 13px; color: var(--muted);
+    margin-top: -4px; margin-bottom: 16px;
+    letter-spacing: .2px;
+  }
+
+  /* Texte de corps (paragraphe descriptif) */
+  .add-mini-body-text {
+    font-size: 14px; color: var(--soft); line-height: 1.55;
+    margin-bottom: 14px;
+  }
+
+  /* En-tête de section mono uppercase */
+  .add-mini-section-head {
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 10px;
+  }
+
+  /* Liste à cocher (sections à inclure dans l'export) */
+  .add-mini-list {
+    display: flex; flex-direction: column; gap: 8px;
+    margin-bottom: 18px;
+  }
+  /* Variante "liste à plat" (Export PDF v2) : pas de carte par ligne,
+     juste une checkbox + un label alignés. Plus aéré, plus sobre. */
+  .add-mini-list.is-flat { gap: 2px; margin-bottom: 22px; }
+  .add-mini-list.is-flat .add-mini-check-row {
+    padding: 8px 2px;
+    background: transparent;
+    border: none; box-shadow: none;
+    border-radius: 6px;
+  }
+  .add-mini-list.is-flat .add-mini-check-row:hover:not(.is-disabled) {
+    background: rgba(255,255,255,0.025);
+    border-color: transparent;
+  }
+  .add-mini-list.is-flat .add-mini-check-row.is-checked {
+    border-color: transparent;
+  }
+  .add-mini-list.is-flat .add-mini-check-label { font-weight: 500; font-size: 14px; }
+  .add-mini-check-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 14px; border-radius: 12px;
+    background: #111216; border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .add-mini-check-row:hover:not(.is-disabled) {
+    border-color: rgba(245,176,86,0.28);
+  }
+  .add-mini-check-row.is-disabled { opacity: 0.4; cursor: not-allowed; background: transparent; }
+  .add-mini-check-row.is-checked { border-color: rgba(245,176,86,0.42); }
+
+  .add-mini-check {
+    width: 18px; height: 18px; flex: 0 0 18px; border-radius: 5px;
+    border: 1.5px solid #3a3a3e; background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 1px;
+    transition: border-color .15s, background .15s;
+  }
+  .add-mini-check.is-on { border-color: var(--amber); background: var(--amber); }
+
+  .add-mini-check-body { flex: 1; min-width: 0; }
+  .add-mini-check-label {
+    display: block;
+    font-size: 14px; color: var(--text); line-height: 1.3;
+    font-weight: 500;
+  }
+  .add-mini-check-label-na {
+    margin-left: 6px; color: var(--muted); font-size: 13px; font-weight: 400;
+  }
+  .add-mini-check-hint {
+    display: block;
+    font-size: 13px; color: var(--muted);
+    margin-top: 3px; line-height: 1.4;
+  }
+
+  /* Ligne URL + bouton copier */
+  .add-mini-url-row {
+    display: flex; gap: 8px; align-items: stretch;
+    margin-bottom: 12px;
+  }
+  .add-mini-url-input {
+    flex: 1; padding: 10px 16px; font-size: 13px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--text); background: #111216;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 999px; outline: none;
+    min-width: 0;
+  }
+  .add-mini-url-input:focus { border-color: rgba(245,176,86,0.4); }
+
+  /* Ligne de statut mint */
+  .add-mini-status {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--mint); margin-bottom: 16px;
+  }
+  .add-mini-status-check {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 12px; height: 12px;
+  }
+
+  /* Pied de modale avec deux groupes (gauche: destructif, droite: actions) */
+  .add-mini-foot.is-split { justify-content: space-between; }
+
+  @media (max-width: 640px) {
+    .add-mini-card { padding: 22px 18px 18px; }
+    .add-mini-url-row { flex-direction: column; }
+  }
+
+  /* ══════════════════════════════════════════════════════ */
+  /* ANALYSE EN COURS — v2 (radial + micro-steps)           */
+  /* ══════════════════════════════════════════════════════ */
+  .ap-scaffold {
+    width: 100%; min-height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px 20px; box-sizing: border-box;
+    animation: fadeup .3s ease;
+  }
+  .ap-stack {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 24px; max-width: 520px; width: 100%;
+  }
+  .ap-logo {
+    height: 60px; width: auto; display: block;
+    filter: drop-shadow(0 6px 22px rgba(245,166,35,0.28));
+  }
+  .ap-title {
+    font-family: var(--body); font-size: 30px; font-weight: 600;
+    letter-spacing: -0.4px; color: var(--text);
+    text-align: center; margin: 0;
+  }
+  .ap-title em {
+    font-style: normal; color: var(--amber);
+  }
+  .ap-sub {
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    letter-spacing: 1.6px; text-transform: uppercase;
+    color: var(--muted); text-align: center;
+    margin: -12px 0 4px;
+  }
+  .ap-sub b { color: var(--soft); font-weight: 500; }
+
+  /* Radial */
+  .ap-radial-wrap {
+    position: relative; width: 220px; height: 220px;
+    margin: 4px 0 2px;
+  }
+  .ap-radial { width: 100%; height: 100%; transform: rotate(-90deg); display: block; }
+  .ap-radial circle { fill: none; stroke-width: 3; }
+  .ap-radial .track { stroke: rgba(255,255,255,0.05); }
+  .ap-radial .bar {
+    stroke: var(--amber);
+    stroke-linecap: round;
+    stroke-dasharray: 628;
+    filter: drop-shadow(0 0 6px rgba(245,166,35,0.5));
+    transition: stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1);
+  }
+  .ap-radial-inner {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+  }
+  .ap-pct {
+    font-family: var(--body); font-size: 46px; font-weight: 600;
+    letter-spacing: -1px; color: var(--text); line-height: 1;
+  }
+  .ap-pct em {
+    font-style: normal; color: var(--amber);
+    font-size: 20px; margin-left: 2px;
+    vertical-align: super; font-weight: 500;
+  }
+  .ap-status {
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--amber); margin-top: 8px;
+    max-width: 140px;
+  }
+
+  /* Micro-steps horizontaux */
+  .ap-micro-steps {
+    display: flex; justify-content: center;
+    gap: 16px; flex-wrap: wrap;
+    margin: 6px 0 2px;
+  }
+  .ap-micro {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .ap-micro b { font-weight: 500; }
+  .ap-micro.is-done b { color: var(--mint); }
+  .ap-micro.is-active b { color: var(--amber); }
+  .ap-micro-bullet {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+  }
+  .ap-micro.is-done .ap-micro-bullet { background: var(--mint); }
+  .ap-micro.is-active .ap-micro-bullet {
+    background: var(--amber);
+    box-shadow: 0 0 8px rgba(245,166,35,0.6);
+    animation: ap-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes ap-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.55; }
+  }
+
+  /* Waveform animée */
+  .ap-wave {
+    display: flex; align-items: flex-end; justify-content: center;
+    gap: 3px; height: 32px;
+  }
+  .ap-wave span {
+    width: 3px; border-radius: 2px;
+    background: linear-gradient(180deg, var(--amber), rgba(245,166,35,0.3));
+    animation: ap-wave 1.4s ease-in-out infinite;
+  }
+  @keyframes ap-wave {
+    0%, 100% { height: 6px; opacity: 0.5; }
+    50% { height: 26px; opacity: 1; }
+  }
+  .ap-wave span:nth-child(1)  { animation-delay: 0.00s; }
+  .ap-wave span:nth-child(2)  { animation-delay: 0.08s; }
+  .ap-wave span:nth-child(3)  { animation-delay: 0.16s; }
+  .ap-wave span:nth-child(4)  { animation-delay: 0.24s; }
+  .ap-wave span:nth-child(5)  { animation-delay: 0.32s; }
+  .ap-wave span:nth-child(6)  { animation-delay: 0.40s; }
+  .ap-wave span:nth-child(7)  { animation-delay: 0.48s; }
+  .ap-wave span:nth-child(8)  { animation-delay: 0.56s; }
+  .ap-wave span:nth-child(9)  { animation-delay: 0.64s; }
+  .ap-wave span:nth-child(10) { animation-delay: 0.72s; }
+  .ap-wave span:nth-child(11) { animation-delay: 0.80s; }
+  .ap-wave span:nth-child(12) { animation-delay: 0.88s; }
+
+  /* Carte "Le saviez-vous" */
+  .ap-tip {
+    width: 100%;
+    background: #0e0f14; border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px 18px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+  }
+  .ap-tip-kicker {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--amber); margin-bottom: 6px;
+  }
+  .ap-tip-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--amber); }
+  .ap-tip-body {
+    font-size: 14px; color: var(--soft); line-height: 1.55;
+    animation: fadein .4s ease;
+  }
+
+  /* État d'erreur */
+  .ap-error {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 18px; padding: 60px 20px;
+    max-width: 420px; margin: 0 auto;
+  }
+  .ap-error-body {
+    font-family: var(--mono); font-size: 13px; color: var(--red);
+    text-align: center; line-height: 1.5;
+    padding: 14px 18px; background: rgba(255,93,93,0.06);
+    border: 1px solid rgba(255,93,93,0.25);
+    border-radius: 12px;
+  }
+  .ap-error-retry {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    padding: 10px 20px; border-radius: 999px;
+    color: var(--amber); background: transparent;
+    border: 1px solid rgba(245,166,35,0.45);
+    cursor: pointer; transition: all .15s;
+  }
+  .ap-error-retry:hover {
+    border-color: var(--amber);
+    background: rgba(245,166,35,0.06);
+  }
+
+  /* ── Bouton "Annuler l'analyse" (pill outline amber discret) ─
+     Posé en bas du ap-stack, pas une action principale : on atténue
+     le contour pour qu'il ne concurrence pas le radial ni le statut. */
+  .ap-cancel {
+    margin-top: 8px;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    padding: 10px 22px; border-radius: 999px;
+    color: var(--muted); background: transparent;
+    border: 1px solid rgba(255,255,255,0.10);
+    cursor: pointer; transition: all .15s;
+  }
+  .ap-cancel:hover {
+    color: var(--red);
+    border-color: rgba(255,93,93,0.4);
+    background: rgba(255,93,93,0.04);
+  }
+
+  /* ── Variante "finalize" (widget compact pour FicheScreen AnalyzingState) ──
+     Même grammaire que ap-scaffold mais plus discret : pas d'anneau 220px,
+     juste un petit anneau radial 120px + micro-steps + wave + tip. Se pose
+     dans la colonne droite de FicheScreen pendant la rédaction de la fiche. */
+  .ap-finalize {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 22px; padding: 48px 20px 60px;
+    max-width: 520px; margin: 0 auto;
+  }
+  .ap-finalize .ap-radial-wrap { width: 140px; height: 140px; }
+  .ap-finalize .ap-radial { width: 140px; height: 140px; }
+  .ap-finalize .ap-pct { font-size: 30px; }
+  .ap-finalize .ap-pct em { font-size: 14px; }
+  .ap-finalize .ap-status { font-size: 10px; letter-spacing: 1.5px; }
+  .ap-finalize .ap-title { font-size: 24px; }
+
+  /* ══════════════════════════════════════════════════════ */
+  /* AUTH SCREEN — habillage v2                              */
   /* ══════════════════════════════════════════════════════ */
   .track-title-left {
     display: flex; align-items: center; gap: 10px; min-width: 0;

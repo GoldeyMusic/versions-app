@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import T from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
 import useLang from '../hooks/useLang';
 

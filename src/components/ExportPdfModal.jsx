@@ -5,6 +5,10 @@ import useLang from '../hooks/useLang';
 // dans le fichier téléchargé. Par défaut tout est coché, car sur une vraie
 // fiche "premium" on veut tout voir — mais David a explicitement demandé
 // de laisser le choix côté utilisateur (pas d'export rigide).
+//
+// Habillage v2 : mini-modal (dark card, un mot amber dans le titre,
+// boutons pill mono uppercase) — partage le même langage visuel que
+// Réglages, AddModal et ShareLinkModal.
 export default function ExportPdfModal({
   title,
   versionName,
@@ -31,7 +35,13 @@ export default function ExportPdfModal({
       if (e.key === 'Escape' && !busy) onCancel?.();
     };
     document.addEventListener('keydown', h);
-    return () => document.removeEventListener('keydown', h);
+    // Empêche le scroll du fond pendant que la modale est ouverte
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', h);
+      document.body.style.overflow = prev;
+    };
   }, [onCancel, busy]);
 
   const toggle = (k) => setSections((s) => ({ ...s, [k]: !s[k] }));
@@ -57,66 +67,65 @@ export default function ExportPdfModal({
     }
   };
 
+  // Titre (maquette v2) : "{piste} · <em>V{versionName}</em>"
+  // L'eyebrow "Modale · Export PDF" remplace l'ancien titre générique ;
+  // le titre parle désormais de la fiche sur laquelle on agit, avec la
+  // version en ambre comme accent (convention une-couleur du projet).
+  const hasTitle = !!(title && title.trim());
+  const hasVersion = !!(versionName && versionName.toString().trim());
+
   return (
     <div
+      className="add-mini-backdrop"
       onClick={busy ? undefined : onCancel}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 10000,
-        background: 'rgba(0,0,0,.55)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: "'DM Sans', sans-serif",
-      }}
+      role="presentation"
     >
       <div
+        className="add-mini-card"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: 460, maxWidth: '92vw',
-          background: '#141416', border: '1px solid #2a2a2e',
-          borderRadius: 14, padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,.6)',
-        }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={s.modals.exportPdfModalTitle}
       >
-        <div style={{ fontSize: 14, color: '#e8e8ea', marginBottom: 4, fontWeight: 500 }}>
-          {s.modals.exportPdfModalTitle}
+        <button
+          type="button"
+          className="add-mini-close"
+          onClick={onCancel}
+          disabled={busy}
+          aria-label={s.common?.close || 'Fermer'}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+
+        <div className="add-mini-eyebrow">
+          {s.modals.exportPdfEyebrow}
         </div>
-        <div style={{ fontSize: 14, color: '#8a8a8f', marginBottom: 16 }}>
-          {title}{versionName ? ` — ${s.modals.exportPdfVersionPrefix} ${versionName}` : ''}
+        <div className="add-mini-title">
+          {hasTitle ? title : s.modals.exportPdfModalTitle}
+          {hasTitle && hasVersion && <>{' · '}<em>{versionName}</em></>}
         </div>
 
-        <div style={{ fontSize: 14, color: '#8a8a8f', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 }}>
-          {s.modals.exportPdfSections}
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+        <div className="add-mini-list is-flat">
           {options.map((opt) => {
             const disabled = !opt.available;
             const checked = !disabled && sections[opt.key];
+            const rowCls = [
+              'add-mini-check-row',
+              disabled ? 'is-disabled' : '',
+              checked ? 'is-checked' : '',
+            ].filter(Boolean).join(' ');
             return (
-              <label
-                key={opt.key}
-                style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 10,
-                  padding: '10px 12px', borderRadius: 10,
-                  background: disabled ? 'transparent' : '#1a1a1d',
-                  border: `1px solid ${disabled ? '#222226' : checked ? '#f5b05666' : '#2a2a2e'}`,
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                  opacity: disabled ? 0.4 : 1,
-                  transition: 'border-color .15s ease, background .15s ease',
-                }}
-              >
+              <label key={opt.key} className={rowCls}>
                 <span
                   aria-hidden="true"
-                  style={{
-                    width: 16, height: 16, flex: '0 0 16px',
-                    borderRadius: 4,
-                    border: `1.5px solid ${checked ? '#f5b056' : '#3a3a3e'}`,
-                    background: checked ? '#f5b056' : 'transparent',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    marginTop: 1,
-                  }}
+                  className={`add-mini-check${checked ? ' is-on' : ''}`}
                 >
                   {checked && (
-                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                      <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#141416" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                      <path d="M2.5 6l2.3 2.3L9.5 3.5" stroke="#0a0b10" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   )}
                 </span>
@@ -127,15 +136,14 @@ export default function ExportPdfModal({
                   onChange={() => toggle(opt.key)}
                   style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
                 />
-                <span style={{ flex: 1 }}>
-                  <span style={{ display: 'block', fontSize: 14, color: '#e8e8ea', lineHeight: 1.3 }}>
+                <span className="add-mini-check-body">
+                  <span className="add-mini-check-label">
                     {opt.label}
                     {disabled && (
-                      <span style={{ marginLeft: 6, fontSize: 14, color: '#6a6a6e' }}>{s.modals.exportPdfNotAvailable}</span>
+                      <span className="add-mini-check-label-na">
+                        {s.modals.exportPdfNotAvailable}
+                      </span>
                     )}
-                  </span>
-                  <span style={{ display: 'block', fontSize: 14, color: '#8a8a8f', marginTop: 2 }}>
-                    {opt.hint}
                   </span>
                 </span>
               </label>
@@ -143,31 +151,21 @@ export default function ExportPdfModal({
           })}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <div className="add-mini-foot">
           <button
+            type="button"
+            className="add-mini-btn"
             onClick={onCancel}
             disabled={busy}
-            style={{
-              padding: '8px 16px', fontSize: 14, borderRadius: 8,
-              background: 'transparent', border: '1px solid #2a2a2e',
-              color: '#c5c5c7', cursor: busy ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit',
-            }}
           >
             {s.modals.exportPdfCancel}
           </button>
           <button
+            type="button"
             ref={okRef}
+            className="add-mini-btn is-primary"
             onClick={handleExport}
             disabled={busy || !anyChecked}
-            style={{
-              padding: '8px 16px', fontSize: 14, borderRadius: 8,
-              background: anyChecked ? '#f5b056' : '#4a3c22', border: 'none',
-              color: anyChecked ? '#141416' : '#8a7a52',
-              cursor: busy || !anyChecked ? 'not-allowed' : 'pointer',
-              fontWeight: 500, fontFamily: 'inherit',
-              opacity: busy ? 0.7 : 1,
-            }}
           >
             {busy ? s.modals.exportPdfGeneratingShort : s.modals.exportPdfExport}
           </button>

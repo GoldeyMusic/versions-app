@@ -36,7 +36,7 @@ export default function Sidebar({
   // puisqu'un cache localStorage fournit les projets dès le premier render
   onMutate,
 }) {
-  const { s } = useLang();
+  const { s, lang, setLang } = useLang();
   // Modales
   const [renameProjectTarget, setRenameProjectTarget] = useState(null);
   const [renameTrackTarget, setRenameTrackTarget] = useState(null);
@@ -254,6 +254,32 @@ export default function Sidebar({
         <div>
           <div className="who">{who}</div>
           <div className="plan">{s.sidebar.premiumBadge}</div>
+        </div>
+        {/* Mini switch FR/EN — raccourci pour éviter d'ouvrir Réglages juste
+            pour changer de langue. stopPropagation pour que le clic ne remonte
+            pas jusqu'au user-pill (qui ouvre Réglages). */}
+        <div
+          className="sb-lang-switch"
+          role="group"
+          aria-label="Langue / Language"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className={lang === 'fr' ? 'on' : ''}
+            onClick={() => setLang('fr')}
+            aria-pressed={lang === 'fr'}
+          >
+            FR
+          </button>
+          <button
+            type="button"
+            className={lang === 'en' ? 'on' : ''}
+            onClick={() => setLang('en')}
+            aria-pressed={lang === 'en'}
+          >
+            EN
+          </button>
         </div>
       </div>
 

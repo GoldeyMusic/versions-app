@@ -85,7 +85,7 @@ export function ScoreRingBig({ value, prevScore = null }) {
         />
       </svg>
       <div className="center">
-        <div className="big" style={{ color }}>
+        <div className="big">
           {Math.round(v)}
           <span className="big-suffix">/100</span>
         </div>
@@ -191,13 +191,38 @@ function computeMixIndicators(rawFiche, elements, globalScore, s) {
   const clarte     = clampScore(mp?.clarte,     voice != null && inst != null ? Math.round((voice + inst) / 2) : G);
   const assise     = clampScore(mp?.assise_basse ?? mp?.assise, bass ?? G);
 
+  // Sources exposées dans le tooltip — liste des catégories qui ont servi au calcul
+  const allSources = [
+    { label: 'Voix',              score: voice },
+    { label: 'Instruments',       score: inst },
+    { label: 'Basses & Kick',     score: bass },
+    { label: 'Batterie',          score: drums },
+    { label: 'Spatial & Reverb',  score: spatial },
+    { label: 'Master & Loudness', score: master },
+  ].filter((x) => x.score != null);
+
   const list = [
-    { key: 'balance',    score: balance,    tier: tiers.balance },
-    { key: 'dynamique',  score: dynamique,  tier: tiers.dynamique },
-    { key: 'stereo',     score: stereo,     tier: tiers.stereo },
-    { key: 'saturation', score: saturation, tier: tiers.saturation },
-    { key: 'clarte',     score: clarte,     tier: tiers.clarte },
-    { key: 'assise',     score: assise,     tier: tiers.assise },
+    { key: 'balance',    score: balance,    tier: tiers.balance,
+      direct: mp?.balance != null,
+      sources: allSources },
+    { key: 'dynamique',  score: dynamique,  tier: tiers.dynamique,
+      direct: mp?.dynamique != null,
+      sources: master != null ? [{ label: 'Master & Loudness', score: master }] : [] },
+    { key: 'stereo',     score: stereo,     tier: tiers.stereo,
+      direct: mp?.stereo != null,
+      sources: spatial != null ? [{ label: 'Spatial & Reverb', score: spatial }] : [] },
+    { key: 'saturation', score: saturation, tier: tiers.saturation,
+      direct: mp?.saturation != null,
+      sources: master != null ? [{ label: 'Master & Loudness', score: master }] : [] },
+    { key: 'clarte',     score: clarte,     tier: tiers.clarte,
+      direct: mp?.clarte != null,
+      sources: [
+        voice != null ? { label: 'Voix', score: voice } : null,
+        inst  != null ? { label: 'Instruments', score: inst } : null,
+      ].filter(Boolean) },
+    { key: 'assise',     score: assise,     tier: tiers.assise,
+      direct: (mp?.assise_basse ?? mp?.assise) != null,
+      sources: bass != null ? [{ label: 'Basses & Kick', score: bass }] : [] },
   ];
 
   return list.map((t) => ({
@@ -206,6 +231,10 @@ function computeMixIndicators(rawFiche, elements, globalScore, s) {
     score: t.score,
     word: tierWord(t.score, t.tier),
     color: tierColor(t.score),
+    what: t.tier?.what || '',
+    how:  t.tier?.how  || '',
+    direct: t.direct,
+    sources: t.sources,
   }));
 }
 
@@ -232,18 +261,78 @@ function MiniRing({ value, color }) {
   );
 }
 
+function MiTile({ item }) {
+  const { s } = useLang();
+  const [tipOpen, setTipOpen] = useState(false);
+  const dotColor =
+    item.color === 'red'   ? '#ff5d5d' :
+    item.color === 'amber' ? '#f5a623' :
+    item.color === 'mint'  ? '#8ee07a' : '#5cb8cc';
+
+  // Note de bas de tooltip : affichée uniquement pour le cas direct
+  // (score fourni directement par l'IA) ou le fallback "aucune catégorie".
+  // Le cas "dérivé" est implicite via la liste "Basé sur" — pas besoin
+  // d'une mention textuelle redondante.
+  const sourceLine = item.direct
+    ? s.fiche.miTooltipSourceDirect
+    : (item.sources && item.sources.length)
+      ? null
+      : s.fiche.miTooltipNoSource;
+
+  return (
+    <div
+      className={`mi-tile c-${item.color}${tipOpen ? ' tip-open' : ''}`}
+      onMouseEnter={() => setTipOpen(true)}
+      onMouseLeave={() => setTipOpen(false)}
+      onClick={() => setTipOpen((v) => !v)}
+      role="button"
+      tabIndex={0}
+    >
+      <MiniRing value={item.score} color={item.color} />
+      <div className="mi-body">
+        <div className="mi-label">{item.label}</div>
+        <div className="mi-word">{item.word}</div>
+      </div>
+      <span className="mi-help" aria-hidden="true">?</span>
+      <div className="mi-tooltip" role="tooltip">
+        <div className="mt-head">
+          <span className="mt-dot" style={{ background: dotColor }} />
+          <strong>{item.label}</strong>
+          <span className="mt-val">{item.score}/100</span>
+        </div>
+        <div className="mt-section">
+          <div className="mt-h">{s.fiche.miTooltipWhat}</div>
+          <div className="mt-p">{item.what}</div>
+        </div>
+        <div className="mt-section">
+          <div className="mt-h">{s.fiche.miTooltipHow}</div>
+          <div className="mt-p">{item.how}</div>
+        </div>
+        {item.sources && item.sources.length > 0 && !item.direct && (
+          <div className="mt-sources">
+            <div className="mt-h">{s.fiche.miTooltipBasedOn}</div>
+            <ul>
+              {item.sources.map((src) => (
+                <li key={src.label}>
+                  <span className="mt-src-label">{src.label}</span>
+                  <span className="mt-src-val">{src.score}/100</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {sourceLine && <div className="mt-note">{sourceLine}</div>}
+      </div>
+    </div>
+  );
+}
+
 function MixIndicators({ items }) {
   if (!items || !items.length) return null;
   return (
     <div className="mix-indicators">
       {items.map((it) => (
-        <div key={it.key} className={`mi-tile c-${it.color}`}>
-          <MiniRing value={it.score} color={it.color} />
-          <div className="mi-body">
-            <div className="mi-label">{it.label}</div>
-            <div className="mi-word">{it.word}</div>
-          </div>
-        </div>
+        <MiTile key={it.key} item={it} />
       ))}
     </div>
   );
@@ -409,144 +498,123 @@ function ListeningSection({ listening }) {
 }
 
 // ── AnalyzingState (page d'attente riche) ─────────────────
+// Refonte v2 (2026-04-22) : même grammaire que LoadingScreen
+// (ap-scaffold/ap-stack + ap-radial + ap-micro-steps + ap-wave + ap-tip).
+// Variante "finalize" = widget plus compact (radial 140px au lieu de 220px)
+// car l'utilisateur est déjà sur FicheScreen, on est dans la phase terminale.
+// On dérive la progression de `stage` (monotone, ne recule jamais).
 
 function AnalyzingState({ stage }) {
   const { s } = useLang();
-  const tips = s.fiche.analysisTips;
-  const [tipIdx, setTipIdx] = useState(() => Math.floor(Math.random() * tips.length));
+  const tips = Array.isArray(s.fiche.analysisTips) ? s.fiche.analysisTips : [];
+  const [tipIdx, setTipIdx] = useState(() => (tips.length ? Math.floor(Math.random() * tips.length) : 0));
   // Track the highest stage reached to prevent checkboxes from unchecking
   const [maxIdx, setMaxIdx] = useState(0);
   useEffect(() => {
+    if (!tips.length) return;
     const id = setInterval(() => {
       setTipIdx((i) => (i + 1) % tips.length);
-    }, 10000);
+    }, 12000);
     return () => clearInterval(id);
   }, [tips.length]);
 
-  const steps = [
-    { id: 'upload', label: s.fiche.stepUpload },
-    { id: 'listening', label: s.fiche.stepListening },
-    { id: 'fiche', label: s.fiche.stepFiche },
+  // 4 micro-steps : Upload / Écoute / Rédaction / Finalisation (cohérent
+  // avec LoadingScreen pour que la transition soit sans rupture).
+  const microLabels = [
+    s.loading?.microUpload || s.fiche.stepUpload,
+    s.loading?.microListening || s.fiche.stepListening,
+    s.loading?.microWriting || s.fiche.stepFiche,
+    s.loading?.microDone || 'Done',
   ];
 
-  // Derive progress from stage — monotonic (never goes backward)
+  // Derive progress from stage — monotonic (never goes backward).
+  // Quand on arrive sur FicheScreen, l'upload et l'écoute sont déjà faits,
+  // donc on démarre au minimum à l'étape 2 (rédaction).
   const rawIdx =
     stage === 'all_done' ? 3 :
     stage === 'fiche_done' ? 3 :
     stage === 'listening_done' ? 2 :
-    stage === 'listening_started' ? 1 :
-    1;
+    stage === 'listening_started' ? 2 :
+    2;
 
   useEffect(() => {
     setMaxIdx((prev) => Math.max(prev, rawIdx));
   }, [rawIdx]);
 
-  const currentIdx = Math.max(maxIdx, rawIdx);
+  const phase = Math.max(maxIdx, rawIdx);
+  const microState = (i) => (i < phase ? 'is-done' : i === phase ? 'is-active' : '');
 
-  const bars = Array.from({ length: 20 }, (_, i) => Math.random());
+  // Anneau radial (cohérent avec LoadingScreen : 8 / 38 / 68 / 94).
+  const pctByPhase = [8, 38, 68, 94];
+  const pct = pctByPhase[Math.max(0, Math.min(phase, 3))];
+  const radius = 100;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference * (1 - pct / 100);
 
   return (
-    <div className="analyzing-state">
-      {/* Spinner + titre */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
-        <div style={{
-          width: 52, height: 52, borderRadius: '50%',
-          border: '2.5px solid #f5b05622',
-          borderTopColor: '#f5b056',
-          animation: 'spin 1s linear infinite',
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <h1 style={{
-          fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, fontWeight: 400,
-          color: '#ededed', margin: 0, textAlign: 'center', lineHeight: 1.2,
-          letterSpacing: 5, textTransform: 'uppercase',
-        }}>{s.fiche.finalizingTitle}</h1>
-        <p style={{
-          fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: '#7c7c80',
-          margin: 0, textAlign: 'center', fontWeight: 300, lineHeight: 1.6, letterSpacing: 1,
-        }}>
-          {s.fiche.finalizingSubtitle}
-        </p>
-      </div>
+    <div className="ap-finalize">
+      {/* Titre + sous-titre (même grammaire que LoadingScreen) */}
+      <h2 className="ap-title">
+        {s.fiche.finalizingTitleBefore}{' '}
+        <em>{s.fiche.finalizingTitleEm}</em>
+      </h2>
+      <p className="ap-sub" style={{ marginTop: -8 }}>
+        {s.fiche.finalizingSubtitle}
+      </p>
 
-      {/* Étapes */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
-        {steps.map((s, i) => {
-          const done = i < currentIdx;
-          const active = i === currentIdx && currentIdx < 3;
-          const color = done ? '#7bd88f' : active ? '#f5b056' : '#5a5a5e';
-          return (
-            <div key={s.id} style={{
-              display: 'flex', alignItems: 'center', gap: 14,
-              padding: '12px 16px',
-              border: `1px solid ${active ? '#f5b05655' : '#2a2a2e'}`,
-              borderRadius: 10,
-              background: active ? '#f5b05611' : 'transparent',
-              transition: 'all .3s',
-            }}>
-              <span style={{
-                width: 20, height: 20, borderRadius: '50%',
-                background: done ? color : 'transparent',
-                border: `1.5px solid ${color}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                {done && (
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                    <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-                {active && (
-                  <span style={{
-                    width: 6, height: 6, borderRadius: '50%',
-                    background: color, animation: 'pulse 1.2s ease-in-out infinite',
-                  }} />
-                )}
-              </span>
-              <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
-              <span style={{
-                fontFamily: 'JetBrains Mono, monospace', fontSize: 14, letterSpacing: 1,
-                textTransform: 'uppercase',
-                color: done ? '#c5c5c7' : active ? '#f5b056' : '#7c7c80',
-              }}>{s.label}</span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Mini animated bars */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 28, width: 120, opacity: 0.6 }}>
-        {bars.map((h, i) => (
-          <div
-            key={i}
-            style={{
-              flex: 1,
-              background: 'linear-gradient(to top, #f5b056, #f5b05633)',
-              borderRadius: '1.5px 1.5px 0 0',
-              animation: `barrise ${0.3 + h * 0.4}s ease ${i * 0.03}s alternate infinite`,
-              transformOrigin: 'bottom',
-              height: `${20 + h * 80}%`,
-            }}
+      {/* Anneau radial compact + % au centre + statut mono amber */}
+      <div className="ap-radial-wrap" aria-hidden="true">
+        <svg className="ap-radial" viewBox="0 0 220 220">
+          <circle className="track" cx="110" cy="110" r={radius} />
+          <circle
+            className="bar"
+            cx="110"
+            cy="110"
+            r={radius}
+            style={{ strokeDashoffset: dashOffset }}
           />
+        </svg>
+        <div className="ap-radial-inner">
+          <div className="ap-pct">
+            {pct}<em>%</em>
+          </div>
+          <div className="ap-status">{s.fiche.finalizingStatus}</div>
+        </div>
+      </div>
+
+      {/* Micro-steps horizontaux */}
+      <div className="ap-micro-steps" role="list">
+        {microLabels.map((label, i) => (
+          <span
+            key={i}
+            role="listitem"
+            className={`ap-micro ${microState(i)}`}
+          >
+            <span className="ap-micro-bullet" aria-hidden="true" />
+            <b>{label}</b>
+          </span>
         ))}
       </div>
 
-      {/* Tip */}
-      <div style={{
-        width: '100%', padding: '18px 22px',
-        background: '#f5b05608', border: '1px solid #f5b05622', borderLeft: '3px solid #f5b056',
-        borderRadius: 10, minHeight: 70, display: 'flex', flexDirection: 'column', gap: 8,
-      }}>
-        <div style={{
-          fontFamily: 'JetBrains Mono, monospace', fontSize: 14, letterSpacing: 2,
-          color: '#f5b056', textTransform: 'uppercase',
-        }}>{s.fiche.didYouKnow}</div>
-        <div key={tipIdx} style={{
-          fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#c5c5c7',
-          lineHeight: 1.7, fontWeight: 300,
-          animation: 'fadein .4s ease',
-        }}>{tips[tipIdx]}</div>
+      {/* Waveform animée */}
+      <div className="ap-wave" aria-hidden="true">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <span key={i} />
+        ))}
       </div>
+
+      {/* Carte "Le saviez-vous ?" */}
+      {tips.length > 0 && (
+        <div className="ap-tip" role="region" aria-label={s.fiche.didYouKnow}>
+          <div className="ap-tip-kicker">
+            <span className="ap-tip-dot" aria-hidden="true" />
+            {s.fiche.didYouKnow}
+          </div>
+          <div key={tipIdx} className="ap-tip-body">
+            {tips[tipIdx]}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1709,13 +1777,14 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   const [localizedAR, setLocalizedAR] = useState(null);
   const [localizedKey, setLocalizedKey] = useState(null);
   const [translating, setTranslating] = useState(false);
-  const [openCat, setOpenCat] = useState(0); // un seul accordéon ouvert à la fois
+  const [openCat, setOpenCat] = useState(null); // tous fermés par défaut — l'utilisateur ouvre ce qu'il veut
   const [openPlanIdx, setOpenPlanIdx] = useState(null);
   const [resolved, setResolved] = useState(new Set());
   const [hideResolved, setHideResolved] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [exportTarget, setExportTarget] = useState(null); // { track, version } ouverts dans la modale d'export PDF
   const [shareTarget, setShareTarget] = useState(null);   // { track, version } ouverts dans la modale de partage
+  const [verdictExpanded, setVerdictExpanded] = useState(false); // verdict rétracté par défaut
   const isMobile = useMobile();
   const isNarrow = useNarrowDesktop(1200);
   const chatAsDrawer = isMobile || isNarrow;
@@ -1934,9 +2003,14 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             onRefresh={() => loadTracks().then(setTracks)}
           />
 
-          {/* 1 · Verdict + Évolution (2 colonnes) */}
+          {/* COLONNE PRINCIPALE (col 1 en v2 desktop) : Score global + Diagnostic */}
+          <div className="f2-col-main">
+          {/* 1 · Verdict / Score global */}
           <section className="row-verdict">
             <div className="rv-left">
+              {/* Calque halo clippé : permet au panel de rester overflow:visible
+                  pour que les tooltips des tuiles puissent déborder vers le bas. */}
+              <div className="rv-halo" aria-hidden="true" />
               {!chatAsDrawer && score != null && (
                 <div className="score-eyebrow">
                   <span className="dot" />
@@ -1955,11 +2029,6 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               )}
               {!chatAsDrawer && score != null && (
                 <>
-                  <div className="score-bands">
-                    <span className="b-low"><i />{s.fiche.scoreBandLowShort || '0–49'}</span>
-                    <span className="b-mid"><i />{s.fiche.scoreBandMidShort || '50–74'}</span>
-                    <span className="b-high"><i />{s.fiche.scoreBandHighShort || '75–100'}</span>
-                  </div>
                   {(() => {
                     if (typeof prevScore !== 'number') return null;
                     const delta = Math.round(score - prevScore);
@@ -1981,29 +2050,47 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   })()}
                 </>
               )}
-              <div className="verdict-text">
+              <div className={`verdict-text${verdictExpanded ? ' expanded' : ' collapsed'}`}>
                 {(() => {
                   // Priorité : verdict (phrase accrocheuse) pour le titre, summary pour le paragraphe.
                   // Si un seul des deux existe → on découpe en 1ʳᵉ phrase (titre) + reste (paragraphe).
                   const vText = rawFiche?.verdict || rawFiche?.summary || '';
-                  if (!vText) return <h1>{s.fiche.pendingVerdict}</h1>;
+                  if (!vText) return (
+                    <button
+                      type="button"
+                      className="verdict-toggle"
+                      onClick={() => setVerdictExpanded((v) => !v)}
+                    >
+                      <h1>{s.fiche.pendingVerdict}</h1>
+                      <span className="verdict-caret" aria-hidden="true" />
+                    </button>
+                  );
+                  let headlineNode = null;
+                  let restNode = null;
                   if (rawFiche?.verdict && rawFiche?.summary && rawFiche.verdict !== rawFiche.summary) {
-                    return (
-                      <>
-                        <h1>{renderWithEmphasis(rawFiche.verdict)}</h1>
-                        <p>{rawFiche.summary}</p>
-                      </>
-                    );
+                    headlineNode = renderWithEmphasis(rawFiche.verdict);
+                    restNode = rawFiche.summary;
+                  } else {
+                    const split = splitVerdict(vText);
+                    headlineNode = renderWithEmphasis(split.headline);
+                    restNode = split.rest;
                   }
-                  const { headline, rest } = splitVerdict(vText);
                   return (
                     <>
-                      <h1>{renderWithEmphasis(headline)}</h1>
-                      {rest && <p>{rest}</p>}
+                      <button
+                        type="button"
+                        className="verdict-toggle"
+                        onClick={() => setVerdictExpanded((v) => !v)}
+                        aria-expanded={verdictExpanded}
+                      >
+                        <h1>{headlineNode}</h1>
+                        <span className="verdict-caret" aria-hidden="true" />
+                      </button>
+                      {restNode && verdictExpanded && <p>{restNode}</p>}
                     </>
                   );
                 })()}
-                {(() => {
+                {verdictExpanded && (() => {
                   const stamp = formatAnalyzedAt(versionInDb?.createdAt || versionInDb?.date);
                   return stamp ? <div className="analyzed-at">{stamp}</div> : null;
                 })()}
@@ -2014,25 +2101,11 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 )}
               </div>
             </div>
-            <div className="rv-right">
-              <EvolutionPanel
-                versionScores={versionScores}
-                currentVersionName={config?.version}
-                currentScore={score}
-                currentDuration={currentDuration}
-                prevScore={prevScore}
-                prevDuration={prevDuration}
-              />
-            </div>
           </section>
 
-          {/* 2 · Écoute qualitative (2 cols : Impression | Points forts + À travailler) */}
-          <QualitativeSection listening={listening} />
-
-          {/* 3 · Diagnostic (gauche) + Plan d'action (droite) */}
-          {(elements.length > 0 || plan.length > 0) && (
-            <div className="row-two">
-              <div className="col-diag">
+          {/* 2 · Diagnostic par élément — directement sous le score global, en col 1 */}
+          {elements.length > 0 && (
+            <div className="col-diag">
                 {elements.length > 0 && (() => {
                   // Map catégorie → accent (cohérent avec l'esprit q-sublabel de l'écoute qualitative)
                   const catColor = (cat) => {
@@ -2115,9 +2188,80 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     </>
                   );
                 })()}
-              </div>
+            </div>
+          )}
+          </div>
+
+          {/* COLONNE SECONDAIRE (col 2 en v2 desktop) : Pochette + Plan d'action */}
+          <div className="f2-col-side">
+              {/* Pochette carrée (v2 desktop) — artwork fait de halos color\u00e9s seed\u00e9s
+                  + titre en gros (police du logo VERSIONS). Remplaçable par l'upload user. */}
+              {!chatAsDrawer && (() => {
+                const title = config?.title || '';
+                let h = 0;
+                for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) >>> 0;
+                let seed = h || 1;
+                const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+                // Palette color\u00e9e mais l\u00e9g\u00e8rement d\u00e9satur\u00e9e (tons de pochette abstraite)
+                const palette = [
+                  'rgba(230, 140, 60, 1)',    // amber soutenu
+                  'rgba(110, 185, 110, 1)',   // sage/vert frais
+                  'rgba(215, 115, 170, 1)',   // rose/magenta
+                  'rgba(70, 150, 210, 1)',    // cerulean
+                  'rgba(235, 130, 90, 1)',    // peach
+                  'rgba(150, 110, 210, 1)',   // violet
+                  'rgba(90, 195, 180, 1)',    // teal
+                  'rgba(225, 90, 110, 1)',    // coral/red
+                  'rgba(240, 195, 70, 1)',    // doré
+                ];
+                const halos = Array.from({ length: 9 }, () => ({
+                  x: 5 + rand() * 90,
+                  y: 5 + rand() * 90,
+                  size: 95 + rand() * 70,
+                  color: palette[Math.floor(rand() * palette.length)],
+                  opacity: 0.78 + rand() * 0.22,
+                }));
+                return (
+                  <div className="col-cover-wrap">
+                    <div
+                      className={`col-cover${currentTrack?.coverImageUrl ? ' has-image' : ' no-image'}`}
+                      aria-label={title}
+                    >
+                      {currentTrack?.coverImageUrl ? (
+                        <img
+                          src={currentTrack.coverImageUrl}
+                          alt=""
+                          className="cover-img"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <>
+                          {halos.map((hl, i) => (
+                            <span
+                              key={i}
+                              className="ca-halo"
+                              style={{
+                                left: `${hl.x}%`,
+                                top: `${hl.y}%`,
+                                width: `${hl.size}%`,
+                                background: `radial-gradient(circle, ${hl.color} 0%, transparent 62%)`,
+                                opacity: hl.opacity,
+                              }}
+                              aria-hidden
+                            />
+                          ))}
+                          <div className="cover-big-title" aria-hidden>
+                            {title}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+              {plan.length > 0 && (
               <div className="col-plan">
-                {plan.length > 0 && (() => {
+                {(() => {
                   const planKeys = plan.map((p, i) => `${i}::${(p.task || '').slice(0, 60)}`);
                   const resolvedCount = planKeys.reduce((acc, k) => acc + (resolved.has(k) ? 1 : 0), 0);
                   const hasResolved = resolvedCount > 0;
@@ -2166,6 +2310,8 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                                 .map((it) => ({ ...it, cat: el.cat }))
                             );
                             const klass = klassFor(prio, done);
+                            const isOpen = openPlanIdx === i;
+                            const hasMore = !!(p.daw || p.metered || p.target || linkedItems.length > 0);
                             return (
                               <div
                                 key={i}
@@ -2173,52 +2319,84 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                                   if (el) planRefs.current[i] = el;
                                   else delete planRefs.current[i];
                                 }}
-                                className={`plan-card ${klass}`}
+                                className={`plan-card ${klass}${hasMore ? ' collapsible' : ''}${isOpen ? ' open' : ''}`}
+                                onClick={() => hasMore && setOpenPlanIdx((prev) => (prev === i ? null : i))}
+                                role={hasMore ? 'button' : undefined}
+                                tabIndex={hasMore ? 0 : undefined}
+                                onKeyDown={(e) => {
+                                  if (!hasMore) return;
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    setOpenPlanIdx((prev) => (prev === i ? null : i));
+                                  }
+                                }}
                               >
                                 <div className="p-head">
-                                  <button
-                                    type="button"
-                                    className="p-check"
-                                    onClick={() => toggleResolved(key, i)}
-                                    aria-label={done ? s.fiche.focusResolved : s.fiche.focusMarkResolved}
-                                  >
-                                    {done && (
-                                      <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-                                        <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                      </svg>
-                                    )}
-                                  </button>
                                   <span className="p-tag">{tagFor(prio, done)}</span>
-                                  {p.daw && <span className="p-daw">{p.daw}</span>}
                                 </div>
-                                <div className="p-title">{p.task}</div>
-                                {(p.metered || p.target) && (
-                                  <div className="p-measure">
-                                    {p.metered && (
-                                      <div>
-                                        <div className="m-label">{s.fiche.focusMeasured}</div>
-                                        <div className="m-val">{p.metered}</div>
+                                <div className="p-title-row">
+                                  {hasMore && (
+                                    <span className="p-chev" aria-hidden="true">
+                                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                        <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                      </svg>
+                                    </span>
+                                  )}
+                                  <div className="p-title">{p.task}</div>
+                                </div>
+                                {hasMore && isOpen && (
+                                  <div
+                                    className="p-body"
+                                    onClick={(e) => e.stopPropagation()}
+                                    onKeyDown={(e) => e.stopPropagation()}
+                                  >
+                                    {p.daw && <div className="p-daw">{p.daw}</div>}
+                                    {(p.metered || p.target) && (
+                                      <div className="p-measure">
+                                        {p.metered && (
+                                          <div>
+                                            <div className="m-label">{s.fiche.focusMeasured}</div>
+                                            <div className="m-val">{p.metered}</div>
+                                          </div>
+                                        )}
+                                        {p.target && (
+                                          <div>
+                                            <div className="m-label">{s.fiche.focusTarget}</div>
+                                            <div className="m-val target">{p.target}</div>
+                                          </div>
+                                        )}
                                       </div>
                                     )}
-                                    {p.target && (
-                                      <div>
-                                        <div className="m-label">{s.fiche.focusTarget}</div>
-                                        <div className="m-val target">{p.target}</div>
+                                    {linkedItems.length > 0 && (
+                                      <div className="p-links">
+                                        {linkedItems.map((it) => (
+                                          <span
+                                            key={it.id}
+                                            className="chip cerulean"
+                                            title={`${it.cat} · ${it.label}${typeof it.score === 'number' ? ` · ${it.score}` : ''}`}
+                                          >
+                                            {it.label}{typeof it.score === 'number' ? ` · ${it.score}` : ''}
+                                          </span>
+                                        ))}
                                       </div>
                                     )}
-                                  </div>
-                                )}
-                                {linkedItems.length > 0 && (
-                                  <div className="p-links">
-                                    {linkedItems.map((it) => (
-                                      <span
-                                        key={it.id}
-                                        className="chip cerulean"
-                                        title={`${it.cat} · ${it.label}${typeof it.score === 'number' ? ` · ${it.score}` : ''}`}
-                                      >
-                                        {it.label}{typeof it.score === 'number' ? ` · ${it.score}` : ''}
+                                    <button
+                                      type="button"
+                                      className={`p-resolve${done ? ' done' : ''}`}
+                                      onClick={(e) => { e.stopPropagation(); toggleResolved(key, i); }}
+                                      aria-label={done ? s.fiche.focusResolved : s.fiche.focusMarkResolved}
+                                    >
+                                      <span className="p-check" aria-hidden="true">
+                                        {done && (
+                                          <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                                            <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                          </svg>
+                                        )}
                                       </span>
-                                    ))}
+                                      <span className="p-resolve-label">
+                                        {done ? s.fiche.focusResolved : s.fiche.focusMarkResolved}
+                                      </span>
+                                    </button>
                                   </div>
                                 )}
                               </div>
@@ -2348,17 +2526,20 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   </>
                   );
                 })()}
-
-                {/* Notes perso — accolées au Plan d'action, dans la colonne de droite */}
-                <NotesSection
-                  key={versionInDb?.id || 'pending'}
-                  versionId={versionInDb?.id || null}
-                  initialNotes={(analysisResult && analysisResult.userNotes) || ''}
-                  v2={!chatAsDrawer}
-                />
               </div>
-            </div>
-          )}
+              )}
+          </div>
+
+          {/* 3 · Écoute qualitative — en bas, pleine largeur */}
+          <QualitativeSection listening={listening} />
+
+          {/* 4 · Notes perso — tout en bas, pleine largeur */}
+          <NotesSection
+            key={versionInDb?.id || 'pending'}
+            versionId={versionInDb?.id || null}
+            initialNotes={(analysisResult && analysisResult.userNotes) || ''}
+            v2={!chatAsDrawer}
+          />
           </>
           )}
         </div>

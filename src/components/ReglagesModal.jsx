@@ -32,7 +32,7 @@ export default function ReglagesModal({ open, onClose, onSignOut, onProfileUpdat
   return (
     <div className="reglages-modal-overlay" onClick={onClose} role="presentation">
       <div
-        className="reglages-modal-panel"
+        className="reglages-modal-panel mini-modal"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -52,6 +52,7 @@ export default function ReglagesModal({ open, onClose, onSignOut, onProfileUpdat
           <ReglagesScreen
             onSignOut={onSignOut}
             onGoHome={onClose}
+            onClose={onClose}
             onProfileUpdate={onProfileUpdate}
           />
         </div>

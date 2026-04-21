@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import T from '../constants/theme';
 import API from '../constants/api';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { hashAudioFile, findDuplicateAudio, loadTracks } from "../lib/storage";
@@ -12,6 +11,10 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
   const [error, setError] = useState(null);
   const jobIdRef = useRef(null);
   const sentFadr = useRef(false);
+  // canceledRef : quand l'utilisateur clique "Annuler l'analyse", on lève ce
+  // flag pour que la boucle de polling sorte proprement au prochain tick (au
+  // lieu d'appeler onDone sur un composant démonté).
+  const canceledRef = useRef(false);
 
   const hasRef = !!config?.refFile;
 
@@ -19,7 +22,6 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
     ? [s.loading.stepUploadMulti, s.loading.stepListening, s.loading.stepWriting, s.loading.stepDone]
     : [s.loading.stepUploadOne, s.loading.stepListening, s.loading.stepWriting, s.loading.stepDone];
 
-  const bars = Array.from({ length: 32 }, () => Math.random());
   const tipsSource = Array.isArray(s.loading.tips) ? s.loading.tips : [];
   const [shuffledTips] = useState(() => {
     const arr = [...tipsSource];
@@ -136,9 +138,12 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
         let attempts = 0;
         while (attempts < 120) {
           await new Promise((r) => setTimeout(r, 3000));
+          if (canceledRef.current) return; // bouton "Annuler l'analyse"
           const pollRes = await fetch(`${API}/api/analyze/status/${jobId}`);
           const job = await pollRes.json();
           console.log("🔄 Poll", attempts, "— status:", job.status, "stage:", job.stage, "pct:", job.pct);
+
+          if (canceledRef.current) return;
 
           if (job.status === "error") {
             throw new Error(job.error || s.loading.errorFailed);
@@ -189,123 +194,141 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
     run();
   }, [config]);
 
-  // Error state
+  // Error state — habillage v2 (pill mono + carte soft red)
   if (error) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100%", gap: 20, padding: "60px 20px" }}>
-        <div style={{ fontFamily: T.mono, fontSize: 14, color: T.red, textAlign: "center", maxWidth: 320 }}>
-          ⚠️ {error}
+      <div className="ap-scaffold">
+        <div className="ap-error">
+          <div className="ap-error-body">⚠️ {error}</div>
+          <button
+            type="button"
+            className="ap-error-retry"
+            onClick={() => window.location.reload()}
+          >
+            {s.loading.errorRetry}
+          </button>
         </div>
-        <button
-          onClick={() => window.location.reload()}
-          style={{ fontFamily: T.mono, fontSize: 14, padding: "8px 20px", borderRadius: 8, background: T.s2, border: `1px solid ${T.border}`, color: T.muted, cursor: "pointer" }}
-        >
-          {s.loading.errorRetry}
-        </button>
       </div>
     );
   }
 
-  // Loading state — embedded in main layout (sidebar + player stay visible)
+  // Étapes labellisées (micro-steps) : 4 chips horizontales.
+  // On dérive l'état (done / active / pending) depuis `phase` (0..3) déjà
+  // géré par la logique async au-dessus — aucune règle métier changée.
+  const microLabels = [
+    s.loading.microUpload,
+    s.loading.microListening,
+    s.loading.microWriting,
+    s.loading.microDone,
+  ];
+  const microState = (i) => (i < phase ? 'is-done' : i === phase ? 'is-active' : '');
+
+  // Mapping percentage pour l'anneau radial. Les paliers sont calés au
+  // milieu de chaque étape — visuellement on ne veut pas partir de 0%
+  // (sinon l'anneau est vide pendant l'upload), ni atteindre 100% tant
+  // que `onDone` n'a pas été appelé (sinon l'utilisateur croit que c'est
+  // fini mais on attend encore Claude).
+  const pctByPhase = [8, 38, 68, 94];
+  const pct = pctByPhase[Math.max(0, Math.min(phase, 3))];
+  const radius = 100;
+  const circumference = 2 * Math.PI * radius; // ≈ 628.32
+  const dashOffset = circumference * (1 - pct / 100);
+
+  // Statut courant = l'étape active, sans les points de suspension (les
+  // "…" font double emploi avec le pulse amber à côté).
+  const statusLabel = (steps[phase] || '').replace(/…$/u, '').trim();
+
   return (
-    <div style={{ width: "100%", minHeight: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px", boxSizing: "border-box", animation: "fadeup .3s ease" }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 36, maxWidth: 480, width: "100%" }}>
+    <div className="ap-scaffold">
+      <div className="ap-stack">
 
-        {/* Spinner + titre */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: "50%",
-            border: `2.5px solid ${T.amber}22`,
-            borderTopColor: T.amber,
-            animation: "spin 1s linear infinite",
-          }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          <div style={{ fontFamily: T.display, fontSize: 32, fontWeight: 400, color: "#ededed", letterSpacing: 5, textAlign: "center", textTransform: "uppercase" }}>
-            {s.loading.title}
-          </div>
-          <div style={{ fontFamily: T.mono, fontSize: 14, color: T.amber, fontWeight: 400, textAlign: "center", lineHeight: 1.6, letterSpacing: 1, opacity: 0.85 }}>
-            {config?.title}{config?.version ? ` · ${config.version}` : ""}
-          </div>
-        </div>
+        {/* Logo VERSIONS posé à plat (pas de cadre) */}
+        <img
+          src="/logo-versions.svg"
+          alt=""
+          aria-hidden="true"
+          className="ap-logo"
+        />
 
-        {/* Étapes */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
-          {steps.map((label, i) => {
-            const done = i < phase;
-            const active = i === phase;
-            const color = done ? "#7bd88f" : active ? T.amber : "#5a5a5e";
-            return (
-              <div key={i} style={{
-                display: "flex", alignItems: "center", gap: 14,
-                padding: "12px 16px",
-                border: `1px solid ${active ? `${T.amber}55` : "#2a2a2e"}`,
-                borderRadius: 10,
-                background: active ? `${T.amber}11` : "transparent",
-                transition: "all .3s",
-              }}>
-                <span style={{
-                  width: 20, height: 20, borderRadius: "50%",
-                  background: done ? color : "transparent",
-                  border: `1.5px solid ${color}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0,
-                }}>
-                  {done && (
-                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                      <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                  {active && (
-                    <span style={{
-                      width: 6, height: 6, borderRadius: "50%",
-                      background: color, animation: "pulse 1.2s ease-in-out infinite",
-                    }} />
-                  )}
-                </span>
-                <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
-                <span style={{
-                  fontFamily: "JetBrains Mono, monospace", fontSize: 14, letterSpacing: 1,
-                  textTransform: "uppercase",
-                  color: done ? "#c5c5c7" : active ? T.amber : "#7c7c80",
-                }}>{label}</span>
-              </div>
-            );
-          })}
-        </div>
+        <h2 className="ap-title">
+          {s.loading.titleBefore}{' '}
+          <em>{s.loading.titleEm}</em>
+        </h2>
+        <p className="ap-sub">
+          {config?.title && <b>{config.title}</b>}
+          {config?.version ? <> · <b>{config.version}</b></> : null}
+        </p>
 
-        {/* Mini animated bars */}
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 28, width: 120, opacity: 0.6 }}>
-          {bars.slice(0, 20).map((h, i) => (
-            <div
-              key={i}
-              style={{
-                flex: 1,
-                background: `linear-gradient(to top, ${T.amber}, ${T.amber}33)`,
-                borderRadius: "1.5px 1.5px 0 0",
-                animation: `barrise ${0.3 + h * 0.4}s ease ${i * 0.03}s alternate infinite`,
-                transformOrigin: "bottom",
-                height: `${20 + h * 80}%`,
-              }}
+        {/* Anneau radial + % au centre + statut en mono amber */}
+        <div className="ap-radial-wrap" aria-hidden="true">
+          <svg className="ap-radial" viewBox="0 0 220 220">
+            <circle className="track" cx="110" cy="110" r={radius} />
+            <circle
+              className="bar"
+              cx="110"
+              cy="110"
+              r={radius}
+              style={{ strokeDashoffset: dashOffset }}
             />
+          </svg>
+          <div className="ap-radial-inner">
+            <div className="ap-pct">
+              {pct}<em>%</em>
+            </div>
+            <div className="ap-status">{statusLabel}</div>
+          </div>
+        </div>
+
+        {/* Micro-steps horizontaux */}
+        <div className="ap-micro-steps" role="list">
+          {microLabels.map((label, i) => (
+            <span
+              key={i}
+              role="listitem"
+              className={`ap-micro ${microState(i)}`}
+            >
+              <span className="ap-micro-bullet" aria-hidden="true" />
+              <b>{label}</b>
+            </span>
           ))}
         </div>
 
-        {/* Tip */}
-        <div style={{
-          width: "100%", padding: "18px 22px",
-          background: `${T.amber}08`, border: `1px solid ${T.amber}22`, borderLeft: `3px solid ${T.amber}`,
-          borderRadius: 10, minHeight: 70, display: "flex", flexDirection: "column", gap: 8,
-        }}>
-          <div style={{
-            fontFamily: "JetBrains Mono, monospace", fontSize: 14, letterSpacing: 2,
-            color: T.amber, textTransform: "uppercase",
-          }}>{s.loading.didYouKnow}</div>
-          <div key={tipIdx} style={{
-            fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#c5c5c7",
-            lineHeight: 1.7, fontWeight: 300,
-            animation: "fadein .4s ease",
-          }}>{shuffledTips[tipIdx]}</div>
+        {/* Waveform animée */}
+        <div className="ap-wave" aria-hidden="true">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <span key={i} />
+          ))}
         </div>
+
+        {/* Carte "Le saviez-vous ?" (même moule que les mini-modales) */}
+        {shuffledTips.length > 0 && (
+          <div className="ap-tip" role="region" aria-label={s.loading.didYouKnow}>
+            <div className="ap-tip-kicker">
+              <span className="ap-tip-dot" aria-hidden="true" />
+              {s.loading.didYouKnow}
+            </div>
+            <div key={tipIdx} className="ap-tip-body">
+              {shuffledTips[tipIdx]}
+            </div>
+          </div>
+        )}
+
+        {/* Bouton "Annuler l'analyse" — pill outline discret. Lève le flag
+            canceledRef pour stopper le polling, puis renvoie à l'écran
+            d'upload (qui revient au contexte précédent). */}
+        {onBackToInput && (
+          <button
+            type="button"
+            className="ap-cancel"
+            onClick={() => {
+              canceledRef.current = true;
+              onBackToInput();
+            }}
+          >
+            {s.loading.cancel}
+          </button>
+        )}
+
       </div>
     </div>
   );

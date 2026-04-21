@@ -1,47 +1,191 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import useLang from '../hooks/useLang';
+import DAWS from '../constants/daws';
 
 /**
  * AddModal — modale unifiée d'ajout depuis la home.
- * Trois choix : Nouveau projet, Nouveau titre, Ajouter une version.
- * Certains choix déclenchent un sous-écran (pick de projet ou de titre).
+ * Style mini-modal (aligné Réglages) : card sombre #0a0b10, rows
+ * surélevées #111216, boutons mono uppercase pill outline. Titre
+ * « Ajouter quoi ? » avec un mot amber (pas d'italique).
+ *
+ * Steps :
+ *   - 'root'             : 3 choix (Nouveau projet, Nouveau titre, Nouvelle version)
+ *   - 'new-project-name' : input inline pour créer un projet
+ *   - 'pick-project'     : choix du projet cible pour Nouveau titre
+ *   - 'pick-track'       : choix du titre cible pour Nouvelle version
+ *   - 'upload'           : formulaire upload du mix
  *
  * Props :
- *   - onClose                : ferme la modale
- *   - onNewProject           : () => void
- *   - onNewTrackInProject    : (projectId) => void
- *   - onNewProjectThenTrack  : () => void  (cas 0 projet)
- *   - onAddVersionToTrack    : (track) => void
- *   - projects               : liste projets (pour le sous-écran)
- *   - allTracks              : liste titres à plat (pour le sous-écran)
+ *   - onClose            : ferme la modale
+ *   - onCreateProject    : (name) => Promise<project>
+ *   - onAnalyze          : (cfg) => void
+ *   - projects           : [{ id, name, tracks }]
+ *   - allTracks          : [...] titres à plat (avec projectId)
+ *   - initialContext     : optionnel, ouvre directement dans un flow précis
+ *                          - { mode: 'new-track' }
+ *                          - { mode: 'add-version', trackId }
+ *   - defaultDaw         : optionnel, DAW par défaut issu du profil
  */
 export default function AddModal({
   onClose,
-  onNewProject,
-  onNewTrackInProject,
-  onNewProjectThenTrack,
-  onAddVersionToTrack,
+  onCreateProject,
+  onAnalyze,
   projects = [],
   allTracks = [],
+  initialContext = null,
+  defaultDaw = '',
 }) {
   const { s } = useLang();
-  // step: 'root' | 'pick-project' | 'pick-track'
+
+  // ── Navigation ─────────────────────────────────────────────
   const [step, setStep] = useState('root');
+
+  // Nouveau projet inline
+  const [newProjectName, setNewProjectName] = useState('');
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [chainToUploadAfterCreate, setChainToUploadAfterCreate] = useState(false);
+
+  // Contexte d'upload
+  const [uploadCtx, setUploadCtx] = useState(null);
+
+  // ── Upload form state ──────────────────────────────────────
+  const [file, setFile] = useState(null);
+  const [title, setTitle] = useState('');
+  const [version, setVersion] = useState('');
+  const [daw, setDaw] = useState(defaultDaw || '');
+  const [vocalKind, setVocalKind] = useState('vocal');
+  const [finalInstru, setFinalInstru] = useState(null);
+  const [drag, setDrag] = useState(false);
+  const fileInputRef = useRef(null);
 
   const hasProjects = projects.length > 0;
   const hasTracks = allTracks.length > 0;
 
+  const askVocal = uploadCtx?.mode === 'new-track';
+  const vocalType = vocalKind === 'vocal'
+    ? 'vocal'
+    : (finalInstru === true ? 'instrumental_final'
+      : finalInstru === false ? 'instrumental_pending'
+        : null);
+  const vocalOk = !askVocal || vocalType !== null;
+
+  const uploadOk = !!file && !!daw && !!title.trim() && !!version.trim() && !!uploadCtx?.projectId && vocalOk;
+
+  const handlePickFile = (f) => {
+    if (!f) return;
+    setFile(f);
+    if (!title.trim()) {
+      const cleaned = f.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').trim();
+      const letters = (cleaned.match(/[a-zA-ZÀ-ÿ]/g) || []).length;
+      const digits = (cleaned.match(/\d/g) || []).length;
+      const meaningful = letters >= 3 && letters >= digits && !/^song\s+\d{6,}/i.test(cleaned);
+      if (meaningful) setTitle(cleaned);
+    }
+  };
+
+  const handleLaunchAnalyze = () => {
+    if (!uploadOk) return;
+    onAnalyze?.({
+      file,
+      title: title.trim(),
+      version: version.trim(),
+      daw,
+      projectId: uploadCtx.projectId,
+      vocalType,
+      refFile: null,
+    });
+    onClose();
+  };
+
+  // Reset upload form quand on sort du step upload (DAW reprend defaultDaw)
+  useEffect(() => {
+    if (step !== 'upload') {
+      setFile(null);
+      setTitle('');
+      setVersion('');
+      setDaw(defaultDaw || '');
+      setVocalKind('vocal');
+      setFinalInstru(null);
+      setDrag(false);
+    }
+  }, [step, defaultDaw]);
+
+  // initialContext : ouvrir la modale directement dans un flow précis (mount only)
+  const initRanRef = useRef(false);
+  useEffect(() => {
+    if (initRanRef.current) return;
+    if (!initialContext) return;
+    initRanRef.current = true;
+    if (initialContext.mode === 'new-track') {
+      if (!projects.length) {
+        setNewProjectName('');
+        setChainToUploadAfterCreate(true);
+        setStep('new-project-name');
+        return;
+      }
+      if (initialContext.projectId) {
+        const p = projects.find((x) => x.id === initialContext.projectId);
+        if (p) {
+          setUploadCtx({ mode: 'new-track', projectId: p.id, projectName: p.name, prefillTitle: '', lockTitle: false });
+          setTitle('');
+          setStep('upload');
+          return;
+        }
+      }
+      if (projects.length === 1) {
+        const p = projects[0];
+        setUploadCtx({ mode: 'new-track', projectId: p.id, projectName: p.name, prefillTitle: '', lockTitle: false });
+        setTitle('');
+        setStep('upload');
+        return;
+      }
+      setStep('pick-project');
+      return;
+    }
+    if (initialContext.mode === 'add-version' && initialContext.trackId) {
+      const t = allTracks.find((x) => x.id === initialContext.trackId);
+      if (t) {
+        const pName = t._projectName || projects.find((p) => p.id === t.projectId)?.name || '';
+        setUploadCtx({
+          mode: 'add-version',
+          projectId: t.projectId,
+          projectName: pName,
+          prefillTitle: t.title,
+          lockTitle: true,
+        });
+        setTitle(t.title);
+        setStep('upload');
+        return;
+      }
+      if (allTracks.length) setStep('pick-track');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Handlers de navigation depuis le root ──────────────────
+  const goUpload = (ctx) => {
+    setUploadCtx(ctx);
+    setTitle(ctx.prefillTitle || '');
+    setStep('upload');
+  };
+
+  const handleNewProjectClick = () => {
+    setNewProjectName('');
+    setChainToUploadAfterCreate(false);
+    setStep('new-project-name');
+  };
+
   const handleNewTrackClick = () => {
     if (!hasProjects) {
-      // Pas encore de projet : crée-le, puis enchaîne sur le titre
-      onNewProjectThenTrack();
-      onClose();
+      setNewProjectName('');
+      setChainToUploadAfterCreate(true);
+      setStep('new-project-name');
       return;
     }
     if (projects.length === 1) {
-      onNewTrackInProject(projects[0].id);
-      onClose();
+      const p = projects[0];
+      goUpload({ mode: 'new-track', projectId: p.id, projectName: p.name, prefillTitle: '', lockTitle: false });
       return;
     }
     setStep('pick-project');
@@ -50,188 +194,404 @@ export default function AddModal({
   const handleAddVersionClick = () => {
     if (!hasTracks) return;
     if (allTracks.length === 1) {
-      onAddVersionToTrack(allTracks[0]);
-      onClose();
+      const t = allTracks[0];
+      goUpload({
+        mode: 'add-version',
+        projectId: t.projectId,
+        projectName: t._projectName || projects.find((p) => p.id === t.projectId)?.name || '',
+        prefillTitle: t.title,
+        lockTitle: true,
+      });
       return;
     }
     setStep('pick-track');
   };
 
-  const backdropStyle = {
-    position: 'fixed', inset: 0, zIndex: 10000,
-    background: 'rgba(0,0,0,.55)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontFamily: "'DM Sans', sans-serif",
-    padding: 16,
+  const handleCreateProjectSubmit = async () => {
+    const n = newProjectName.trim();
+    if (!n || creatingProject) return;
+    setCreatingProject(true);
+    try {
+      const created = await onCreateProject?.(n);
+      setNewProjectName('');
+      setCreatingProject(false);
+      if (chainToUploadAfterCreate && created?.id) {
+        setChainToUploadAfterCreate(false);
+        goUpload({ mode: 'new-track', projectId: created.id, projectName: n, prefillTitle: '', lockTitle: false });
+      } else {
+        onClose();
+      }
+    } catch (err) {
+      console.warn('create project from AddModal failed', err);
+      setCreatingProject(false);
+    }
   };
-  const cardStyle = {
-    width: 440, maxWidth: '92vw',
-    background: '#141416', border: '1px solid #2a2a2e',
-    borderRadius: 14, padding: 22, boxShadow: '0 20px 60px rgba(0,0,0,.6)',
-    boxSizing: 'border-box',
-  };
-  const headerStyle = {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    marginBottom: 16,
-  };
-  const titleStyle = {
-    fontSize: 14, color: '#e8e8ea', fontWeight: 500,
-  };
-  const backBtnStyle = {
-    background: 'transparent', border: 'none', color: '#9a9a9e',
-    fontSize: 14, cursor: 'pointer', padding: '4px 8px',
-    fontFamily: 'inherit',
-  };
-  const closeBtnStyle = {
-    background: 'transparent', border: 'none', color: '#9a9a9e',
-    fontSize: 20, cursor: 'pointer', padding: 0, lineHeight: 1,
-    fontFamily: 'inherit',
-  };
-  const choiceStyle = (disabled) => ({
-    display: 'flex', alignItems: 'flex-start', gap: 14,
-    width: '100%', textAlign: 'left',
-    padding: '14px 16px', borderRadius: 10,
-    background: '#0e0e10', border: '1px solid #2a2a2e',
-    color: disabled ? '#5a5a5e' : '#e8e8ea',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    transition: 'all .15s',
-    fontFamily: 'inherit',
-    opacity: disabled ? 0.5 : 1,
-  });
-  const iconStyle = {
-    fontSize: 18, lineHeight: 1, color: '#f5b056',
-    width: 22, flex: '0 0 auto', marginTop: 1,
-  };
-  const choiceLabel = { fontSize: 14, fontWeight: 500, marginBottom: 4 };
-  const choiceDesc = { fontSize: 14, color: '#9a9a9e', fontWeight: 300, lineHeight: 1.5 };
 
-  const pickItemStyle = {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-    width: '100%', textAlign: 'left',
-    padding: '12px 14px', borderRadius: 8,
-    background: '#0e0e10', border: '1px solid #2a2a2e',
-    color: '#e8e8ea', cursor: 'pointer', fontFamily: 'inherit',
-    fontSize: 14, fontWeight: 300,
-    transition: 'all .15s',
+  // Retour intelligent depuis l'étape upload selon le flow
+  const handleBack = () => {
+    if (step === 'upload') {
+      if (uploadCtx?.mode === 'add-version') {
+        setStep(allTracks.length > 1 ? 'pick-track' : 'root');
+      } else if (uploadCtx?.mode === 'new-track') {
+        setStep(projects.length > 1 ? 'pick-project' : 'root');
+      } else {
+        setStep('root');
+      }
+      return;
+    }
+    setStep('root');
   };
-  const pickCountStyle = {
-    fontSize: 10, color: '#9a9a9e', letterSpacing: 0.5,
-    fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-  };
+
+  // ── Render ─────────────────────────────────────────────────
+  const cardClass = `add-mini-card${step === 'upload' ? ' is-upload' : ''}`;
 
   return createPortal((
-    <div onClick={onClose} style={backdropStyle}>
-      <div onClick={(e) => e.stopPropagation()} style={cardStyle}>
-        <div style={headerStyle}>
-          {step === 'root' ? (
-            <div style={titleStyle}>{s.addModal.title}</div>
-          ) : (
-            <button style={backBtnStyle} onClick={() => setStep('root')}>
-              {s.addModal.back}
-            </button>
-          )}
-          <button style={closeBtnStyle} onClick={onClose} aria-label={s.addModal.close}>×</button>
-        </div>
+    <div className="add-mini-backdrop" onClick={onClose} role="presentation">
+      <div
+        className={cardClass}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={s.addModal.title}
+      >
+        {step !== 'root' && (
+          <button type="button" className="add-mini-back" onClick={handleBack}>
+            {s.addModal.back}
+          </button>
+        )}
 
         {step === 'root' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button
-              style={choiceStyle(false)}
-              onClick={() => { onNewProject(); onClose(); }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#f5b056'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2e'; }}
-            >
-              <span style={iconStyle}>+</span>
-              <span>
-                <div style={choiceLabel}>{s.addModal.choiceNewProjectLabel}</div>
-                <div style={choiceDesc}>{s.addModal.choiceNewProjectDesc}</div>
-              </span>
-            </button>
-            <button
-              style={choiceStyle(false)}
-              onClick={handleNewTrackClick}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#f5b056'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2e'; }}
-            >
-              <span style={iconStyle}>+</span>
-              <span>
-                <div style={choiceLabel}>{s.addModal.choiceNewTrackLabel}</div>
-                <div style={choiceDesc}>{s.addModal.choiceNewTrackDesc}</div>
-              </span>
-            </button>
-            <button
-              style={choiceStyle(!hasTracks)}
-              disabled={!hasTracks}
-              onClick={handleAddVersionClick}
-              onMouseEnter={(e) => { if (hasTracks) e.currentTarget.style.borderColor = '#f5b056'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2e'; }}
-            >
-              <span style={iconStyle}>↻</span>
-              <span>
-                <div style={choiceLabel}>{s.addModal.choiceAddVersionLabel}</div>
-                <div style={choiceDesc}>
-                  {hasTracks
-                    ? s.addModal.choiceAddVersionDesc
-                    : s.addModal.choiceAddVersionDescDisabled}
-                </div>
-              </span>
-            </button>
-          </div>
+          <>
+            <div className="add-mini-title">
+              {s.addModal.rootTitleBefore} <em>{s.addModal.rootTitleEm}</em>
+            </div>
+
+            <div className="add-mini-choices">
+              <button
+                type="button"
+                className="add-mini-choice"
+                onClick={handleNewProjectClick}
+              >
+                <span className="add-mini-choice-icon is-amber" aria-hidden="true">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 5v14" />
+                    <path d="M5 12h14" />
+                  </svg>
+                </span>
+                <span className="add-mini-choice-body">
+                  <div className="add-mini-choice-label">{s.addModal.choiceNewProjectLabel}</div>
+                  <div className="add-mini-choice-desc">{s.addModal.choiceNewProjectDesc}</div>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="add-mini-choice"
+                disabled={!hasProjects}
+                onClick={handleNewTrackClick}
+              >
+                <span className="add-mini-choice-icon is-cerulean" aria-hidden="true">
+                  {/* Croche (eighth note) : tête pleine tiltée + hampe verticale + crochet qui
+                      retombe à droite — silhouette ♪ classique. */}
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10 18.3V3.5" />
+                    <path d="M10 3.5c3.3 .4 5.7 2.6 5.7 5.8" fill="none" />
+                    <ellipse cx="6.6" cy="18.1" rx="3.4" ry="2.4" fill="currentColor" stroke="currentColor" transform="rotate(-22 6.6 18.1)" />
+                  </svg>
+                </span>
+                <span className="add-mini-choice-body">
+                  <div className="add-mini-choice-label">{s.addModal.choiceNewTrackLabel}</div>
+                  <div className="add-mini-choice-desc">
+                    {hasProjects ? s.addModal.choiceNewTrackDesc : s.addModal.choiceNewTrackDescDisabled}
+                  </div>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="add-mini-choice"
+                disabled={!hasTracks}
+                onClick={handleAddVersionClick}
+              >
+                <span className="add-mini-choice-icon is-mint" aria-hidden="true">
+                  {/* Feather RotateCw — arc clockwise quasi-complet + arrowhead en haut-droite */}
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="22 4 22 10 16 10" />
+                    <path d="M19.49 15a9 9 0 1 1-2.12-9.36L22 10" />
+                  </svg>
+                </span>
+                <span className="add-mini-choice-body">
+                  <div className="add-mini-choice-label">{s.addModal.choiceAddVersionLabel}</div>
+                  <div className="add-mini-choice-desc">
+                    {hasTracks ? s.addModal.choiceAddVersionDesc : s.addModal.choiceAddVersionDescDisabled}
+                  </div>
+                </span>
+              </button>
+            </div>
+
+            <div className="add-mini-foot">
+              <button type="button" className="add-mini-btn" onClick={onClose}>
+                {s.addModal.cancel}
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 'new-project-name' && (
+          <>
+            <div className="add-mini-section-title">{s.addModal.newProjectStepTitle}</div>
+            <input
+              autoFocus
+              className="add-mini-input"
+              value={newProjectName}
+              onChange={(e) => setNewProjectName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newProjectName.trim() && !creatingProject) handleCreateProjectSubmit();
+                if (e.key === 'Escape') setStep('root');
+              }}
+              placeholder={s.addModal.newProjectPlaceholder}
+            />
+            <div className="add-mini-foot">
+              <button type="button" className="add-mini-btn" onClick={onClose}>
+                {s.addModal.cancel}
+              </button>
+              <button
+                type="button"
+                className="add-mini-btn is-primary"
+                onClick={handleCreateProjectSubmit}
+                disabled={!newProjectName.trim() || creatingProject}
+              >
+                {s.addModal.newProjectConfirm}
+              </button>
+            </div>
+          </>
         )}
 
         {step === 'pick-project' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ fontSize: 14, color: '#9a9a9e', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
-              {s.addModal.pickProjectTitle}
-            </div>
+          <>
+            <div className="add-mini-section-title">{s.addModal.pickProjectTitle}</div>
             {projects.map((p) => {
               const n = p.tracks?.length || 0;
               return (
                 <button
                   key={p.id}
-                  style={pickItemStyle}
-                  onClick={() => { onNewTrackInProject(p.id); onClose(); }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#f5b056'; e.currentTarget.style.color = '#f5b056'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2e'; e.currentTarget.style.color = '#e8e8ea'; }}
+                  type="button"
+                  className="add-mini-pick"
+                  onClick={() => goUpload({ mode: 'new-track', projectId: p.id, projectName: p.name, prefillTitle: '', lockTitle: false })}
                 >
                   <span>{p.name}</span>
-                  <span style={pickCountStyle}>{n} {n > 1 ? s.addModal.trackPlural : s.addModal.trackSingular}</span>
+                  <span className="add-mini-pick-count">
+                    {n} {n > 1 ? s.addModal.trackPlural : s.addModal.trackSingular}
+                  </span>
                 </button>
               );
             })}
             <button
-              style={{ ...pickItemStyle, justifyContent: 'flex-start', gap: 10, marginTop: 4, borderTop: '1px solid #2a2a2e', borderRadius: '0 0 8px 8px' }}
-              onClick={() => { onNewProjectThenTrack(); onClose(); }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = '#f5b056'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#e8e8ea'; }}
+              type="button"
+              className="add-mini-create-new"
+              onClick={() => { setNewProjectName(''); setChainToUploadAfterCreate(true); setStep('new-project-name'); }}
             >
-              <span style={{ color: '#f5b056', fontSize: 14 }}>+</span>
+              <span aria-hidden="true">+</span>
               <span>{s.addModal.createNewProject}</span>
             </button>
-          </div>
+            <div className="add-mini-foot">
+              <button type="button" className="add-mini-btn" onClick={onClose}>
+                {s.addModal.cancel}
+              </button>
+            </div>
+          </>
         )}
 
         {step === 'pick-track' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ fontSize: 14, color: '#9a9a9e', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
-              {s.addModal.pickTrackTitle}
-            </div>
+          <>
+            <div className="add-mini-section-title">{s.addModal.pickTrackTitle}</div>
             {allTracks.map((t) => {
               const n = t.versions?.length || 0;
               return (
                 <button
                   key={t.id}
-                  style={pickItemStyle}
-                  onClick={() => { onAddVersionToTrack(t); onClose(); }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#f5b056'; e.currentTarget.style.color = '#f5b056'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a2e'; e.currentTarget.style.color = '#e8e8ea'; }}
+                  type="button"
+                  className="add-mini-pick"
+                  onClick={() => goUpload({
+                    mode: 'add-version',
+                    projectId: t.projectId,
+                    projectName: t._projectName || projects.find((p) => p.id === t.projectId)?.name || '',
+                    prefillTitle: t.title,
+                    lockTitle: true,
+                  })}
                 >
                   <span>{t.title}</span>
-                  <span style={pickCountStyle}>{n} {n > 1 ? s.addModal.versionPlural : s.addModal.versionSingular}</span>
+                  <span className="add-mini-pick-count">
+                    {n} {n > 1 ? s.addModal.versionPlural : s.addModal.versionSingular}
+                  </span>
                 </button>
               );
             })}
-          </div>
+            <div className="add-mini-foot">
+              <button type="button" className="add-mini-btn" onClick={onClose}>
+                {s.addModal.cancel}
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 'upload' && uploadCtx && (
+          <>
+            {/* Bandeau projet verrouillé */}
+            <div className="add-mini-upload-banner">
+              <span style={{ fontSize: 12, color: 'var(--amber)' }}>●</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="add-mini-upload-banner-kicker">
+                  {uploadCtx.mode === 'add-version' ? s.addModal.uploadAddVersionTo : s.addModal.uploadInProject}
+                </div>
+                <div className="add-mini-upload-banner-name">
+                  {uploadCtx.mode === 'add-version'
+                    ? `${uploadCtx.prefillTitle} · ${uploadCtx.projectName}`
+                    : uploadCtx.projectName}
+                </div>
+              </div>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <rect x="3" y="5.5" width="6" height="4.5" rx="1" stroke="var(--muted)" strokeWidth="1.2" fill="none" />
+                <path d="M4.2 5.5 V 4 a 1.8 1.8 0 0 1 3.6 0 V 5.5" stroke="var(--muted)" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+              </svg>
+            </div>
+
+            {/* Zone drop */}
+            <div className="add-mini-field">
+              <div className="add-mini-field-label">{s.addModal.uploadMixLabel}</div>
+              <div
+                className={`add-mini-drop${file ? ' is-filled' : drag ? ' is-active' : ''}`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+                onDragLeave={() => setDrag(false)}
+                onDrop={(e) => {
+                  e.preventDefault(); setDrag(false);
+                  const f = e.dataTransfer.files?.[0];
+                  if (f) handlePickFile(f);
+                }}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/*,.mp3,.wav,.aiff,.aif,.flac,.m4a,.ogg"
+                  style={{ display: 'none' }}
+                  onChange={(e) => e.target.files?.[0] && handlePickFile(e.target.files[0])}
+                />
+                {file ? (
+                  <>
+                    <span style={{ color: 'var(--mint)', fontSize: 16 }} aria-hidden="true">✓</span>
+                    <div style={{
+                      flex: 1, fontSize: 13, color: 'var(--text)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{file.name}</div>
+                  </>
+                ) : (
+                  <>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={drag ? 'var(--amber)' : 'var(--muted)'} strokeWidth="1.6" aria-hidden="true">
+                      <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+                      <path d="M8 8l4-4 4 4" />
+                      <path d="M12 4v12" />
+                    </svg>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, color: 'var(--text)' }}>{s.addModal.uploadDropText}</div>
+                      <div style={{
+                        fontSize: 9, letterSpacing: 1, color: 'var(--muted)',
+                        fontFamily: 'var(--mono)', marginTop: 2,
+                      }}>{s.addModal.uploadDropFormats}</div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Titre + Version */}
+            {file && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                <div>
+                  <div className="add-mini-field-label">{s.addModal.uploadTitleLabel}</div>
+                  <input
+                    className="add-mini-input"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={s.addModal.uploadTitlePlaceholder}
+                    disabled={!!uploadCtx.lockTitle}
+                  />
+                </div>
+                <div>
+                  <div className="add-mini-field-label">{s.addModal.uploadVersionLabel}</div>
+                  <input
+                    className="add-mini-input"
+                    value={version}
+                    onChange={(e) => setVersion(e.target.value)}
+                    placeholder={s.addModal.uploadVersionPlaceholder}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Type vocal (nouveau titre uniquement) */}
+            {file && askVocal && (
+              <div className="add-mini-field">
+                <div className="add-mini-field-label">{s.addModal.uploadVocalLabel}</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className={`add-mini-pill${vocalKind === 'vocal' ? ' on' : ''}`}
+                    onClick={() => { setVocalKind('vocal'); setFinalInstru(null); }}
+                  >{s.addModal.uploadVocalSung}</button>
+                  <button
+                    type="button"
+                    className={`add-mini-pill${vocalKind === 'instrumental' ? ' on' : ''}`}
+                    onClick={() => setVocalKind('instrumental')}
+                  >{s.addModal.uploadVocalInstrumental}</button>
+                </div>
+                {vocalKind === 'instrumental' && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className={`add-mini-pill${finalInstru === false ? ' on' : ''}`}
+                      onClick={() => setFinalInstru(false)}
+                    >{s.addModal.uploadVocalComing}</button>
+                    <button
+                      type="button"
+                      className={`add-mini-pill${finalInstru === true ? ' on' : ''}`}
+                      onClick={() => setFinalInstru(true)}
+                    >{s.addModal.uploadVocalFinal}</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* DAW */}
+            <div className="add-mini-field">
+              <div className="add-mini-field-label">{s.addModal.uploadDawLabel}</div>
+              <div className="add-mini-select-wrap">
+                <select
+                  className="add-mini-select"
+                  value={daw}
+                  onChange={(e) => setDaw(e.target.value)}
+                >
+                  <option value="">{s.addModal.uploadDawPlaceholder}</option>
+                  {DAWS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                <div className="add-mini-select-arrow" aria-hidden="true">
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                    <path d="M2 4 L6 8 L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <button
+              type="button"
+              className="add-mini-cta"
+              onClick={handleLaunchAnalyze}
+              disabled={!uploadOk}
+            >
+              {uploadOk ? s.addModal.uploadCta : s.addModal.uploadCtaIncomplete}
+            </button>
+          </>
         )}
       </div>
     </div>
