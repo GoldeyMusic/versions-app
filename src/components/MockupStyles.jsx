@@ -654,6 +654,1307 @@ export default function MockupStyles() {
   }
   .new-version-btn:hover { background: var(--amber-glow); border-style: solid; }
 
+  /* ══════════════════════════════════════════════════════════════════ */
+  /* FICHE TOPBAR v2 (desktop — mobile conserve l'ancien rendu)         */
+  /* ══════════════════════════════════════════════════════════════════ */
+  .fiche-topbar-wrap {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(12,12,13,0.92);
+    backdrop-filter: blur(14px);
+    padding: 16px 40px 0;
+    display: flex; flex-direction: column;
+  }
+  .fiche-topbar-wrap .fiche-topbar {
+    display: flex; align-items: center; gap: 14px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .fiche-topbar-wrap .fiche-back {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--soft); cursor: pointer;
+    width: 34px; height: 34px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0; flex-shrink: 0;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .fiche-topbar-wrap .fiche-back:hover {
+    background: var(--s1); color: var(--text); border-color: rgba(255,255,255,0.18);
+  }
+  .fiche-topbar-title {
+    font-family: var(--body); font-weight: 700;
+    font-size: 24px; letter-spacing: -0.8px;
+    line-height: 1.15;
+    color: var(--text);
+    display: flex; align-items: center; gap: 12px;
+    min-width: 0;
+  }
+  .fiche-topbar-title em {
+    font-family: var(--serif); font-style: italic; font-weight: 400;
+    color: var(--amber);
+  }
+  .fiche-topbar-title .fiche-title-text {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 32ch;
+  }
+  /* La VocalTypePill doit s'aligner en pill mono dans la topbar v2 */
+  .fiche-topbar-title .vocal-pill-wrap { transform: none; align-self: center; }
+  .fiche-topbar-title .vocal-pill {
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+    padding: 4px 10px;
+  }
+
+  .fiche-topbar-meta {
+    margin-left: auto;
+    display: flex; flex-direction: column; align-items: flex-end;
+    gap: 2px;
+    line-height: 1.2;
+  }
+  .fiche-topbar-meta .ver-label {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 1.5px;
+    color: var(--muted); text-transform: uppercase;
+  }
+  .fiche-topbar-meta .ver-label b { color: var(--green); font-weight: 500; }
+  .fiche-topbar-meta .ver-label b.pending { color: var(--amber); }
+  .fiche-topbar-meta .ver-label b.other { color: var(--soft); }
+  .fiche-topbar-meta .ver-name {
+    font-size: 13px; font-weight: 600; color: var(--soft);
+  }
+
+  .fiche-topbar-actions {
+    display: flex; gap: 6px;
+  }
+  .fiche-topbar-actions .btn-ic {
+    width: 34px; height: 34px; border-radius: 8px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--soft); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .fiche-topbar-actions .btn-ic:hover:not(:disabled) {
+    background: var(--s1); color: var(--text);
+    border-color: rgba(255,255,255,0.18);
+  }
+  .fiche-topbar-actions .btn-ic:disabled { opacity: .5; cursor: not-allowed; }
+  .fiche-topbar-actions .btn-ic svg { width: 16px; height: 16px; }
+
+  /* Versions timeline (chips v2) — row sous la topbar */
+  .fiche-topbar-wrap .versions-row-wrap {
+    position: relative;
+  }
+  .fiche-topbar-wrap .versions-row-v2 {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 0 12px;
+    overflow-x: auto;
+    scrollbar-width: none; -ms-overflow-style: none;
+  }
+  .fiche-topbar-wrap .versions-row-v2::-webkit-scrollbar { display: none; }
+  .fiche-topbar-wrap .versions-row-fade {
+    position: absolute; top: 0; bottom: 0; width: 40px;
+    pointer-events: none; z-index: 2;
+  }
+  .fiche-topbar-wrap .versions-row-fade.left {
+    left: 0;
+    background: linear-gradient(90deg, rgba(12,12,13,0.92), transparent);
+  }
+  .fiche-topbar-wrap .versions-row-fade.right {
+    right: 0;
+    background: linear-gradient(-90deg, rgba(12,12,13,0.92), transparent);
+  }
+
+  /* VChip v2 (row layout) — scopé à .versions-row-v2 pour préserver le mobile */
+  .versions-row-v2 .vchip {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    display: flex; flex-direction: row; align-items: center; gap: 10px;
+    min-width: 0;
+  }
+  .versions-row-v2 .vchip:hover {
+    background: var(--card);
+    border-color: rgba(245,166,35,0.3);
+  }
+  .versions-row-v2 .vchip.active {
+    border-color: var(--amber);
+    background: rgba(245,166,35,0.06);
+    box-shadow: 0 0 0 1px var(--amber), 0 0 16px rgba(245,166,35,0.25);
+  }
+  .versions-row-v2 .vchip .vname {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1.2px;
+    color: var(--muted); text-transform: uppercase;
+    margin-top: 0;
+    font-weight: 500;
+  }
+  .versions-row-v2 .vchip.active .vname { color: var(--amber); }
+  .versions-row-v2 .vchip .vscore {
+    font-family: var(--body); font-weight: 600; font-size: 15px;
+    letter-spacing: -0.3px;
+    line-height: 1;
+    margin-top: 0;
+    color: var(--text);
+  }
+  .versions-row-v2 .vchip.active .vscore { color: var(--amber); }
+  .versions-row-v2 .vchip .vscore.good { color: var(--green); }
+  .versions-row-v2 .vchip .vscore.mid { color: var(--amber); }
+  .versions-row-v2 .vchip .vscore.low { color: var(--red); }
+  .versions-row-v2 .vchip .vscore .pct { display: none; }
+  .versions-row-v2 .vchip .vdelta-inline {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.5px;
+    background: transparent; padding: 0;
+    color: var(--green);
+  }
+  .versions-row-v2 .vchip .vdelta-inline.down { color: var(--red); }
+  /* Le badge "EN COURS" de la v1 est remplacé par un simple contour amber */
+  .versions-row-v2 .vchip.current-badge::after { display: none; }
+
+  .vchip-new {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px dashed rgba(245,166,35,0.6);
+    color: var(--amber);
+    cursor: pointer;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1px;
+    text-transform: uppercase; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: background .15s, border-color .15s;
+  }
+  .vchip-new:hover {
+    background: rgba(245,166,35,0.08);
+    border-color: var(--amber);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════ */
+  /* FICHE v2 — polish des panneaux (glows + eyebrows)                   */
+  /* Appliqué via le wrapper .fiche-v2 ; n'impacte pas le layout mobile. */
+  /* ══════════════════════════════════════════════════════════════════ */
+
+  /* ══════════════════════════════════════════════════════════════════════
+     FICHE v2 — LAYOUT 2 COLONNES (col-gauche Score+Diag / col-droite Qualitative+Plan)
+     Le chat reste ancré en aside (3ᵉ colonne via .fiche-layout.has-chat).
+     Technique : display: contents sur .row-two pour faire remonter col-diag
+     et col-plan au niveau du grid parent .page.
+     ══════════════════════════════════════════════════════════════════════ */
+  .fiche-v2 .page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    column-gap: 20px;
+    row-gap: 18px;
+    align-items: start;
+    padding: 20px 28px 80px;
+  }
+  .fiche-v2 .page > .vocal-suggest { grid-column: 1 / -1; }
+  .fiche-v2 .page > .row-verdict { grid-column: 1; }
+  .fiche-v2 .page > .row-qualitative { grid-column: 2; }
+  .fiche-v2 .page > .row-two {
+    display: contents; /* casse le wrapper pour que col-diag et col-plan
+                          deviennent directement enfants du grid .page */
+  }
+  .fiche-v2 .page > .row-two > .col-diag { grid-column: 1; }
+  .fiche-v2 .page > .row-two > .col-plan { grid-column: 2; }
+
+  /* Row verdict : en col-1 étroite, on empile score-panel et evolution
+     comme 2 cartes indépendantes (pas de fond/bordure sur le wrapper). */
+  .fiche-v2 .row-verdict {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-bottom: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .fiche-v2 .row-verdict .rv-left {
+    position: relative;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid rgba(245,166,35,0.18);
+    border-radius: 16px;
+    padding: 22px 24px 24px;
+    overflow: hidden;
+  }
+  /* Halo ambre en haut-droite du panel score (cf. .panel.amber-glow maquette L325) */
+  .fiche-v2 .row-verdict .rv-left::before {
+    content: ''; position: absolute; pointer-events: none;
+    top: -80px; right: -80px;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: var(--amber);
+    filter: blur(80px); opacity: 0.22;
+    z-index: 0;
+  }
+  .fiche-v2 .row-verdict .rv-left > * { position: relative; z-index: 1; }
+
+  /* Eyebrow "SCORE GLOBAL" façon maquette (.eyebrow.amber L303) */
+  .fiche-v2 .row-verdict .rv-left .score-eyebrow {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 10.5px;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: var(--amber, #f5a623);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 4px;
+    line-height: 1;
+  }
+  .fiche-v2 .row-verdict .rv-left .score-eyebrow .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--amber, #f5a623);
+    flex-shrink: 0;
+  }
+
+  /* Ring centré (n'écrase pas les règles existantes) */
+  .fiche-v2 .row-verdict .rv-left .score-ring {
+    align-self: center;
+    margin: 6px auto 4px;
+  }
+
+  /* Ring + 6 tuiles mix-indicators côte-à-côte (ring à gauche, grid 2×3 à droite) */
+  .fiche-v2 .row-verdict .rv-left .rv-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 4px 0 2px;
+  }
+  .fiche-v2 .row-verdict .rv-left .rv-top .score-ring {
+    align-self: center;
+    margin: 0;
+    flex-shrink: 0;
+  }
+  .fiche-v2 .row-verdict .rv-left .rv-top .mix-indicators {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .fiche-v2 .row-verdict .rv-left .mi-tile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border, rgba(255,255,255,0.06));
+    border-radius: 9px;
+    min-width: 0;
+  }
+  .fiche-v2 .row-verdict .rv-left .mi-tile .mi-ring {
+    width: 28px; height: 28px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .fiche-v2 .row-verdict .rv-left .mi-tile .mi-ring svg { width: 28px; height: 28px; }
+  .fiche-v2 .row-verdict .rv-left .mi-tile .mi-ring .mi-val {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text, #f5f4ef);
+  }
+  .fiche-v2 .row-verdict .rv-left .mi-tile .mi-body {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.2;
+  }
+  .fiche-v2 .row-verdict .rv-left .mi-tile .mi-label {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 9.5px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--muted, rgba(255,255,255,0.5));
+    font-weight: 500;
+  }
+  .fiche-v2 .row-verdict .rv-left .mi-tile .mi-word {
+    font-family: var(--body, 'DM Sans', sans-serif);
+    font-weight: 600;
+    font-size: 14px;
+    margin-top: 2px;
+    color: var(--text, #f5f4ef);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Appréciations textuelles (Bon / Large / Moyen…) gardées en blanc —
+     la couleur sémantique vit déjà dans la ring + la valeur chiffrée. */
+
+  /* Écran un peu étroit : ring sur le dessus, tuiles en 2 colonnes en dessous */
+  @media (max-width: 1100px) {
+    .fiche-v2 .row-verdict .rv-left .rv-top {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+    .fiche-v2 .row-verdict .rv-left .rv-top .mix-indicators {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  /* Typo du gros nombre dans le ring — on passe en DM Sans geometric
+     (comme la maquette) pour une lisibilité plus nette que Cormorant 58px. */
+  .fiche-v2 .row-verdict .rv-left .score-ring .big {
+    font-family: var(--body, 'DM Sans', sans-serif);
+    font-weight: 700;
+    font-size: 56px;
+    letter-spacing: -2px;
+    line-height: 1;
+  }
+  .fiche-v2 .row-verdict .rv-left .score-ring .big-suffix {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-top: 8px;
+    margin-left: 2px;
+    font-weight: 400;
+  }
+
+  /* Bands rouge / ambre / mint (cf. .score-bands maquette L793) */
+  .fiche-v2 .row-verdict .rv-left .score-bands {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 9.5px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted, rgba(255,255,255,0.5));
+    margin-top: 4px;
+  }
+  .fiche-v2 .row-verdict .rv-left .score-bands span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .fiche-v2 .row-verdict .rv-left .score-bands i {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .fiche-v2 .row-verdict .rv-left .score-bands .b-low i  { background: var(--red, #ff5d5d); }
+  .fiche-v2 .row-verdict .rv-left .score-bands .b-mid i  { background: var(--amber, #f5a623); }
+  .fiche-v2 .row-verdict .rv-left .score-bands .b-high i { background: var(--mint, #8ee07a); }
+
+  /* Delta mint "↑ +15 points depuis V2" centré */
+  .fiche-v2 .row-verdict .rv-left .score-calibration {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--mint, #8ee07a);
+    text-align: center;
+    margin: 6px 0 2px;
+    text-transform: uppercase;
+  }
+  .fiche-v2 .row-verdict .rv-left .score-calibration.down { color: var(--red, #ff5d5d); }
+  .fiche-v2 .row-verdict .rv-left .score-calibration.stable { color: var(--muted, rgba(255,255,255,0.5)); }
+
+  /* Verdict en Cormorant italic 16px (cf. .verdict maquette L808) */
+  .fiche-v2 .row-verdict .rv-left .verdict-text {
+    margin-top: 10px;
+    text-align: left;
+  }
+  .fiche-v2 .row-verdict .rv-left .verdict-text h1 {
+    font-family: var(--serif, 'Cormorant Garamond', serif);
+    font-size: 20px;
+    line-height: 1.45;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--text, #f5f4ef);
+    letter-spacing: 0;
+    margin: 0 0 6px;
+  }
+  .fiche-v2 .row-verdict .rv-left .verdict-text h1 em,
+  .fiche-v2 .row-verdict .rv-left .verdict-text h1 b,
+  .fiche-v2 .row-verdict .rv-left .verdict-text h1 strong {
+    color: var(--amber, #f5a623);
+    font-weight: 600;
+    font-style: italic;
+  }
+  .fiche-v2 .row-verdict .rv-left .verdict-text p {
+    font-family: var(--serif, 'Cormorant Garamond', serif);
+    font-size: 16px;
+    line-height: 1.55;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--soft, rgba(255,255,255,0.78));
+    margin: 0 0 6px;
+  }
+  .fiche-v2 .row-verdict .rv-left .verdict-text .analyzed-at {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 10px;
+    letter-spacing: 0.8px;
+    color: var(--muted, rgba(255,255,255,0.5));
+    text-transform: uppercase;
+    margin-top: 10px;
+    font-style: normal;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     ÉCOUTE QUALITATIVE v2 (desktop) — UN SEUL panel avec eyebrow cerulean en
+     haut, citation impression + sous-items imbriqués à l'intérieur. Matche
+     exactement .panel de maquette-v2-complete.html (ligne 2449 et suivantes).
+     ══════════════════════════════════════════════════════════════════════════ */
+  .fiche-v2 .row-qualitative.stacked {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+    background: var(--card);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
+    padding: 20px 22px;
+  }
+  /* Halo cerulean discret en bas-droite (cf. .panel::after maquette L318) */
+  .fiche-v2 .row-qualitative.stacked::before {
+    content: '';
+    position: absolute;
+    bottom: -60px; right: -60px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: var(--cerulean);
+    filter: blur(80px);
+    opacity: 0.14;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .fiche-v2 .row-qualitative.stacked > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Eyebrow "ÉCOUTE QUALITATIVE" en tête (cf. .eyebrow.cerulean maquette L293) */
+  .fiche-v2 .row-qualitative.stacked .q-eyebrow {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: var(--cerulean);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .fiche-v2 .row-qualitative.stacked .q-eyebrow .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--cerulean);
+    display: inline-block;
+  }
+  .fiche-v2 .row-qualitative.stacked .q-eyebrow.amber { color: var(--amber); }
+  .fiche-v2 .row-qualitative.stacked .q-eyebrow.amber .dot { background: var(--amber); }
+  .fiche-v2 .row-qualitative.stacked .q-eyebrow.mint { color: var(--mint, #8ee07a); }
+  .fiche-v2 .row-qualitative.stacked .q-eyebrow.mint .dot { background: var(--mint, #8ee07a); }
+
+  /* Citation impression — italique Cormorant, fond ambre translucide,
+     barre ambre gauche (cf. .ecoute-impression maquette L818) */
+  .fiche-v2 .row-qualitative.stacked .q-citation {
+    padding: 12px 14px;
+    background: rgba(245,166,35,0.05);
+    border-left: 3px solid var(--amber);
+    border-radius: 6px;
+    margin-bottom: 2px;
+  }
+  .fiche-v2 .row-qualitative.stacked .q-citation p {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--soft, rgba(255,255,255,0.78));
+    margin: 0;
+  }
+  .fiche-v2 .row-qualitative.stacked .q-citation p::before { content: '« '; }
+  .fiche-v2 .row-qualitative.stacked .q-citation p::after { content: ' »'; }
+
+  /* Grille des sous-items — flex column avec gap (cf. .ecoute-sub L827) */
+  .fiche-v2 .row-qualitative.stacked .q-subgrid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Sous-items nichés à l'intérieur du panel principal — pas de card indépendante,
+     juste un fond rgba translucide discret (cf. .ecoute-subitem L830) */
+  .fiche-v2 .row-qualitative.stacked .q-sub {
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.02);
+    border: none;
+    border-radius: 8px;
+    position: static;
+    overflow: visible;
+  }
+  .fiche-v2 .row-qualitative.stacked .q-sub::before {
+    content: none;
+  }
+
+  /* Labels colorés par type (cf. .sub-label / .sub-label.mint / .amber L835) */
+  .fiche-v2 .row-qualitative.stacked .q-sublabel {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+    color: var(--cerulean);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .fiche-v2 .row-qualitative.stacked .q-sublabel.mint { color: var(--mint, #8ee07a); }
+  .fiche-v2 .row-qualitative.stacked .q-sublabel.amber { color: var(--amber); }
+  .fiche-v2 .row-qualitative.stacked .q-sublabel.cerulean { color: var(--cerulean); }
+
+  /* Body texte des sous-items */
+  .fiche-v2 .row-qualitative.stacked .q-subbody {
+    font-size: 13px;
+    color: var(--soft, rgba(255,255,255,0.78));
+    line-height: 1.55;
+  }
+  .fiche-v2 .row-qualitative.stacked .q-subbody p {
+    margin: 0;
+  }
+
+  /* Listes à puces style maquette : puce ambre (·) en début de ligne */
+  .fiche-v2 .row-qualitative.stacked .q-sub ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .fiche-v2 .row-qualitative.stacked .q-sub ul li {
+    font-size: 13px;
+    color: var(--soft, rgba(255,255,255,0.78));
+    line-height: 1.55;
+    position: relative;
+    padding-left: 14px;
+    margin-bottom: 3px;
+  }
+  .fiche-v2 .row-qualitative.stacked .q-sub ul li::before {
+    content: '·';
+    position: absolute;
+    left: 4px;
+    color: var(--amber);
+    font-weight: 700;
+    background: none;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    top: auto;
+  }
+  .fiche-v2 .row-qualitative.stacked .q-sub.forts ul li::before { color: var(--mint, #8ee07a); }
+  .fiche-v2 .row-qualitative.stacked .q-sub.travail ul li::before { color: var(--amber); }
+
+  /* Bouton "— RÉDUIRE / DÉPLOYER" discret, texte seul ambre (cf. .ecoute-toggle L852) */
+  .fiche-v2 .row-qualitative.stacked .impression-toggle {
+    margin-top: 4px;
+    align-self: flex-start;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--amber);
+    background: transparent;
+    border: none;
+    padding: 6px 0;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .fiche-v2 .row-qualitative.stacked .impression-toggle:hover {
+    opacity: 0.8;
+    background: transparent;
+  }
+
+  /* FICHE v2 — halos diffus sur les cartes (même recette que la home .wh-card)
+     Couleur solide + filter:blur + opacity → bien visibles sur fond sombre. */
+
+  /* Le wrapper .row-verdict est transparent en v2 (simple layout vertical).
+     Les styles carte sont maintenant sur .rv-left (score panel) et .rv-right
+     (évolution, déjà cartée via .evolution-panel). Cf. bloc plus haut dans ce
+     fichier où on pose le panel + halo ambre sur .rv-left. */
+  .fiche-v2 .row-verdict { position: relative; }
+
+  /* Q-BLOCKS (Impression / Points forts / À travailler) →
+     chaque carte reçoit son halo coloré, même pattern que .wh-card */
+  .fiche-v2 .q-block { position: relative; overflow: hidden; }
+  .fiche-v2 .q-block > * { position: relative; z-index: 1; }
+  .fiche-v2 .q-block::before {
+    content: ''; position: absolute; pointer-events: none;
+    border-radius: 50%; z-index: 0;
+  }
+  .fiche-v2 .q-block.impression {
+    border-color: rgba(92,184,204,0.18);
+  }
+  .fiche-v2 .q-block.impression::before {
+    top: -50px; right: -40px; width: 180px; height: 180px;
+    background: var(--cerulean);
+    filter: blur(60px); opacity: 0.20;
+  }
+  .fiche-v2 .q-block.forts {
+    border-color: rgba(142,224,122,0.18);
+  }
+  .fiche-v2 .q-block.forts::before {
+    bottom: -50px; right: -30px; width: 150px; height: 150px;
+    background: var(--mint, #8ee07a);
+    filter: blur(58px); opacity: 0.18;
+  }
+  .fiche-v2 .q-block.travail {
+    border-color: rgba(255,93,93,0.18);
+  }
+  .fiche-v2 .q-block.travail::before {
+    top: -40px; right: -30px; width: 150px; height: 150px;
+    background: var(--red);
+    filter: blur(58px); opacity: 0.16;
+  }
+
+  /* ROW TWO (Diag + Plan) — laisse passer les z-index internes */
+  .fiche-v2 .row-two { position: relative; }
+  .fiche-v2 .row-two > * { position: relative; z-index: 1; }
+
+  /* SECTION HEAD v2 — eyebrow coloré affirmé (comme la maquette).
+     La colonne Diag prend l'ambre, la colonne Plan prend le mint. */
+  .fiche-v2 .col-diag > .section-head .t { color: var(--amber); }
+  .fiche-v2 .col-plan > .section-head .t { color: var(--mint, #8ee07a); }
+  .fiche-v2 .col-diag > .section-head .line {
+    background: linear-gradient(to right, rgba(245,166,35,0.25), transparent);
+  }
+  .fiche-v2 .col-plan > .section-head .line {
+    background: linear-gradient(to right, rgba(142,224,122,0.25), transparent);
+  }
+
+  /* DIAG CAT v2 — fond --s1 + hover ambre discret pour matcher la maquette */
+  .fiche-v2 .diag-cat {
+    background: var(--s1);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .fiche-v2 .diag-cat:hover {
+    border-color: rgba(245,166,35,0.3);
+  }
+  .fiche-v2 .diag-cat.open {
+    border-color: rgba(245,166,35,0.35);
+    background: var(--s2, #16171f);
+  }
+
+  /* EVOLUTION PANEL v2 — halo cerulean discret + bordure colorée */
+  .fiche-v2 .evolution-panel {
+    position: relative;
+    overflow: hidden;
+    border-color: rgba(92,184,204,0.18);
+  }
+  .fiche-v2 .evolution-panel::before {
+    content: ''; position: absolute; pointer-events: none;
+    top: -40px; right: -30px;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: var(--cerulean);
+    filter: blur(60px); opacity: 0.16;
+    z-index: 0;
+  }
+  .fiche-v2 .evolution-panel > * { position: relative; z-index: 1; }
+
+  /* Le titre de l'évolution panel reprend le cerulean */
+  .fiche-v2 .evolution-panel .vr-title { color: var(--cerulean); }
+
+  /* Plan cards v2 : badges P0/P1/P2 plus contrastés */
+  .fiche-v2 .pbadge {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 1.2px;
+    padding: 3px 8px; border-radius: 4px;
+    font-weight: 500;
+  }
+
+  /* Bouton "cocher résolu" version desktop v2 : plus compact (16px au lieu de 22). */
+  .fiche-v2 .pcheck {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    border-width: 1.5px;
+  }
+  .fiche-v2 .pcheck svg {
+    width: 10px; height: 10px;
+  }
+
+  /* Plan cards v2 : accent de gauche coloré selon la priorité (high/med/low)
+     Comme la maquette .plan-card.p0/p1/p2 mais adapté aux classes existantes. */
+  .fiche-v2 .priority.collapsible { border-left-width: 3px; }
+  .fiche-v2 .priority.high {
+    border-left-color: var(--red);
+    background: linear-gradient(to right, rgba(255,93,93,0.05), transparent 30%), var(--s1);
+  }
+  .fiche-v2 .priority.med {
+    border-left-color: var(--amber);
+    background: linear-gradient(to right, rgba(245,166,35,0.05), transparent 30%), var(--s1);
+  }
+  .fiche-v2 .priority.low {
+    border-left-color: var(--green);
+    background: linear-gradient(to right, rgba(142,224,122,0.05), transparent 30%), var(--s1);
+  }
+  .fiche-v2 .priority.done {
+    opacity: 0.55;
+    background: var(--s1);
+  }
+  /* Le hover garde le même accent coloré */
+  .fiche-v2 .priority.collapsible.high:hover {
+    border-left-color: var(--red);
+    background: linear-gradient(to right, rgba(255,93,93,0.08), transparent 35%), var(--s1);
+  }
+  .fiche-v2 .priority.collapsible.med:hover {
+    border-left-color: var(--amber);
+    background: linear-gradient(to right, rgba(245,166,35,0.08), transparent 35%), var(--s1);
+  }
+  .fiche-v2 .priority.collapsible.low:hover {
+    border-left-color: var(--green);
+    background: linear-gradient(to right, rgba(142,224,122,0.08), transparent 35%), var(--s1);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     PLAN D'ACTION v2 (desktop) — UN SEUL panel (.plan-panel) avec eyebrow
+     ambre + halo mint + cards .plan-card.p0/p1/p2/resolved imbriquées.
+     Matche maquette-v2-complete.html L892-955 + L2499-2557 (.panel.mint-glow).
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     DIAGNOSTIC v2 (desktop) — UN SEUL panel (.diag-panel) avec eyebrow
+     cerulean + halo cerulean bas-droite + liste .diag-cat imbriquée.
+     Matche maquette-v2-complete.html L2357 (.eyebrow.cerulean "Diagnostic").
+     ══════════════════════════════════════════════════════════════════════════ */
+  .fiche-v2 .diag-panel {
+    position: relative;
+    overflow: hidden;
+    background: var(--card);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin: 0 0 14px;
+  }
+  .fiche-v2 .diag-panel::before {
+    content: '';
+    position: absolute;
+    bottom: -60px; right: -60px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: var(--cerulean, #5cb8cc);
+    filter: blur(80px);
+    opacity: 0.14;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .fiche-v2 .diag-panel > * { position: relative; z-index: 1; }
+
+  /* Eyebrow "DIAGNOSTIC · N CATÉGORIES" cerulean + dot */
+  .fiche-v2 .diag-panel .diag-eyebrow {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: var(--cerulean, #5cb8cc);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .fiche-v2 .diag-panel .diag-eyebrow .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--cerulean, #5cb8cc);
+    flex-shrink: 0;
+  }
+
+  /* Liste des catégories à l'intérieur du panel */
+  .fiche-v2 .diag-panel .diag-cats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Les .diag-cat internes — on allège les bordures/fond pour cohabiter
+     dans le panel parent (pas de double carte). */
+  .fiche-v2 .diag-panel .diag-cat {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 10px;
+    margin-bottom: 0;
+  }
+
+  /* Titres des catégories — même recette que .q-sublabel (mono 9.5 / 1.5 / 500 / uppercase)
+     avec accent coloré différent par catégorie (voix, instruments, basses, drums, …) */
+  .fiche-v2 .diag-panel .diag-cat-head {
+    padding: 12px 16px;
+    gap: 12px;
+  }
+  .fiche-v2 .diag-panel .diag-cat-head .name {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: var(--cerulean, #5cb8cc);
+    flex: 1;
+    line-height: 1;
+  }
+  .fiche-v2 .diag-panel .diag-cat-head .count {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    color: var(--muted, rgba(255,255,255,0.5));
+    text-transform: uppercase;
+  }
+  .fiche-v2 .diag-panel .diag-cat-head .chev {
+    color: var(--muted, rgba(255,255,255,0.5));
+  }
+
+  /* Accents colorés par catégorie (titres + border/fond/hover) */
+  .fiche-v2 .diag-panel .diag-cat.c-cerulean .diag-cat-head .name { color: var(--cerulean, #5cb8cc); }
+  .fiche-v2 .diag-panel .diag-cat.c-amber .diag-cat-head .name    { color: var(--amber, #f5a623); }
+  .fiche-v2 .diag-panel .diag-cat.c-mint .diag-cat-head .name     { color: var(--mint, #8ee07a); }
+  .fiche-v2 .diag-panel .diag-cat.c-red .diag-cat-head .name      { color: var(--red, #ff5d5d); }
+
+  .fiche-v2 .diag-panel .diag-cat.c-cerulean:hover { border-color: rgba(92,184,204,0.3); }
+  .fiche-v2 .diag-panel .diag-cat.c-cerulean.open  { border-color: rgba(92,184,204,0.35); background: rgba(92,184,204,0.04); }
+  .fiche-v2 .diag-panel .diag-cat.c-amber:hover    { border-color: rgba(245,166,35,0.3); }
+  .fiche-v2 .diag-panel .diag-cat.c-amber.open     { border-color: rgba(245,166,35,0.35); background: rgba(245,166,35,0.04); }
+  .fiche-v2 .diag-panel .diag-cat.c-mint:hover     { border-color: rgba(142,224,122,0.3); }
+  .fiche-v2 .diag-panel .diag-cat.c-mint.open      { border-color: rgba(142,224,122,0.35); background: rgba(142,224,122,0.04); }
+  .fiche-v2 .diag-panel .diag-cat.c-red:hover      { border-color: rgba(255,93,93,0.3); }
+  .fiche-v2 .diag-panel .diag-cat.c-red.open       { border-color: rgba(255,93,93,0.35); background: rgba(255,93,93,0.04); }
+
+  /* Dans .fiche-v2, on masque la .section-head héritée si elle traîne
+     en tête de .col-diag, et on resserre le gap entre le panel et ce qui suit. */
+  .fiche-v2 .col-diag > .section-head { display: none; }
+
+  /* Le panel parent — un seul conteneur cerulean façon .panel.mint-glow */
+  .fiche-v2 .plan-panel {
+    position: relative;
+    overflow: hidden;
+    background: var(--card);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin: 0 0 14px;
+  }
+  /* Halo mint en bas-droite (cf. .panel.mint-glow::after maquette L326) */
+  .fiche-v2 .plan-panel::before {
+    content: '';
+    position: absolute;
+    bottom: -60px; right: -60px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: var(--mint, #8ee07a);
+    filter: blur(80px);
+    opacity: 0.16;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .fiche-v2 .plan-panel > * { position: relative; z-index: 1; }
+
+  /* Eyebrow "PLAN D'ACTION · 3 MOMENTS-CLEF" en ambre avec dot
+     (cf. .eyebrow.amber maquette L303) */
+  .fiche-v2 .plan-panel .plan-eyebrow {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: var(--amber);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .fiche-v2 .plan-panel .plan-eyebrow .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--amber);
+    flex-shrink: 0;
+  }
+  .fiche-v2 .plan-panel .plan-eyebrow .plan-filter-toggle {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--muted, rgba(255,255,255,0.5));
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s;
+  }
+  .fiche-v2 .plan-panel .plan-eyebrow .plan-filter-toggle:hover,
+  .fiche-v2 .plan-panel .plan-eyebrow .plan-filter-toggle.active {
+    color: var(--amber);
+    border-color: rgba(245,166,35,0.4);
+  }
+
+  /* Liste des cards (cf. .plan-cards maquette L892) */
+  .fiche-v2 .plan-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Une card individuelle (cf. .plan-card maquette L893) */
+  .fiche-v2 .plan-card {
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-left: 3px solid var(--cerulean);
+  }
+  .fiche-v2 .plan-card.p0 {
+    border-left-color: var(--red);
+    background: rgba(255,93,93,0.04);
+  }
+  .fiche-v2 .plan-card.p1 {
+    border-left-color: var(--amber);
+    background: rgba(245,166,35,0.04);
+  }
+  .fiche-v2 .plan-card.p2 {
+    border-left-color: var(--mint, #8ee07a);
+    background: rgba(142,224,122,0.04);
+  }
+  .fiche-v2 .plan-card.resolved { opacity: 0.55; }
+
+  /* Header : check rond + tag pill + DAW à droite (cf. .p-head maquette L904) */
+  .fiche-v2 .plan-card .p-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  /* p-check — EXACT maquette L920 : 20x20 rond border 1.5 muted */
+  .fiche-v2 .plan-card .p-check {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid var(--muted, rgba(255,255,255,0.35));
+    background: transparent;
+    color: var(--mint, #8ee07a);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    font-size: 11px;
+    transition: border-color .15s, background .15s;
+  }
+  .fiche-v2 .plan-card .p-check:hover {
+    border-color: var(--mint, #8ee07a);
+  }
+  .fiche-v2 .plan-card.resolved .p-check {
+    background: var(--mint, #8ee07a);
+    border-color: var(--mint, #8ee07a);
+    color: #0a0a0c;
+  }
+
+  /* Tag pill — EXACT maquette L908 : mono 9.5 / ls 1.5 / weight 500 */
+  .fiche-v2 .plan-card .p-tag {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .fiche-v2 .plan-card.p0 .p-tag {
+    background: rgba(255,93,93,0.12);
+    color: var(--red);
+  }
+  .fiche-v2 .plan-card.p1 .p-tag {
+    background: rgba(245,166,35,0.12);
+    color: var(--amber);
+  }
+  .fiche-v2 .plan-card.p2 .p-tag,
+  .fiche-v2 .plan-card.resolved .p-tag {
+    background: rgba(142,224,122,0.12);
+    color: var(--mint, #8ee07a);
+  }
+
+  /* DAW à droite — EXACT maquette L916 : mono 9.5 / ls 1 / muted / ml auto */
+  .fiche-v2 .plan-card .p-daw {
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 9.5px;
+    letter-spacing: 1px;
+    color: var(--muted, rgba(255,255,255,0.5));
+    text-transform: uppercase;
+    margin-left: auto;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  /* Titre de l'item — EXACT maquette L931 : 13.5px / 600 / mb 3px */
+  .fiche-v2 .plan-card .p-title {
+    font-family: var(--body);
+    font-weight: 600;
+    font-size: 13.5px;
+    line-height: 1.35;
+    color: var(--text);
+    letter-spacing: 0;
+    margin: 0 0 3px;
+  }
+
+  /* Description — EXACT maquette L934 : 13px / soft / lh 1.55 */
+  .fiche-v2 .plan-card .p-desc {
+    font-family: var(--body);
+    font-weight: 400;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--soft, rgba(255,255,255,0.78));
+    margin: 0;
+  }
+
+  /* MESURÉ / CIBLE — EXACT maquette L937 : gap 8 / mt 10 / pt 10 / border top dashed */
+  .fiche-v2 .plan-card .p-measure {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(255,255,255,0.08);
+  }
+  .fiche-v2 .plan-card .p-measure .m-label {
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 9.5px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--muted, rgba(255,255,255,0.5));
+    margin: 0;
+  }
+  .fiche-v2 .plan-card .p-measure .m-val {
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--text);
+    margin-top: 2px;
+  }
+  .fiche-v2 .plan-card .p-measure .m-val.target {
+    color: var(--mint, #8ee07a);
+  }
+
+  /* Chips d'éléments liés — EXACT maquette L952 : gap 5 / mt 10 */
+  .fiche-v2 .plan-card .p-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+  }
+  .fiche-v2 .plan-card .p-links .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 9.5px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--soft, rgba(255,255,255,0.78));
+    line-height: 1.2;
+  }
+  .fiche-v2 .plan-card .p-links .chip.cerulean {
+    color: var(--cerulean);
+    border-color: rgba(92,184,204,0.3);
+    background: rgba(92,184,204,0.08);
+  }
+
+  /* Cache la section-head historique : on a le plan-eyebrow à la place */
+  .fiche-v2 .col-plan > .section-head { display: none; }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     ÉVOLUTION v2 (desktop) — barres dégradées avec scores au-dessus et
+     labels Vn en dessous, dernière barre en ambre, caption mint centrée.
+     Matche maquette-v2-complete.html L957-982 + L2559-2578.
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  /* Eyebrow mint avec dot (override du cerulean qu'on avait posé plus haut) */
+  .fiche-v2 .evolution-panel .vr-title {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: var(--mint, #8ee07a);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .fiche-v2 .evolution-panel .vr-title::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--mint, #8ee07a);
+    flex-shrink: 0;
+  }
+
+  /* Halo cerulean conservé (déjà défini plus haut) — on ajuste juste le padding */
+  .fiche-v2 .evolution-panel {
+    padding: 20px 22px 18px;
+    gap: 4px;
+  }
+
+  /* Barres : 80px de haut, padding pour laisser place aux labels haut/bas */
+  .fiche-v2 .evolution-panel .spark {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 80px;
+    padding: 22px 4px 26px;
+  }
+  .fiche-v2 .evolution-panel .spark .bar {
+    flex: 1;
+    min-width: 24px;
+    border-radius: 4px 4px 0 0;
+    position: relative;
+    background: linear-gradient(180deg, var(--cerulean), rgba(92,184,204,0.3));
+    overflow: visible;
+  }
+  /* Override des tiers low/mid/high : toutes les barres sont cerulean,
+     sauf la latest qui devient ambre — match maquette */
+  .fiche-v2 .evolution-panel .spark .bar.low,
+  .fiche-v2 .evolution-panel .spark .bar.mid,
+  .fiche-v2 .evolution-panel .spark .bar.high {
+    background: linear-gradient(180deg, var(--cerulean), rgba(92,184,204,0.3));
+  }
+  .fiche-v2 .evolution-panel .spark .bar.latest,
+  .fiche-v2 .evolution-panel .spark .bar:last-child {
+    background: linear-gradient(180deg, var(--amber), #ffc77a);
+  }
+
+  /* Le score affiché au-dessus de chaque barre */
+  .fiche-v2 .evolution-panel .spark .bar .v-num {
+    position: absolute;
+    top: -18px; left: 0; right: 0;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--soft, rgba(255,255,255,0.78));
+    font-weight: 500;
+  }
+  /* Le label V1/V2/V3 en dessous */
+  .fiche-v2 .evolution-panel .spark .bar .v-label {
+    position: absolute;
+    bottom: -20px; left: 0; right: 0;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--muted, rgba(255,255,255,0.5));
+    letter-spacing: 0.5px;
+  }
+
+  /* Le caption "↑ +N points depuis Vx" centré et mint, on cache les noms
+     des extrémités (déjà visibles dans les v-label) */
+  .fiche-v2 .evolution-panel .evo-label {
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--mint, #8ee07a);
+    margin-top: 8px;
+  }
+  .fiche-v2 .evolution-panel .evo-label > span:not(.delta) {
+    display: none;
+  }
+  .fiche-v2 .evolution-panel .evo-label .delta {
+    background: transparent;
+    color: var(--mint, #8ee07a);
+    padding: 0;
+    border-radius: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .fiche-v2 .evolution-panel .evo-label .delta.up { color: var(--mint, #8ee07a); }
+  .fiche-v2 .evolution-panel .evo-label .delta.down { color: var(--red); }
+  .fiche-v2 .evolution-panel .evo-label .delta.up::before { content: '↑ '; }
+  .fiche-v2 .evolution-panel .evo-label .delta.down::before { content: '↓ '; }
+
+  /* Stats-grid (Version active + Durée) — restylage léger pour matcher la
+     trame mono/serif sobre, sans bg lourd */
+  .fiche-v2 .evolution-panel .stats-grid {
+    margin-top: 14px;
+    gap: 8px;
+  }
+  .fiche-v2 .evolution-panel .stats-grid .stat {
+    background: rgba(255,255,255,0.02);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .fiche-v2 .evolution-panel .stats-grid .stat .k {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+    color: var(--muted, rgba(255,255,255,0.5));
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .fiche-v2 .evolution-panel .stats-grid .stat .v {
+    font-family: var(--body);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text);
+  }
+  .fiche-v2 .evolution-panel .stats-grid .stat .d {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted, rgba(255,255,255,0.5));
+    margin-top: 3px;
+  }
+
+  /* Utilitaires panel réutilisables (pour plus tard : diag tiles, plan cards) */
+  .fg-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .fg-panel > * { position: relative; z-index: 1; }
+  .fg-panel::before {
+    content: ''; position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(42px);
+    z-index: 0;
+    opacity: 0.55;
+  }
+  .fg-panel.amber-glow::before {
+    top: -30%; right: -25%; width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(245,166,35,0.55), transparent 70%);
+  }
+  .fg-panel.cerulean-glow::before {
+    top: -28%; right: -22%; width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(92,184,204,0.4), transparent 70%);
+  }
+  .fg-panel.mint-glow::before {
+    top: -30%; right: -22%; width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(142,224,122,0.35), transparent 70%);
+  }
+  .fg-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: 2.5px;
+    text-transform: uppercase; font-weight: 500;
+    color: var(--muted); margin-bottom: 10px;
+  }
+  .fg-eyebrow.amber { color: var(--amber); }
+  .fg-eyebrow.cerulean { color: var(--cerulean); }
+  .fg-eyebrow.mint { color: var(--green); }
+
   /* ── PAGE PRINCIPALE ───────────────────────────
      Pleine largeur comme la home : on utilise tout l'espace
      entre la sidebar et le bord droit au lieu de cadenasser
@@ -1304,6 +2605,137 @@ export default function MockupStyles() {
     opacity: 0.7;
   }
 
+  /* ── Notes v2 (desktop, maquette) ───────────────────────── */
+  .fiche-v2 .notes-section.v2 {
+    margin-top: 18px;
+    padding: 0;
+    position: relative;
+  }
+  .fiche-v2 .notes-panel {
+    position: relative;
+    background: var(--card, #101118);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
+    padding: 20px 22px 18px;
+    overflow: hidden;
+  }
+  .fiche-v2 .notes-panel::before {
+    content: "";
+    position: absolute;
+    right: -60px; bottom: -60px;
+    width: 180px; height: 180px;
+    background: var(--cerulean, #5cb8cc);
+    filter: blur(70px);
+    opacity: 0.10;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .fiche-v2 .notes-panel > * { position: relative; z-index: 1; }
+  .fiche-v2 .notes-panel .notes-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 10.5px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted, rgba(255,255,255,0.5));
+    margin: 0 0 12px;
+    line-height: 1;
+  }
+  .fiche-v2 .notes-panel .notes-eyebrow .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--cerulean, #5cb8cc);
+    box-shadow: 0 0 8px rgba(92,184,204,0.6);
+    flex-shrink: 0;
+  }
+  .fiche-v2 .notes-panel .notes-eyebrow .notes-status {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--amber, #f5a623);
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+  .fiche-v2 .notes-panel .notes-box {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 10px;
+    color: var(--soft, rgba(255,255,255,0.78));
+    font-family: var(--body, 'DM Sans', sans-serif);
+    font-size: 13.5px;
+    font-style: italic;
+    line-height: 1.55;
+    min-height: 80px;
+    resize: vertical;
+    outline: none;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .fiche-v2 .notes-panel .notes-box:focus {
+    border-color: rgba(92,184,204,0.4);
+    background: rgba(0,0,0,0.35);
+  }
+  .fiche-v2 .notes-panel .notes-box::placeholder {
+    color: var(--muted, rgba(255,255,255,0.5));
+    opacity: 0.7;
+    font-style: italic;
+  }
+  .fiche-v2 .notes-panel .notes-box:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .fiche-v2 .notes-panel .notes-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+  .fiche-v2 .notes-panel .notes-actions .btn {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 7px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    background: transparent;
+    color: var(--soft, rgba(255,255,255,0.78));
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .fiche-v2 .notes-panel .notes-actions .btn:hover:not(:disabled) {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.14);
+  }
+  .fiche-v2 .notes-panel .notes-actions .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .fiche-v2 .notes-panel .notes-actions .btn.primary {
+    background: var(--amber, #f5a623);
+    color: #0a0a0c;
+    border-color: var(--amber, #f5a623);
+  }
+  .fiche-v2 .notes-panel .notes-actions .btn.primary:hover:not(:disabled) {
+    background: #ffc77a;
+    border-color: #ffc77a;
+  }
+  .fiche-v2 .notes-panel .notes-actions .btn.primary:disabled {
+    background: var(--amber, #f5a623);
+    border-color: var(--amber, #f5a623);
+    color: #0a0a0c;
+  }
+
   /* Section 3 : Diagnostic */
   .diag-cat {
     border: 1px solid var(--border);
@@ -1782,9 +3214,30 @@ export default function MockupStyles() {
     background: var(--s1);
     overflow: hidden;     /* pour que le border-radius clippe bien */
   }
-  .chat-panel.chat-panel-anchored .chat-head { padding: 12px 16px; }
+  .chat-panel.chat-panel-anchored .chat-head { padding: 14px 18px; }
   .chat-panel.chat-panel-anchored .chat-body { padding: 16px 14px; }
   .chat-panel.chat-panel-anchored .chat-input { padding: 10px 12px 12px; }
+
+  /* Titre "Discussion" en desktop : même style que les autres eyebrow
+     (mono 10.5 / ls 2.2 / uppercase + gros point ambre devant) */
+  .fiche-v2 .chat-panel.chat-panel-anchored .chat-head .ctitle {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 10.5px;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: var(--amber, #f5a623);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    line-height: 1;
+  }
+  .fiche-v2 .chat-panel.chat-panel-anchored .chat-head .ctitle::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--amber, #f5a623);
+    flex-shrink: 0;
+  }
 
   /* ── Chat overlay bubble ──────────────────────── */
   .chat-fab {
@@ -2001,6 +3454,8 @@ export default function MockupStyles() {
     gap: 14px;
     align-items: center;
     width: 100%;
+    /* Respiration verticale pour détacher "Écoute, compare, décide." */
+    padding: 28px 0 32px;
   }
   .wh-desktop .wh-intro-row .wh-slogan {
     grid-column: 1 / 3;

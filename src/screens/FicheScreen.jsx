@@ -42,6 +42,21 @@ function TrackTitleText({ title }) {
   );
 }
 
+// v2 : le dernier mot du titre passe en italique serif amber (cf. "Comme un *rêve*")
+function TrackTitleTextV2({ title }) {
+  if (!title) return <span className="fiche-title-text" />;
+  const trimmed = title.trim();
+  const words = trimmed.split(/\s+/);
+  if (words.length < 2) {
+    return <span className="fiche-title-text"><em>{trimmed}</em></span>;
+  }
+  const last = words[words.length - 1];
+  const head = words.slice(0, -1).join(' ');
+  return (
+    <span className="fiche-title-text">{head} <em>{last}</em></span>
+  );
+}
+
 // Anneau de score 140x140 — formule identique à la maquette : dasharray=276
 export function ScoreRingBig({ value, prevScore = null }) {
   const { s } = useLang();
@@ -107,6 +122,129 @@ export function ScoreRingBig({ value, prevScore = null }) {
           {s.fiche.scoreNote}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Mix indicators (6 tuiles dans Score Global) ──────────
+// Dérive 6 métriques synthétiques à partir des éléments / listening
+// de la fiche. Si le backend expose un jour `rawFiche.mix_profile`,
+// on l'utilise en priorité. Sinon on calcule à partir des catégories
+// existantes (Basses, Spatial, Master, etc.) avec des fallbacks sur
+// le score global pour que les 6 tuiles restent cohérentes.
+function pickCatAvg(elements, keywords) {
+  const el = (elements || []).find((e) =>
+    keywords.some((k) => (e.cat || '').toLowerCase().includes(k))
+  );
+  if (!el) return null;
+  const scores = (el.items || [])
+    .map((it) => (typeof it.score === 'number' ? it.score : null))
+    .filter((x) => x != null);
+  if (!scores.length) return null;
+  // scores items sont sur /10 dans le modèle courant
+  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+  return Math.round(avg * 10); // /10 → /100
+}
+
+function clampScore(v, fallback) {
+  if (typeof v !== 'number' || Number.isNaN(v)) return fallback;
+  return Math.max(0, Math.min(100, Math.round(v)));
+}
+
+function tierWord(score, tierSet) {
+  if (!tierSet) return '';
+  if (score < 50) return tierSet.low;
+  if (score < 75) return tierSet.mid;
+  return tierSet.high;
+}
+
+function tierColor(score) {
+  if (score < 50) return 'red';
+  if (score < 75) return 'amber';
+  return 'mint';
+}
+
+function computeMixIndicators(rawFiche, elements, globalScore, s) {
+  const tiers = s?.fiche?.mixIndicators || {};
+  const mp = rawFiche?.mix_profile || null;
+
+  // Dérivations par défaut à partir des catégories
+  const bass = pickCatAvg(elements, ['bass', 'kick', 'basse']);
+  const spatial = pickCatAvg(elements, ['spatial', 'reverb', 'fx']);
+  const master = pickCatAvg(elements, ['master', 'loudness']);
+  const drums = pickCatAvg(elements, ['drum', 'percus']);
+  const voice = pickCatAvg(elements, ['voix', 'vocal', 'voice']);
+  const inst = pickCatAvg(elements, ['instrument']);
+
+  // Balance = moyenne pondérée de toutes catégories (ou globalScore)
+  const allCats = [bass, spatial, master, drums, voice, inst].filter((x) => x != null);
+  const avgAll = allCats.length
+    ? Math.round(allCats.reduce((a, b) => a + b, 0) / allCats.length)
+    : globalScore;
+
+  const G = typeof globalScore === 'number' ? globalScore : 70;
+
+  const balance    = clampScore(mp?.balance,    avgAll ?? G);
+  const dynamique  = clampScore(mp?.dynamique,  master ?? G);
+  const stereo     = clampScore(mp?.stereo,     spatial ?? G);
+  const saturation = clampScore(mp?.saturation, master != null ? Math.max(40, Math.min(90, master + 5)) : G);
+  const clarte     = clampScore(mp?.clarte,     voice != null && inst != null ? Math.round((voice + inst) / 2) : G);
+  const assise     = clampScore(mp?.assise_basse ?? mp?.assise, bass ?? G);
+
+  const list = [
+    { key: 'balance',    score: balance,    tier: tiers.balance },
+    { key: 'dynamique',  score: dynamique,  tier: tiers.dynamique },
+    { key: 'stereo',     score: stereo,     tier: tiers.stereo },
+    { key: 'saturation', score: saturation, tier: tiers.saturation },
+    { key: 'clarte',     score: clarte,     tier: tiers.clarte },
+    { key: 'assise',     score: assise,     tier: tiers.assise },
+  ];
+
+  return list.map((t) => ({
+    key: t.key,
+    label: t.tier?.label || t.key,
+    score: t.score,
+    word: tierWord(t.score, t.tier),
+    color: tierColor(t.score),
+  }));
+}
+
+// Mini-ring 32×32 pour les tuiles mix indicators.
+function MiniRing({ value, color }) {
+  const v = Math.max(0, Math.min(100, Number(value) || 0));
+  const offset = 82 - (82 * v) / 100;
+  const c = color === 'red'   ? '#ff5d5d'
+          : color === 'mint'  ? '#8ee07a'
+          : color === 'amber' ? '#f5a623'
+          :                      '#5cb8cc';
+  return (
+    <div className="mi-ring" aria-hidden="true">
+      <svg width="32" height="32" viewBox="0 0 32 32">
+        <circle cx="16" cy="16" r="13" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+        <circle
+          cx="16" cy="16" r="13" fill="none" stroke={c} strokeWidth="3"
+          strokeDasharray="82" strokeDashoffset={offset} strokeLinecap="round"
+          transform="rotate(-90 16 16)"
+        />
+      </svg>
+      <div className="mi-val">{Math.round(v)}</div>
+    </div>
+  );
+}
+
+function MixIndicators({ items }) {
+  if (!items || !items.length) return null;
+  return (
+    <div className="mix-indicators">
+      {items.map((it) => (
+        <div key={it.key} className={`mi-tile c-${it.color}`}>
+          <MiniRing value={it.score} color={it.color} />
+          <div className="mi-body">
+            <div className="mi-label">{it.label}</div>
+            <div className="mi-word">{it.word}</div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -492,6 +630,7 @@ function VocalTypePill({ track, onRefresh }) {
 
 function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onShareVersion, onExportVersion, onTracksRefresh, onGoHome }) {
   const { s } = useLang();
+  const isMobile = useMobile();
   const scrollRef = useRef(null);
   const [showFadeRight, setShowFadeRight] = useState(false);
   const [showFadeLeft, setShowFadeLeft] = useState(false);
@@ -538,6 +677,112 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
     stage === 'fiche_done' ? s.fiche.stageFicheDone :
     s.fiche.stageOther;
 
+  const stageClass =
+    stage === 'all_done' ? '' :
+    stage === 'fiche_done' ? 'pending' :
+    'other';
+
+  const canShare = !!current?.id && current.id !== '__pending_v__';
+
+  // ── Desktop v2 : topbar + versions-row séparés, fidèle à la maquette ──
+  if (!isMobile) {
+    return (
+      <div className="fiche-topbar-wrap">
+        <div className="fiche-topbar">
+          {onGoHome && (
+            <button className="fiche-back" onClick={onGoHome} title={s.fiche.timelineBackHome} aria-label={s.fiche.timelineBackHome}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13l-5-5 5-5"/></svg>
+            </button>
+          )}
+          <div className="fiche-topbar-title">
+            <TrackTitleTextV2 title={track.title} />
+            <VocalTypePill track={track} onRefresh={onTracksRefresh} />
+          </div>
+          {current && (
+            <div className="fiche-topbar-meta">
+              <div className="ver-label"><b className={stageClass}>{stageLabel}</b></div>
+              <div className="ver-name">{currentVersionName || current.name}</div>
+            </div>
+          )}
+          {current && (onShareVersion || onExportVersion) && (
+            <div className="fiche-topbar-actions">
+              {onShareVersion && (
+                <button
+                  type="button"
+                  className="btn-ic"
+                  onClick={() => onShareVersion(track, current)}
+                  disabled={!canShare}
+                  title={canShare ? s.fiche.timelineShareTitle : s.fiche.timelineSavingInProgress}
+                  aria-label={s.fiche.timelineShareBtn}
+                >
+                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M8 9V2M5.5 4.5L8 2l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M4 8v4.5h8V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              )}
+              {onExportVersion && (
+                <button
+                  type="button"
+                  className="btn-ic"
+                  onClick={() => onExportVersion(track, current)}
+                  title={s.fiche.timelineExportTitle}
+                  aria-label={s.fiche.timelineExportBtn}
+                >
+                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12v1.5A1.5 1.5 0 004.5 15h7A1.5 1.5 0 0013 13.5V12"
+                          stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="versions-row-wrap">
+          <div ref={scrollRef} className="versions-row-v2">
+            {versions.map((v, idx) => {
+              const score = v.analysisResult?.fiche?.globalScore;
+              const prev = idx > 0 ? versions[idx - 1]?.analysisResult?.fiche?.globalScore : null;
+              const delta = (typeof score === 'number' && typeof prev === 'number') ? score - prev : null;
+              const isActive = v.name === currentVersionName;
+              return (
+                <VChip
+                  key={v.id}
+                  track={track}
+                  version={v}
+                  idx={idx}
+                  isActive={isActive}
+                  score={score}
+                  delta={delta}
+                  inlineDelta
+                  onSelect={onSelectVersion}
+                  onRefresh={onTracksRefresh}
+                  onShare={onShareVersion}
+                  onExport={onExportVersion}
+                  onDeleted={(deleted) => {
+                    if (deleted.name === currentVersionName && versions.length > 1) {
+                      const next = versions.find(x => x.id !== deleted.id);
+                      if (next) onSelectVersion?.(track, next);
+                    }
+                  }}
+                />
+              );
+            })}
+            <button
+              className="vchip-new"
+              title={s.fiche.newVersionTitle}
+              onClick={() => onAddVersion && onAddVersion(track)}
+            >+ {s.fiche.newVersionTitle || 'Nouvelle version'}</button>
+          </div>
+          {showFadeLeft && <div className="versions-row-fade left" aria-hidden="true" />}
+          {showFadeRight && <div className="versions-row-fade right" aria-hidden="true" />}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Mobile : rendu historique préservé ──
   return (
     <div className="timeline">
       <div className="track-title">
@@ -568,8 +813,8 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
               type="button"
               className="fiche-head-btn"
               onClick={() => onShareVersion(track, current)}
-              disabled={!current?.id || current.id === '__pending_v__'}
-              title={!current?.id || current.id === '__pending_v__' ? s.fiche.timelineSavingInProgress : s.fiche.timelineShareTitle}
+              disabled={!canShare}
+              title={!canShare ? s.fiche.timelineSavingInProgress : s.fiche.timelineShareTitle}
             >
               {/* Icône share iOS-style : flèche vers le haut depuis un carré */}
               <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -985,16 +1230,20 @@ function EvolutionPanel({ versionScores, currentVersionName, currentScore, curre
         {versionScores.length === 0 ? (
           <div className="spark-empty">—</div>
         ) : versionScores.map((v, i) => {
-          const s = typeof v.score === 'number' ? v.score : 0;
-          const h = Math.max(6, (s / maxScore) * 100);
+          const sc = typeof v.score === 'number' ? v.score : 0;
+          const h = Math.max(6, (sc / maxScore) * 100);
           const tier = scoreTier(v.score);
+          const isLatest = i === versionScores.length - 1;
           return (
             <div
               key={i}
-              className={`bar ${tier}`}
+              className={`bar ${tier}${isLatest ? ' latest' : ''}`}
               style={{ height: `${h}%` }}
               title={`${v.name} · ${typeof v.score === 'number' ? v.score : '—'}`}
-            />
+            >
+              <div className="v-num">{typeof v.score === 'number' ? v.score : '—'}</div>
+              <div className="v-label">{v.name}</div>
+            </div>
           );
         })}
       </div>
@@ -1070,6 +1319,7 @@ function blocksToBullets(blocks) {
 
 export function QualitativeSection({ listening }) {
   const { s } = useLang();
+  const isMobile = useMobile();
   const [expanded, setExpanded] = useState(false);
   const [fortsOpen, setFortsOpen] = useState(false);
   const [travailOpen, setTravailOpen] = useState(false);
@@ -1116,6 +1366,71 @@ export function QualitativeSection({ listening }) {
 
   const hasDeploy = potentiel || espace || dynamique;
 
+  // Desktop (v2) : UN SEUL conteneur "Écoute qualitative" (panel cerulean),
+  // avec eyebrow tout en haut, citation impression en dessous, puis tous les
+  // sous-blocs (points forts, à travailler, espace, dynamique, potentiel)
+  // imbriqués à l'intérieur comme des sous-items (pas des cartes séparées).
+  // Matche exactement la maquette maquette-v2-complete.
+  if (!isMobile) {
+    return (
+      <section className={`row-qualitative stacked${expanded ? ' expanded' : ''}`}>
+        <div className="q-eyebrow cerulean">
+          <span className="dot" />{s.fiche.listeningTitle}
+        </div>
+
+        {impression && (
+          <div className="q-citation">
+            <p>{renderWithEmphasis(impression)}</p>
+          </div>
+        )}
+
+        <div className="q-subgrid">
+          {points.length > 0 && (
+            <div className="q-sub forts">
+              <div className="q-sublabel mint">{s.fiche.blockPointsForts}</div>
+              <ul>
+                {points.map((p, i) => <li key={i}>{renderWithEmphasis(p)}</li>)}
+              </ul>
+            </div>
+          )}
+          {aTravailler.length > 0 && (
+            <div className="q-sub travail">
+              <div className="q-sublabel amber">{s.fiche.blockATravailler}</div>
+              <ul>
+                {aTravailler.map((p, i) => <li key={i}>{renderWithEmphasis(p)}</li>)}
+              </ul>
+            </div>
+          )}
+          {expanded && espace && (
+            <div className="q-sub espace">
+              <div className="q-sublabel cerulean">{s.fiche.blockEspace}</div>
+              <div className="q-subbody">{renderWithEmphasis(espace)}</div>
+            </div>
+          )}
+          {expanded && dynamique && (
+            <div className="q-sub dynamique">
+              <div className="q-sublabel cerulean">{s.fiche.blockDynamique}</div>
+              <div className="q-subbody">{renderWithEmphasis(dynamique)}</div>
+            </div>
+          )}
+          {expanded && potentiel && (
+            <div className="q-sub potentiel">
+              <div className="q-sublabel cerulean">{s.fiche.blockPotentiel}</div>
+              <div className="q-subbody">{renderWithEmphasis(potentiel)}</div>
+            </div>
+          )}
+        </div>
+
+        {hasDeploy && (
+          <button className="impression-toggle" onClick={() => setExpanded((v) => !v)}>
+            {expanded ? s.fiche.toggleReduceDash : s.fiche.toggleExpandListening}
+          </button>
+        )}
+      </section>
+    );
+  }
+
+  // Mobile : layout historique (2 colonnes impression+potentiel | forts+travail)
   return (
     <section className={`row-qualitative${expanded ? ' expanded' : ''}`}>
       {/* Colonne gauche : Impression (+ Potentiel) → déploie Espace + Dynamique */}
@@ -1209,10 +1524,10 @@ export function QualitativeSection({ listening }) {
 
 // ── NotesSection (bloc notes perso, 1 par fiche) ───────────
 
-function NotesSection({ versionId, initialNotes }) {
+function NotesSection({ versionId, initialNotes, v2 = false }) {
   const { s } = useLang();
   const [notes, setNotes] = useState(initialNotes || '');
-  const [open, setOpen] = useState(() => Boolean(initialNotes && initialNotes.trim()));
+  const [open, setOpen] = useState(() => v2 || Boolean(initialNotes && initialNotes.trim()));
   const [status, setStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
   const taRef = useRef(null);
   const timerRef = useRef(null);
@@ -1258,6 +1573,91 @@ function NotesSection({ versionId, initialNotes }) {
       }
     }, 1100);
   };
+
+  const flushSave = async () => {
+    if (!canEdit) return;
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    if (notes === lastSavedRef.current) {
+      setStatus('saved');
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = setTimeout(() => setStatus('idle'), 1400);
+      return;
+    }
+    setStatus('saving');
+    try {
+      await saveVersionNotes(versionId, notes);
+      lastSavedRef.current = notes;
+      setStatus('saved');
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = setTimeout(() => setStatus('idle'), 1400);
+    } catch (err) {
+      console.warn('[NotesSection] flush save error', err);
+      setStatus('idle');
+    }
+  };
+
+  const clearNotes = () => {
+    setNotes('');
+    if (!canEdit) return;
+    if (lastSavedRef.current === '') return;
+    setStatus('saving');
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    (async () => {
+      try {
+        await saveVersionNotes(versionId, '');
+        lastSavedRef.current = '';
+        setStatus('saved');
+        if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+        resetTimerRef.current = setTimeout(() => setStatus('idle'), 1400);
+      } catch (err) {
+        console.warn('[NotesSection] clear save error', err);
+        setStatus('idle');
+      }
+    })();
+  };
+
+  if (v2) {
+    return (
+      <section className="notes-section v2">
+        <div className="notes-panel">
+          <div className="notes-eyebrow">
+            <span className="dot" />
+            {s.fiche.notesTitleV2 || s.fiche.notesTitle}
+            {label && <span className="notes-status" aria-live="polite">{label}</span>}
+          </div>
+          <textarea
+            ref={taRef}
+            className="notes-box"
+            value={notes}
+            onChange={handleChange}
+            placeholder={canEdit
+              ? (s.fiche.notesPlaceholderV2 || s.fiche.notesPlaceholder)
+              : s.fiche.notesPlaceholderDisabled}
+            disabled={!canEdit}
+            rows={3}
+          />
+          <div className="notes-actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={clearNotes}
+              disabled={!canEdit || !notes}
+            >
+              {s.fiche.notesClear || 'Effacer'}
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={flushSave}
+              disabled={!canEdit}
+            >
+              {s.fiche.notesSave || 'Enregistrer'}
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="notes-section">
@@ -1518,7 +1918,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           />
         )}
 
-        <div className={`fiche-layout${!chatAsDrawer && rawFiche ? ' has-chat' : ''}`}>
+        <div className={`fiche-layout${!chatAsDrawer && rawFiche ? ' has-chat fiche-v2' : ''}`}>
         <div className="page">
           {!rawFiche ? (
             <AnalyzingState stage={stage} />
@@ -1537,7 +1937,50 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           {/* 1 · Verdict + Évolution (2 colonnes) */}
           <section className="row-verdict">
             <div className="rv-left">
-              {score != null && <ScoreRingBig value={score} prevScore={prevScore} />}
+              {!chatAsDrawer && score != null && (
+                <div className="score-eyebrow">
+                  <span className="dot" />
+                  {s.fiche.scoreGlobalTitle || 'Score global'}
+                </div>
+              )}
+              {score != null && !chatAsDrawer ? (
+                <div className="rv-top">
+                  <ScoreRingBig value={score} prevScore={prevScore} />
+                  <MixIndicators
+                    items={computeMixIndicators(rawFiche, elements, score, s)}
+                  />
+                </div>
+              ) : (
+                score != null && <ScoreRingBig value={score} prevScore={prevScore} />
+              )}
+              {!chatAsDrawer && score != null && (
+                <>
+                  <div className="score-bands">
+                    <span className="b-low"><i />{s.fiche.scoreBandLowShort || '0–49'}</span>
+                    <span className="b-mid"><i />{s.fiche.scoreBandMidShort || '50–74'}</span>
+                    <span className="b-high"><i />{s.fiche.scoreBandHighShort || '75–100'}</span>
+                  </div>
+                  {(() => {
+                    if (typeof prevScore !== 'number') return null;
+                    const delta = Math.round(score - prevScore);
+                    const prevName = prevVersion?.name || '';
+                    if (!prevName) return null;
+                    let tpl;
+                    if (delta === 0) tpl = s.fiche.scoreDeltaStable;
+                    else if (delta > 0) tpl = s.fiche.scoreDeltaUp;
+                    else tpl = s.fiche.scoreDeltaDown;
+                    if (!tpl) return null;
+                    const txt = tpl
+                      .replace('{delta}', String(Math.abs(delta)))
+                      .replace('{prev}', prevName);
+                    return (
+                      <div className={`score-calibration${delta < 0 ? ' down' : delta === 0 ? ' stable' : ''}`}>
+                        {txt}
+                      </div>
+                    );
+                  })()}
+                </>
+              )}
               <div className="verdict-text">
                 {(() => {
                   // Priorité : verdict (phrase accrocheuse) pour le titre, summary pour le paragraphe.
@@ -1590,62 +2033,203 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           {(elements.length > 0 || plan.length > 0) && (
             <div className="row-two">
               <div className="col-diag">
-                {elements.length > 0 && (
-                  <>
-                    <div className="section-head">
-                      <span className="t">{s.fiche.diagTitle}</span>
-                      <span className="line" />
-                      <span className="count">{elements.length} {elements.length > 1 ? s.fiche.categoryPlural : s.fiche.categorySingular}</span>
-                    </div>
-                    {elements.map((el, idx) => {
-                      const open = openCat === idx;
-                      const count = el.items?.length || 0;
-                      const scores = (el.items || []).map((it) => it.score).filter((s) => typeof s === 'number');
-                      const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
-                      const isVoice = isVoiceCategory(el?.cat);
-                      const catLabel = (isVoice && voiceLabelOverride) ? s.fiche.voiceComingSoon : el.cat;
-                      return (
-                        <div key={el.id || el.cat || idx} className={`diag-cat${open ? ' open' : ''}${isVoice && voiceLabelOverride ? ' pending-voice' : ''}`}>
-                          <div className="diag-cat-head" onClick={() => toggleCat(idx)}>
-                            <span className="chev">
-                              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                                <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            </span>
-                            <span className="name">{catLabel}</span>
-                            <span className="count">
-                              {isVoice && voiceLabelOverride
-                                ? s.fiche.pendingVoiceStep
-                                : `${count} ${count > 1 ? s.fiche.elementPlural : s.fiche.elementSingular}${avg != null ? `${s.fiche.avgPrefix}${avg.toFixed(1).replace(/\.0$/, '')}` : ''}`}
-                            </span>
-                          </div>
-                          <div className="diag-cat-body">
-                            {(el.items || []).map((it, i) => (
-                              <div key={it.id || i} className="diag-item">
-                                <ScoreRingSmall value={it.score} />
-                                <div className="di-body">
-                                  <div className="di-name">{it.label}</div>
-                                  {it.detail && <div className="di-detail">{it.detail}</div>}
-                                  {Array.isArray(it.tools) && it.tools.length > 0 && (
-                                    <div className="di-tools">
-                                      {it.tools.map((t) => <span key={t}>{t}</span>)}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                {elements.length > 0 && (() => {
+                  // Map catégorie → accent (cohérent avec l'esprit q-sublabel de l'écoute qualitative)
+                  const catColor = (cat) => {
+                    const k = (cat || '').toLowerCase();
+                    if (k.includes('voix') || k.includes('vocal') || k.includes('voice')) return 'amber';
+                    if (k.includes('instrument')) return 'cerulean';
+                    if (k.includes('bass') || k.includes('kick')) return 'red';
+                    if (k.includes('drum') || k.includes('percu')) return 'mint';
+                    if (k.includes('spatial') || k.includes('reverb')) return 'cerulean';
+                    if (k.includes('master') || k.includes('loudness')) return 'amber';
+                    return 'cerulean';
+                  };
+                  const renderCats = () => elements.map((el, idx) => {
+                    const open = openCat === idx;
+                    const count = el.items?.length || 0;
+                    const scores = (el.items || []).map((it) => it.score).filter((s) => typeof s === 'number');
+                    const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+                    const isVoice = isVoiceCategory(el?.cat);
+                    const catLabel = (isVoice && voiceLabelOverride) ? s.fiche.voiceComingSoon : el.cat;
+                    const color = catColor(el?.cat);
+                    return (
+                      <div key={el.id || el.cat || idx} className={`diag-cat c-${color}${open ? ' open' : ''}${isVoice && voiceLabelOverride ? ' pending-voice' : ''}`}>
+                        <div className="diag-cat-head" onClick={() => toggleCat(idx)}>
+                          <span className="chev">
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                              <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </span>
+                          <span className="name">{catLabel}</span>
+                          <span className="count">
+                            {isVoice && voiceLabelOverride
+                              ? s.fiche.pendingVoiceStep
+                              : `${count} ${count > 1 ? s.fiche.elementPlural : s.fiche.elementSingular}${avg != null ? `${s.fiche.avgPrefix}${avg.toFixed(1).replace(/\.0$/, '')}` : ''}`}
+                          </span>
                         </div>
-                      );
-                    })}
-                  </>
-                )}
+                        <div className="diag-cat-body">
+                          {(el.items || []).map((it, i) => (
+                            <div key={it.id || i} className="diag-item">
+                              <ScoreRingSmall value={it.score} />
+                              <div className="di-body">
+                                <div className="di-name">{it.label}</div>
+                                {it.detail && <div className="di-detail">{it.detail}</div>}
+                                {Array.isArray(it.tools) && it.tools.length > 0 && (
+                                  <div className="di-tools">
+                                    {it.tools.map((t) => <span key={t}>{t}</span>)}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  });
+
+                  // Desktop v2 : panel unifié avec eyebrow ambre + halo bas-droite
+                  if (!chatAsDrawer) {
+                    return (
+                      <section className="diag-panel">
+                        <div className="diag-eyebrow">
+                          <span className="dot" />
+                          {s.fiche.diagTitle} · {elements.length} {elements.length > 1 ? s.fiche.categoryPlural : s.fiche.categorySingular}
+                        </div>
+                        <div className="diag-cats">
+                          {renderCats()}
+                        </div>
+                      </section>
+                    );
+                  }
+
+                  // Mobile : layout historique avec section-head
+                  return (
+                    <>
+                      <div className="section-head">
+                        <span className="t">{s.fiche.diagTitle}</span>
+                        <span className="line" />
+                        <span className="count">{elements.length} {elements.length > 1 ? s.fiche.categoryPlural : s.fiche.categorySingular}</span>
+                      </div>
+                      {renderCats()}
+                    </>
+                  );
+                })()}
               </div>
               <div className="col-plan">
                 {plan.length > 0 && (() => {
                   const planKeys = plan.map((p, i) => `${i}::${(p.task || '').slice(0, 60)}`);
                   const resolvedCount = planKeys.reduce((acc, k) => acc + (resolved.has(k) ? 1 : 0), 0);
                   const hasResolved = resolvedCount > 0;
+                  const visibleCount = hideResolved ? (plan.length - resolvedCount) : plan.length;
+
+                  // ── Desktop v2 : panel unifié type maquette .panel.mint-glow
+                  //    avec eyebrow ambre + cards .plan-card.p0/p1/p2/resolved ──
+                  if (!chatAsDrawer) {
+                    const tagFor = (prio, done) => {
+                      if (done) return s.fiche.planTagResolved;
+                      if (prio === 'high' || prio === 'haute') return s.fiche.planTagPriority;
+                      if (prio === 'med' || prio === 'moyenne') return s.fiche.planTagObservation;
+                      return s.fiche.planTagObservation;
+                    };
+                    const klassFor = (prio, done) => {
+                      if (done) return 'p2 resolved';
+                      if (prio === 'high' || prio === 'haute') return 'p0';
+                      if (prio === 'med' || prio === 'moyenne') return 'p1';
+                      return 'p2';
+                    };
+                    return (
+                      <section className="plan-panel">
+                        <div className="plan-eyebrow">
+                          <span className="dot" />
+                          {s.fiche.planTitle} · {visibleCount} {visibleCount > 1 ? s.fiche.adjustmentPlural : s.fiche.adjustmentSingular}
+                          {hasResolved && (
+                            <button
+                              type="button"
+                              className={`plan-filter-toggle${hideResolved ? ' active' : ''}`}
+                              onClick={() => setHideResolved((v) => !v)}
+                              title={hideResolved ? s.fiche.planShowAllTitle : s.fiche.planHideResolvedTitle}
+                            >
+                              {hideResolved ? s.fiche.planShowAll : s.fiche.planHideResolved}
+                            </button>
+                          )}
+                        </div>
+                        <div className="plan-cards">
+                          {plan.map((p, i) => {
+                            const key = `${i}::${(p.task || '').slice(0, 60)}`;
+                            const done = resolved.has(key);
+                            if (hideResolved && done) return null;
+                            const prio = (p.p || '').toLowerCase();
+                            const linkedItems = (elements || []).flatMap((el) =>
+                              (el.items || [])
+                                .filter((it) => Array.isArray(p.linkedItemIds) && it.id && p.linkedItemIds.includes(it.id))
+                                .map((it) => ({ ...it, cat: el.cat }))
+                            );
+                            const klass = klassFor(prio, done);
+                            return (
+                              <div
+                                key={i}
+                                ref={(el) => {
+                                  if (el) planRefs.current[i] = el;
+                                  else delete planRefs.current[i];
+                                }}
+                                className={`plan-card ${klass}`}
+                              >
+                                <div className="p-head">
+                                  <button
+                                    type="button"
+                                    className="p-check"
+                                    onClick={() => toggleResolved(key, i)}
+                                    aria-label={done ? s.fiche.focusResolved : s.fiche.focusMarkResolved}
+                                  >
+                                    {done && (
+                                      <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                                        <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                  <span className="p-tag">{tagFor(prio, done)}</span>
+                                  {p.daw && <span className="p-daw">{p.daw}</span>}
+                                </div>
+                                <div className="p-title">{p.task}</div>
+                                {(p.metered || p.target) && (
+                                  <div className="p-measure">
+                                    {p.metered && (
+                                      <div>
+                                        <div className="m-label">{s.fiche.focusMeasured}</div>
+                                        <div className="m-val">{p.metered}</div>
+                                      </div>
+                                    )}
+                                    {p.target && (
+                                      <div>
+                                        <div className="m-label">{s.fiche.focusTarget}</div>
+                                        <div className="m-val target">{p.target}</div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                {linkedItems.length > 0 && (
+                                  <div className="p-links">
+                                    {linkedItems.map((it) => (
+                                      <span
+                                        key={it.id}
+                                        className="chip cerulean"
+                                        title={`${it.cat} · ${it.label}${typeof it.score === 'number' ? ` · ${it.score}` : ''}`}
+                                      >
+                                        {it.label}{typeof it.score === 'number' ? ` · ${it.score}` : ''}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    );
+                  }
+
+                  // ── Mobile / drawer : layout historique (collapsible) ──
                   return (
                   <>
                     <div className="section-head">
@@ -1770,6 +2354,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   key={versionInDb?.id || 'pending'}
                   versionId={versionInDb?.id || null}
                   initialNotes={(analysisResult && analysisResult.userNotes) || ''}
+                  v2={!chatAsDrawer}
                 />
               </div>
             </div>

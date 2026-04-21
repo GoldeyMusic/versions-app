@@ -4,7 +4,7 @@ import { confirmDialog } from '../lib/confirm.jsx';
 import { renameVersion, deleteVersion } from '../lib/storage';
 import useLang from '../hooks/useLang';
 
-export default function VChip({ track, version, idx, isActive, score, onSelect, onRefresh, onDeleted }) {
+export default function VChip({ track, version, idx, isActive, score, onSelect, onRefresh, onDeleted, delta = null, inlineDelta = false }) {
   const { s } = useLang();
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -92,10 +92,23 @@ export default function VChip({ track, version, idx, isActive, score, onSelect, 
       style={{ position: 'relative' }}
     >
       <span className="vname">V{idx + 1}</span>
-      <span className="vscore">
+      <span className={`vscore${
+        typeof score === 'number'
+          ? (score < 50 ? ' low' : score < 75 ? ' mid' : ' good')
+          : ''
+      }`}>
         {typeof score === 'number' ? Math.round(score) : '—'}
         {typeof score === 'number' && <span className="pct">%</span>}
       </span>
+      {inlineDelta && (
+        typeof delta === 'number' ? (
+          <span className={`vdelta-inline${delta < 0 ? ' down' : ''}`}>
+            {delta > 0 ? '↑' : delta < 0 ? '↓' : ''}{delta !== 0 ? Math.abs(delta) : '—'}
+          </span>
+        ) : (
+          <span className="vdelta-inline" style={{ color: 'var(--muted2)' }}>—</span>
+        )
+      )}
       {showDots && (
         <span ref={btnRef} role="button" tabIndex={0}
           onClick={openMenu}

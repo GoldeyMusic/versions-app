@@ -442,6 +442,9 @@ const STRINGS = {
       chatSend: "Envoyer",
       chatError: "Erreur de connexion.",
       planTitle: "Plan d'action",
+      planTagPriority: "Priorité",
+      planTagObservation: "Observation",
+      planTagResolved: "Résolu",
       adjustmentSingular: "ajustement",
       adjustmentPlural: "ajustements",
       diagTitle: "Diagnostic par éléments",
@@ -457,15 +460,32 @@ const STRINGS = {
 
       /* Score ring tooltip + bands */
       scoreAriaLabel: "Voir les détails du score",
+      scoreGlobalTitle: "Score global",
       scoreBandLow: "À retravailler",
       scoreBandMid: "En progression",
       scoreBandHigh: "Solide",
       scoreBandLowRange: "0–49 · À retravailler",
       scoreBandMidRange: "50–74 · En progression",
       scoreBandHighRange: "75–100 · Solide",
+      scoreBandLowShort: "0–49",
+      scoreBandMidShort: "50–74",
+      scoreBandHighShort: "75–100",
       scoreCalibStable: "Calibré sur la version précédente · stable",
       scoreCalibDelta: "Calibré sur la version précédente · {delta} pts",
+      scoreDeltaUp: "↑ +{delta} points depuis {prev}",
+      scoreDeltaDown: "↓ -{delta} points depuis {prev}",
+      scoreDeltaStable: "= stable depuis {prev}",
       scoreNote: "Le score reflète la cohérence du mix (spatialisation, dynamique, équilibre, clarté). Il est calibré pour rester comparable d'une version à l'autre du même titre.",
+
+      /* Mix indicators (6 tiles dans Score Global) */
+      mixIndicators: {
+        balance:    { label: "Balance",    low: "Déséquilibré", mid: "Correct",  high: "Bon" },
+        dynamique:  { label: "Dynamique",  low: "Plate",        mid: "Moyen",    high: "Vivante" },
+        stereo:     { label: "Stéréo",     low: "Étroit",       mid: "Correct",  high: "Large" },
+        saturation: { label: "Saturation", low: "Excessive",    mid: "OK",       high: "Maîtrisée" },
+        clarte:     { label: "Clarté",     low: "Flou",         mid: "Correct",  high: "Net" },
+        assise:     { label: "Assise basse", low: "Léger",      mid: "Correct",  high: "Solide" },
+      },
 
       /* Qualitative / Listening block titles + toggles */
       blockImpression: "Impression",
@@ -513,10 +533,14 @@ const STRINGS = {
 
       /* Notes */
       notesTitle: "Mes notes",
+      notesTitleV2: "Notes de version",
       notesStatusSaving: "Sauvegarde…",
       notesStatusSaved: "Sauvegardé",
       notesPlaceholder: "Tes observations, rappels, TODOs pour le prochain mix…",
+      notesPlaceholderV2: "Tes notes sur cette version…",
       notesPlaceholderDisabled: "Notes disponibles une fois l'analyse sauvegardée.",
+      notesClear: "Effacer",
+      notesSave: "Enregistrer",
 
       /* Plan filters + pending voice */
       pendingVoiceStep: "étape à franchir",
@@ -1357,6 +1381,9 @@ const STRINGS = {
       chatSend: "Send",
       chatError: "Connection error.",
       planTitle: "Action plan",
+      planTagPriority: "Priority",
+      planTagObservation: "Observation",
+      planTagResolved: "Resolved",
       adjustmentSingular: "adjustment",
       adjustmentPlural: "adjustments",
       diagTitle: "Element-by-element diagnostic",
@@ -1378,9 +1405,26 @@ const STRINGS = {
       scoreBandLowRange: "0–49 · To rework",
       scoreBandMidRange: "50–74 · In progress",
       scoreBandHighRange: "75–100 · Solid",
+      scoreBandLowShort: "0–49",
+      scoreBandMidShort: "50–74",
+      scoreBandHighShort: "75–100",
+      scoreGlobalTitle: "Global score",
       scoreCalibStable: "Calibrated on previous version · stable",
       scoreCalibDelta: "Calibrated on previous version · {delta} pts",
+      scoreDeltaUp: "↑ +{delta} points since {prev}",
+      scoreDeltaDown: "↓ -{delta} points since {prev}",
+      scoreDeltaStable: "= stable since {prev}",
       scoreNote: "The score reflects the mix's coherence (spatialisation, dynamics, balance, clarity). It's calibrated to stay comparable from one version to the next of the same track.",
+
+      /* Mix indicators (6 tiles inside Score Global) */
+      mixIndicators: {
+        balance:    { label: "Balance",    low: "Off",         mid: "OK",       high: "Good" },
+        dynamique:  { label: "Dynamics",   low: "Flat",        mid: "Medium",   high: "Alive" },
+        stereo:     { label: "Stereo",     low: "Narrow",      mid: "Medium",   high: "Wide" },
+        saturation: { label: "Saturation", low: "Excessive",   mid: "OK",       high: "Controlled" },
+        clarte:     { label: "Clarity",    low: "Muddy",       mid: "OK",       high: "Sharp" },
+        assise:     { label: "Low-end",    low: "Light",       mid: "OK",       high: "Solid" },
+      },
 
       /* Qualitative / Listening block titles + toggles */
       blockImpression: "Impression",
@@ -1428,10 +1472,14 @@ const STRINGS = {
 
       /* Notes */
       notesTitle: "My notes",
+      notesTitleV2: "Version notes",
       notesStatusSaving: "Saving…",
       notesStatusSaved: "Saved",
       notesPlaceholder: "Your observations, reminders, TODOs for the next mix…",
+      notesPlaceholderV2: "Your notes on this version…",
       notesPlaceholderDisabled: "Notes available once the analysis is saved.",
+      notesClear: "Clear",
+      notesSave: "Save",
 
       /* Plan filters + pending voice */
       pendingVoiceStep: "step to take",
