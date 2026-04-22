@@ -60,34 +60,36 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           setPhase(2);
           const jobId = config.resumeJobId;
           let attempts = 0;
+          let noFicheRetries = 0;
           while (attempts < 120) {
             await new Promise((r) => setTimeout(r, 3000));
             if (canceledRef.current) return;
             const pollRes = await fetch(`${API}/api/analyze/status/${jobId}`);
             const job = await pollRes.json();
-            console.log("🔄 Poll (resume)", attempts, "— status:", job.status, "stage:", job.stage, "pct:", job.pct);
+            console.log("🔄 Poll (resume)", attempts, "— status:", job.status, "stage:", job.stage, "pct:", job.pct, "hasFiche:", !!job.fiche, "keys:", Object.keys(job).join(","));
             if (canceledRef.current) return;
             if (job.status === "error") {
               throw new Error(job.error || s.loading.errorFailed);
             }
             // En mode resume on ne repasse plus par awaiting_intent
             // (l'utilisateur a déjà soumis ou skippé son intention).
-            // On accepte listening_done / all_done / complete normalement.
-            if ((job.stage === "listening_done" || job.stage === "all_done") && !sentFadr.current) {
+            // On n'accepte PLUS listening_done ici : c'est un état transitoire,
+            // on attend all_done (fiche présente) ou status=complete.
+            const isTerminal = job.stage === "all_done" || job.status === "complete";
+            if (isTerminal && !sentFadr.current) {
+              // Cas pathologique : stage all_done mais fiche absente — on retente
+              // quelques fois au cas où c'est un race transitoire côté backend.
+              if (!job.fiche && noFicheRetries < 4) {
+                console.warn("⚠️ VERSIONS Resume all_done mais fiche manquante — retry", noFicheRetries + 1, "/ 4");
+                noFicheRetries++;
+                attempts++;
+                continue;
+              }
+              if (!job.fiche) {
+                throw new Error(s.loading.errorFailed + " (fiche manquante au terminal)");
+              }
               sentFadr.current = true;
               setPhase(3);
-              onDone({
-                fiche: job.fiche || null,
-                listening: job.listening || null,
-                meta: job.meta,
-                audioHash: config.audioHash,
-                storagePath: job.storagePath || null,
-                _jobId: jobId,
-                _stage: job.stage,
-              });
-              return;
-            }
-            if (job.status === "complete") {
               onDone({
                 fiche: job.fiche,
                 listening: job.listening || null,
@@ -96,6 +98,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
                 storagePath: job.storagePath || null,
                 _jobId: jobId,
                 _stage: "all_done",
+                intent_used: job.intent_used || null,
               });
               return;
             }
