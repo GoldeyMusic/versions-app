@@ -2488,8 +2488,16 @@ function VersionsAppAuthed() {
     } catch (e) {
       console.warn("[intent] diagnose POST failed:", e.message);
     }
-    // Mémorise le scope choisi pour le write post-analyse
-    setConfig((c) => ({ ...(c || {}), _pendingIntent: intent, _pendingIntentScope: scope }));
+    // Mémorise le scope choisi pour le write post-analyse.
+    // resumeJobId = signal à LoadingScreen : NE PAS redémarrer un nouveau job,
+    // juste poller le job existant que le backend vient de reprendre avec
+    // l'intention reçue.
+    setConfig((c) => ({
+      ...(c || {}),
+      _pendingIntent: intent,
+      _pendingIntentScope: scope,
+      resumeJobId: intentCtx.jobId,
+    }));
     setIntentCtx(null);
     setScreen("loading");
   };
@@ -2505,6 +2513,8 @@ function VersionsAppAuthed() {
     } catch (e) {
       console.warn("[intent] skip POST failed:", e.message);
     }
+    // Même logique : on reprend le même job côté backend.
+    setConfig((c) => ({ ...(c || {}), resumeJobId: intentCtx.jobId }));
     setIntentCtx(null);
     setScreen("loading");
   };

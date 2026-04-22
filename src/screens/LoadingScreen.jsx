@@ -49,6 +49,63 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
       try {
         setPhase(0);
         sentFadr.current = false;
+
+        // ── Mode RESUME : on reprend un job existant (retour depuis
+        // IntentionScreen après submit/skip). On SKIP tout le setup
+        // (hash, dup check, POST /start) et on saute direct au polling
+        // du même jobId. Évite de relancer une analyse complète.
+        if (config?.resumeJobId) {
+          jobIdRef.current = config.resumeJobId;
+          console.log("↩️ VERSIONS Resume polling existing job:", config.resumeJobId);
+          setPhase(2);
+          const jobId = config.resumeJobId;
+          let attempts = 0;
+          while (attempts < 120) {
+            await new Promise((r) => setTimeout(r, 3000));
+            if (canceledRef.current) return;
+            const pollRes = await fetch(`${API}/api/analyze/status/${jobId}`);
+            const job = await pollRes.json();
+            console.log("🔄 Poll (resume)", attempts, "— status:", job.status, "stage:", job.stage, "pct:", job.pct);
+            if (canceledRef.current) return;
+            if (job.status === "error") {
+              throw new Error(job.error || s.loading.errorFailed);
+            }
+            // En mode resume on ne repasse plus par awaiting_intent
+            // (l'utilisateur a déjà soumis ou skippé son intention).
+            // On accepte listening_done / all_done / complete normalement.
+            if ((job.stage === "listening_done" || job.stage === "all_done") && !sentFadr.current) {
+              sentFadr.current = true;
+              setPhase(3);
+              onDone({
+                fiche: job.fiche || null,
+                listening: job.listening || null,
+                meta: job.meta,
+                audioHash: config.audioHash,
+                storagePath: job.storagePath || null,
+                _jobId: jobId,
+                _stage: job.stage,
+              });
+              return;
+            }
+            if (job.status === "complete") {
+              onDone({
+                fiche: job.fiche,
+                listening: job.listening || null,
+                meta: job.meta,
+                audioHash: config.audioHash,
+                storagePath: job.storagePath || null,
+                _jobId: jobId,
+                _stage: "all_done",
+              });
+              return;
+            }
+            if (job.pct > 40) setPhase(2);
+            else if (job.pct > 10) setPhase(1);
+            attempts++;
+          }
+          throw new Error(s.loading.errorTimeout);
+        }
+
         // Hash + check doublon (évite une analyse Gemini inutile)
         if (config.file) {
           const audioHash = await hashAudioFile(config.file);
