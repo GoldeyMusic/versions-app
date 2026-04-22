@@ -2426,7 +2426,14 @@ function VersionsAppAuthed() {
   const handleLoaded = (result) => {
     console.log("📥 VERSIONS handleLoaded called", { stage: result?._stage, jobId: result?._jobId, hasFiche: !!result?.fiche, currentScreen: screen });
     // Called with partial or complete results — always go to fiche
-    const merged = { ...(analysisResult || {}), ...result };
+    // On injecte le scope choisi à l'écran IntentionScreen pour que
+    // IntentPanel puisse afficher « appliquée à ce titre / cette version ».
+    const injectedScope = config?._pendingIntentScope || null;
+    const merged = {
+      ...(analysisResult || {}),
+      ...result,
+      ...(injectedScope ? { _intent_scope: injectedScope } : {}),
+    };
     setAnalysisResult(merged);
     const cfgWithHash = result.audioHash ? { ...config, audioHash: result.audioHash } : config;
     if (result.audioHash) setConfig(cfgWithHash);

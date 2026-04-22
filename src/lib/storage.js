@@ -22,7 +22,7 @@ export async function loadTracks() {
 
   const { data: tracks, error } = await supabase
     .from('tracks')
-    .select('id, title, project_id, vocal_type, created_at, versions(id, name, date, bpm, key, lufs, is_main, analysis_result, storage_path, created_at)')
+    .select('id, title, project_id, vocal_type, artistic_intent, created_at, versions(id, name, date, bpm, key, lufs, is_main, analysis_result, version_intent, storage_path, created_at)')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -36,6 +36,7 @@ export async function loadTracks() {
     title: t.title,
     projectId: t.project_id,
     vocalType: t.vocal_type || 'vocal',
+    artisticIntent: t.artistic_intent || null,
     createdAt: t.created_at,
     versions: (t.versions || [])
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
@@ -49,6 +50,7 @@ export async function loadTracks() {
         lufs: v.lufs,
         main: v.is_main,
         analysisResult: v.analysis_result,
+        versionIntent: v.version_intent || null,
         storagePath: v.storage_path,
       })),
   }));

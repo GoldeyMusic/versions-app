@@ -7352,6 +7352,59 @@ export default function MockupStyles() {
       gap: 24px;
     }
   }
+
+  /* ── IntentPanel sur FicheScreen (rappel de l'intention) ─── */
+  .intent-panel-fiche {
+    margin: 0 0 18px 0;
+    padding: 14px 18px;
+    background: linear-gradient(180deg,
+      rgba(245, 158, 11, 0.08) 0%,
+      rgba(245, 158, 11, 0.03) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.28);
+    border-left: 3px solid var(--amber, #F59E0B);
+    border-radius: 10px;
+  }
+  .intent-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .intent-panel-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber, #F59E0B);
+    font-weight: 600;
+  }
+  .intent-panel-kicker .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--amber, #F59E0B);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+  }
+  .intent-panel-scope {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .intent-panel-body {
+    margin: 0;
+    font-family: var(--body);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+    font-style: italic;
+  }
 `}</style>
     </>
   );

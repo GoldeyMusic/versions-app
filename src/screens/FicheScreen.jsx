@@ -1767,6 +1767,39 @@ function NotesSection({ versionId, initialNotes, v2 = false }) {
   );
 }
 
+// ── IntentPanel (panneau « Intention artistique ») ─────────
+// Affiche l'intention déclarée par l'artiste qui a calibré la fiche.
+// Priorité de lecture :
+//   1. analysisResult.intent_used     → intention fraîchement saisie dans ce run
+//   2. versionInDb.versionIntent      → override au niveau de la version courante
+//   3. currentTrack.artisticIntent    → intention « de base » du titre
+// Renvoie null s'il n'y en a aucune (pipeline non-calibré ou ancien run).
+function IntentPanel({ analysisResult, currentTrack, versionInDb }) {
+  const { s } = useLang();
+  const fresh = (typeof analysisResult?.intent_used === 'string' && analysisResult.intent_used.trim()) || null;
+  const verIntent = (typeof versionInDb?.versionIntent === 'string' && versionInDb.versionIntent.trim()) || null;
+  const trkIntent = (typeof currentTrack?.artisticIntent === 'string' && currentTrack.artisticIntent.trim()) || null;
+  const intent = fresh || verIntent || trkIntent;
+  if (!intent) return null;
+  const scope = fresh
+    ? (analysisResult?._intent_scope === 'version' ? 'version' : (analysisResult?._intent_scope || 'track'))
+    : (verIntent ? 'version' : 'track');
+  const scopeLabel = scope === 'version'
+    ? (s.fiche?.intentScopeVersion || 'cette version')
+    : (s.fiche?.intentScopeTrack || 'ce titre');
+  return (
+    <section className="intent-panel-fiche" aria-label="Intention artistique">
+      <div className="intent-panel-head">
+        <span className="intent-panel-kicker">
+          <span className="dot" /> {s.fiche?.intentKicker || 'Intention artistique'}
+        </span>
+        <span className="intent-panel-scope">{s.fiche?.intentScopePrefix || 'Appliquée à'} {scopeLabel}</span>
+      </div>
+      <p className="intent-panel-body">« {intent} »</p>
+    </section>
+  );
+}
+
 // ── FicheScreen (principal) ────────────────────────────────
 
 export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onGoHome, refreshKey }) {
@@ -2005,6 +2038,12 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
 
           {/* COLONNE PRINCIPALE (col 1 en v2 desktop) : Score global + Diagnostic */}
           <div className="f2-col-main">
+          {/* 0b · Intention artistique (si déclarée pour ce titre/version) */}
+          <IntentPanel
+            analysisResult={displayAR}
+            currentTrack={currentTrack}
+            versionInDb={versionInDb}
+          />
           {/* 1 · Verdict / Score global */}
           <section className="row-verdict">
             <div className="rv-left">

@@ -473,6 +473,11 @@ const STRINGS = {
       versionSingular: "version",
       versionPlural: "versions",
 
+      /* Intention artistique (panneau fiche) */
+      intentKicker: "Intention artistique",
+      intentScopePrefix: "Appliquée à",
+      intentScopeTrack: "ce titre",
+      intentScopeVersion: "cette version",
       /* Score ring tooltip + bands */
       scoreAriaLabel: "Voir les détails du score",
       scoreGlobalTitle: "Score global",
@@ -1515,6 +1520,11 @@ const STRINGS = {
       scoreBandMidShort: "50–74",
       scoreBandHighShort: "75–100",
       scoreGlobalTitle: "Global score",
+      /* Artistic intent (fiche panel) */
+      intentKicker: "Artistic intent",
+      intentScopePrefix: "Applied to",
+      intentScopeTrack: "this title",
+      intentScopeVersion: "this version",
       scoreCalibStable: "Calibrated on previous version · stable",
       scoreCalibDelta: "Calibrated on previous version · {delta} pts",
       scoreDeltaUp: "↑ +{delta} points since {prev}",
