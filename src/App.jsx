@@ -2424,12 +2424,14 @@ function VersionsAppAuthed() {
     setScreen("loading");
   };
   const handleLoaded = (result) => {
+    console.log("📥 VERSIONS handleLoaded called", { stage: result?._stage, jobId: result?._jobId, hasFiche: !!result?.fiche, currentScreen: screen });
     // Called with partial or complete results — always go to fiche
     const merged = { ...(analysisResult || {}), ...result };
     setAnalysisResult(merged);
     const cfgWithHash = result.audioHash ? { ...config, audioHash: result.audioHash } : config;
     if (result.audioHash) setConfig(cfgWithHash);
     if (screen !== "fiche") {
+      console.log("➡️ VERSIONS setScreen('fiche') triggered from handleLoaded");
       setScreen("fiche");
       // Start background polling if not complete yet
       if (result._jobId && result._stage !== "all_done") {
