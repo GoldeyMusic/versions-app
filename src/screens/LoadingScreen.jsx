@@ -169,6 +169,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           // envoyé d'intention inline. Sinon le backend ne renvoie jamais
           // awaiting_intent et on passe comme avant.
           if (job.status === "awaiting_intent" && !sentFadr.current) {
+            console.log("🎯 VERSIONS awaiting_intent → IntentionScreen", { jobId });
             sentFadr.current = true;
             // Resolve l'intention héritée du titre (si V2+)
             let inherited = null;
@@ -184,8 +185,14 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
             return;
           }
 
-          // Stage: listening done → immediately go to FicheScreen with partial data
-          if ((job.stage === "listening_done" || job.stage === "all_done") && !sentFadr.current) {
+          // Stage: listening done → immediately go to FicheScreen with partial data.
+          // Garde : si le backend est en `awaiting_intent`, on NE passe PAS par
+          // `onDone` — sinon on pose sentFadr=true et la branche awaiting_intent
+          // au-dessus ne firera plus jamais (bug d'aujourd'hui : polling zombie
+          // jusqu'au timeout 120 x 3s).
+          if ((job.stage === "listening_done" || job.stage === "all_done")
+              && job.status !== "awaiting_intent"
+              && !sentFadr.current) {
             sentFadr.current = true;
             setPhase(3);
             onDone({
@@ -197,6 +204,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
               _jobId: jobId,
               _stage: job.stage,
             });
+            return; // stop le polling une fois la fiche partielle livrée
           }
 
           if (job.status === "complete") {
