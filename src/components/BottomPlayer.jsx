@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import API from '../constants/api';
+import useLang from '../hooks/useLang';
 
 /**
  * BottomPlayer — WaveSurfer + HTMLMediaElement pool.
@@ -12,6 +13,37 @@ import API from '../constants/api';
 const urlCache = new Map();   // storagePath → signedUrl
 const blobUrlCache = new Map(); // storagePath → blobObjectUrl
 const audioPool = new Map();  // storagePath → HTMLAudioElement (preloaded)
+
+// ── Volume global (partagé entre BottomPlayer + HeroWaveform + autres) ─
+// Persisté dans localStorage, appliqué à tous les audios du pool et à ceux
+// créés ensuite. Store custom minimal (listeners + setter).
+const volumeStore = {
+  value: (() => {
+    try {
+      const raw = parseFloat(localStorage.getItem('versions_volume'));
+      return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : 1;
+    } catch { return 1; }
+  })(),
+  listeners: new Set(),
+};
+export function getVolume() { return volumeStore.value; }
+export function setGlobalVolume(v) {
+  const clamped = Math.max(0, Math.min(1, Number(v) || 0));
+  volumeStore.value = clamped;
+  try { localStorage.setItem('versions_volume', String(clamped)); } catch {}
+  for (const audio of audioPool.values()) {
+    try { audio.volume = clamped; } catch { /* noop */ }
+  }
+  volumeStore.listeners.forEach((cb) => { try { cb(clamped); } catch {} });
+}
+export function useVolume() {
+  const [v, setV] = useState(volumeStore.value);
+  useEffect(() => {
+    volumeStore.listeners.add(setV);
+    return () => volumeStore.listeners.delete(setV);
+  }, []);
+  return [v, setGlobalVolume];
+}
 
 /** Download blob, create Audio element, cache everything. Reliable, zero buffer gaps. */
 export async function resolveAudio(storagePath) {
@@ -38,6 +70,7 @@ export async function resolveAudio(storagePath) {
 
   const audio = new Audio(blobUrl);
   audio.preload = 'auto';
+  audio.volume = volumeStore.value; // applique le volume global dès la création
   audio.load();
   audioPool.set(storagePath, audio);
 
@@ -75,16 +108,19 @@ export default function BottomPlayer({
   playlist,
   currentIdx,
 }) {
+  const { s } = useLang();
   const containerRef = useRef(null);
   const wsRef = useRef(null);
   const activeAudioRef = useRef(null);
   const activePathRef = useRef(null);
+  // Mémorise le dernier resetKey vu : si inchangé = switch de version → on conserve la position.
+  const lastResetKeyRef = useRef(resetKey);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  const fmt = (s) => {
-    const sec = Math.floor(s);
+  const fmt = (secRaw) => {
+    const sec = Math.floor(secRaw);
     return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   };
 
@@ -107,13 +143,24 @@ export default function BottomPlayer({
         const prev = activeAudioRef.current;
         const wasPlaying = prev ? !prev.paused : isPlaying;
 
-        // Version switch (same title, different file): App.jsx does NOT bump resetKey
-        // → this useEffect won't fire (guard at line 95 blocks re-entry for same path)
-        // → handled by the play/pause sync effect instead
-        //
-        // New title or replay: App.jsx BUMPS resetKey → we get here
-        // → always start from beginning
-        audio.currentTime = 0;
+        // Deux cas :
+        // • resetKey a changé (nouveau titre, replay explicite) → on reprend à 0.
+        // • resetKey inchangé (switch de version, A/B du même titre) → on conserve
+        //   la position actuelle pour une comparaison transparente sans coupure.
+        const resetKeyChanged = lastResetKeyRef.current !== resetKey;
+        lastResetKeyRef.current = resetKey;
+
+        if (resetKeyChanged || !prev) {
+          audio.currentTime = 0;
+        } else {
+          // Conserve la position. Clamp à la durée du nouvel audio au cas où
+          // les versions n'ont pas exactement la même longueur.
+          const prevTime = prev.currentTime || 0;
+          const targetDur = Number.isFinite(audio.duration) && audio.duration > 0
+            ? audio.duration
+            : prevTime;
+          audio.currentTime = Math.min(prevTime, Math.max(0, targetDur - 0.05));
+        }
 
         if (wasPlaying) {
           try { await audio.play(); } catch {}
@@ -121,6 +168,8 @@ export default function BottomPlayer({
 
         if (prev && prev !== audio) prev.pause();
         activeAudioRef.current = audio;
+        // Applique le volume courant sur le nouvel audio (via le store global)
+        audio.volume = volumeStore.value;
 
         // Preload next tracks in playlist
         if (playlist?.length) preloadPlaylist(playlist, currentIdx || 0, 2);
@@ -131,15 +180,39 @@ export default function BottomPlayer({
           wsRef.current = null;
         }
 
+        // Dégradé progress : cerulean → violet → amber, sur toute la largeur
+        // de la waveform. La partie "déjà lue" révèle la couleur prédestinée
+        // de chaque bar selon sa position dans le morceau.
+        const progressGradient = (() => {
+          const canvas = document.createElement('canvas');
+          const width = containerRef.current?.clientWidth || 1024;
+          const dpr = window.devicePixelRatio || 1;
+          canvas.width = Math.max(1, Math.floor(width * dpr));
+          canvas.height = 36 * dpr;
+          const ctx = canvas.getContext('2d');
+          const g = ctx.createLinearGradient(0, 0, canvas.width, 0);
+          // Versions punchy du gradient : on s'éloigne des valeurs
+          // "base theme" qui, appliquées sur des bars fines de 2px
+          // contre un background très sombre, paraissent ternes.
+          // On pousse saturation + clarté pour que les 3 teintes
+          // ressortent sans partir dans le fluo.
+          g.addColorStop(0.0, '#b4eef7');   // cerulean clair/électrique
+          g.addColorStop(0.5, '#dcc2ff');   // violet clair pastel
+          g.addColorStop(1.0, '#ffd470');   // amber clair chaud
+          return g;
+        })();
+
         const ws = WaveSurfer.create({
           container: containerRef.current,
-          waveColor: '#3a3a3e',
-          progressColor: '#f5b056',
-          cursorColor: '#f5b056',
-          cursorWidth: 1,
+          // Bars "à venir" en blanc très léger,
+          // bars "passés" en dégradé cerulean → violet → amber.
+          waveColor: 'rgba(255,255,255,0.15)',
+          progressColor: progressGradient,
+          cursorColor: '#f5a623',
+          cursorWidth: 2,
           barWidth: 2,
-          barGap: 1,
-          barRadius: 2,
+          barGap: 1.5,
+          barRadius: 1,
           height: 36,
           normalize: true,
           interact: true,
@@ -204,7 +277,7 @@ export default function BottomPlayer({
         className="pl-ctrl"
         onClick={hasPrev && !idle ? onPrev : undefined}
         style={{ opacity: hasPrev && !idle ? 1 : 0.25, cursor: hasPrev && !idle ? 'pointer' : 'default' }}
-        aria-label="Précédent"
+        aria-label={s.player.prev}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M4 3v10M13 3l-7 5 7 5V3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
@@ -219,7 +292,7 @@ export default function BottomPlayer({
           background: idle ? 'rgba(245,176,86,.25)' : '#f5b056',
           cursor: idle ? 'default' : 'pointer',
         }}
-        aria-label={isPlaying ? 'Pause' : 'Lecture'}
+        aria-label={isPlaying ? s.player.pause : s.player.play}
       >
         {isPlaying ? (
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -238,7 +311,7 @@ export default function BottomPlayer({
         className="pl-ctrl"
         onClick={hasNext && !idle ? onNext : undefined}
         style={{ opacity: hasNext && !idle ? 1 : 0.25, cursor: hasNext && !idle ? 'pointer' : 'default' }}
-        aria-label="Suivant"
+        aria-label={s.player.next}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M12 3v10M3 3l7 5-7 5V3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
@@ -249,7 +322,7 @@ export default function BottomPlayer({
       <div className="pl-meta">
         {idle ? (
           <>
-            <div className="pl-title" style={{ color: '#7c7c80' }}>Aucune lecture</div>
+            <div className="pl-title" style={{ color: '#7c7c80' }}>{s.player.idleShort}</div>
             <div className="pl-sub">—</div>
           </>
         ) : (
@@ -258,7 +331,7 @@ export default function BottomPlayer({
               {trackTitle}
             </div>
             <div className="pl-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {versionName}{loading ? ' · chargement…' : ''}
+              {versionName}{loading ? ` · ${s.player.loadingInline}` : ''}
             </div>
           </>
         )}
@@ -303,6 +376,73 @@ export default function BottomPlayer({
           <><b>{fmt(currentTime)}</b> / {fmt(duration)}</>
         )}
       </div>
+
+      {/* Volume — icône + popup slider (composant partagé) */}
+      <VolumeControl idle={idle} />
+    </div>
+  );
+}
+
+// ─── Volume control (speaker icon + vertical slider popup) ─────
+// Composant réutilisable : dans BottomPlayer et dans le hero de la home.
+// Utilise le store global (useVolume) pour que les deux restent synchro.
+export function VolumeControl({ idle = false }) {
+  const { s } = useLang();
+  const [volume, setVolume] = useVolume();
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open]);
+
+  return (
+    <div className="pl-volume" ref={wrapRef}>
+      <button
+        type="button"
+        className="pl-ctrl pl-volume-btn"
+        onClick={() => setOpen((o) => !o)}
+        aria-label={s.player?.volume || 'Volume'}
+        title={s.player?.volume || 'Volume'}
+        style={{ opacity: idle ? 0.4 : 1 }}
+      >
+        {volume === 0 ? (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M3 6h2.5L9 3v10L5.5 10H3V6z" fill="currentColor" />
+            <path d="M11 6l4 4M15 6l-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          </svg>
+        ) : volume < 0.5 ? (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M3 6h2.5L9 3v10L5.5 10H3V6z" fill="currentColor" />
+            <path d="M11.5 6.5c.7.7.7 2.3 0 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+          </svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M3 6h2.5L9 3v10L5.5 10H3V6z" fill="currentColor" />
+            <path d="M11.5 5c1.3 1.3 1.3 4.7 0 6M13.5 3.5c2 2 2 7 0 9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+          </svg>
+        )}
+      </button>
+      {open && (
+        <div className="pl-volume-pop" role="dialog" aria-label={s.player?.volume || 'Volume'}>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={volume}
+            onChange={(e) => setVolume(parseFloat(e.target.value))}
+            aria-label={s.player?.volume || 'Volume'}
+            autoFocus
+          />
+        </div>
+      )}
     </div>
   );
 }
