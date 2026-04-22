@@ -6989,6 +6989,370 @@ export default function MockupStyles() {
     .vchip .vscore { font-size: 14px; }
   }
 `}</style>
+
+      {/* ============================================================
+          IntentionScreen — écran intermédiaire Phase A → Phase B
+          Cohérence visuelle avec la refonte v2 (fond sombre, ambre
+          principal, serif Fraunces pour les titres, mono pour les
+          kickers, cards sur --s1 avec border --border).
+          ============================================================ */}
+      <style>{`
+  .intent-screen {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    padding: 48px 32px 64px;
+    max-width: 1200px;
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
+  .intent-screen-compact {
+    max-width: 720px;
+    padding: 64px 24px;
+  }
+
+  /* ── Header : kicker + titre + subtitle ───────────────────── */
+  .intent-head {
+    margin-bottom: 32px;
+  }
+  .intent-kicker {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+  .intent-title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 34px;
+    line-height: 1.2;
+    color: var(--text);
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+  .intent-title em {
+    font-style: italic;
+    color: var(--amber);
+  }
+  .intent-subtitle {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--soft);
+    margin: 0;
+    max-width: 620px;
+  }
+  .intent-subtitle i {
+    font-style: italic;
+    color: var(--text);
+  }
+
+  /* ── Grid 2 colonnes (desktop) ────────────────────────────── */
+  .intent-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(240px, 0.9fr);
+    gap: 32px;
+    align-items: start;
+  }
+  .intent-col-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+  .intent-col-side {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+  }
+
+  /* ── Perception card (CE QUE J'ENTENDS) ───────────────────── */
+  .intent-perception {
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--amber-line);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .intent-perception-kicker {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+  .intent-perception-lead {
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.55;
+    font-weight: 400;
+    color: var(--text);
+  }
+  .intent-perception-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 14px;
+  }
+  .intent-chip {
+    font-family: var(--body);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--s3);
+    color: var(--soft);
+    border: 1px solid var(--border);
+    letter-spacing: 0.02em;
+  }
+  .intent-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--amber-glow);
+    color: var(--amber);
+    border: 1px solid var(--amber-line);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Textarea ─────────────────────────────────────────────── */
+  .intent-textarea-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .intent-textarea {
+    width: 100%;
+    min-height: 160px;
+    resize: vertical;
+    background: var(--s1);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 14px 16px 28px;
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.55;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .intent-textarea::placeholder {
+    color: var(--muted);
+    font-style: italic;
+  }
+  .intent-textarea:focus {
+    outline: none;
+    border-color: var(--amber-line);
+    box-shadow: 0 0 0 3px var(--amber-glow);
+  }
+  .intent-char-count {
+    position: absolute;
+    right: 12px;
+    bottom: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  /* ── Scope selector (segmented) ──────────────────────────── */
+  .intent-scope {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .intent-scope-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .intent-seg {
+    display: inline-flex;
+    padding: 4px;
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    width: fit-content;
+  }
+  .intent-seg-btn {
+    font-family: var(--body);
+    font-size: 13px;
+    padding: 8px 14px;
+    background: transparent;
+    border: 0;
+    border-radius: 7px;
+    color: var(--soft);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .intent-seg-btn:hover {
+    color: var(--text);
+  }
+  .intent-seg-btn.on {
+    background: var(--amber);
+    color: var(--bg);
+    font-weight: 500;
+  }
+
+  /* ── Actions (ghost + primary) ───────────────────────────── */
+  .intent-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin-top: 4px;
+  }
+  .intent-btn-ghost {
+    font-family: var(--body);
+    font-size: 14px;
+    padding: 11px 18px;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    color: var(--soft);
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .intent-btn-ghost:hover {
+    border-color: var(--text);
+    color: var(--text);
+  }
+  .intent-btn-primary {
+    font-family: var(--body);
+    font-weight: 500;
+    font-size: 14px;
+    padding: 12px 20px;
+    background: var(--amber);
+    border: 0;
+    border-radius: 999px;
+    color: var(--bg);
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    box-shadow: 0 6px 20px var(--amber-glow);
+  }
+  .intent-btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px var(--amber-glow);
+  }
+  .intent-btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* ── Examples (colonne latérale) ─────────────────────────── */
+  .intent-examples-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .intent-examples {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .intent-example {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+    padding: 12px 14px;
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--soft);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    font-family: var(--body);
+  }
+  .intent-example:hover {
+    background: var(--s2);
+    border-color: var(--amber-line);
+  }
+  .intent-example-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+  .intent-example-body {
+    font-size: 13px;
+    line-height: 1.5;
+    font-style: italic;
+    color: var(--text);
+  }
+
+  /* ── Pipeline (colonne latérale) ─────────────────────────── */
+  .intent-pipeline {
+    padding: 14px 16px;
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .intent-pipeline-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .intent-pipeline-step {
+    position: relative;
+    padding: 6px 0 6px 18px;
+    font-size: 13px;
+    color: var(--muted);
+    font-family: var(--body);
+  }
+  .intent-pipeline-step::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted2);
+  }
+  .intent-pipeline-step.done {
+    color: var(--soft);
+  }
+  .intent-pipeline-step.done::before {
+    background: var(--mint);
+  }
+  .intent-pipeline-step.active {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .intent-pipeline-step.active::before {
+    background: var(--amber);
+    box-shadow: 0 0 0 3px var(--amber-glow);
+  }
+
+  /* ── Responsive : < 900px on collapse les 2 colonnes ─────── */
+  @media (max-width: 900px) {
+    .intent-screen {
+      padding: 32px 20px 48px;
+    }
+    .intent-title {
+      font-size: 26px;
+    }
+    .intent-grid {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+  }
+`}</style>
     </>
   );
 }
