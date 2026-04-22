@@ -1,10 +1,9 @@
 import { useState } from 'react';
+import T from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
-import useLang from '../hooks/useLang';
 
 export default function AuthScreen() {
   const { signInWithEmail, signUpWithEmail, signInWithOAuth } = useAuth();
-  const { s } = useLang();
   const [mode, setMode] = useState('signin'); // signin | signup
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +24,7 @@ export default function AuthScreen() {
         const { data, error } = await signUpWithEmail(email, password);
         if (error) setError(error.message);
         else if (data?.user && !data.session) {
-          setInfo(s.auth.confirmEmail);
+          setInfo('Vérifiez votre email pour confirmer votre compte.');
         }
       }
     } finally {
@@ -51,7 +50,7 @@ export default function AuthScreen() {
             {"VER"}<span className="accent">{"SI"}</span>{"ONS"}
           </div>
           <div className="auth-tagline">
-            {s.brand.taglineAction}
+            Analyse <span className="auth-tagline-dot">·</span> Compare <span className="auth-tagline-dot">·</span> Évolue
           </div>
         </div>
 
@@ -59,7 +58,7 @@ export default function AuthScreen() {
         <form onSubmit={handleSubmit} className="auth-form">
           <input
             type="email"
-            placeholder={s.auth.email}
+            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -67,7 +66,7 @@ export default function AuthScreen() {
           />
           <input
             type="password"
-            placeholder={s.auth.password}
+            placeholder="Mot de passe"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -77,14 +76,14 @@ export default function AuthScreen() {
           {error && <div className="auth-error">{error}</div>}
           {info && <div className="auth-info">{info}</div>}
           <button type="submit" disabled={loading} className="auth-submit" style={{ opacity: loading ? 0.6 : 1 }}>
-            {loading ? '...' : mode === 'signin' ? s.auth.signIn : s.auth.signUp}
+            {loading ? '...' : mode === 'signin' ? 'Se connecter' : "S'inscrire"}
           </button>
         </form>
 
         {/* Separator */}
         <div className="auth-sep">
           <div className="auth-sep-line" />
-          <span className="auth-sep-text">{s.auth.or}</span>
+          <span className="auth-sep-text">OU</span>
           <div className="auth-sep-line" />
         </div>
 
@@ -97,7 +96,7 @@ export default function AuthScreen() {
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 001 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
-            {s.auth.google}
+            Continuer avec Google
           </button>
         </div>
 
@@ -108,7 +107,7 @@ export default function AuthScreen() {
             onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); setInfo(''); }}
             className="auth-toggle-btn"
           >
-            {mode === 'signin' ? s.auth.noAccount : s.auth.alreadyRegistered}
+            {mode === 'signin' ? "Pas de compte ? S'inscrire" : 'Déjà inscrit ? Se connecter'}
           </button>
         </div>
       </div>

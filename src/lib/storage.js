@@ -57,12 +57,8 @@ export async function loadTracks() {
 /**
  * Save an analysis. Finds or creates track by title (case-insensitive),
  * then inserts or updates the version.
- *
- * `analysisLocale` (optionnel) : langue dans laquelle l'IA a généré la fiche
- * et l'écoute. Persisté dans versions.analysis_locale pour que le helper
- * loadVersionLocalized puisse décider s'il doit traduire.
  */
-export async function saveAnalysis(config, analysisResult, storagePath = null, analysisLocale = null) {
+export async function saveAnalysis(config, analysisResult, storagePath = null) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     console.warn('[storage] saveAnalysis: no user');
@@ -135,16 +131,12 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
   await supabase.from('versions').update({ is_main: false }).eq('track_id', track.id);
 
   const finalStoragePath = storagePath || analysisResult?.storagePath || null;
-  const localeToPersist = (analysisLocale || 'fr').toString().toLowerCase().slice(0, 2);
 
   if (existing) {
     const updatePayload = {
       date: formatDate(),
       is_main: true,
       analysis_result: analysisResult,
-      analysis_locale: localeToPersist,
-      // Nouvelle analyse = les anciennes traductions cachées sont obsolètes.
-      analysis_translations: {},
       audio_hash: config?.audioHash || analysisResult?.audioHash || null,
     };
     if (finalStoragePath) updatePayload.storage_path = finalStoragePath;
@@ -153,9 +145,6 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
       .update(updatePayload)
       .eq('id', existing.id);
     if (error) console.warn('[storage] version update error:', error.message);
-    // Fire-and-forget : pré-traduit vers la langue opposée pour que la bascule
-    // de langue soit instantanée la prochaine fois. Ne bloque pas le retour.
-    prewarmTranslation(existing.id, localeToPersist);
     return { trackId: track.id, versionId: existing.id };
   } else {
     const { data: newVer, error } = await supabase
@@ -166,7 +155,6 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
         date: formatDate(),
         is_main: true,
         analysis_result: analysisResult,
-        analysis_locale: localeToPersist,
         audio_hash: config?.audioHash || analysisResult?.audioHash || null,
         storage_path: finalStoragePath,
       })
@@ -176,55 +164,7 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
       console.warn('[storage] version insert error:', error.message);
       return null;
     }
-    // Fire-and-forget : idem, pour la nouvelle version.
-    prewarmTranslation(newVer.id, localeToPersist);
     return { trackId: track.id, versionId: newVer.id };
-  }
-}
-
-/**
- * Pré-traduit une version vers la langue opposée et écrit le cache.
- * Fire & forget : appelé après saveAnalysis pour que l'utilisateur puisse
- * basculer de langue instantanément la prochaine fois.
- *
- * Coût : ~1 appel Haiku supplémentaire par analyse (~$0.001), négligeable.
- * Bénéfice : bascule instantanée FR ↔ EN au lieu de 10-15s d'attente.
- */
-async function prewarmTranslation(versionId, sourceLocale) {
-  if (!versionId) return;
-  const source = (sourceLocale || 'fr').toString().toLowerCase().slice(0, 2);
-  const target = source === 'fr' ? 'en' : 'fr';
-  try {
-    const { data, error } = await supabase
-      .from('versions')
-      .select('analysis_result, analysis_translations')
-      .eq('id', versionId)
-      .single();
-    if (error || !data?.analysis_result) return;
-    // Déjà en cache → rien à faire
-    if (data.analysis_translations && data.analysis_translations[target]) return;
-
-    const translated = await translateAnalysisResult(data.analysis_result, source, target);
-    if (!translated) return;
-
-    // Ne cache que si la traduction est complète (évite de cacher un résultat partiel)
-    const original = data.analysis_result;
-    const ficheOk = !original.fiche || translated.fiche !== original.fiche;
-    const listeningOk = !original.listening || translated.listening !== original.listening;
-    if (!ficheOk || !listeningOk) {
-      console.warn('[storage] prewarm partial, cache NON écrit');
-      return;
-    }
-
-    const newCache = { ...(data.analysis_translations || {}), [target]: translated };
-    const { error: werr } = await supabase
-      .from('versions')
-      .update({ analysis_translations: newCache })
-      .eq('id', versionId);
-    if (werr) console.warn('[storage] prewarm write failed:', werr.message);
-    else console.log(`[storage] prewarm ${source}→${target} cached for ${versionId}`);
-  } catch (e) {
-    console.warn('[storage] prewarm failed:', e.message);
   }
 }
 
@@ -240,88 +180,6 @@ export async function getAnalysis(trackId, versionId) {
     return null;
   }
   return data?.analysis_result || null;
-}
-
-/**
- * Retourne l'analysisResult d'une version dans la langue demandée.
- *  - Si la langue demandée = langue d'origine → renvoie l'objet original
- *  - Sinon, check le cache analysis_translations[userLocale]
- *  - Sinon, appelle /api/translate (fiche + listening), persiste le cache,
- *    et retourne l'objet traduit.
- *
- * Si quoi que ce soit échoue, fallback sur l'objet original.
- */
-export async function loadVersionLocalized(versionId, userLocale) {
-  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return null;
-  const target = (userLocale || 'fr').toString().toLowerCase().slice(0, 2);
-
-  const { data, error } = await supabase
-    .from('versions')
-    .select('analysis_result, analysis_locale, analysis_translations')
-    .eq('id', versionId)
-    .single();
-  if (error || !data) {
-    console.warn('[storage] loadVersionLocalized read error:', error?.message);
-    return null;
-  }
-
-  const original = data.analysis_result || null;
-  if (!original) return null;
-
-  const source = (data.analysis_locale || 'fr').toString().toLowerCase().slice(0, 2);
-  // Cas 1 : langue identique → on sert l'original
-  if (source === target) return original;
-
-  // Cas 2 : cache existant
-  const cache = data.analysis_translations || {};
-  if (cache[target]) return cache[target];
-
-  // Cas 3 : cache miss → traduction à la volée
-  const API = (await import('../constants/api')).default;
-  const callTranslate = async (type, content) => {
-    if (!content || typeof content !== 'object') return null;
-    try {
-      const r = await fetch(`${API}/api/translate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, content, targetLocale: target, sourceLocale: source }),
-      });
-      if (!r.ok) throw new Error(`translate ${type}: ${r.status}`);
-      const j = await r.json();
-      return j?.translated || null;
-    } catch (e) {
-      console.warn('[storage] translate fallback (original):', e.message);
-      return null;
-    }
-  };
-
-  const [ficheT, listeningT] = await Promise.all([
-    callTranslate('fiche', original.fiche),
-    callTranslate('listening', original.listening),
-  ]);
-
-  // Construction du résultat : on préserve les champs non-textuels (storagePath, _stage…)
-  const translated = { ...original };
-  if (ficheT) translated.fiche = ficheT;
-  if (listeningT) translated.listening = listeningT;
-
-  // On ne cache que si TOUT ce qui devait être traduit l'a été.
-  // Sinon on retournerait le résultat partiel mais on re-tentera la prochaine fois.
-  const ficheOk = !original.fiche || !!ficheT;
-  const listeningOk = !original.listening || !!listeningT;
-  const fullyTranslated = ficheOk && listeningOk;
-
-  if (fullyTranslated) {
-    const newCache = { ...cache, [target]: translated };
-    supabase.from('versions')
-      .update({ analysis_translations: newCache })
-      .eq('id', versionId)
-      .then(({ error: werr }) => { if (werr) console.warn('[storage] translations cache write failed:', werr.message); });
-  } else {
-    console.warn('[storage] translation partielle → cache NON écrit, retry possible au prochain affichage');
-  }
-
-  return translated;
 }
 
 /**
@@ -442,56 +300,16 @@ export async function fetchPublicFiche(token) {
   const { data, error } = await supabase.rpc('get_public_fiche', { p_token: token });
   if (error) { console.warn('[storage] fetchPublicFiche error:', error.message); return null; }
   if (!data) return null;
-  // data = { track_title, version_name, created_at, analysis_result, vocal_type,
-  //          analysis_locale, analysis_translations }
-  // analysis_locale / analysis_translations : ajoutés par la migration i18n
-  // (par défaut 'fr' et {} pour les anciennes fiches).
+  // data = { track_title, version_name, created_at, analysis_result, vocal_type }
+  // vocal_type : ajouté par migration 005 (COALESCE → 'vocal' par défaut
+  // pour les anciens partages créés avant la migration).
   return {
     trackTitle: data.track_title || '',
     versionName: data.version_name || '',
     createdAt: data.created_at || null,
     analysisResult: data.analysis_result || null,
     vocalType: data.vocal_type || 'vocal',
-    analysisLocale: (data.analysis_locale || 'fr').toString().toLowerCase().slice(0, 2),
-    analysisTranslations: data.analysis_translations || {},
   };
-}
-
-/**
- * Traduit un analysisResult (fiche + écoute) vers `target` en utilisant
- * /api/translate. Pas d'écriture en DB (utile pour les visiteurs anonymes
- * qui ne peuvent pas updater le cache côté owner).
- */
-export async function translateAnalysisResult(analysisResult, sourceLocale, targetLocale) {
-  if (!analysisResult) return null;
-  const source = (sourceLocale || 'fr').toString().toLowerCase().slice(0, 2);
-  const target = (targetLocale || 'fr').toString().toLowerCase().slice(0, 2);
-  if (source === target) return analysisResult;
-  const API = (await import('../constants/api')).default;
-  const callTranslate = async (type, content) => {
-    if (!content || typeof content !== 'object') return null;
-    try {
-      const r = await fetch(`${API}/api/translate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, content, targetLocale: target, sourceLocale: source }),
-      });
-      if (!r.ok) throw new Error(`translate ${type}: ${r.status}`);
-      const j = await r.json();
-      return j?.translated || null;
-    } catch (e) {
-      console.warn('[storage] translate fallback (original):', e.message);
-      return null;
-    }
-  };
-  const [ficheT, listeningT] = await Promise.all([
-    callTranslate('fiche', analysisResult.fiche),
-    callTranslate('listening', analysisResult.listening),
-  ]);
-  const translated = { ...analysisResult };
-  if (ficheT) translated.fiche = ficheT;
-  if (listeningT) translated.listening = listeningT;
-  return translated;
 }
 
 /** Delete a version. If last one, delete the track too. Also removes audio from Storage. */
@@ -646,74 +464,29 @@ export async function findDuplicateAudio(title, audioHash) {
 }
 
 /** Compare two versions (A = older, B = newer). Returns {resume, progres, regressions, inchanges}.
- * Caches results in the `comparisons` table keyed by (trackId, vA, vB).
- *
- * Multi-langues : le `result` persisté est l'original (dans result_locale).
- * Les autres langues sont cachées dans result_translations.
- */
-export async function getOrCreateComparison(trackId, versionA, versionB, locale) {
+ * Caches results in the `comparisons` table keyed by (trackId, vA, vB). */
+export async function getOrCreateComparison(trackId, versionA, versionB) {
   if (!trackId || !versionA?.id || !versionB?.id) throw new Error('trackId + 2 versions requis');
-  const target = (locale || 'fr').toString().toLowerCase().slice(0, 2);
 
-  // Lookup cache
+  // Lookup cache (try both orderings)
   const { data: cached } = await supabase
     .from('comparisons')
-    .select('result, result_locale, result_translations')
+    .select('result')
     .eq('track_id', trackId)
     .eq('version_a_id', versionA.id)
     .eq('version_b_id', versionB.id)
     .maybeSingle();
+  if (cached?.result) return cached.result;
 
-  if (cached?.result) {
-    const source = (cached.result_locale || 'fr').toString().toLowerCase().slice(0, 2);
-    // Même langue que l'origine → sert le résultat original
-    if (source === target) return cached.result;
-    // Cache hit dans la langue cible
-    const trCache = cached.result_translations || {};
-    if (trCache[target]) return trCache[target];
-
-    // Cache miss : on traduit à la demande
-    const API = (await import('../constants/api')).default;
-    try {
-      const r = await fetch(`${API}/api/translate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'comparison', content: cached.result, targetLocale: target, sourceLocale: source }),
-      });
-      if (!r.ok) throw new Error(`translate compare: ${r.status}`);
-      const j = await r.json();
-      const translated = j?.translated;
-      if (!translated) throw new Error('translate compare: empty result');
-
-      const newCache = { ...trCache, [target]: translated };
-      supabase.from('comparisons')
-        .update({ result_translations: newCache })
-        .eq('track_id', trackId)
-        .eq('version_a_id', versionA.id)
-        .eq('version_b_id', versionB.id)
-        .then(({ error }) => { if (error) console.warn('[compare] translations cache write failed:', error.message); });
-
-      return translated;
-    } catch (e) {
-      console.warn('[compare] translate fallback (original):', e.message);
-      return cached.result; // fallback : on sert l'original même si langue ≠
-    }
-  }
-
-  // Pas de cache du tout : on génère un compare neuf dans la langue demandée.
   const ficheA = versionA.analysisResult?.fiche || versionA.analysisResult || null;
   const ficheB = versionB.analysisResult?.fiche || versionB.analysisResult || null;
-  if (!ficheA || !ficheB) {
-    const err = new Error('Les deux versions doivent avoir une fiche analysée');
-    err.code = 'COMPARE_NEEDS_FICHES';
-    throw err;
-  }
+  if (!ficheA || !ficheB) throw new Error('Les deux versions doivent avoir une fiche analysée');
 
   const API = (await import('../constants/api')).default;
   const resp = await fetch(`${API}/api/compare`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ficheA, ficheB, nameA: versionA.name, nameB: versionB.name, locale: target }),
+    body: JSON.stringify({ ficheA, ficheB, nameA: versionA.name, nameB: versionB.name }),
   });
   if (!resp.ok) {
     const err = await resp.text();
@@ -727,7 +500,6 @@ export async function getOrCreateComparison(trackId, versionA, versionB, locale)
     version_a_id: versionA.id,
     version_b_id: versionB.id,
     result,
-    result_locale: target,
   }).then(({ error }) => { if (error) console.warn('[compare] cache save failed:', error.message); });
 
   return result;
@@ -780,7 +552,6 @@ export async function loadProjects() {
       tracks(
         id,
         title,
-        cover_image_url,
         created_at,
         position_in_project,
         versions(id, name, date, bpm, key, lufs, is_main, analysis_result, storage_path, created_at)
@@ -809,7 +580,6 @@ export async function loadProjects() {
         id: t.id,
         title: t.title,
         projectId: p.id,
-        coverImageUrl: t.cover_image_url || null,
         createdAt: t.created_at,
         positionInProject: t.position_in_project,
         versions: (t.versions || [])
@@ -943,65 +713,6 @@ export async function clearProjectCoverImage(projectId) {
 }
 
 /**
- * Upload / replace a track cover image.
- * Bucket `track-covers` (public). Path = `{user_id}/{track_id}.{ext}`.
- * Renvoie l'URL publique, ou null en cas d'échec.
- */
-export async function setTrackCoverImage(trackId, file) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !file) return null;
-
-  const ext = (file.name || '').split('.').pop()?.toLowerCase() || 'jpg';
-  const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) ? ext : 'jpg';
-  const path = `${user.id}/${trackId}.${safeExt}`;
-
-  const { error: uploadErr } = await supabase.storage
-    .from('track-covers')
-    .upload(path, file, { upsert: true, contentType: file.type || `image/${safeExt}` });
-  if (uploadErr) {
-    console.warn('[storage] setTrackCoverImage upload error:', uploadErr.message);
-    return null;
-  }
-
-  const { data: urlData } = supabase.storage.from('track-covers').getPublicUrl(path);
-  // Cache-buster pour forcer le reload après remplacement.
-  const publicUrl = urlData?.publicUrl ? `${urlData.publicUrl}?v=${Date.now()}` : null;
-  if (!publicUrl) return null;
-
-  const { error: updateErr } = await supabase
-    .from('tracks')
-    .update({ cover_image_url: publicUrl })
-    .eq('id', trackId);
-  if (updateErr) {
-    console.warn('[storage] setTrackCoverImage update error:', updateErr.message);
-    return null;
-  }
-  return publicUrl;
-}
-
-/**
- * Clear a track's cover image — supprime le fichier du bucket et met
- * cover_image_url à null en base.
- */
-export async function clearTrackCoverImage(trackId) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
-
-  const paths = ['jpg', 'jpeg', 'png', 'webp', 'gif'].map(ext => `${user.id}/${trackId}.${ext}`);
-  await supabase.storage.from('track-covers').remove(paths).catch(() => {});
-
-  const { error } = await supabase
-    .from('tracks')
-    .update({ cover_image_url: null })
-    .eq('id', trackId);
-  if (error) {
-    console.warn('[storage] clearTrackCoverImage update error:', error.message);
-    return false;
-  }
-  return true;
-}
-
-/**
  * Delete a project — removes audio files from Storage, then the row
  * (DB cascade deletes tracks + versions).
  * Refuses to delete the user's last remaining project.
@@ -1098,4 +809,61 @@ export async function reorderTracksInProject(projectId, orderedTrackIds) {
   const firstErr = results.find(r => r.error)?.error;
   if (firstErr) console.warn('[storage] reorderTracksInProject error:', firstErr.message);
   return !firstErr;
+}
+
+// =============================================================
+// ARTISTIC INTENT — feature "intention artistique"
+// =============================================================
+// Deux niveaux de persistance, résolus par le front :
+//   tracks.artistic_intent   → intention au niveau du TITRE
+//                              (héritée par toutes les versions du titre).
+//   versions.version_intent  → override au niveau d'une version
+//                              (si l'artiste veut déclarer autre chose
+//                               pour CETTE version précisément).
+// L'écran intention affiche : pour la V1, la textarea est vide ;
+// pour une V2+, on pré-remplit avec l'intention du titre et on
+// propose un switch "tout le titre / juste cette version".
+
+/** Écrit l'intention au niveau du titre. `intent=null|""` → effacé. */
+export async function updateTrackIntent(trackId, intent) {
+  if (!trackId) return false;
+  const clean = typeof intent === 'string' && intent.trim().length > 0 ? intent.trim() : null;
+  const { error } = await supabase
+    .from('tracks')
+    .update({ artistic_intent: clean })
+    .eq('id', trackId);
+  if (error) { console.warn('[storage] updateTrackIntent error:', error.message); return false; }
+  return true;
+}
+
+/** Écrit un override d'intention au niveau d'une version. `intent=null|""` → effacé. */
+export async function updateVersionIntent(versionId, intent) {
+  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return false;
+  const clean = typeof intent === 'string' && intent.trim().length > 0 ? intent.trim() : null;
+  const { error } = await supabase
+    .from('versions')
+    .update({ version_intent: clean })
+    .eq('id', versionId);
+  if (error) { console.warn('[storage] updateVersionIntent error:', error.message); return false; }
+  return true;
+}
+
+/**
+ * Retourne l'intention héritée d'un titre (tracks.artistic_intent).
+ * Utilisé par IntentionScreen en mode V2+ pour pré-remplir la textarea.
+ * Lookup par (title, projectId) — case-insensitive sur le titre.
+ * Retourne null si le titre n'existe pas ou n'a pas d'intention déclarée.
+ */
+export async function getInheritedIntentByTitle(title, projectId = null) {
+  const clean = (title || '').trim();
+  if (!clean) return null;
+  let q = supabase
+    .from('tracks')
+    .select('id, title, artistic_intent, project_id')
+    .ilike('title', clean);
+  if (projectId) q = q.eq('project_id', projectId);
+  const { data, error } = await q;
+  if (error) { console.warn('[storage] getInheritedIntentByTitle error:', error.message); return null; }
+  const row = (data || []).find(t => (t.title || '').toLowerCase() === clean.toLowerCase()) || data?.[0];
+  return row?.artistic_intent || null;
 }

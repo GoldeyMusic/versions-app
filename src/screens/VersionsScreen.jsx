@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { loadTracks, applyTrackOrder } from '../lib/storage';
-import useLang from '../hooks/useLang';
 
 /* ═══════════════════════════════════════════════════════════ */
 /* MES TITRES — page mobile stylisée                          */
@@ -15,7 +14,6 @@ export default function VersionsScreen({
   onToggle,
   playerState,
 }) {
-  const { s } = useLang();
   const [tracks, setTracks] = useState([]);
   const [openTrackId, setOpenTrackId] = useState(null);
 
@@ -41,19 +39,9 @@ export default function VersionsScreen({
     <div className="versions-screen">
       {/* Header */}
       <div className="versions-s-header">
-        <div className="versions-s-title">{s.versions.mobileTitle}</div>
+        <div className="versions-s-title">MES TITRES</div>
         <div className="versions-s-tagline">
-          {(() => {
-            const trackCount = tracks.length;
-            const versionCount = tracks.reduce((acc, t) => acc + (t.versions?.length || 0), 0);
-            const trackLabel = trackCount > 1 ? s.versions.trackPlural : s.versions.trackSingular;
-            const versionLabel = versionCount > 1 ? s.versions.versionPlural : s.versions.versionSingular;
-            return (
-              <>
-                {trackCount} {trackLabel} <span className="versions-s-tagline-dot">·</span> {versionCount} {versionLabel}
-              </>
-            );
-          })()}
+          {tracks.length} titre{tracks.length > 1 ? 's' : ''} <span className="versions-s-tagline-dot">·</span> {tracks.reduce((s, t) => s + (t.versions?.length || 0), 0)} version{tracks.reduce((s, t) => s + (t.versions?.length || 0), 0) > 1 ? 's' : ''}
         </div>
       </div>
 
@@ -63,8 +51,8 @@ export default function VersionsScreen({
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
           </svg>
-          <div>{s.versions.emptyMobile}</div>
-          <div style={{ fontSize: 14, color: 'var(--muted2)' }}>{s.versions.emptyMobileSub}</div>
+          <div>Aucun titre pour le moment</div>
+          <div style={{ fontSize: 12, color: 'var(--muted2)' }}>Lance ta première analyse pour commencer</div>
         </div>
       ) : (
         <div className="versions-s-list">
@@ -88,7 +76,7 @@ export default function VersionsScreen({
                   <div className="versions-s-card-info">
                     <div className="versions-s-card-title">{track.title}</div>
                     <div className="versions-s-card-meta">
-                      {versions.length} {versions.length > 1 ? s.versions.versionPlural : s.versions.versionSingular}
+                      {versions.length} version{versions.length > 1 ? 's' : ''}
                     </div>
                   </div>
                   <div className="versions-s-card-chev">
@@ -128,7 +116,7 @@ export default function VersionsScreen({
                                   if (isPlaying) { if (onToggle) onToggle(); else onStop(); }
                                   else { onPlay(track.title, v.name, v.storagePath); }
                                 }}
-                                title={isPlaying ? s.versions.stopAction : s.versions.play}
+                                title={isPlaying ? 'Stop' : 'Écouter'}
                               >
                                 {isPlaying ? (
                                   <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
@@ -145,7 +133,7 @@ export default function VersionsScreen({
                               onClick={(e) => { e.stopPropagation(); onViewAnalysis(track, v); }}
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                              {s.versions.viewFicheCta}
+                              Voir la fiche d'analyse
                               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 2.5l4 3.5-4 3.5"/></svg>
                             </button>
                           )}
@@ -156,7 +144,7 @@ export default function VersionsScreen({
                     {/* Add version */}
                     <button className="versions-s-add" onClick={() => onAddVersion(track)}>
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M7 3v8M3 7h8"/></svg>
-                      {s.versions.addVersionCta}
+                      Ajouter une version
                     </button>
                   </div>
                 )}

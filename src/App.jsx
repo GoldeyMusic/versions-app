@@ -3,28 +3,29 @@ import STRINGS, { pick } from "./constants/strings";
 import T from "./constants/theme";
 import API from "./constants/api";
 import { LangContext } from "./hooks/useLang";
-import useLang from "./hooks/useLang";
 import useMobile from "./hooks/useMobile";
 import GlobalStyles from "./components/GlobalStyles";
 import MockupStyles from "./components/MockupStyles";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import WaveSurfer from 'wavesurfer.js';
-import BottomPlayer, { resolveAudio, VolumeControl } from "./components/BottomPlayer";
+import BottomPlayer, { resolveAudio } from "./components/BottomPlayer";
 import AskModal from "./components/AskModal";
 import Sidebar from "./components/Sidebar";
+import InputScreen from "./screens/InputScreen";
 import LoadingScreen from "./screens/LoadingScreen";
+import IntentionScreen from "./screens/IntentionScreen";
 import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
 
-import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage, setTrackCoverImage, clearTrackCoverImage } from "./lib/storage";
+import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage, updateTrackIntent, updateVersionIntent, getInheritedIntentByTitle } from "./lib/storage";
 import { assignProjectColors, PROJECT_COLOR_COUNT } from "./lib/projectColors";
 import { resizeImageFile } from "./lib/image";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
 import PublicFicheScreen from "./screens/PublicFicheScreen";
-import ReglagesModal from "./components/ReglagesModal";
+import ReglagesScreen from "./screens/ReglagesScreen";
 import RenameModal from "./components/RenameModal";
 import OnboardingModal from "./components/OnboardingModal";
 import AddModal from "./components/AddModal";
@@ -205,6 +206,19 @@ const HOME_TAGLINES = [
   "[Finir] un mix, enfin.",
 ];
 
+// Helper : le titre existe-t-il déjà dans les projets ? (utilisé par case "intention")
+// Retourne true si c'est un nouveau titre (pas de track existante avec ce titre).
+function isFirstVersionOfTitle(projects, title, projectId = null) {
+  if (!title) return true;
+  const clean = title.trim().toLowerCase();
+  const allTracks = (projects || []).flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectId: p.id })));
+  const match = allTracks.find((t) =>
+    (t.title || '').trim().toLowerCase() === clean &&
+    (!projectId || t._projectId === projectId)
+  );
+  return !match || !(match.versions?.length);
+}
+
 const CONSEIL_TIPS = [
   { title: "Commence simple", body: "Pas besoin d'un master commercial — même un bounce rapide depuis Logic ou Ableton suffit pour un premier tour. Tu peux aussi tester sur une référence que tu aimes pour calibrer ton oreille." },
   { title: "Trois versions suffisent", body: "Tu n'as pas besoin de 10 versions pour voir le progrès. Une V1 (brute), une V2 (retravaillée), une V3 (mix presque final) suffisent pour lire l'évolution." },
@@ -218,182 +232,6 @@ const CONSEIL_TIPS = [
   { title: "Importe aussi tes vieux mix", body: "Uploader un mix qui a six mois te montre ce que ton oreille a gagné depuis. Précieux pour calibrer tes exigences." },
   { title: "Lis la fiche dans l'ordre", body: "Commence par les forces, puis les points à retravailler, puis les mesures techniques. C'est ainsi que tu gardes une lecture équilibrée du mix." },
   { title: "Imprime tes fiches importantes", body: "Pour les titres clés, exporte ou garde un PDF de la fiche. Tu y reviendras avant le master pour valider les gestes finaux." },
-];
-
-/* ── EN translations of the same pools. Kept parallel to FR so the picker
-   logic can select the pool matching the active language. ─────────── */
-const SAVIEZ_VOUS_TIPS_EN = [
-  "Taking regular breaks keeps your listening attentive and objective.",
-  "Your ears fatigue after 45 min — a 10 min break saves you 2h of work.",
-  "Listening to your mix in another context (car, headphones) reveals what the studio hides.",
-  "Lowering the monitoring volume helps you spot balance imbalances.",
-  "Stepping away from a mix for 24h completely changes your perception.",
-  "Regularly comparing with a reference recalibrates your ear and your choices.",
-  "Silence between sessions matters as much as the work itself.",
-  "Listening at low volume is the best test: if the mix works quiet, it will work loud.",
-  "The low end is easier to judge standing than sitting — you feel the sub better.",
-  "Your first mix draft often contains a truth you lose when over-polishing.",
-  "A mix that holds in mono almost always holds in stereo.",
-  "The best compression is often the one you don't hear.",
-  "Pro engineers switch speakers every 30 minutes to avoid getting used to a single color.",
-  "The brain averages what it hears: after 20 minutes on a passage, you stop noticing flaws.",
-  "Ear fatigue first hits the highs — that's why we tend to add top end late at night.",
-  "Listening to your mix while walking reveals things a seated studio hides.",
-  "A good mix should work on a phone placed on a table — that's the ultimate test.",
-  "Stereo correlation tells you whether your mix collapses when summed to mono.",
-  "Perceived dynamics depend on context: -10 LUFS can sound loud on streaming and weak on vinyl.",
-  "A master that's too loud masks mistakes — when you turn down, they reappear.",
-  "The brain loves novelty: listening to a reference before your mix makes it feel fresh again.",
-  "Closed headphones exaggerate the low end, open ones exaggerate the highs. Cross-check both.",
-  "The first 200 ms of a sound define its perceived impact — that's where you need to be precise.",
-  "Your decisions are better in the morning — the brain is less biased by cognitive fatigue.",
-  "Drinking water regularly actually improves hearing clarity.",
-  "A room's acoustics shift with temperature: a heated room doesn't respond like a cold one.",
-  "Pros listen on cheap speakers to catch what holds up despite them.",
-  "Absolute silence doesn't exist in a studio: your noise floor is part of what you hear.",
-  "A consistent monitoring level from session to session saves you from re-mixing the same things.",
-  "Moving your head while listening naturally corrects your room's colorations.",
-  "The kick and the lead vocal often share the same energy band: their balance makes the mix.",
-];
-
-const PROCHAIN_PAS_TIPS_EN = [
-  { title: "Listen at low volume", body: "Monitoring quietly reveals balance imbalances. If the mix works quiet, it will work loud." },
-  { title: "Change environments", body: "Listen in the car or on headphones: flaws invisible in the studio become obvious elsewhere." },
-  { title: "Take a 24h break", body: "Come back to your mix after 24 hours — a fresh ear tells you more than 2 hours of continuous work." },
-  { title: "Compare with a reference", body: "Grab a track you love, level-match it, and toggle. You'll see what's missing or too much." },
-  { title: "Work in mono", body: "Flip your mix to mono to catch phase cancellations and check low-end solidity." },
-  { title: "Print then forget", body: "Export, close the session, listen elsewhere later. You'll hear it like a listener." },
-  { title: "Check the dynamics", body: "Look at your crest factor: too flat, the mix fatigues; too dynamic, it struggles to come through." },
-  { title: "Listen in the car", body: "Car cabins reveal lingering basses and aggressive mids. A real tell-tale." },
-  { title: "Solo kick + bass", body: "Solo kick and bass: their core relationship defines your mix's groove and foundation." },
-  { title: "The phone test", body: "Grab your phone, set it on the table, play the mix. Most honest audience-side test." },
-  { title: "Cut the low end", body: "High-pass your master at 150 Hz: what remains tells you if mids and highs hold on their own." },
-  { title: "Close your eyes", body: "Listen for a minute with eyes closed, no DAW visual. You'll hear what your eyes were hiding from your ears." },
-  { title: "Walk while listening", body: "Play the mix quietly and walk around — balance issues jump out." },
-  { title: "Back-to-back compare", body: "Follow your mix with a commercial track. The quality 'jump' tells you exactly where to work." },
-  { title: "Listen tomorrow morning", body: "Close the session, sleep on it, listen at breakfast without touching anything. Your real opinion appears there." },
-  { title: "Aim for the middle", body: "Look for what works everywhere (car, headphones, speakers), not what only shines in your studio." },
-  { title: "Mute the lead vocal", body: "Listen without the lead: if the instrumental doesn't hold, you were masking a problem behind the voice." },
-  { title: "Re-compress your music", body: "Make a 160 kbps MP3 of your bounce and listen. Two-thirds of listeners will hear it that way." },
-  { title: "Test at realistic volume", body: "Set monitoring to conversation level. If it works there, it works everywhere." },
-];
-
-const PROGRESSION_TIPS_NO_SCORE_EN = [
-  "As soon as you have two versions of a track, VERSIONS compares the mixes and highlights what has changed.",
-  "Import a first bounce: frequency and dynamics analysis happens in under a minute.",
-  "Each track added sharpens your ear and gives you a reference for the next ones.",
-  "Start by analyzing a track you know well — you'll validate the analysis against your own perception.",
-  "First upload your raw V1: it serves as a reference point to see the evolution.",
-  "One report per track is enough to reveal the strengths and gaps of your mix.",
-  "Analyze a well-mastered track first: you'll confront your feelings with objective measurements.",
-  "You can import a commercial reference — it becomes your benchmark for your own bounces.",
-  "Three tracks is already enough for trends to emerge in your mix choices.",
-  "Your first analyses teach you the most: each report gives you a new reference point.",
-];
-
-const PROGRESSION_TIPS_WITH_SCORE_EN = [
-  "Keep comparing your versions to refine evaluation. Each analysis sharpens how you read your mix.",
-  "A score doesn't judge your mix — it points out what could be improved.",
-  "The score evolves with your choices: frequency balance, dynamics, stereo clarity.",
-  "Watch trends rather than absolute values: two versions 5 points apart is already meaningful.",
-  "If the score drops between versions, it might be the signal to go back.",
-  "Add a comment to each version: you'll see which moves actually shift the score.",
-  "A stable score across three versions means you're going in circles — change your angle of attack.",
-  "Compare two versions side-by-side rather than judging them separately: the gap speaks louder.",
-  "The score is just a reference — the detailed report tells you why.",
-  "If a heavily reworked version scores lower than the previous one, trust yourself and go back.",
-];
-
-const A_QUOI_CA_SERT_TIPS_EN = [
-  { title: "Analyze like a pro", body: "Each track you import goes through an objective analysis — frequency balance, dynamics, stereo, saturation — then through a detailed AI listen. You get a clear report showing what works and what doesn't." },
-  { title: "Readable metrics", body: "VERSIONS translates technical measurements (LUFS, crest factor, stereo correlation) into understandable comments. No need to be a sound engineer to know what to adjust." },
-  { title: "A reliable second opinion", body: "The AI listen comments on your mix section by section and points out where your ears may have fatigued. An outside perspective, available anytime." },
-  { title: "A clear report", body: "Each analysis delivers a structured report: strengths, points to rework, levels, dynamics. No interpretation, just reference points." },
-  { title: "Spot ear fatigue", body: "VERSIONS listens with the same freshness at any hour. It detects what your ears overcompensate for after several hours of work." },
-  { title: "Break the V2/V3 loop", body: "When torn between two versions, comparative analysis decides objectively: you know which holds up better, and why." },
-  { title: "An auditory logbook", body: "Every analysis is archived and dated. You can look back, see a track's evolution, and spot when a mix started to drift." },
-  { title: "An ego-less perspective", body: "VERSIONS has no interest in flattering your mix or tearing it apart. It tells you what is, with the right words." },
-  { title: "Prepare for mastering", body: "Before sending your mix to mastering, VERSIONS flags what to clean up. You arrive at the studio with a clean mix." },
-  { title: "Save hours of listening", body: "A 2-minute analysis replaces dozens of trips between speakers, headphones, and car. You target what's wrong, fast." },
-];
-
-const POURQUOI_VERSIONS_TIPS_EN = [
-  { title: "Compare your mixes", body: "Upload multiple versions of the same track: VERSIONS highlights what has progressed, what has regressed, and where to rework." },
-  { title: "See progress", body: "Each version is dated and scored. At a glance, you see if V3 is actually better than V2 — or if you should go back." },
-  { title: "Undo misleading intuition", body: "Sometimes you think a mix is improving when it's losing clarity. VERSIONS objectifies this feeling and gives you stable reference points." },
-  { title: "Keep the history", body: "Your versions stay organized by project and dated. No more hunting for 'the last good one' in a folder." },
-  { title: "A pocket studio", body: "The perspective of a sound engineer, available anytime, no appointment, no studio cost, no waiting for feedback." },
-  { title: "Break home-studio loneliness", body: "Mixing alone, you lose the outside eye. VERSIONS fills that role — a tangible, backed opinion that renews your listening." },
-  { title: "Confirm your choices", body: "Sometimes you know what's off but can't decide. VERSIONS confirms (or disproves) your intuition with data to back it up." },
-  { title: "Learn while mixing", body: "Each report is also a lesson: you learn to name what you hear and recognize the patterns of a good mix." },
-  { title: "Stop doubting at 3 AM", body: "Late at night, your ears lie. VERSIONS gives you a stable reference point when fatigue blurs your decisions." },
-  { title: "Escape sterile perfectionism", body: "VERSIONS tells you when a mix is good — to break the endless cycle of adjustments and finally close it." },
-];
-
-const HOME_TAGLINES_EN = [
-  "The studio [assistant] that follows your mixes.",
-  "The best [version] of your mix starts here.",
-  "An outside [opinion], available anytime.",
-  "Your ear, but [rested].",
-  "The [fresh] take your mix is waiting for.",
-  "Hours of [distance], in seconds.",
-  "An [attentive] listen, free of judgment.",
-  "A studio's [patience], a click's speed.",
-  "So your choices no longer rest on [fatigue].",
-  "A second opinion, as [fair] as a night's sleep.",
-  "Your versions, read [cold].",
-  "The assistant that never gets [tired] of your mix.",
-  "Because the best mix is the one that's been [compared].",
-  "Your [copilot] when you're unsure you're moving forward.",
-  "The [reference] point your session is missing.",
-  "To escape the V2, V3, V4 [loop] without ever deciding.",
-  "A [professional] listen, without renting a studio.",
-  "Listen [better], not longer.",
-  "The second [wind] of your mix.",
-  "Every version deserves a [fresh] listen.",
-  "The distance the [late] hour takes from you.",
-  "When your ears saturate, the analysis stays [fresh].",
-  "[Move forward] on your mix without going in circles.",
-  "Your [silent] studio, at any hour.",
-  "The ear you've lost by the end of the [session].",
-  "A perspective that doesn't [judge], that illuminates.",
-  "The [clarity] missing when you've listened too long.",
-  "The [sparring partner] for your mix.",
-  "What your [tired] ear no longer tells you.",
-  "The [stable] listen your session was missing.",
-  "[Breathe] — VERSIONS listens for you.",
-  "When doubt sets in, VERSIONS [decides].",
-  "Because mixing alone isn't mixing [blindly].",
-  "Less [doubt], more decisions.",
-  "Your [witness ear], always fresh.",
-  "An [outside] eye that never sleeps.",
-  "Leave the tunnel where [V7] sounds like V3.",
-  "[Deciding] shouldn't take three evenings anymore.",
-  "The [objectivity] that fatigue takes from you.",
-  "Real [distance], not 2 AM distance.",
-  "A [safety] net before mastering.",
-  "The [calm] of a listen with no ego.",
-  "To move forward without [circling] the mix.",
-  "Your mix deserves a [fresh] listen — every time.",
-  "A [pro] listen without a pro's calendar.",
-  "One more ear, [patient] and precise.",
-  "Your [compass] when you've lost north.",
-  "[Finish] a mix, at last.",
-];
-
-const CONSEIL_TIPS_EN = [
-  { title: "Start simple", body: "No need for a commercial master — even a quick bounce from Logic or Ableton works for a first pass. You can also test on a reference you love to calibrate your ear." },
-  { title: "Three versions are enough", body: "You don't need 10 versions to see progress. A V1 (raw), V2 (reworked), V3 (near-final mix) is enough to read the evolution." },
-  { title: "Label each version", body: "Add a short comment on each upload: 'comp pass', 'cleaner EQ', 'low cut on keys'. It ties the score to the choices you make." },
-  { title: "Test the reference", body: "Drop a commercial track you love into VERSIONS and look at its profile. It gives you a realistic benchmark for your own mixes." },
-  { title: "Analyze cold", body: "Upload a version and read the report the next day. The comments will jump out with a rested ear." },
-  { title: "One track per project at first", body: "Don't upload your whole catalog. Take one track, work it until you understand the report, then expand." },
-  { title: "Mix then pause then report", body: "Finish your session, export, go walk 30 minutes, then read the report. Your brain will be more open to critique." },
-  { title: "Don't fix everything at once", body: "If the report flags five points, pick one or two for the next version. Fixing everything at once blurs the read." },
-  { title: "Keep the raw V1", body: "Never throw away your initial bounce. It's your zero, your reference. Without it, you won't know if you've really progressed." },
-  { title: "Import your old mixes too", body: "Uploading a mix from six months ago shows what your ear has gained since. Valuable for calibrating your standards." },
-  { title: "Read the report in order", body: "Start with strengths, then points to rework, then technical measurements. That way you keep a balanced read of the mix." },
-  { title: "Print your key reports", body: "For important tracks, export or save a PDF of the report. You'll come back to it before mastering to validate final moves." },
 ];
 
 function pickTip(pool, storageKey) {
@@ -433,7 +271,7 @@ function renderTagline(text) {
    BottomPlayer : play/pause/seek sont synchrones entre les deux vues,
    sans double décodage coûteux puisque WaveSurfer partage le media.
 */
-function HeroWaveform({ storagePath, isActive, resetKey = 0, onFinish }) {
+function HeroWaveform({ storagePath, isActive, resetKey = 0 }) {
   const containerRef = useRef(null);
   const wsRef = useRef(null);
   const audioRef = useRef(null);
@@ -443,10 +281,6 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0, onFinish }) {
   // (évite de devoir re-déclencher l'effet à chaque toggle play/pause)
   const isActiveRef = useRef(isActive);
   useEffect(() => { isActiveRef.current = isActive; }, [isActive]);
-  // Ref miroir pour onFinish : permet d'attacher un seul listener 'ended' par
-  // audio sans devoir re-binder quand la prop change.
-  const onFinishRef = useRef(onFinish);
-  useEffect(() => { onFinishRef.current = onFinish; }, [onFinish]);
 
   // Charge audio + WaveSurfer. Sur changement de storagePath OU resetKey
   // (relance du même titre), on remet currentTime=0 et on lance si actif.
@@ -455,7 +289,6 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0, onFinish }) {
     if (!storagePath || !containerRef.current) return;
 
     let cancelled = false;
-    let endedCleanup = null;
     (async () => {
       try {
         const audio = await resolveAudio(storagePath);
@@ -494,18 +327,6 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0, onFinish }) {
         audioRef.current = audio;
         lastPathRef.current = storagePath;
 
-        // Écoute la fin du titre pour enchaîner la playlist sur la home
-        // (le BottomPlayer est masqué ici, donc son propre handler 'finish'
-        // ne tire pas — on pilote l'auto-advance depuis le hero).
-        const handleEnded = () => {
-          const cb = onFinishRef.current;
-          if (typeof cb === 'function') cb();
-        };
-        audio.addEventListener('ended', handleEnded);
-        endedCleanup = () => {
-          try { audio.removeEventListener('ended', handleEnded); } catch { /* noop */ }
-        };
-
         // Si on doit être en lecture (heroIsPlaying), on lance maintenant
         if (isActiveRef.current) {
           try { await audio.play(); } catch { /* autoplay bloqué, user-gesture requis */ }
@@ -517,7 +338,6 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0, onFinish }) {
 
     return () => {
       cancelled = true;
-      if (endedCleanup) endedCleanup();
     };
   }, [storagePath, resetKey]);
 
@@ -588,18 +408,16 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0, onFinish }) {
   );
 }
 
-function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onAnalyze, onSelectVersion, onOpenFiche, onPlay, onToggle, onNext, playerState, projects = [], projectsLoaded = false, onMutate, addModalOpen, setAddModalOpen, addModalCtx = null, setAddModalCtx }) {
-  const { lang, s } = useLang();
-  const pool = (fr, en) => (lang === 'en' ? en : fr);
+function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onSelectVersion, onOpenFiche, onPlay, onToggle, playerState, projects = [], projectsLoaded = false, onMutate, addModalOpen, setAddModalOpen }) {
   // Rotation des conseils : un tip distinct à chaque ouverture, sans répétition consécutive
-  const [tip] = useState(() => pickTip(pool(SAVIEZ_VOUS_TIPS, SAVIEZ_VOUS_TIPS_EN), 'versions_tip_saviez'));
-  const [prochainPasTip] = useState(() => pickTip(pool(PROCHAIN_PAS_TIPS, PROCHAIN_PAS_TIPS_EN), 'versions_tip_prochain'));
-  const [aQuoiTip] = useState(() => pickTip(pool(A_QUOI_CA_SERT_TIPS, A_QUOI_CA_SERT_TIPS_EN), 'versions_tip_aquoi'));
-  const [pourquoiTip] = useState(() => pickTip(pool(POURQUOI_VERSIONS_TIPS, POURQUOI_VERSIONS_TIPS_EN), 'versions_tip_pourquoi'));
-  const [conseilTip] = useState(() => pickTip(pool(CONSEIL_TIPS, CONSEIL_TIPS_EN), 'versions_tip_conseil'));
-  const [progressionNoScoreTip] = useState(() => pickTip(pool(PROGRESSION_TIPS_NO_SCORE, PROGRESSION_TIPS_NO_SCORE_EN), 'versions_tip_progression_noscore'));
-  const [progressionWithScoreTip] = useState(() => pickTip(pool(PROGRESSION_TIPS_WITH_SCORE, PROGRESSION_TIPS_WITH_SCORE_EN), 'versions_tip_progression_score'));
-  const [homeTagline] = useState(() => pickTip(pool(HOME_TAGLINES, HOME_TAGLINES_EN), 'versions_tip_tagline'));
+  const [tip] = useState(() => pickTip(SAVIEZ_VOUS_TIPS, 'versions_tip_saviez'));
+  const [prochainPasTip] = useState(() => pickTip(PROCHAIN_PAS_TIPS, 'versions_tip_prochain'));
+  const [aQuoiTip] = useState(() => pickTip(A_QUOI_CA_SERT_TIPS, 'versions_tip_aquoi'));
+  const [pourquoiTip] = useState(() => pickTip(POURQUOI_VERSIONS_TIPS, 'versions_tip_pourquoi'));
+  const [conseilTip] = useState(() => pickTip(CONSEIL_TIPS, 'versions_tip_conseil'));
+  const [progressionNoScoreTip] = useState(() => pickTip(PROGRESSION_TIPS_NO_SCORE, 'versions_tip_progression_noscore'));
+  const [progressionWithScoreTip] = useState(() => pickTip(PROGRESSION_TIPS_WITH_SCORE, 'versions_tip_progression_score'));
+  const [homeTagline] = useState(() => pickTip(HOME_TAGLINES, 'versions_tip_tagline'));
   // Menu 3-points ouvert pour un projet donné (null = aucun)
   const [openProjectMenuId, setOpenProjectMenuId] = useState(null);
   // true si l'utilisateur a cliqué "+ Nouveau projet" depuis le picker "Nouveau titre"
@@ -631,7 +449,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   }, [openProjectMenuId]);
 
   // Liste à plat de tous les titres (pour le picker "À quel titre ?")
-  const allTracks = projects.flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectName: p.name, projectId: p.id })));
+  const allTracks = projects.flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectName: p.name })));
 
   // Map projectId → index de couleur. Garantit l'unicité tant que
   // le nombre de projets ≤ PROJECT_COLOR_COUNT. Recalculée à chaque render,
@@ -641,31 +459,15 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const displayName = userProfile?.prenom || null;
 
   // ── Helpers ──
-  // Score moyen du projet : moyenne des scores globaux des dernières versions
-  // de chaque titre. Retourne null si aucune analyse disponible.
-  const projectScore = (project) => {
-    const scores = (project.tracks || [])
-      .map((t) => t.versions?.[t.versions.length - 1]?.analysisResult?.fiche?.globalScore)
-      .filter((x) => typeof x === 'number');
-    if (!scores.length) return null;
-    return Math.round(scores.reduce((sum, x) => sum + x, 0) / scores.length);
-  };
-  // Classe CSS de couleur du score : mint (>=80), amber (60-79), red (<60).
-  const scoreClass = (score) => {
-    if (score == null) return 'dash';
-    if (score >= 80) return 'good';
-    if (score >= 60) return 'mid';
-    return 'low';
-  };
-  // Date la plus récente d'une activité du projet (dernière version créée).
-  const projectLastActivityMs = (project) =>
-    Math.max(0, ...(project.tracks || []).map(trackLastDateMs));
   const metaLine = (project) => {
     const nTracks = project.tracks?.length || 0;
-    const tLabel = `${nTracks} ${nTracks > 1 ? s.home.trackPlural : s.home.trackSingular}`;
-    const ms = projectLastActivityMs(project);
-    const when = ms ? s.home.lastAnalysis.replace('{when}', formatRelative(ms)) : s.home.noAnalysisYet;
-    return `${tLabel} · ${when}`;
+    const nVersions = (project.tracks || []).reduce(
+      (sum, t) => sum + (t.versions?.length || 0),
+      0
+    );
+    const tLabel = `${nTracks} titre${nTracks > 1 ? 's' : ''}`;
+    const vLabel = `${nVersions} version${nVersions > 1 ? 's' : ''}`;
+    return `${tLabel} · ${vLabel}`;
   };
 
   const buildProjectPlaylist = (project) =>
@@ -739,26 +541,22 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const handleDeleteProject = async (project) => {
     if (projects.length <= 1) {
       await confirmDialog({
-        title: s.home.impossible,
-        message: s.home.lastProjectMsg,
-        confirmLabel: s.home.ok,
+        title: 'Impossible',
+        message: 'Au moins un projet est requis. Crée un autre projet avant de supprimer celui-ci.',
+        confirmLabel: 'OK',
         cancelLabel: null,
       });
       return;
     }
     const nTracks = (project.tracks || []).length;
-    const trackWord = nTracks > 1 ? s.home.trackPlural : s.home.trackSingular;
     const msg = nTracks === 0
-      ? s.home.deleteProjectMsgEmpty.replace('{name}', project.name)
-      : s.home.deleteProjectMsgWithTracks
-          .replace('{name}', project.name)
-          .replace('{n}', String(nTracks))
-          .replace('{trackWord}', trackWord);
+      ? `Supprimer le projet "${project.name}" ?`
+      : `Supprimer le projet "${project.name}" et ses ${nTracks} titre${nTracks > 1 ? 's' : ''} (avec toutes leurs versions et fichiers audio) ? Cette action est définitive.`;
     const ok = await confirmDialog({
-      title: s.home.deleteProjectTitle,
+      title: 'Supprimer le projet ?',
       message: msg,
-      confirmLabel: s.home.delete,
-      cancelLabel: s.home.cancel,
+      confirmLabel: 'Supprimer',
+      cancelLabel: 'Annuler',
       danger: true,
     });
     if (ok !== 'confirm') return;
@@ -766,9 +564,9 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       const res = await deleteProject(project.id);
       if (res?.ok === false && res?.reason === 'last-project') {
         await confirmDialog({
-          title: s.home.impossible,
-          message: s.home.lastProjectMsgShort,
-          confirmLabel: s.home.ok,
+          title: 'Impossible',
+          message: 'Au moins un projet est requis.',
+          confirmLabel: 'OK',
           cancelLabel: null,
         });
         return;
@@ -805,35 +603,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       await clearProjectCoverImage(project.id);
       if (onMutate) onMutate();
     } catch (err) { console.warn('clearProjectCoverImage failed', err); }
-  };
-
-  // ─── Image d'illustration par titre (track) ────────────────────────
-  // Même pattern que le projet : un file input caché + target courante.
-  // Propagé vers WhTrackRow via onChangeCover / onClearCover.
-  const trackCoverFileInputRef = useRef(null);
-  const [trackCoverUploadTarget, setTrackCoverUploadTarget] = useState(null);
-  const handleChangeTrackCoverStart = (track) => {
-    setTrackCoverUploadTarget(track);
-    if (trackCoverFileInputRef.current) trackCoverFileInputRef.current.value = '';
-    trackCoverFileInputRef.current?.click();
-  };
-  const handleTrackCoverFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    const target = trackCoverUploadTarget;
-    e.target.value = '';
-    if (!file || !target) { setTrackCoverUploadTarget(null); return; }
-    try {
-      const resized = await resizeImageFile(file).catch(() => file);
-      await setTrackCoverImage(target.id, resized || file);
-      if (onMutate) onMutate();
-    } catch (err) { console.warn('setTrackCoverImage failed', err); }
-    setTrackCoverUploadTarget(null);
-  };
-  const handleClearTrackCover = async (track) => {
-    try {
-      await clearTrackCoverImage(track.id);
-      if (onMutate) onMutate();
-    } catch (err) { console.warn('clearTrackCoverImage failed', err); }
   };
 
   // Nouveau projet
@@ -879,15 +648,11 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   // Supprimer titre
   const handleDeleteTrack = async (track) => {
     const n = (track.versions || []).length;
-    const versionWord = n > 1 ? s.home.versionPlural : s.home.versionSingular;
     const ok = await confirmDialog({
-      title: s.home.deleteTrackTitle,
-      message: s.home.deleteTrackMsg
-        .replace('{name}', track.title)
-        .replace('{n}', String(n))
-        .replace('{versionWord}', versionWord),
-      confirmLabel: s.home.delete,
-      cancelLabel: s.home.cancel,
+      title: 'Supprimer le titre ?',
+      message: `Supprimer "${track.title}" et ses ${n} version${n > 1 ? 's' : ''} ? Cette action est définitive.`,
+      confirmLabel: 'Supprimer',
+      cancelLabel: 'Annuler',
       danger: true,
     });
     if (ok !== 'confirm') return;
@@ -958,35 +723,20 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     .slice(-8)
     .map((e) => e.score);
 
-  // Dernier titre analysé : track dont la dernière version a une fiche,
-  // avec la date la plus récente (priorité à v.date puis v.createdAt).
-  // Sert la carte "Dernier titre analysé" du bloc utilisateur (colonne droite).
-  const lastAnalyzedInfo = (() => {
-    let best = null;
-    for (const t of allTracks) {
-      const last = t.versions?.[t.versions.length - 1];
-      const fiche = last?.analysisResult?.fiche;
-      if (!fiche) continue;
-      const ts = new Date(last?.date || last?.createdAt || 0).getTime();
-      if (!best || ts > best.ts) best = { track: t, version: last, fiche, ts };
-    }
-    return best;
-  })();
-
   // Date de la dernière activité (version la plus récente toutes confondues)
   const lastActivityMs = Math.max(0, ...allTracks.map(trackLastDateMs));
   const formatRelative = (ms) => {
-    if (!ms) return s.home.relativeDash;
+    if (!ms) return '—';
     // Label informatif "il y a X" — l'impureté de Date.now() est tolérée ici
     // car la valeur n'influence pas l'arbre (pas de condition de rendu).
     // eslint-disable-next-line react-hooks/purity
     const diff = Date.now() - ms;
     const day = 86400000;
-    if (diff < day) return s.home.relativeToday;
-    if (diff < 2 * day) return s.home.relativeYesterday;
-    if (diff < 7 * day) return s.home.relativeDaysAgo.replace('{n}', String(Math.floor(diff / day)));
-    if (diff < 30 * day) return s.home.relativeWeeksAgo.replace('{n}', String(Math.floor(diff / (7 * day))));
-    return s.home.relativeMonthsAgo.replace('{n}', String(Math.floor(diff / (30 * day))));
+    if (diff < day) return "aujourd'hui";
+    if (diff < 2 * day) return 'hier';
+    if (diff < 7 * day) return `il y a ${Math.floor(diff / day)}j`;
+    if (diff < 30 * day) return `il y a ${Math.floor(diff / (7 * day))}sem`;
+    return `il y a ${Math.floor(diff / (30 * day))} mois`;
   };
 
   // Score de la dernière analyse du héros (pour badge + CTA "Voir la fiche")
@@ -1044,16 +794,15 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         onClick={() => setAddModalOpen(true)}
       >
         <span className="wh-action-icon">+</span>
-        <span>{s.home.add}</span>
+        <span>Ajouter</span>
       </button>
     </div>
   );
 
   const projectsAccordion = totalProjects > 0 ? (
     <div className="wh-tracklist">
+      <div className="wh-section-title">Mes <em>projets</em></div>
       <div className="wh-projects">
-        {/* Titre "Mes projets" à l'intérieur du cadre (v4-panel-head) */}
-        <div className="wh-section-title wh-projects-title">{s.home.myProjects} <em>{s.home.myProjectsAccent}</em></div>
         {projects.map((project) => {
           const isOpen = project.id === currentProjectId;
           const nTracks = project.tracks?.length || 0;
@@ -1109,7 +858,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                   <button
                     className={`wh-acc-play${isProjectPlaying ? ' playing' : ''}`}
                     onClick={(e) => handlePlayProject(e, project)}
-                    title={isProjectPlaying ? s.home.playing : s.home.heroPlayProject}
+                    title={isProjectPlaying ? 'En lecture' : 'Lire le projet'}
                   >
                     {isProjectPlaying ? (
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
@@ -1120,26 +869,15 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 </div>
 
                 <div className="wh-acc-title">
-                  <div className="wh-acc-kicker">{s.home.projectKicker}</div>
+                  <div className="wh-acc-kicker">Projet</div>
                   <div className="wh-acc-name">{project.name}</div>
                   <div className="wh-acc-meta">{metaLine(project)}</div>
                 </div>
 
-                {/* Score projet — moyenne des dernières versions de chaque titre.
-                    Classe good/mid/low pour colorer selon les seuils 80/60. */}
-                {(() => {
-                  const pScore = projectScore(project);
-                  return (
-                    <div className={`wh-acc-score ${scoreClass(pScore)}`}>
-                      {pScore != null ? pScore : s.home.relativeDash}
-                    </div>
-                  );
-                })()}
-
                 {/* Menu 3-points en haut à droite de la carte projet */}
                 <button
                   className="wh-acc-menu-btn"
-                  aria-label={s.home.projectOptions}
+                  aria-label="Options du projet"
                   onClick={(e) => {
                     e.stopPropagation();
                     setOpenProjectMenuId((cur) => (cur === project.id ? null : project.id));
@@ -1156,22 +894,22 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                     <button
                       className="wh-acc-menu-item"
                       onClick={() => { setOpenProjectMenuId(null); handleRenameProjectStart(project); }}
-                    >{s.home.rename}</button>
+                    >Renommer</button>
                     <button
                       className="wh-acc-menu-item"
                       onClick={() => { setOpenProjectMenuId(null); handleChangeCoverStart(project); }}
-                    >{project.coverImageUrl ? s.home.replaceImage : s.home.changeImage}</button>
+                    >{project.coverImageUrl ? "Remplacer l'image" : "Changer l'image"}</button>
                     {project.coverImageUrl && (
                       <button
                         className="wh-acc-menu-item"
                         onClick={() => { setOpenProjectMenuId(null); handleClearCover(project); }}
-                      >{s.home.removeImage}</button>
+                      >Retirer l'image</button>
                     )}
                     <div className="wh-acc-menu-sep" />
                     <button
                       className="wh-acc-menu-item danger"
                       onClick={() => { setOpenProjectMenuId(null); handleDeleteProject(project); }}
-                    >{s.home.delete}</button>
+                    >Supprimer</button>
                   </div>
                 )}
               </div>
@@ -1180,7 +918,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
               <div className="wh-acc-body">
                 {nTracks > 0 ? (
                   <div className="wh-acc-tracklist">
-                    {project.tracks.map((track, i, arr) => (
+                    {project.tracks.map((track) => (
                       <WhTrackRow
                         key={track.id}
                         track={track}
@@ -1190,23 +928,19 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                         onViewFiche={() => handleViewFiche(track)}
                         onRename={() => handleRenameTrackStart(track)}
                         onDelete={() => handleDeleteTrack(track)}
-                        onChangeCover={() => handleChangeTrackCoverStart(track)}
-                        onClearCover={() => handleClearTrackCover(track)}
                         drag={drag}
                         setDrag={setDrag}
                         onDropTrackOnTrack={handleDropTrackOnTrack}
-                        prevTrackId={arr[i - 1]?.id ?? null}
-                        nextTrackId={arr[i + 1]?.id ?? null}
                       />
                     ))}
                   </div>
                 ) : (
-                  <div className="wh-acc-empty">{s.home.emptyProject}</div>
+                  <div className="wh-acc-empty">Aucun titre pour l'instant.</div>
                 )}
                 <button
                   className="wh-acc-add-track"
                   onClick={() => handleAddTrackToProject(project)}
-                >{s.home.newTrackInProject}</button>
+                >+ Nouveau titre</button>
               </div>
             </div>
           );
@@ -1218,13 +952,13 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const mobileEmpty = totalProjects === 0 ? (
     <div className="wh-empty">
       <img src="/logo-versions.svg" alt="" style={{ height: 60, width: "auto", opacity: 0.3 }} />
-      <div>{s.home.emptyProjectsMobile}</div>
+      <div>Crée ton premier projet pour commencer l'aventure.</div>
     </div>
   ) : null;
 
   const modalsSlot = (
     <>
-      {/* File input caché — déclenché via le menu "Changer l'image" (projet) */}
+      {/* File input caché — déclenché via le menu "Changer l'image" */}
       <input
         ref={coverFileInputRef}
         type="file"
@@ -1232,78 +966,61 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         style={{ display: 'none' }}
         onChange={handleCoverFileChange}
       />
-      {/* File input caché — déclenché via le menu "Changer l'image" (titre) */}
-      <input
-        ref={trackCoverFileInputRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp,image/gif"
-        style={{ display: 'none' }}
-        onChange={handleTrackCoverFileChange}
-      />
       {renameTrackTarget && (
         <RenameModal
-          title={s.home.renameTrackTitle}
-          placeholder={s.home.trackNamePlaceholder}
+          title="Renommer le titre"
+          placeholder="Nom du titre"
           value={renameValue}
           originalValue={renameTrackTarget.title}
           inputRef={renameInputRef}
           onChange={setRenameValue}
           onCancel={() => setRenameTrackTarget(null)}
           onSubmit={submitRenameTrack}
-          confirmLabel={s.home.confirmRename}
+          confirmLabel="Renommer"
         />
       )}
       {renameProjectTarget && (
         <RenameModal
-          title={s.home.renameProjectTitle}
-          placeholder={s.home.projectNamePlaceholder}
+          title="Renommer le projet"
+          placeholder="Nom du projet"
           value={renameValue}
           originalValue={renameProjectTarget.name}
           inputRef={renameInputRef}
           onChange={setRenameValue}
           onCancel={() => setRenameProjectTarget(null)}
           onSubmit={submitRenameProject}
-          confirmLabel={s.home.confirmRename}
+          confirmLabel="Renommer"
         />
       )}
       {newProjectOpen && (
         <RenameModal
-          title={s.home.newProject}
-          placeholder={s.home.projectNamePlaceholder}
+          title="Nouveau projet"
+          placeholder="Nom du projet"
           value={newProjectValue}
           originalValue=""
           inputRef={newProjectInputRef}
           onChange={setNewProjectValue}
           onCancel={() => setNewProjectOpen(false)}
           onSubmit={submitNewProject}
-          confirmLabel={s.home.confirmCreate}
+          confirmLabel="Créer"
         />
       )}
       {addModalOpen && (
         <AddModal
-          onClose={() => { setAddModalOpen(false); if (setAddModalCtx) setAddModalCtx(null); }}
+          onClose={() => setAddModalOpen(false)}
           projects={projects}
           allTracks={allTracks}
-          initialContext={addModalCtx}
-          defaultDaw={userProfile?.default_daw || ''}
-          onCreateProject={async (name) => {
-            // Création inline depuis l'étape 'new-project-name'.
-            // On retourne le projet créé pour que la modale puisse enchaîner sur l'upload si besoin.
-            try {
-              const created = await createProject(name);
-              if (onMutate) onMutate();
-              if (created?.id && onSetCurrentProject) onSetCurrentProject(created.id);
-              return created;
-            } catch (err) {
-              console.warn('createProject from AddModal failed', err);
-              throw err;
-            }
+          onNewProject={handleNewProject}
+          onNewTrackInProject={(projectId) => {
+            if (onSetCurrentProject) onSetCurrentProject(projectId);
+            if (onNewTrack) onNewTrack();
           }}
-          onAnalyze={(cfg) => {
-            // Appelé depuis l'étape 'upload' quand l'utilisateur clique sur Lancer l'analyse.
-            // La modale se ferme elle-même, on route vers l'écran de chargement ici.
-            if (cfg.projectId && onSetCurrentProject) onSetCurrentProject(cfg.projectId);
-            onAnalyze?.(cfg);
+          onNewProjectThenTrack={() => {
+            pendingNewTrackRef.current = true;
+            handleNewProject();
+          }}
+          onAddVersionToTrack={(track) => {
+            if (onAddVersion) onAddVersion(track);
           }}
         />
       )}
@@ -1328,8 +1045,8 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         <button
           className="wh-hero-play"
           onClick={() => handlePlayTrack(heroInfo.track, heroInfo.project)}
-          title={heroIsPlaying ? s.home.heroPlaying : s.home.heroListen}
-          aria-label={heroIsPlaying ? s.home.heroPause : s.home.heroPlayTrack}
+          title={heroIsPlaying ? 'En lecture' : 'Écouter'}
+          aria-label={heroIsPlaying ? 'Mettre en pause' : 'Lire ce titre'}
         >
           {heroIsPlaying ? (
             <svg width="22" height="22" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
@@ -1340,23 +1057,19 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       </div>
       <div className="wh-hero-info">
         <div>
-          <div className="wh-hero-kicker">{s.home.heroResume}</div>
+          <div className="wh-hero-kicker">Reprends où tu étais</div>
           <div className="wh-hero-title">{heroInfo.track.title}</div>
           <div className="wh-hero-meta">
-            {heroInfo.project.name} · {heroInfo.track.versions?.length || 0} {(heroInfo.track.versions?.length || 0) > 1 ? s.home.versionPlural : s.home.versionSingular}
+            {heroInfo.project.name} · {heroInfo.track.versions?.length || 0} version{(heroInfo.track.versions?.length || 0) > 1 ? 's' : ''}
             {heroLatestVersion?.date ? ` · ${heroLatestVersion.date}` : ''}
           </div>
         </div>
         {heroWaveStoragePath ? (
-          <div className="wh-hero-wave-row">
-            <HeroWaveform
-              storagePath={heroWaveStoragePath}
-              isActive={heroIsPlaying}
-              resetKey={playerState?.resetKey || 0}
-              onFinish={onNext}
-            />
-            <VolumeControl idle={!heroWaveStoragePath} />
-          </div>
+          <HeroWaveform
+            storagePath={heroWaveStoragePath}
+            isActive={heroIsPlaying}
+            resetKey={playerState?.resetKey || 0}
+          />
         ) : (
           <div className="wh-hero-wave wh-hero-wave-empty" aria-hidden />
         )}
@@ -1367,15 +1080,15 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 {Math.round(heroScore)}
                 <span className="num-suffix">/100</span>
               </span>
-              <span className="lbl">{s.home.heroScoreLabel}</span>
+              <span className="lbl">— Score du mix</span>
             </div>
           ) : <div />}
           <div className="wh-hero-ctas">
             <button className="wh-btn wh-btn-primary" onClick={() => handleViewFiche(heroInfo.track)}>
-              {s.home.viewFiche}
+              Voir la fiche
             </button>
             <button className="wh-btn" onClick={() => { if (onAddVersion) onAddVersion(heroInfo.track); }}>
-              {s.home.newVersionShort}
+              Nouvelle version
             </button>
           </div>
         </div>
@@ -1402,26 +1115,26 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const desktopStats = (
     <div className="wh-stats">
       <div className="wh-stat">
-        <div className="wh-stat-label">{s.home.statsTracks}</div>
+        <div className="wh-stat-label">Titres</div>
         <div className="wh-stat-value">{nTitres}</div>
-        <div className="wh-stat-hint">{totalProjects} {totalProjects > 1 ? s.home.projectPlural : s.home.projectSingular}</div>
+        <div className="wh-stat-hint">{totalProjects} projet{totalProjects > 1 ? 's' : ''}</div>
       </div>
       <div className="wh-stat">
-        <div className="wh-stat-label">{s.home.statsVersions}</div>
+        <div className="wh-stat-label">Versions</div>
         <div className="wh-stat-value">{nVersions}</div>
         <div className="wh-stat-hint">{formatRelative(lastActivityMs)}</div>
       </div>
       <div className="wh-stat">
-        <div className="wh-stat-label">{s.home.statsAvgScore}</div>
-        <div className="wh-stat-value">{avgScore != null ? avgScore : s.home.relativeDash}</div>
+        <div className="wh-stat-label">Score moyen</div>
+        <div className="wh-stat-value">{avgScore != null ? avgScore : '—'}</div>
         <div className="wh-stat-hint">
           {allScores.length
-            ? `${s.home.statsOn} ${allScores.length} ${allScores.length > 1 ? s.home.analysisPlural : s.home.analysisSingular}`
-            : s.home.statsNoAnalysis}
+            ? `sur ${allScores.length} analyse${allScores.length > 1 ? 's' : ''}`
+            : 'aucune analyse'}
         </div>
       </div>
       <div className="wh-stat">
-        <div className="wh-stat-label">{s.home.statsProgress}</div>
+        <div className="wh-stat-label">Progression</div>
         <div className="wh-stat-spark">
           {sparkPath ? (
             <svg width="100%" height="38" viewBox="0 0 120 24" preserveAspectRatio="none" aria-hidden>
@@ -1429,113 +1142,76 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
             </svg>
           ) : (
             <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', marginTop: 8, letterSpacing: 0.5 }}>
-              {s.home.statsEmptyCurve}
+              Analyse quelques titres pour voir ta courbe.
             </div>
           )}
         </div>
         <div className="wh-stat-hint">
-          {sparkScores.length >= 2 ? s.home.statsRecentAnalyses.replace('{n}', String(sparkScores.length)) : s.home.statsCurveBuilding}
+          {sparkScores.length >= 2 ? `${sparkScores.length} dernières analyses` : 'courbe en construction'}
         </div>
       </div>
     </div>
   );
 
-  /* ─── Colonne droite : 2 blocs distincts ────────────────────────────
-     Bloc 1 « Toi »            : cartes centrées utilisateur (progression,
-                                  prochain pas, dernier titre analysé).
-     Bloc 2 « Le saviez-vous » : cartes pédagogiques (tip rotatif,
-                                  à quoi ça sert, pourquoi VERSIONS, conseil).
-  */
-  const userBlock = (
-    <section className="wh-rcol-section">
-      <div className="wh-rcol-title">
-        <span className="wh-rcol-dot" />
-        {s.home.rightSectionYou}
+  /* ─── Cartes conseils (colonne droite) : saviez-vous / progression / prochain pas ──── */
+  const tipsBlock = (
+    <>
+      <div className="wh-card amber">
+        <div className="wh-card-kicker">Le saviez-vous</div>
+        <div className="wh-card-body">{tip}</div>
       </div>
-      <div className="wh-rcol-cards">
-        <div className="wh-card cerulean">
-          <div className="wh-card-kicker">{s.home.cardYourProgress}</div>
-          <div className="wh-card-title">
-            {avgScore != null ? s.home.cardAvgScore.replace('{n}', String(avgScore)) : s.home.cardLaunchFirst}
-          </div>
-          <div className="wh-card-body">
-            {avgScore != null ? progressionWithScoreTip : progressionNoScoreTip}
-          </div>
+      <div className="wh-card">
+        <div className="wh-card-kicker">Ta progression</div>
+        <div className="wh-card-title">
+          {avgScore != null ? `Score moyen ${avgScore}/100` : 'Lance ta première analyse'}
         </div>
-        <div className="wh-card mint">
-          <div className="wh-card-kicker">{s.home.cardNextStep}</div>
-          <div className="wh-card-title">{prochainPasTip?.title}</div>
-          <div className="wh-card-body">{prochainPasTip?.body}</div>
-        </div>
-        <div className="wh-card amber">
-          <div className="wh-card-kicker">{s.home.cardLastAnalyzed}</div>
-          {lastAnalyzedInfo ? (
-            <>
-              <button
-                type="button"
-                className="wh-card-title wh-card-title-link"
-                onClick={() => handleViewFiche(lastAnalyzedInfo.track)}
-                title={s.home.trackAnalysis}
-              >
-                {lastAnalyzedInfo.track.title}
-              </button>
-              <div className="wh-card-body">
-                {typeof lastAnalyzedInfo.fiche.globalScore === 'number'
-                  ? `${lastAnalyzedInfo.fiche.globalScore}/100 · ${formatRelative(lastAnalyzedInfo.ts)}`
-                  : formatRelative(lastAnalyzedInfo.ts)}
-              </div>
-            </>
-          ) : (
-            <div className="wh-card-body">{s.home.cardLastAnalyzedEmpty}</div>
-          )}
+        <div className="wh-card-body">
+          {avgScore != null ? progressionWithScoreTip : progressionNoScoreTip}
         </div>
       </div>
-    </section>
+      <div className="wh-card">
+        <div className="wh-card-kicker">Prochain pas</div>
+        <div className="wh-card-title">{prochainPasTip?.title}</div>
+        <div className="wh-card-body">{prochainPasTip?.body}</div>
+      </div>
+    </>
   );
-
-  const knowBlock = (
-    <section className="wh-rcol-section">
-      <div className="wh-rcol-title">
-        <span className="wh-rcol-dot wh-rcol-dot-violet" />
-        {s.home.rightSectionKnow}
-      </div>
-      <div className="wh-rcol-cards">
-        <div className="wh-card violet">
-          <div className="wh-card-kicker">{s.home.cardWhyUseful}</div>
-          <div className="wh-card-title">{aQuoiTip?.title}</div>
-          <div className="wh-card-body">{aQuoiTip?.body}</div>
-        </div>
-        <div className="wh-card amber">
-          <div className="wh-card-kicker">{s.home.cardWhyVersions}</div>
-          <div className="wh-card-title">{pourquoiTip?.title}</div>
-          <div className="wh-card-body">{pourquoiTip?.body}</div>
-        </div>
-        <div className="wh-card mint">
-          <div className="wh-card-kicker">{s.home.cardAdvice}</div>
-          <div className="wh-card-title">{conseilTip?.title}</div>
-          <div className="wh-card-body">{conseilTip?.body}</div>
-        </div>
-      </div>
-    </section>
-  );
-
-  // Compat : les noms `tipsBlock` / `pedagoBlock` restent utilisés ailleurs
-  // (écran onboarding, mobile). On les réexporte vers les nouveaux blocs.
-  const tipsBlock = userBlock;
-  const pedagoBlock = knowBlock;
   const editorialSidebar = (
     <div className="wh-col-right">
-      {userBlock}
-      {knowBlock}
+      {tipsBlock}
     </div>
+  );
+
+  /* ─── Bloc pédagogique (À quoi ça sert / Pourquoi / Conseil) ────
+     Visible sur la home compte neuf ET sur la home avec contenu
+     (David veut garder ces repères en permanence, avec rotation).
+  */
+  const pedagoBlock = (
+    <>
+      <div className="wh-card">
+        <div className="wh-card-kicker">À quoi ça sert</div>
+        <div className="wh-card-title">{aQuoiTip?.title}</div>
+        <div className="wh-card-body">{aQuoiTip?.body}</div>
+      </div>
+      <div className="wh-card">
+        <div className="wh-card-kicker">Pourquoi « Versions »</div>
+        <div className="wh-card-title">{pourquoiTip?.title}</div>
+        <div className="wh-card-body">{pourquoiTip?.body}</div>
+      </div>
+      <div className="wh-card">
+        <div className="wh-card-kicker">Conseil</div>
+        <div className="wh-card-title">{conseilTip?.title}</div>
+        <div className="wh-card-body">{conseilTip?.body}</div>
+      </div>
+    </>
   );
 
   /* ─── Desktop-only : hero d'onboarding (compte neuf) ──── */
   const onboardingChecks = [
-    { label: s.home.checkCreateProject, done: totalProjects > 0 },
-    { label: s.home.checkFirstTrack, done: allTracks.length > 0 },
-    { label: s.home.checkCompare, done: nVersions > 1 },
-    { label: s.home.checkExploreChat, done: false },
+    { label: 'Créer ton premier projet', done: totalProjects > 0 },
+    { label: 'Analyser un premier titre', done: allTracks.length > 0 },
+    { label: 'Comparer deux versions', done: nVersions > 1 },
+    { label: 'Explorer les questions au chat', done: false },
   ];
   const doneCount = onboardingChecks.filter((c) => c.done).length;
   const onboardingProgress = Math.round((doneCount / onboardingChecks.length) * 100);
@@ -1544,10 +1220,11 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     <div className="wh-onboarding">
       <div>
         <div className="wh-ob-welcome">
-          {displayName ? s.home.welcomeHiName.replace('{name}', displayName) : s.home.welcomeHi}
+          {displayName ? `Bienvenue, ${displayName}` : 'Bienvenue'}
         </div>
         <div className="wh-ob-tagline">
-          {s.home.onboardingTagline}
+          VERSIONS analyse tes mix et compare tes versions entre elles.
+          Commençons par un premier titre.
         </div>
         <div className="wh-ob-ctas">
           <button
@@ -1560,12 +1237,12 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 onNewTrack();
               }
             }}
-          >{s.home.firstTrack}</button>
-          <button className="wh-btn" onClick={handleNewProject}>{s.home.newProject}</button>
+          >+ Mon premier titre</button>
+          <button className="wh-btn" onClick={handleNewProject}>Nouveau projet</button>
         </div>
       </div>
       <div className="wh-ob-checklist">
-        <div className="wh-card-kicker">{s.home.gettingStarted}</div>
+        <div className="wh-card-kicker">Mise en route</div>
         <div className="wh-ob-progress">
           <div className="wh-ob-progress-fill" style={{ width: `${onboardingProgress}%` }} />
         </div>
@@ -1589,8 +1266,18 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   return (
     <div className={`welcome-home${!isMobile ? ' wh-desktop' : ''}`}>
-      {/* Bouton Ajouter desktop : déplacé dans la sidebar (sous la liste
-          des projets) pour rester accessible quel que soit l'écran. */}
+      {/* Bouton Ajouter desktop : fixe en haut à droite de la page
+          pour rester en évidence, quel que soit le scroll. */}
+      {!isMobile && (
+        <button
+          className="wh-action wh-action-primary wh-add-floating"
+          onClick={() => setAddModalOpen(true)}
+          aria-label="Ajouter"
+        >
+          <span className="wh-action-icon">+</span>
+          <span>Ajouter</span>
+        </button>
+      )}
 
       {/* Header — même tagline desktop/mobile, avec mot en orange.
           En desktop, masquée ici et réinsérée sous les stats. */}
@@ -1610,27 +1297,18 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         </>
       ) : hasContent ? (
         <>
-          {/* Bloc intro desktop v2 — eyebrow violet, slogan fixe en 88px,
-              tagline rotative en petit italique. Remplace l'ancien desktopHero. */}
-          <div className="wh-intro">
-            <div className="wh-eyebrow">
-              {nTitres === 1
-                ? s.home.heroEyebrowActiveSingle.replace('{name}', displayName || '')
-                : s.home.heroEyebrowActive.replace('{name}', displayName || '').replace('{n}', String(nTitres))}
-            </div>
-            <div className="wh-intro-row">
-              <h1 className="wh-slogan">
-                <span className="wh-slogan-line">{s.home.sloganStart}<em>{s.home.sloganEm}</em>,</span><br />{s.home.sloganEnd.replace(/^,\s*/, '')}
-              </h1>
-              <div className="wh-tagline-text">{renderTagline(homeTagline)}</div>
-            </div>
-          </div>
+          {desktopHero}
           {desktopStats}
+          {/* Tagline éditoriale sous les 4 stats — respire avec du padding
+              vertical pour rester lisible. */}
+          <div className="wh-tagline-mid">
+            <div className="wh-tagline-text">« {renderTagline(homeTagline)} »</div>
+          </div>
           <div className="wh-cols">
             <div className="wh-col-left">{projectsAccordion}</div>
             <div className="wh-col-right">
-              {userBlock}
-              {knowBlock}
+              {tipsBlock}
+              {pedagoBlock}
             </div>
           </div>
         </>
@@ -1650,8 +1328,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 }
 
 /* ─── Ligne titre dans Home (accordéon ouvert) ─────────────────────── */
-function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename, onDelete, onChangeCover, onClearCover, drag, setDrag, onDropTrackOnTrack, prevTrackId = null, nextTrackId = null }) {
-  const { s } = useLang();
+function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename, onDelete, drag, setDrag, onDropTrackOnTrack }) {
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropOver, setDropOver] = useState(null);
@@ -1684,7 +1361,7 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
 
   return (
     <div
-      className={`wh-track-row${menuOpen ? ' menu-open' : ''}`}
+      className="wh-track-row"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onDragOver={(e) => {
@@ -1695,12 +1372,6 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
         e.dataTransfer.dropEffect = 'move';
         const rect = e.currentTarget.getBoundingClientRect();
         const isAbove = (e.clientY - rect.top) < rect.height / 2;
-        // Pas de trait de dépôt si la position visée correspond à la
-        // position actuelle du titre déplacé (déplacement nul).
-        if (drag.sourceProjectId === project?.id) {
-          if (isAbove && drag.nextTrackId === track.id) { setDropOver(null); return; }
-          if (!isAbove && drag.prevTrackId === track.id) { setDropOver(null); return; }
-        }
         setDropOver(isAbove ? 'before' : 'after');
       }}
       onDragLeave={() => setDropOver(null)}
@@ -1732,11 +1403,11 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
           e.dataTransfer.setData('application/x-versions-dnd', 'track');
           const row = e.currentTarget.closest('.wh-track-row');
           if (row) e.dataTransfer.setDragImage(row, 10, 10);
-          if (setDrag) setDrag({ type: 'track', trackId: track.id, sourceProjectId: project?.id, prevTrackId, nextTrackId });
+          if (setDrag) setDrag({ type: 'track', trackId: track.id, sourceProjectId: project?.id });
         }}
         onDragEnd={() => { if (setDrag) setDrag(null); setDropOver(null); }}
-        title={s.home.trackDragHandle}
-        aria-label={s.home.trackMove}
+        title="Glisser pour déplacer le titre"
+        aria-label="Déplacer le titre"
         style={{ opacity: hover ? 0.55 : 0 }}
       >
         <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor" aria-hidden>
@@ -1746,34 +1417,17 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
         </svg>
       </span>
 
-      {/* Play + cover fusionnés : image en fond si définie, sinon icône note ♪ */}
+      {/* Play */}
       <button
-        className={`wh-track-play${isThisPlaying ? ' playing' : ''}${track.coverImageUrl ? ' has-image' : ''}`}
+        className={`wh-track-play${isThisPlaying ? ' playing' : ''}`}
         onClick={(e) => { e.stopPropagation(); onPlay?.(e); }}
-        title={isThisPlaying ? s.home.playing : s.home.play}
-        style={track.coverImageUrl ? {
-          backgroundImage: `url("${track.coverImageUrl}")`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-        } : undefined}
+        title={isThisPlaying ? 'En lecture' : 'Écouter'}
       >
-        {/* Icône note de musique (fallback quand pas d'image) */}
-        {!track.coverImageUrl && (
-          <span className="wh-track-note" aria-hidden>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-              <path d="M11 1.5v7.2a2.3 2.3 0 1 1-1.2-2V3.8L5.2 5v5.7a2.3 2.3 0 1 1-1.2-2V3.8z"/>
-            </svg>
-          </span>
+        {isThisPlaying ? (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9-5.5z"/></svg>
         )}
-        {/* Overlay : triangle play (ou carrés pause) par-dessus l'image au survol */}
-        <span className="wh-track-play-overlay">
-          {isThisPlaying ? (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9-5.5z"/></svg>
-          )}
-        </span>
       </button>
 
       {/* Info */}
@@ -1781,17 +1435,19 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
         <div className="wh-track-title">{track.title}</div>
         <div className="wh-track-meta">
           {durStr && <>{durStr} · </>}
-          {track.versions?.length || 1} {(track.versions?.length || 1) > 1 ? s.home.versionPlural : s.home.versionSingular}
+          {track.versions?.length || 1} version{(track.versions?.length || 1) > 1 ? 's' : ''}
         </div>
       </div>
 
       {/* Date */}
       {dateStr && <span className="wh-track-date">{dateStr}</span>}
 
-      {/* Chip "ANALYSE" — pilule cerulean, label uniquement (pas d'icône). */}
+      {/* Voir analyse */}
       {hasFiche && (
         <button className="wh-track-fiche" onClick={(e) => { e.stopPropagation(); onViewFiche?.(e); }}>
-          {s.home.trackAnalysis}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>Analyse</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3.5 2l3.5 3-3.5 3"/></svg>
         </button>
       )}
 
@@ -1800,7 +1456,7 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
         <button
           ref={btnRef}
           onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
-          title={s.home.trackOptions}
+          title="Options"
           style={{
             width: 26, height: 26, borderRadius: 6,
             background: menuOpen ? 'rgba(245,176,86,.15)' : 'transparent',
@@ -1821,21 +1477,9 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
             borderRadius: 10, padding: 6, boxShadow: '0 12px 32px rgba(0,0,0,.55)',
           }}
         >
-          <WhMenuItem label={s.home.rename} onClick={() => { setMenuOpen(false); onRename(); }} />
-          {onChangeCover && (
-            <WhMenuItem
-              label={track.coverImageUrl ? s.home.trackReplaceImage : s.home.trackChangeImage}
-              onClick={() => { setMenuOpen(false); onChangeCover(); }}
-            />
-          )}
-          {onClearCover && track.coverImageUrl && (
-            <WhMenuItem
-              label={s.home.trackRemoveImage}
-              onClick={() => { setMenuOpen(false); onClearCover(); }}
-            />
-          )}
+          <WhMenuItem label="Renommer" onClick={() => { setMenuOpen(false); onRename(); }} />
           <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
-          <WhMenuItem label={s.home.delete} danger onClick={() => { setMenuOpen(false); onDelete(); }} />
+          <WhMenuItem label="Supprimer" danger onClick={() => { setMenuOpen(false); onDelete(); }} />
         </div>
       )}
     </div>
@@ -1850,7 +1494,7 @@ function WhMenuItem({ label, onClick, danger }) {
         display: 'block', width: '100%', textAlign: 'left',
         padding: '8px 12px', borderRadius: 6, border: 'none',
         background: 'transparent', cursor: 'pointer',
-        fontFamily: "'DM Sans', sans-serif", fontSize: 16,
+        fontFamily: "'DM Sans', sans-serif", fontSize: 12,
         color: danger ? '#ef6b6b' : '#c5c5c7',
       }}
       onMouseEnter={(e) => { e.currentTarget.style.background = danger ? 'rgba(239,107,107,.08)' : 'rgba(245,176,86,.06)'; }}
@@ -1873,9 +1517,9 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd }) {
     <>
       {/* ── Top bar ── */}
       <div className="mobile-topbar">
-        <div className="brand" onClick={() => go('welcome')} style={{ cursor: 'pointer', fontSize: 20, letterSpacing: '-0.3px', gap: 8 }}>
+        <div className="brand" onClick={() => go('welcome')} style={{ cursor: 'pointer', fontSize: 20, letterSpacing: 2, gap: 8 }}>
           <img src="/logo-versions.svg" alt="" style={{ height: 22, width: 'auto' }} />
-          <span>{"VER"}<span className="accent">{"Si"}</span>{"ONS"}</span>
+          <span>{"VER"}<span className="accent">{"SI"}</span>{"ONS"}</span>
         </div>
         <div className="mobile-avatar-wrap">
           <button
@@ -1945,16 +1589,20 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd }) {
    et Vercel n'a pas besoin de règle de rewrite côté serveur. */
 const SCREEN_HASH = {
   welcome: '#/',
+  input: '#/nouveau',
   loading: '#/analyse',
   fiche: '#/fiche',
   versions: '#/versions',
+  reglages: '#/reglages',
 };
 const HASH_SCREEN = {
   '': 'welcome',
   '#/': 'welcome',
+  '#/nouveau': 'input',
   '#/analyse': 'loading',
   '#/fiche': 'fiche',
   '#/versions': 'versions',
+  '#/reglages': 'reglages',
 };
 
 /* ═══════════════════════════════════════════════════════════ */
@@ -1996,17 +1644,6 @@ function VersionsAppAuthed() {
   // On desktop, default = "welcome" (neutral empty state); on mobile, old default = "input"
   const [screen, setScreen] = useState("welcome");
   const [homeAddOpen, setHomeAddOpen] = useState(false);
-  // Contexte transmis à AddModal pour ouvrir directement dans un flow
-  // précis (ex. "Nouveau titre" depuis la hero, "Ajouter version" depuis
-  // le menu d'une version). Null = modale ouverte sur le menu racine.
-  const [addModalCtx, setAddModalCtx] = useState(null);
-  // États app-level pour la modale AddModal + prompt "Nouveau projet"
-  // utilisés quand l'utilisateur clique sur "+ AJOUTER" dans la sidebar
-  // depuis un écran autre que la Home (WelcomeHome a sa propre copie).
-  const [newProjectOpenApp, setNewProjectOpenApp] = useState(false);
-  const [newProjectValueApp, setNewProjectValueApp] = useState('');
-  const newProjectInputRefApp = useRef(null);
-  const pendingNewTrackRefApp = useRef(false);
   const isHashSyncRef = useRef(false);
   const routeInitRef = useRef(false);
   const prevScreenRef = useRef(null);
@@ -2021,45 +1658,22 @@ function VersionsAppAuthed() {
     }
   }, [screen]);
 
-  // Le BottomPlayer est maintenant toujours rendu (sticky bas de page),
-  // y compris sur la home — donc plus besoin de retirer la réserve de 68px :
-  // on la garde partout pour que rien ne passe sous la barre du player.
-
-  // ── Halo ambient — 3 calques qui crossfade au fil de la session ──
-  // On insère un conteneur `.ambient-halo` en premier enfant du body,
-  // avec 3 calques `.ambient-layer` à l'intérieur. Chaque calque a une
-  // variante différente (5 positions/couleurs préréglées dans
-  // MockupStyles) — le CSS les fait crossfader sur ~90s avec des
-  // offsets, donc la teinte/position dominante évolue lentement tout
-  // au long de la session. Le fade-in global se fait via `.loaded`
-  // ajoutée au next frame, pour éviter un flash dès le mount.
+  // Sur la home (welcome), le BottomPlayer est masqué : on retire la réserve
+  // de 68px appliquée globalement (padding-bottom du body + height de la
+  // sidebar) pour que la sidebar descende jusqu'en bas. Les autres écrans
+  // conservent la réserve, puisque le player y est toujours présent.
   useEffect(() => {
-    const halo = document.createElement('div');
-    halo.className = 'ambient-halo';
-    halo.setAttribute('aria-hidden', 'true');
-    // 3 variantes distinctes pour éviter les doublons — on shuffle
-    // l'ordre [0..4] et on prend les 3 premières.
-    const variants = [0, 1, 2, 3, 4]
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3);
-    variants.forEach((v) => {
-      const layer = document.createElement('div');
-      layer.className = 'ambient-layer';
-      layer.setAttribute('data-variant', String(v));
-      halo.appendChild(layer);
-    });
-    document.body.insertBefore(halo, document.body.firstChild);
-    const raf = requestAnimationFrame(() => halo.classList.add('loaded'));
-    return () => {
-      cancelAnimationFrame(raf);
-      halo.remove();
-    };
-  }, []);
+    const cls = 'no-bottom-player';
+    if (screen === 'welcome') document.body.classList.add(cls);
+    else document.body.classList.remove(cls);
+    return () => { document.body.classList.remove(cls); };
+  }, [screen]);
   const [config, setConfig] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
+  // Contexte de l'écran intention : { jobId, perception, inheritedIntent, audioHash } ou null.
+  // Posé par handleAwaitingIntent quand le backend bascule en 'awaiting_intent'.
+  const [intentCtx, setIntentCtx] = useState(null);
   const [askOpen, setAskOpen] = useState(false);
-  // Les réglages s'ouvrent en modale (plus de page dédiée)
-  const [reglagesOpen, setReglagesOpen] = useState(false);
   // When adding a new version from an existing track, we prefill the title
   // and, after analysis completes, auto-open that track's folder in Versions tab
   const [prefillTitle, setPrefillTitle] = useState("");
@@ -2105,25 +1719,6 @@ function VersionsAppAuthed() {
       .catch(() => {});
   }, [user]);
 
-  // ── Logout : reset de la route + forçage retour Home ──────
-  // Après un signOut, on veut que le prochain login arrive toujours sur la
-  // Home, même si la dernière page visitée avant déconnexion était une fiche
-  // (#/fiche). Sans ça, routeInitRef reste à true et le hash reste sur
-  // #/fiche → au relogin, on voit soit la fiche figée, soit welcome avec un
-  // hash incohérent. On neutralise tout ici pour repartir propre.
-  useEffect(() => {
-    if (user) return;
-    routeInitRef.current = false;
-    if (typeof window !== 'undefined' && window.location.hash && window.location.hash !== '#/') {
-      window.history.replaceState({ screen: 'welcome' }, '', '#/');
-    }
-    if (screen !== 'welcome') {
-      isHashSyncRef.current = true;
-      setScreen('welcome');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
   // ── Hash routing : lecture initiale de l'URL ─────────────
   // Quand l'utilisateur est connecté, on aligne l'écran sur le hash courant.
   // Les écrans qui dépendent d'un state en mémoire (loading, fiche) retombent
@@ -2132,16 +1727,6 @@ function VersionsAppAuthed() {
     if (!user || routeInitRef.current) return;
     routeInitRef.current = true;
     const current = window.location.hash || '#/';
-    // Compat : #/reglages ouvre désormais la modale et renvoie sur #/
-    if (current === '#/reglages') {
-      setReglagesOpen(true);
-      window.history.replaceState({ screen: 'welcome' }, '', '#/');
-      if (screen !== 'welcome') {
-        isHashSyncRef.current = true;
-        setScreen('welcome');
-      }
-      return;
-    }
     const target = HASH_SCREEN[current] || 'welcome';
     const safe = (target === 'fiche' || target === 'loading') ? 'welcome' : target;
     const targetHash = SCREEN_HASH[safe];
@@ -2244,7 +1829,7 @@ function VersionsAppAuthed() {
 
   const handleOnboardingCreate = async (name) => {
     const created = await createProject(name);
-    if (!created?.id) throw new Error(s.errors.projectCreate);
+    if (!created?.id) throw new Error('La création a échoué, réessaye.');
     setCurrentProjectId(created.id);
     setNeedsOnboarding(false);
     refreshProjects();
@@ -2387,8 +1972,16 @@ function VersionsAppAuthed() {
             savedRef.current = true;
             setAnalysisResult(prev => {
               const full = { ...prev, fiche: job.fiche || prev?.fiche, listening: job.listening || prev?.listening, storagePath: job.storagePath || prev?.storagePath || null, _stage: "all_done" };
-              saveAnalysis(config, full, job.storagePath || prev?.storagePath || null, lang)
-                .then(() => refreshProjects())
+              saveAnalysis(config, full, job.storagePath || prev?.storagePath || null)
+                .then((ids) => {
+                  refreshProjects();
+                  const intent = full?.intent_used || null;
+                  const scope = full?._intent_scope || 'track';
+                  if (intent && ids) {
+                    if (scope === 'version' && ids.versionId) updateVersionIntent(ids.versionId, intent);
+                    else if (ids.trackId) updateTrackIntent(ids.trackId, intent);
+                  }
+                })
                 .catch(e => console.warn("saveAnalysis failed:", e));
               return full;
             });
@@ -2403,7 +1996,7 @@ function VersionsAppAuthed() {
 
   // ── Handlers ──
   const handleAnalyze = (cfg) => {
-    // Injecte le projet cible (choisi explicitement dans AddModal ou déduit du contexte)
+    // Injecte le projet cible (choisi explicitement dans InputScreen ou déduit du contexte)
     const cfgWithProject = { ...cfg, projectId: cfg.projectId || currentProjectId || null };
     setConfig(cfgWithProject);
     setAnalysisResult(null);
@@ -2424,12 +2017,74 @@ function VersionsAppAuthed() {
       } else if (result._stage === "all_done" && !savedRef.current) {
         // Analysis completed in one shot — save immediately
         savedRef.current = true;
-        saveAnalysis(cfgWithHash, merged, merged.storagePath || null, lang)
-          .then(() => refreshProjects())
+        saveAnalysis(cfgWithHash, merged, merged.storagePath || null)
+          .then((ids) => {
+            refreshProjects();
+            const intent = merged?.intent_used || null;
+            const scope = merged?._intent_scope || 'track';
+            if (intent && ids) {
+              if (scope === 'version' && ids.versionId) updateVersionIntent(ids.versionId, intent);
+              else if (ids.trackId) updateTrackIntent(ids.trackId, intent);
+            }
+          })
           .catch(e => console.warn("saveAnalysis failed:", e));
       }
     }
   };
+
+  // ── Handlers intention artistique ────────────────────────────
+  // Appelé par LoadingScreen quand le backend passe en 'awaiting_intent'.
+  // On stocke le contexte (jobId, perception, intention héritée) et on
+  // bascule sur l'écran intention.
+  const handleAwaitingIntent = (ctx) => {
+    setIntentCtx(ctx);
+    if (ctx?.audioHash) setConfig((c) => ({ ...(c || {}), audioHash: ctx.audioHash }));
+    setScreen("intention");
+  };
+
+  // L'artiste a saisi une intention + choisi son scope (track/version).
+  // 1) POST /api/analyze/diagnose/:jobId avec l'intention → reprend le job
+  // 2) Bascule immédiatement sur la fiche (partielle) + démarre le polling
+  //    en background qui récupérera la fiche complète (status=complete).
+  // 3) Le write Supabase (updateTrackIntent / updateVersionIntent) se fait
+  //    à la fin, APRÈS saveAnalysis (qui crée / trouve la version).
+  const handleIntentSubmit = async (intent, scope) => {
+    if (!intentCtx?.jobId) return;
+    try {
+      await fetch(`${API}/api/analyze/diagnose/${intentCtx.jobId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intent }),
+      });
+    } catch (e) { console.warn("/diagnose failed:", e); }
+
+    // Mémorise l'intention + scope pour l'appliquer après saveAnalysis
+    // (on ne connaît le trackId/versionId qu'après saveAnalysis).
+    setAnalysisResult((prev) => ({
+      ...(prev || {}),
+      intent_used: intent,
+      _intent_scope: scope,
+    }));
+    setScreen("fiche");
+    startBackgroundPolling(intentCtx.jobId);
+    setIntentCtx(null);
+  };
+
+  // L'artiste a cliqué "Passer cette étape" — on POST /diagnose avec intent=null.
+  const handleIntentSkip = async () => {
+    if (!intentCtx?.jobId) return;
+    try {
+      await fetch(`${API}/api/analyze/diagnose/${intentCtx.jobId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+    } catch (e) { console.warn("/diagnose failed:", e); }
+    setScreen("fiche");
+    startBackgroundPolling(intentCtx.jobId);
+    setIntentCtx(null);
+  };
+
   const goHome = () => {
     setScreen("welcome");
     setConfig(null);
@@ -2471,49 +2126,20 @@ function VersionsAppAuthed() {
     setScreen("fiche");
   };
   const handleSidebarNewTrack = () => {
-    // Ouvre la modale d'ajout dans le flow "Nouveau titre".
-    // AddModal se charge de la suite (pick-project / upload selon le
-    // nombre de projets). Plus d'écran isolé /nouveau.
     setPrefillTitle("");
     setAutoSelectTrackTitle("");
     setAnalysisResult(null);
     setConfig(null);
-    setAddModalCtx({ mode: 'new-track' });
-    setHomeAddOpen(true);
+    setScreen("input");
   };
   const handleAddVersionFromPicker = (track) => {
-    // Pré-sélectionne le projet du titre pour que l'upload y atterrisse.
-    // On ouvre la modale directement à l'étape upload, titre verrouillé.
+    // Pré-sélectionne le projet du titre pour que l'upload y atterrisse
     if (track?.projectId) setCurrentProjectId(track.projectId);
     setPrefillTitle(track.title);
     setAutoSelectTrackTitle(track.title);
     setAnalysisResult(null);
     setConfig(null);
-    setAddModalCtx({ mode: 'add-version', trackId: track?.id });
-    setHomeAddOpen(true);
-  };
-
-  // Handlers app-level pour AddModal — miroir de ceux définis
-  // localement dans WelcomeHome (utilisés hors de l'écran Home).
-  const handleNewProjectApp = () => {
-    setNewProjectValueApp('');
-    setNewProjectOpenApp(true);
-    setTimeout(() => newProjectInputRefApp.current?.focus(), 50);
-  };
-  const submitNewProjectApp = async () => {
-    const name = newProjectValueApp.trim();
-    if (!name) return;
-    try {
-      const created = await createProject(name);
-      setNewProjectOpenApp(false);
-      setNewProjectValueApp('');
-      refreshProjects();
-      if (created?.id) setCurrentProjectId(created.id);
-      if (pendingNewTrackRefApp.current) {
-        pendingNewTrackRefApp.current = false;
-        handleSidebarNewTrack();
-      }
-    } catch (err) { console.warn('createProject failed', err); }
+    setScreen("input");
   };
 
   // ── Screen routing ──
@@ -2527,24 +2153,35 @@ function VersionsAppAuthed() {
             onSetCurrentProject={setCurrentProjectId}
             onNewTrack={handleSidebarNewTrack}
             onAddVersion={handleAddVersionFromPicker}
-            onAnalyze={handleAnalyze}
             onSelectVersion={handleSidebarSelectVersion}
             onOpenFiche={handleOpenFiche}
             onPlay={play}
             onToggle={togglePlay}
-            onNext={playNext}
             playerState={playerState}
             projects={projects}
             projectsLoaded={projectsLoaded}
             onMutate={refreshProjects}
             addModalOpen={homeAddOpen}
             setAddModalOpen={setHomeAddOpen}
-            addModalCtx={addModalCtx}
-            setAddModalCtx={setAddModalCtx}
           />
         );
+      case "input":
+        return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialTitle={prefillTitle} initialProjectId={currentProjectId} lockProject={!!prefillTitle} onRefreshProjects={refreshProjects} />;
       case "loading":
-        return <LoadingScreen config={config} onDone={handleLoaded} onBackToInput={handleSidebarNewTrack} />;
+        return <LoadingScreen config={config} onDone={handleLoaded} onAwaitingIntent={handleAwaitingIntent} onBackToInput={handleSidebarNewTrack} />;
+      case "intention": {
+        const isFirstVersion = !intentCtx?.inheritedIntent && isFirstVersionOfTitle(projects, config?.title, config?.projectId);
+        return (
+          <IntentionScreen
+            perception={intentCtx?.perception || null}
+            config={config}
+            isFirstVersion={isFirstVersion}
+            inheritedIntent={intentCtx?.inheritedIntent || null}
+            onSubmit={handleIntentSubmit}
+            onSkip={handleIntentSkip}
+          />
+        );
+      }
       case "fiche":
         return (
           <FicheScreen
@@ -2569,32 +2206,10 @@ function VersionsAppAuthed() {
             playerState={playerState}
           />
         );
+      case "reglages":
+        return <ReglagesScreen onSignOut={signOut} onGoHome={goHome} onProfileUpdate={setUserProfile} />;
       default:
-        // Fallback si screen invalide : on retombe sur la home
-        // (plus de page /nouveau dédiée : tout passe par la modale Add).
-        return (
-          <WelcomeHome
-            userProfile={userProfile}
-            currentProjectId={currentProjectId}
-            onSetCurrentProject={setCurrentProjectId}
-            onNewTrack={handleSidebarNewTrack}
-            onAddVersion={handleAddVersionFromPicker}
-            onAnalyze={handleAnalyze}
-            onSelectVersion={handleSidebarSelectVersion}
-            onOpenFiche={handleOpenFiche}
-            onPlay={play}
-            onToggle={togglePlay}
-            onNext={playNext}
-            playerState={playerState}
-            projects={projects}
-            projectsLoaded={projectsLoaded}
-            onMutate={refreshProjects}
-            addModalOpen={homeAddOpen}
-            setAddModalOpen={setHomeAddOpen}
-            addModalCtx={addModalCtx}
-            setAddModalCtx={setAddModalCtx}
-          />
-        );
+        return <InputScreen onAnalyze={handleAnalyze} onAsk={() => setAskOpen(true)} initialProjectId={currentProjectId} onRefreshProjects={refreshProjects} />;
     }
   };
 
@@ -2604,7 +2219,7 @@ function VersionsAppAuthed() {
       <>
         <FontLink />
         <GlobalStyles />
-        <div style={{minHeight:"100vh",display:"grid",placeItems:"center",background:T.black,color:T.muted,fontFamily:T.mono,fontSize:14,letterSpacing:2}}>
+        <div style={{minHeight:"100vh",display:"grid",placeItems:"center",background:T.black,color:T.muted,fontFamily:T.mono,fontSize:12,letterSpacing:2}}>
           CHARGEMENT...
         </div>
       </>
@@ -2646,9 +2261,8 @@ function VersionsAppAuthed() {
             onSetCurrentProject={setCurrentProjectId}
             onSelectVersion={handleSidebarSelectVersion}
             onNewTrack={handleSidebarNewTrack}
-            onGoReglages={() => setReglagesOpen(true)}
+            onGoReglages={() => setScreen("reglages")}
             onAskOpen={() => setAskOpen(true)}
-            onAdd={() => setHomeAddOpen(true)}
             onPlay={play}
             onToggle={togglePlay}
             onMutate={refreshProjects}
@@ -2670,8 +2284,7 @@ function VersionsAppAuthed() {
             <MobileMenu
               onNavigate={(target) => {
                 setAskOpen(false);
-                // Réglages → modale, pas d'écran dédié
-                if (target === 'reglages') { setReglagesOpen(true); return; }
+                if (target === 'input') setPrefillTitle('');
                 setScreen(target);
               }}
               onSignOut={signOut}
@@ -2684,79 +2297,29 @@ function VersionsAppAuthed() {
           {/* Ask Modal */}
           {askOpen && <AskModal onClose={() => setAskOpen(false)} />}
 
-          {/* Réglages — modale globale, ouvrable depuis sidebar desktop
-              ou menu avatar mobile */}
-          <ReglagesModal
-            open={reglagesOpen}
-            onClose={() => setReglagesOpen(false)}
-            onSignOut={signOut}
-            onProfileUpdate={setUserProfile}
-          />
-
-          {/* AddModal accessible depuis la sidebar sur n'importe quel
-              écran autre que la Home (la Home garde ses propres instances
-              pour ne pas casser ses flux internes). */}
-          {screen !== "welcome" && newProjectOpenApp && (
-            <RenameModal
-              title={s.home.newProject}
-              placeholder={s.home.projectNamePlaceholder}
-              value={newProjectValueApp}
-              originalValue=""
-              inputRef={newProjectInputRefApp}
-              onChange={setNewProjectValueApp}
-              onCancel={() => setNewProjectOpenApp(false)}
-              onSubmit={submitNewProjectApp}
-              confirmLabel={s.home.confirmCreate}
-            />
-          )}
-          {screen !== "welcome" && homeAddOpen && (
-            <AddModal
-              onClose={() => { setHomeAddOpen(false); setAddModalCtx(null); }}
-              projects={projects}
-              allTracks={projects.flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectName: p.name, projectId: p.id })))}
-              initialContext={addModalCtx}
-              defaultDaw={userProfile?.default_daw || ''}
-              onCreateProject={async (name) => {
-                try {
-                  const created = await createProject(name);
-                  refreshProjects();
-                  if (created?.id) setCurrentProjectId(created.id);
-                  return created;
-                } catch (err) {
-                  console.warn('createProject from AddModal (app) failed', err);
-                  throw err;
-                }
-              }}
-              onAnalyze={(cfg) => {
-                if (cfg.projectId) setCurrentProjectId(cfg.projectId);
-                handleAnalyze(cfg);
-              }}
-            />
-          )}
-
           {/* Content */}
-          <div ref={scrollContentRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: 80 }}>
+          <div ref={scrollContentRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: screen === "welcome" ? 0 : 80 }}>
             {renderContent()}
           </div>
 
-          {/* Bottom Player — toujours présent (sticky), y compris sur la home.
-              État "idle" quand aucune piste n'est lancée : transport grisé,
-              waveform placeholder, meta vide. */}
-          <BottomPlayer
-            trackTitle={playerState?.trackTitle}
-            versionName={playerState?.versionName}
-            storagePath={playerState?.storagePath}
-            isPlaying={!!playerState?.isPlaying}
-            onToggle={togglePlay}
-            onNext={playNext}
-            onPrev={playPrev}
-            hasNext={hasNext}
-            hasPrev={hasPrev}
-            resetKey={playerState?.resetKey || 0}
-            idle={!playerState}
-            playlist={playerState?.playlist}
-            currentIdx={playerState?.currentIdx}
-          />
+          {/* Bottom Player — masqué sur la home (doublon avec le hero) */}
+          {screen !== "welcome" && (
+            <BottomPlayer
+              trackTitle={playerState?.trackTitle}
+              versionName={playerState?.versionName}
+              storagePath={playerState?.storagePath}
+              isPlaying={!!playerState?.isPlaying}
+              onToggle={togglePlay}
+              onNext={playNext}
+              onPrev={playPrev}
+              hasNext={hasNext}
+              hasPrev={hasPrev}
+              resetKey={playerState?.resetKey || 0}
+              idle={!playerState}
+              playlist={playerState?.playlist}
+              currentIdx={playerState?.currentIdx}
+            />
+          )}
 
           {/* BottomNav retiré — remplacé par le hamburger menu */}
         </div>
