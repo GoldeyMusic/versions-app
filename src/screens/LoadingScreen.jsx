@@ -1,11 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import API from '../constants/api';
 import { confirmDialog } from '../lib/confirm.jsx';
-import { hashAudioFile, findDuplicateAudio, loadTracks } from "../lib/storage";
+import { hashAudioFile, findDuplicateAudio, loadTracks, getInheritedIntentByTitle } from "../lib/storage";
 import { supabase } from "../lib/supabase";
 import useLang from '../hooks/useLang';
 
-const LoadingScreen = ({ config, onDone, onBackToInput }) => {
+// ── Feature flag intention artistique ──
+// Quand VITE_INTENT_ENABLED !== 'true', on force skipIntent=true côté backend
+// pour que le pipeline tourne exactement comme avant (non-regression garantie).
+const INTENT_ENABLED = import.meta.env.VITE_INTENT_ENABLED === 'true';
+
+const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   const { s, lang } = useLang();
   const [phase, setPhase] = useState(0);
   const [error, setError] = useState(null);
@@ -122,6 +127,16 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
         if (previousFiche) formData.append("previousFiche", JSON.stringify(previousFiche));
         if (durationSeconds) formData.append("durationSeconds", String(durationSeconds));
 
+        // ── Gestion du feature flag intention ──
+        // - Flag OFF               → skipIntent=true (backend enchaîne direct, comme avant)
+        // - Flag ON + inlineIntent → intent=<texte> (backend enchaîne avec intention)
+        // - Flag ON sans inline    → pas de skipIntent, le backend passera par awaiting_intent
+        if (!INTENT_ENABLED) {
+          formData.append("skipIntent", "true");
+        } else if (config.inlineIntent) {
+          formData.append("intent", config.inlineIntent);
+        }
+
         // Start the analysis job
         setPhase(1);
         const startRes = await fetch(`${API}/api/analyze/start`, {
@@ -147,6 +162,26 @@ const LoadingScreen = ({ config, onDone, onBackToInput }) => {
 
           if (job.status === "error") {
             throw new Error(job.error || s.loading.errorFailed);
+          }
+
+          // ── NOUVEAU : intention attendue → on sort pour IntentionScreen ──
+          // On ne fait ce chemin QUE si le flag est ON et qu'on n'a pas déjà
+          // envoyé d'intention inline. Sinon le backend ne renvoie jamais
+          // awaiting_intent et on passe comme avant.
+          if (job.status === "awaiting_intent" && !sentFadr.current) {
+            sentFadr.current = true;
+            // Resolve l'intention héritée du titre (si V2+)
+            let inherited = null;
+            try {
+              inherited = await getInheritedIntentByTitle(config.title, config.projectId || null);
+            } catch { /* noop */ }
+            onAwaitingIntent?.({
+              jobId,
+              perception: job.perception || null,
+              audioHash: config.audioHash,
+              inheritedIntent: inherited,
+            });
+            return;
           }
 
           // Stage: listening done → immediately go to FicheScreen with partial data

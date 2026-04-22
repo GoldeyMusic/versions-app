@@ -14,10 +14,11 @@ import BottomPlayer, { resolveAudio, VolumeControl } from "./components/BottomPl
 import AskModal from "./components/AskModal";
 import Sidebar from "./components/Sidebar";
 import LoadingScreen from "./screens/LoadingScreen";
+import IntentionScreen from "./screens/IntentionScreen";
 import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
 
-import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage, setTrackCoverImage, clearTrackCoverImage } from "./lib/storage";
+import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage, setTrackCoverImage, clearTrackCoverImage, updateTrackIntent, updateVersionIntent } from "./lib/storage";
 import { assignProjectColors, PROJECT_COLOR_COUNT } from "./lib/projectColors";
 import { resizeImageFile } from "./lib/image";
 import { supabase } from "./lib/supabase";
@@ -2057,6 +2058,9 @@ function VersionsAppAuthed() {
   }, []);
   const [config, setConfig] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
+  // Contexte de l'écran intention : { jobId, perception, inheritedIntent, audioHash } ou null.
+  // Posé par handleAwaitingIntent quand le backend bascule en 'awaiting_intent'.
+  const [intentCtx, setIntentCtx] = useState(null);
   const [askOpen, setAskOpen] = useState(false);
   // Les réglages s'ouvrent en modale (plus de page dédiée)
   const [reglagesOpen, setReglagesOpen] = useState(false);
@@ -2388,7 +2392,16 @@ function VersionsAppAuthed() {
             setAnalysisResult(prev => {
               const full = { ...prev, fiche: job.fiche || prev?.fiche, listening: job.listening || prev?.listening, storagePath: job.storagePath || prev?.storagePath || null, _stage: "all_done" };
               saveAnalysis(config, full, job.storagePath || prev?.storagePath || null, lang)
-                .then(() => refreshProjects())
+                .then((ids) => {
+                  // Persiste l'intention au scope choisi (track/version)
+                  const intent = full?.intent_used || config?._pendingIntent || null;
+                  const scope = full?._intent_scope || config?._pendingIntentScope || 'track';
+                  if (intent && ids) {
+                    if (scope === 'version' && ids.versionId) updateVersionIntent(ids.versionId, intent);
+                    else if (ids.trackId) updateTrackIntent(ids.trackId, intent);
+                  }
+                  return refreshProjects();
+                })
                 .catch(e => console.warn("saveAnalysis failed:", e));
               return full;
             });
@@ -2425,7 +2438,16 @@ function VersionsAppAuthed() {
         // Analysis completed in one shot — save immediately
         savedRef.current = true;
         saveAnalysis(cfgWithHash, merged, merged.storagePath || null, lang)
-          .then(() => refreshProjects())
+          .then((ids) => {
+            // Persiste l'intention utilisée au scope choisi
+            const intent = merged?.intent_used || cfgWithHash?._pendingIntent || null;
+            const scope = merged?._intent_scope || cfgWithHash?._pendingIntentScope || 'track';
+            if (intent && ids) {
+              if (scope === 'version' && ids.versionId) updateVersionIntent(ids.versionId, intent);
+              else if (ids.trackId) updateTrackIntent(ids.trackId, intent);
+            }
+            return refreshProjects();
+          })
           .catch(e => console.warn("saveAnalysis failed:", e));
       }
     }
@@ -2435,6 +2457,54 @@ function VersionsAppAuthed() {
     setConfig(null);
     setAnalysisResult(null);
     setPrefillTitle("");
+    setIntentCtx(null);
+  };
+
+  // ── Handlers intention artistique ──
+  // Appelé par LoadingScreen quand le backend passe en 'awaiting_intent'.
+  // On stocke le contexte (jobId, perception, intention héritée) et on
+  // bascule sur l'écran intention.
+  const handleAwaitingIntent = (ctx) => {
+    setIntentCtx(ctx);
+    setScreen("intention");
+  };
+
+  // L'artiste a saisi une intention + choisi son scope (track/version).
+  // 1) POST /api/analyze/diagnose/:jobId avec l'intention → relance le job
+  // 2) On revient sur LoadingScreen en mode "inlineIntent" (ne repassera
+  //    plus par awaiting_intent, donc le pipeline enchaîne naturellement)
+  // 3) Le write Supabase (updateTrackIntent / updateVersionIntent) se fait
+  //    au retour de l'analyse, dans handleLoaded, via intent_used.
+  const handleIntentSubmit = async (intent, scope) => {
+    if (!intentCtx?.jobId) return;
+    try {
+      await fetch(`${API}/api/analyze/diagnose/${intentCtx.jobId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intent, scope }),
+      });
+    } catch (e) {
+      console.warn("[intent] diagnose POST failed:", e.message);
+    }
+    // Mémorise le scope choisi pour le write post-analyse
+    setConfig((c) => ({ ...(c || {}), _pendingIntent: intent, _pendingIntentScope: scope }));
+    setIntentCtx(null);
+    setScreen("loading");
+  };
+
+  const handleIntentSkip = async () => {
+    if (!intentCtx?.jobId) return;
+    try {
+      await fetch(`${API}/api/analyze/diagnose/${intentCtx.jobId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skipIntent: true }),
+      });
+    } catch (e) {
+      console.warn("[intent] skip POST failed:", e.message);
+    }
+    setIntentCtx(null);
+    setScreen("loading");
   };
 
   // Sidebar handlers
@@ -2544,7 +2614,33 @@ function VersionsAppAuthed() {
           />
         );
       case "loading":
-        return <LoadingScreen config={config} onDone={handleLoaded} onBackToInput={handleSidebarNewTrack} />;
+        return (
+          <LoadingScreen
+            config={config}
+            onDone={handleLoaded}
+            onAwaitingIntent={handleAwaitingIntent}
+            onBackToInput={handleSidebarNewTrack}
+          />
+        );
+      case "intention": {
+        // Un titre est "V1" s'il n'existe pas encore dans les projets
+        // (ou si c'est sa toute première version). Utilisé par
+        // IntentionScreen pour choisir le layout (colonne vs compact).
+        const title = (config?.title || "").trim().toLowerCase();
+        const allTracks = (projects || []).flatMap((p) => p.tracks || []);
+        const existing = title ? allTracks.find((t) => (t.title || "").trim().toLowerCase() === title) : null;
+        const isFirstVersion = !existing || !(existing.versions?.length);
+        return (
+          <IntentionScreen
+            perception={intentCtx?.perception || null}
+            config={config}
+            isFirstVersion={isFirstVersion}
+            inheritedIntent={intentCtx?.inheritedIntent || null}
+            onSubmit={handleIntentSubmit}
+            onSkip={handleIntentSkip}
+          />
+        );
+      }
       case "fiche":
         return (
           <FicheScreen
