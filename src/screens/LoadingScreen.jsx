@@ -186,11 +186,20 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           }
 
           // Stage: listening done → immediately go to FicheScreen with partial data.
-          // Garde : si le backend est en `awaiting_intent`, on NE passe PAS par
-          // `onDone` — sinon on pose sentFadr=true et la branche awaiting_intent
-          // au-dessus ne firera plus jamais (bug d'aujourd'hui : polling zombie
-          // jusqu'au timeout 120 x 3s).
-          if ((job.stage === "listening_done" || job.stage === "all_done")
+          // Gardes :
+          //  1) Si le backend est déjà en `awaiting_intent`, on ne claim pas
+          //     (la branche au-dessus gère ce cas).
+          //  2) Si INTENT_ENABLED est ON et qu'on n'a pas envoyé d'inlineIntent,
+          //     on NE bifurque PAS sur `listening_done` — on ATTEND `awaiting_intent`
+          //     (qui arrive quelques polls plus tard). Sinon on bascule trop tôt
+          //     sur FicheScreen et l'écran Intention ne s'affiche jamais, le
+          //     backend attend une intention qui ne viendra jamais.
+          //     On autorise seulement `all_done` (analyse complète) dans ce mode.
+          const intentPendingMode = INTENT_ENABLED && !config?.inlineIntent;
+          const stageAllowed = intentPendingMode
+            ? (job.stage === "all_done")
+            : (job.stage === "listening_done" || job.stage === "all_done");
+          if (stageAllowed
               && job.status !== "awaiting_intent"
               && !sentFadr.current) {
             sentFadr.current = true;
