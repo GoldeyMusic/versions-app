@@ -11,6 +11,7 @@ import {
 import { confirmDialog } from '../lib/confirm.jsx';
 import RenameModal from './RenameModal';
 import { assignProjectColors, PROJECT_COLOR_COUNT } from '../lib/projectColors';
+import useLang from '../hooks/useLang';
 
 /**
  * Sidebar — accordéon de projets.
@@ -24,6 +25,7 @@ export default function Sidebar({
   onSelectVersion,
   onGoReglages,
   onGoHome,
+  onAdd,
   onPlay,
   onToggle,
   playerState,
@@ -34,6 +36,7 @@ export default function Sidebar({
   // puisqu'un cache localStorage fournit les projets dès le premier render
   onMutate,
 }) {
+  const { s, lang, setLang } = useLang();
   // Modales
   const [renameProjectTarget, setRenameProjectTarget] = useState(null);
   const [renameTrackTarget, setRenameTrackTarget] = useState(null);
@@ -91,11 +94,15 @@ export default function Sidebar({
   const handleDeleteTrack = async (e, track) => {
     e.stopPropagation();
     const n = (track.versions || []).length;
+    const versionWord = n > 1 ? s.home.versionPlural : s.home.versionSingular;
     const ok = await confirmDialog({
-      title: 'Supprimer le titre ?',
-      message: `Supprimer "${track.title}" et ses ${n} version${n > 1 ? 's' : ''} ? Cette action est définitive.`,
-      confirmLabel: 'Supprimer',
-      cancelLabel: 'Annuler',
+      title: s.home.deleteTrackTitle,
+      message: s.home.deleteTrackMsg
+        .replace('{name}', track.title)
+        .replace('{n}', String(n))
+        .replace('{versionWord}', versionWord),
+      confirmLabel: s.home.delete,
+      cancelLabel: s.home.cancel,
       danger: true,
     });
     if (ok !== 'confirm') return;
@@ -132,22 +139,26 @@ export default function Sidebar({
     e.stopPropagation();
     if (projects.length <= 1) {
       await confirmDialog({
-        title: 'Impossible',
-        message: 'Au moins un projet est requis. Crée un autre projet avant de supprimer celui-ci.',
-        confirmLabel: 'OK',
+        title: s.home.impossible,
+        message: s.home.lastProjectMsg,
+        confirmLabel: s.home.ok,
         cancelLabel: null,
       });
       return;
     }
     const nTracks = (project.tracks || []).length;
+    const trackWord = nTracks > 1 ? s.home.trackPlural : s.home.trackSingular;
     const msg = nTracks === 0
-      ? `Supprimer le projet "${project.name}" ?`
-      : `Supprimer le projet "${project.name}" et ses ${nTracks} titre${nTracks > 1 ? 's' : ''} (avec toutes leurs versions et fichiers audio) ? Cette action est définitive.`;
+      ? s.home.deleteProjectMsgEmpty.replace('{name}', project.name)
+      : s.home.deleteProjectMsgWithTracks
+          .replace('{name}', project.name)
+          .replace('{n}', String(nTracks))
+          .replace('{trackWord}', trackWord);
     const ok = await confirmDialog({
-      title: 'Supprimer le projet ?',
+      title: s.home.deleteProjectTitle,
       message: msg,
-      confirmLabel: 'Supprimer',
-      cancelLabel: 'Annuler',
+      confirmLabel: s.home.delete,
+      cancelLabel: s.home.cancel,
       danger: true,
     });
     if (ok !== 'confirm') return;
@@ -155,9 +166,9 @@ export default function Sidebar({
       const res = await deleteProject(project.id);
       if (res?.ok === false && res?.reason === 'last-project') {
         await confirmDialog({
-          title: 'Impossible',
-          message: 'Au moins un projet est requis.',
-          confirmLabel: 'OK',
+          title: s.home.impossible,
+          message: s.home.lastProjectMsgShort,
+          confirmLabel: s.home.ok,
           cancelLabel: null,
         });
         return;
@@ -225,13 +236,13 @@ export default function Sidebar({
   const avatarUrl = userProfile?.avatar_url || null;
   const displayName = userProfile?.prenom || null;
   const initial = (displayName || user?.email || 'U').trim().charAt(0).toUpperCase();
-  const who = displayName || (user?.email ? user.email.split('@')[0] : 'utilisateur');
+  const who = displayName || (user?.email ? user.email.split('@')[0] : s.home.fallbackUser);
 
   return (
     <aside className="sidebar">
       <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
         <img src="/logo-versions.svg" alt="" style={{ height: 38, width: 'auto' }} />
-        <span>{'VER'}<span className="accent">{'SI'}</span>{'ONS'}</span>
+        <span>{'VER'}<span className="accent">{'Si'}</span>{'ONS'}</span>
       </div>
 
       <div className="user-pill" onClick={onGoReglages} style={{ cursor: 'pointer' }}>
@@ -242,18 +253,44 @@ export default function Sidebar({
         </div>
         <div>
           <div className="who">{who}</div>
-          <div className="plan">Premier</div>
+          <div className="plan">{s.sidebar.premiumBadge}</div>
+        </div>
+        {/* Mini switch FR/EN — raccourci pour éviter d'ouvrir Réglages juste
+            pour changer de langue. stopPropagation pour que le clic ne remonte
+            pas jusqu'au user-pill (qui ouvre Réglages). */}
+        <div
+          className="sb-lang-switch"
+          role="group"
+          aria-label="Langue / Language"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className={lang === 'fr' ? 'on' : ''}
+            onClick={() => setLang('fr')}
+            aria-pressed={lang === 'fr'}
+          >
+            FR
+          </button>
+          <button
+            type="button"
+            className={lang === 'en' ? 'on' : ''}
+            onClick={() => setLang('en')}
+            aria-pressed={lang === 'en'}
+          >
+            EN
+          </button>
         </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0, marginTop: 8 }}>
-        <div className="section-label">Mes projets</div>
+        <div className="section-label">{s.sidebar.sectionMyProjects}</div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '0 2px' }}>
           {(() => {
             // Couleurs uniques par projet (même logique que la home).
             const colorMap = assignProjectColors(projects);
-            return projects.map((project) => (
+            return projects.map((project, i, arr) => (
               <ProjectAccordion
                 key={project.id}
                 project={project}
@@ -273,39 +310,54 @@ export default function Sidebar({
                 onDropTrackOnTrack={handleDropTrackOnTrack}
                 onDropTrackOnProject={handleDropTrackOnProject}
                 onDropProjectOnProject={handleDropProjectOnProject}
+                prevProjectId={arr[i - 1]?.id ?? null}
+                nextProjectId={arr[i + 1]?.id ?? null}
               />
             ));
           })()}
+
+          {/* Bouton Ajouter — toujours accessible, en fin de liste de projets */}
+          {onAdd && (
+            <button
+              type="button"
+              onClick={onAdd}
+              className="sidebar-add-btn"
+              aria-label={s.home.add}
+            >
+              <span className="sidebar-add-icon">+</span>
+              <span>{s.home.add}</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Modale renommer titre */}
       {renameTrackTarget && (
         <RenameModal
-          title="Renommer le titre"
-          placeholder="Nom du titre"
+          title={s.home.renameTrackTitle}
+          placeholder={s.home.trackNamePlaceholder}
           value={renameValue}
           originalValue={renameTrackTarget.title}
           inputRef={renameInputRef}
           onChange={setRenameValue}
           onCancel={() => setRenameTrackTarget(null)}
           onSubmit={submitRenameTrack}
-          confirmLabel="Renommer"
+          confirmLabel={s.home.confirmRename}
         />
       )}
 
       {/* Modale renommer projet */}
       {renameProjectTarget && (
         <RenameModal
-          title="Renommer le projet"
-          placeholder="Nom du projet"
+          title={s.home.renameProjectTitle}
+          placeholder={s.home.projectNamePlaceholder}
           value={renameValue}
           originalValue={renameProjectTarget.name}
           inputRef={renameInputRef}
           onChange={setRenameValue}
           onCancel={() => setRenameProjectTarget(null)}
           onSubmit={submitRenameProject}
-          confirmLabel="Renommer"
+          confirmLabel={s.home.confirmRename}
         />
       )}
 
@@ -332,7 +384,10 @@ function ProjectAccordion({
   onDropTrackOnTrack,
   onDropTrackOnProject,
   onDropProjectOnProject,
+  prevProjectId = null,
+  nextProjectId = null,
 }) {
+  const { s } = useLang();
   // Couleur projet : cover_gradient si défini (>0), sinon index unique
   // calculé au niveau parent (garantit l'unicité entre projets).
   const resolvedIdx = project.coverGradient
@@ -388,6 +443,11 @@ function ProjectAccordion({
           if (!rect) return;
           if (drag.type === 'project') {
             const isAbove = (e.clientY - rect.top) < rect.height / 2;
+            // Même garde que pour les titres : on n'affiche aucun trait
+            // de dépôt quand la position visée correspond à la position
+            // actuelle du projet déplacé (voisin immédiat + bon côté).
+            if (isAbove && drag.nextProjectId === project.id) { setDropOver(null); return; }
+            if (!isAbove && drag.prevProjectId === project.id) { setDropOver(null); return; }
             setDropOver(isAbove ? 'before' : 'after');
           } else if (drag.type === 'track' && drag.sourceProjectId !== project.id) {
             setDropOver('into');
@@ -430,11 +490,11 @@ function ProjectAccordion({
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('application/x-versions-dnd', 'project');
             if (headRef.current) e.dataTransfer.setDragImage(headRef.current, 10, 10);
-            setDrag({ type: 'project', projectId: project.id });
+            setDrag({ type: 'project', projectId: project.id, prevProjectId, nextProjectId });
           }}
           onDragEnd={() => { setDrag(null); setDropOver(null); }}
-          title="Glisser pour déplacer le projet"
-          aria-label="Déplacer le projet"
+          title={s.sidebar.dragProject}
+          aria-label={s.sidebar.moveProject}
           style={{
             width: 14, height: 18, flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -458,16 +518,17 @@ function ProjectAccordion({
           aria-hidden
           style={{
             width: 16, height: 16, borderRadius: 5,
-            background: project.coverImageUrl
-              ? `#141416 center/cover no-repeat url("${project.coverImageUrl}")`
-              : gradient,
+            // Toujours la pastille colorée par défaut — on n'affiche pas
+            // les illustrations custom des projets dans la sidebar desktop
+            // (décision UX : éviter la pollution visuelle à cette taille).
+            background: gradient,
             flexShrink: 0,
             boxShadow: open ? '0 2px 6px rgba(0,0,0,.4)' : 'none',
           }}
         />
         <span
           style={{
-            flex: 1, minWidth: 0, fontSize: 13, fontWeight: 500,
+            flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500,
             color: '#e8e8ea',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}
@@ -477,7 +538,7 @@ function ProjectAccordion({
           <button
             ref={btnRef}
             onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
-            title="Options"
+            title={s.sidebar.options}
             style={{
               width: 22, height: 22, borderRadius: 6,
               background: menuOpen ? 'rgba(245,176,86,.15)' : 'transparent',
@@ -487,7 +548,7 @@ function ProjectAccordion({
             }}
           >⋯</button>
         ) : (
-          <span style={{ fontSize: 11, color: '#8a8a95', minWidth: 18, textAlign: 'right' }}>
+          <span style={{ fontSize: 14, color: '#8a8a95', minWidth: 18, textAlign: 'right' }}>
             {nTracks}
           </span>
         )}
@@ -510,8 +571,8 @@ function ProjectAccordion({
               borderRadius: 10, padding: 6, boxShadow: '0 12px 32px rgba(0,0,0,.55)',
             }}
           >
-            <SbMenuItem label="Renommer" onClick={(e) => { setMenuOpen(false); onRenameProject(e, project); }} />
-            <SbMenuItem label="Supprimer" danger onClick={(e) => { setMenuOpen(false); onDeleteProject(e, project); }} />
+            <SbMenuItem label={s.sidebar.menuRename} onClick={(e) => { setMenuOpen(false); onRenameProject(e, project); }} />
+            <SbMenuItem label={s.sidebar.menuDelete} danger onClick={(e) => { setMenuOpen(false); onDeleteProject(e, project); }} />
           </div>
         )}
       </div>
@@ -519,9 +580,14 @@ function ProjectAccordion({
       {/* Body : liste des tracks */}
       {open && (
         <div style={{ paddingLeft: 6, paddingBottom: 6 }}>
-          {(project.tracks || []).map((track) => {
+          {(project.tracks || []).map((track, i, arr) => {
             const active = track.title === currentTrackTitle;
             const isPlaying = playerState?.trackTitle === track.title && !!playerState?.isPlaying;
+            // IDs des voisins directs dans la liste du projet — servent
+            // à neutraliser le trait de dépôt quand il indiquerait la
+            // position actuelle du titre déplacé (donc un déplacement nul).
+            const prevTrackId = arr[i - 1]?.id ?? null;
+            const nextTrackId = arr[i + 1]?.id ?? null;
             return (
               <TrackRow
                 key={track.id}
@@ -536,12 +602,14 @@ function ProjectAccordion({
                 drag={drag}
                 setDrag={setDrag}
                 onDropTrackOnTrack={onDropTrackOnTrack}
+                prevTrackId={prevTrackId}
+                nextTrackId={nextTrackId}
               />
             );
           })}
           {nTracks === 0 && (
-            <div style={{ padding: '8px 12px', color: '#8a8a95', fontSize: 12, fontStyle: 'italic' }}>
-              Aucun titre pour l'instant
+            <div style={{ padding: '8px 12px', color: '#8a8a95', fontSize: 14, fontStyle: 'italic' }}>
+              {s.sidebar.emptyTracks}
             </div>
           )}
         </div>
@@ -551,7 +619,8 @@ function ProjectAccordion({
 }
 
 /* ─── Row titre (DnD Phase 6) ──────────────────────────────── */
-function TrackRow({ track, projectId, active, isPlaying, onClick, onPlay, onRename, onDelete, drag, setDrag, onDropTrackOnTrack }) {
+function TrackRow({ track, projectId, active, isPlaying, onClick, onPlay, onRename, onDelete, drag, setDrag, onDropTrackOnTrack, prevTrackId = null, nextTrackId = null }) {
+  const { s } = useLang();
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   // dropOver = 'before' | 'after' | null
@@ -593,6 +662,16 @@ function TrackRow({ track, projectId, active, isPlaying, onClick, onPlay, onRena
         const rect = rowRef.current?.getBoundingClientRect();
         if (!rect) return;
         const isAbove = (e.clientY - rect.top) < rect.height / 2;
+        // Ne pas afficher de trait de dépôt si le geste en cours
+        // reviendrait à déposer le titre sur sa position actuelle :
+        //  - target est le voisin du dessous de la source ET on vise "avant" target
+        //    → la source serait replacée juste au-dessus de target, i.e. là où elle est déjà.
+        //  - target est le voisin du dessus de la source ET on vise "après" target
+        //    → idem : la source serait replacée juste en dessous de target, i.e. sa position actuelle.
+        if (drag.sourceProjectId === projectId) {
+          if (isAbove && drag.nextTrackId === track.id) { setDropOver(null); return; }
+          if (!isAbove && drag.prevTrackId === track.id) { setDropOver(null); return; }
+        }
         setDropOver(isAbove ? 'before' : 'after');
       }}
       onDragLeave={() => setDropOver(null)}
@@ -622,11 +701,11 @@ function TrackRow({ track, projectId, active, isPlaying, onClick, onPlay, onRena
           e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('application/x-versions-dnd', 'track');
           if (rowRef.current) e.dataTransfer.setDragImage(rowRef.current, 10, 10);
-          if (setDrag) setDrag({ type: 'track', trackId: track.id, sourceProjectId: projectId });
+          if (setDrag) setDrag({ type: 'track', trackId: track.id, sourceProjectId: projectId, prevTrackId, nextTrackId });
         }}
         onDragEnd={() => { if (setDrag) setDrag(null); setDropOver(null); }}
-        title="Glisser pour déplacer le titre"
-        aria-label="Déplacer le titre"
+        title={s.home.trackDragHandle}
+        aria-label={s.home.trackMove}
         style={{
           width: 12, height: 16, flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -648,7 +727,7 @@ function TrackRow({ track, projectId, active, isPlaying, onClick, onPlay, onRena
 
       <button
         onClick={onPlay}
-        title={isPlaying ? 'En lecture' : 'Écouter'}
+        title={isPlaying ? s.home.playing : s.home.play}
         className={`sb-play-btn${isPlaying ? ' playing' : ''}`}
       >
         {isPlaying ? (
@@ -666,7 +745,7 @@ function TrackRow({ track, projectId, active, isPlaying, onClick, onPlay, onRena
         <button
           ref={btnRef}
           onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
-          title="Options"
+          title={s.sidebar.options}
           style={{
             width: 24, height: 24, borderRadius: 6,
             background: menuOpen ? 'rgba(245,176,86,.15)' : 'transparent',
@@ -687,9 +766,9 @@ function TrackRow({ track, projectId, active, isPlaying, onClick, onPlay, onRena
             borderRadius: 10, padding: 6, boxShadow: '0 12px 32px rgba(0,0,0,.55)',
           }}
         >
-          <SbMenuItem label="Renommer" onClick={(e) => { setMenuOpen(false); onRename(e); }} />
+          <SbMenuItem label={s.sidebar.menuRename} onClick={(e) => { setMenuOpen(false); onRename(e); }} />
           <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
-          <SbMenuItem label="Supprimer" danger onClick={(e) => { setMenuOpen(false); onDelete(e); }} />
+          <SbMenuItem label={s.sidebar.menuDelete} danger onClick={(e) => { setMenuOpen(false); onDelete(e); }} />
         </div>
       )}
     </div>
@@ -704,7 +783,7 @@ function SbMenuItem({ label, onClick, danger }) {
         display: 'block', width: '100%', textAlign: 'left',
         padding: '8px 12px', borderRadius: 6, border: 'none',
         background: 'transparent', cursor: 'pointer',
-        fontFamily: "'DM Sans', sans-serif", fontSize: 12,
+        fontFamily: "'DM Sans', sans-serif", fontSize: 16,
         color: danger ? '#ef6b6b' : '#c5c5c7',
       }}
       onMouseEnter={(e) => { e.currentTarget.style.background = danger ? 'rgba(239,107,107,.08)' : 'rgba(245,176,86,.06)'; }}
