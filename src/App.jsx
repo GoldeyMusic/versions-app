@@ -2129,7 +2129,13 @@ function VersionsAppAuthed() {
     if (user) return;
     routeInitRef.current = false;
     if (typeof window !== 'undefined' && window.location.hash && window.location.hash !== '#/') {
-      window.history.replaceState({ screen: 'welcome' }, '', '#/');
+      // Ne pas effacer un hash de retour OAuth (Supabase doit pouvoir parser
+      // les tokens posés par Google/autres providers dans #access_token=...).
+      const h = window.location.hash;
+      const isOAuthReturn = h.includes('access_token=') || h.includes('refresh_token=') || h.includes('error=') || h.includes('error_code=');
+      if (!isOAuthReturn) {
+        window.history.replaceState({ screen: 'welcome' }, '', '#/');
+      }
     }
     if (screen !== 'welcome') {
       isHashSyncRef.current = true;
