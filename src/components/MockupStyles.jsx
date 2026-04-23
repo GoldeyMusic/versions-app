@@ -4393,17 +4393,31 @@ export default function MockupStyles() {
     color: var(--muted); text-transform: uppercase;
   }
   .wh-hero-ctas { display: flex; gap: 10px; }
+  /* Alignés sur .add-mini-btn (grammaire pill outline mono amber) pour
+     rester cohérents avec les boutons des modales et le reste du site. */
   .wh-btn {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 1.2px;
-    text-transform: uppercase; padding: 10px 16px; border-radius: 8px;
-    background: transparent; border: 1px solid var(--border); color: var(--text);
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 6px; padding: 10px 20px; border-radius: 999px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--soft);
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    line-height: 16px; box-sizing: border-box;
     cursor: pointer; transition: all .15s;
+    appearance: none; -webkit-appearance: none;
   }
-  .wh-btn:hover { border-color: var(--amber); color: var(--amber); }
+  .wh-btn:hover:not(:disabled) {
+    border-color: rgba(245,176,86,.4); color: var(--amber);
+  }
   .wh-btn-primary {
-    background: var(--amber); border-color: var(--amber); color: #0a0a0b; font-weight: 500;
+    color: var(--amber); background: transparent;
+    border-color: rgba(245,176,86,0.45);
   }
-  .wh-btn-primary:hover { background: #ffca7a; border-color: #ffca7a; color: #0a0a0b; }
+  .wh-btn-primary:hover:not(:disabled) {
+    border-color: var(--amber);
+    background: rgba(245,176,86,0.06);
+  }
+  .wh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
   /* ── Stats row — halos diffus varié par carte (identité v2) ── */
   .wh-stats {
@@ -4627,13 +4641,22 @@ export default function MockupStyles() {
     padding: 36px 40px;
     display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center;
   }
+  /* Alignée sur .wh-slogan (Écoute, compare, décide.) : DM Sans 700 avec
+     tracking négatif. Proportionnel à la taille (46px ici, 88px pour le slogan). */
   .wh-ob-welcome {
-    font-family: var(--display); font-size: 46px; line-height: 1;
-    letter-spacing: 2px; margin-bottom: 12px; color: var(--text);
+    font-family: var(--body); font-weight: 700;
+    font-size: 46px; line-height: 1;
+    letter-spacing: -1.5px; color: var(--text);
+    margin-bottom: 12px;
   }
+  /* Alignée sur .wh-card-title (DM Sans 500) — même font UI que les
+     titres de cartes (ex. "Lance ta première analyse"), mais en plus gros
+     pour faire respirer le bloc onboarding sans paraître vide. */
   .wh-ob-tagline {
-    font-family: var(--serif); font-style: italic; font-size: 20px;
+    font-family: var(--body); font-weight: 500;
+    font-size: 22px; line-height: 1.35; letter-spacing: -0.2px;
     color: var(--soft); margin-bottom: 22px;
+    max-width: 540px;
   }
   .wh-ob-ctas { display: flex; gap: 10px; flex-wrap: wrap; }
   .wh-ob-checklist {
@@ -5299,9 +5322,21 @@ export default function MockupStyles() {
      Même grammaire que LoadingScreen (ap-scaffold) : logo SVG à plat,
      titre simple avec mot amber, tagline mono, inputs dark avec focus amber,
      boutons pill outline (amber pour submit, dark pour OAuth). */
+  /* Fond cohérent avec l'ambient-halo du reste de l'app : trois gradients
+     radiaux hors-axe sur la même palette (cyan / violet / amber) que les
+     .ambient-layer de la Home, mais en version statique pour garantir la
+     présence visuelle même si JS/animation désactivés. */
   .auth-screen {
     min-height: 100vh; display: grid; place-items: center;
-    padding: 40px 24px; background: var(--body); box-sizing: border-box;
+    padding: 40px 24px; box-sizing: border-box;
+    background:
+      radial-gradient(ellipse 900px 620px at 78% 18%,
+        rgba(92,184,204,0.22), transparent 70%),
+      radial-gradient(ellipse 720px 900px at 22% 72%,
+        rgba(166,126,245,0.20), transparent 70%),
+      radial-gradient(ellipse 820px 720px at 85% 78%,
+        rgba(245,166,35,0.16), transparent 70%),
+      var(--bg);
   }
   .auth-card {
     width: 100%; max-width: 400px;
@@ -5316,11 +5351,13 @@ export default function MockupStyles() {
     height: 52px !important; width: auto !important;
     filter: drop-shadow(0 0 28px rgba(245,166,35,0.20));
   }
+  /* Aligné sur .brand (sidebar) pour garder une identité unifiée du wordmark
+     VERSIONS d'un écran à l'autre : Inter 700, tracking négatif, compact. */
   .auth-brand {
-    font-family: var(--heading, 'Inter'), sans-serif;
-    font-size: 26px; font-weight: 600;
-    letter-spacing: 4px; color: var(--text); line-height: 1;
-    text-transform: uppercase;
+    font-family: var(--body);
+    font-size: 27px; font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text); line-height: 1;
   }
   .auth-brand .accent { color: var(--amber); font-style: normal; }
   .auth-tagline {
@@ -5417,21 +5454,24 @@ export default function MockupStyles() {
      Overlay fullscreen + panneau centré. Le contenu (ReglagesScreen)
      conserve ses propres styles ; on neutralise juste son padding haut
      et sa largeur max dans le contexte modale pour coller à la grille. */
+  /* Aligné sur .add-mini-backdrop : voile 45% + flou 5px. */
   .reglages-modal-overlay {
     position: fixed; inset: 0; z-index: 500;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(4px);
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
     display: flex; align-items: flex-start; justify-content: center;
     padding: 5vh 20px 5vh;
     box-sizing: border-box;
     overflow-y: auto;
     animation: fadein .18s ease;
   }
+  /* Aligné sur .add-mini-card : bordure 14% + halos amber/cerulean. */
   .reglages-modal-panel {
-    position: relative;
+    position: relative; isolation: isolate;
     width: 100%; max-width: 620px;
     background: var(--bg);
-    border: 1px solid var(--border);
+    border: 1px solid rgba(255,255,255,0.14);
     border-radius: 16px;
     box-shadow: 0 24px 60px rgba(0,0,0,0.5);
     animation: fadeup .22s ease;
@@ -5439,6 +5479,21 @@ export default function MockupStyles() {
     display: flex; flex-direction: column;
     overflow: hidden;
   }
+  .reglages-modal-panel::before {
+    content: ''; position: absolute; pointer-events: none;
+    top: 14px; right: 14px;
+    width: 180px; height: 180px; border-radius: 50%;
+    background: var(--amber); filter: blur(85px); opacity: 0.22;
+    z-index: 0;
+  }
+  .reglages-modal-panel::after {
+    content: ''; position: absolute; pointer-events: none;
+    bottom: 18px; left: 18px;
+    width: 200px; height: 200px; border-radius: 50%;
+    background: var(--cerulean); filter: blur(90px); opacity: 0.18;
+    z-index: 0;
+  }
+  .reglages-modal-panel > * { position: relative; z-index: 1; }
   .reglages-modal-scroll {
     overflow-y: auto;
     flex: 1;
@@ -5846,23 +5901,52 @@ export default function MockupStyles() {
   /* uppercase pill outline. Titre « Ajouter quoi ? » avec   */
   /* un mot amber (via em, font-style forcé normal).         */
   /* ══════════════════════════════════════════════════════ */
+  /* Backdrop standard : voile moyen + flou doux — on devine les formes
+     derrière sans qu'elles distraient la lecture de la modale.
+     Unifié avec .reglages-modal-overlay. */
   .add-mini-backdrop {
     position: fixed; inset: 0; z-index: 10000;
-    background: rgba(0,0,0,.55);
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
     display: flex; align-items: center; justify-content: center;
     padding: 16px; font-family: var(--body);
   }
+  /* Card standard : bordure plus marquée (14% blanc) pour détacher du backdrop
+     flouté + halos colorés façon .wh-stat (amber haut-droit, cerulean bas-gauche)
+     pour habiter l'intérieur. overflow-x: hidden contient les halos,
+     overflow-y: auto garde le scroll si le contenu dépasse. */
   .add-mini-card {
-    position: relative;
+    position: relative; isolation: isolate;
     background: #0a0b10;
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
     border-radius: 14px;
     box-shadow: 0 20px 60px rgba(0,0,0,.6);
     padding: 26px 28px 22px;
     width: 440px; max-width: 92vw;
-    max-height: 92vh; overflow-y: auto;
+    max-height: 92vh;
+    overflow-x: hidden; overflow-y: auto;
     box-sizing: border-box;
   }
+  /* Halos posés ENTIÈREMENT à l'intérieur de la card (pas de top/right
+     négatif) : le blur diffuse naturellement sans jamais toucher la bordure,
+     ce qui évite la ligne claire parasite visible au clip de overflow-x: hidden.
+     Tailles réduites + blur augmenté pour garder un rendu diffus. */
+  .add-mini-card::before {
+    content: ''; position: absolute; pointer-events: none;
+    top: 12px; right: 12px;
+    width: 150px; height: 150px; border-radius: 50%;
+    background: var(--amber); filter: blur(75px); opacity: 0.30;
+    z-index: 0;
+  }
+  .add-mini-card::after {
+    content: ''; position: absolute; pointer-events: none;
+    bottom: 16px; left: 14px;
+    width: 170px; height: 170px; border-radius: 50%;
+    background: var(--cerulean); filter: blur(80px); opacity: 0.24;
+    z-index: 0;
+  }
+  .add-mini-card > * { position: relative; z-index: 1; }
   .add-mini-card.is-upload { width: 520px; }
 
   .add-mini-close {
@@ -6794,7 +6878,7 @@ export default function MockupStyles() {
     /* Auth */
     .auth-screen { padding: 30px 20px; min-height: 100dvh; }
     .auth-card { max-width: 100%; gap: 20px; }
-    .auth-brand { font-size: 36px; letter-spacing: 4px; }
+    .auth-brand { font-size: 36px; letter-spacing: -0.8px; }
     .auth-tagline { font-size: 9px; letter-spacing: 2px; gap: 8px; }
     .auth-input { padding: 14px 16px; font-size: 14px; border-radius: 12px; }
     .auth-submit { padding: 16px; font-size: 14px; border-radius: 12px; }

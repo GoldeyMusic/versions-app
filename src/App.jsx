@@ -27,7 +27,6 @@ import AuthScreen from "./screens/AuthScreen";
 import PublicFicheScreen from "./screens/PublicFicheScreen";
 import ReglagesModal from "./components/ReglagesModal";
 import RenameModal from "./components/RenameModal";
-import OnboardingModal from "./components/OnboardingModal";
 import AddModal from "./components/AddModal";
 import { confirmDialog } from "./lib/confirm.jsx";
 
@@ -738,15 +737,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   // Supprimer projet
   const handleDeleteProject = async (project) => {
-    if (projects.length <= 1) {
-      await confirmDialog({
-        title: s.home.impossible,
-        message: s.home.lastProjectMsg,
-        confirmLabel: s.home.ok,
-        cancelLabel: null,
-      });
-      return;
-    }
     const nTracks = (project.tracks || []).length;
     const trackWord = nTracks > 1 ? s.home.trackPlural : s.home.trackSingular;
     const msg = nTracks === 0
@@ -764,16 +754,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     });
     if (ok !== 'confirm') return;
     try {
-      const res = await deleteProject(project.id);
-      if (res?.ok === false && res?.reason === 'last-project') {
-        await confirmDialog({
-          title: s.home.impossible,
-          message: s.home.lastProjectMsgShort,
-          confirmLabel: s.home.ok,
-          cancelLabel: null,
-        });
-        return;
-      }
+      await deleteProject(project.id);
       if (onMutate) onMutate();
     } catch (err) { console.warn('deleteProject failed', err); }
   };
@@ -900,7 +881,14 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   const totalProjects = projects.length;
   const isMobile = useMobile();
-  const hasContent = totalProjects > 0 && allTracks.length > 0;
+  // Onboarding tant qu'il n'y a pas AU MOINS UNE version analysée. Un titre
+  // créé mais non analysé ne fait pas basculer la Home — on veut que le
+  // bloc d'onboarding (checklist "Mise en route") reste visible pour guider
+  // l'utilisateur jusqu'à sa première vraie analyse.
+  const hasAnalyzedTrack = allTracks.some(
+    (t) => (t.versions || []).some((v) => v?.analysisResult)
+  );
+  const hasContent = totalProjects > 0 && hasAnalyzedTrack;
 
   // ── Calculs pour la home desktop (hero + stats) ──
   // Ne servent qu'en version desktop ; mobile les ignore entièrement.
@@ -1551,18 +1539,23 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           {s.home.onboardingTagline}
         </div>
         <div className="wh-ob-ctas">
-          <button
-            className="wh-btn wh-btn-primary"
-            onClick={() => {
-              if (totalProjects === 0) {
-                pendingNewTrackRef.current = true;
-                handleNewProject();
-              } else if (onNewTrack) {
-                onNewTrack();
-              }
-            }}
-          >{s.home.firstTrack}</button>
-          <button className="wh-btn" onClick={handleNewProject}>{s.home.newProject}</button>
+          {/* Compte 100% neuf (aucun projet) : un seul CTA "Mon premier projet"
+              — pas de "premier titre" tant qu'il n'existe pas de projet où
+              l'accrocher. Dès qu'un projet existe, on réaffiche les deux CTAs
+              normaux (Premier titre + Nouveau projet). */}
+          {totalProjects === 0 ? (
+            <button className="wh-btn wh-btn-primary" onClick={handleNewProject}>
+              {s.home.firstProject}
+            </button>
+          ) : (
+            <>
+              <button
+                className="wh-btn wh-btn-primary"
+                onClick={() => { if (onNewTrack) onNewTrack(); }}
+              >{s.home.firstTrack}</button>
+              <button className="wh-btn" onClick={handleNewProject}>{s.home.newProject}</button>
+            </>
+          )}
         </div>
       </div>
       <div className="wh-ob-checklist">
@@ -1637,11 +1630,42 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         </>
       ) : projectsLoaded ? (
         <>
-          {desktopOnboarding}
-          <div className="wh-cols">
-            {onboardingColumnLeft}
-            {editorialSidebar}
+          {/* Même structure que hasContent : .wh-intro + bloc action (à la place
+              des stats) + 2 colonnes. Garantit l'homogénéité visuelle entre la
+              Home "compte neuf" et la Home habituelle, et évite la duplication
+              du knowBlock qui existait dans l'ancienne branche. */}
+          <div className="wh-intro">
+            <div className="wh-eyebrow">
+              {(s.home.heroEyebrowWelcome || '').replace('{name}', displayName || '').trim()}
+            </div>
+            <div className="wh-intro-row">
+              <h1 className="wh-slogan">
+                <span className="wh-slogan-line">{s.home.sloganStart}<em>{s.home.sloganEm}</em>,</span><br />{s.home.sloganEnd.replace(/^,\s*/, '')}
+              </h1>
+              <div className="wh-tagline-text">{renderTagline(homeTagline)}</div>
+            </div>
           </div>
+          {desktopOnboarding}
+          {totalProjects === 0 ? (
+            /* 0 projet : pas d'accordéon à gauche — on met Recommandations
+               et Le saviez-vous côte à côte en 50/50, l'espace est mieux
+               rempli et on évite la colonne "projets" vide. */
+            <div
+              className="wh-cols"
+              style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}
+            >
+              <div className="wh-col-left">{userBlock}</div>
+              <div className="wh-col-right">{knowBlock}</div>
+            </div>
+          ) : (
+            <div className="wh-cols">
+              <div className="wh-col-left">{projectsAccordion}</div>
+              <div className="wh-col-right">
+                {userBlock}
+                {knowBlock}
+              </div>
+            </div>
+          )}
         </>
       ) : null /* première session sans cache — on ne montre rien plutôt que flasher l'écran d'onboarding */}
 
@@ -2206,7 +2230,10 @@ function VersionsAppAuthed() {
   }, [config, analysisResult]);
 
   // ── Onboarding gate : true si user connecté mais sans projet ──
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  // (needsOnboarding supprimé : plus de modale bloquante au premier login.
+  // L'utilisateur arrive sur la Home vide, invité à agir par les CTAs du hero.
+  // La création de projet se fait au besoin via AddModal — cf. step
+  // 'new-project-name' qui est automatiquement proposé si aucun projet existe.)
 
   // ── Chargement des projets + onboarding gate + preload premier audio ──
   // Une seule requête par mutation grâce à projectsRefreshKey centralisé.
@@ -2222,8 +2249,64 @@ function VersionsAppAuthed() {
     if (!user) {
       setProjects([]);
       setProjectsLoaded(false);
-      setNeedsOnboarding(false);
       return;
+    }
+    // DEV preview : force l'affichage de certains états de la Home sans toucher
+    // aux données réelles. Utile pour QA sans créer de compte jetable. Actif
+    // uniquement en dev (import.meta.env.DEV) — aucune fuite possible en prod.
+    //
+    // Modes disponibles :
+    //   ?preview=home-empty        → 0 projet (Home vide, CTAs d'invitation)
+    //   ?preview=home-one-project  → 1 projet vide (0 titre)
+    //   ?preview=home-one-track    → 1 projet avec 1 titre non analysé (0 version)
+    //
+    // NB : les actions CRUD sont "read-only" en mode preview — les mutations
+    // peuvent persister en DB mais le useEffect re-écrasera l'état au rechargement.
+    if (import.meta.env.DEV) {
+      const preview = new URLSearchParams(window.location.search).get('preview');
+      if (preview === 'home-empty') {
+        setProjects([]);
+        setProjectsLoaded(true);
+        return;
+      }
+      if (preview === 'home-one-project') {
+        const now = new Date().toISOString();
+        setProjects([{
+          id: '__preview-project__',
+          name: 'Projet test',
+          coverGradient: 0,
+          coverImageUrl: null,
+          position: 0,
+          createdAt: now,
+          tracks: [],
+        }]);
+        setProjectsLoaded(true);
+        setCurrentProjectId((cur) => cur ?? '__preview-project__');
+        return;
+      }
+      if (preview === 'home-one-track') {
+        const now = new Date().toISOString();
+        setProjects([{
+          id: '__preview-project__',
+          name: 'Projet test',
+          coverGradient: 0,
+          coverImageUrl: null,
+          position: 0,
+          createdAt: now,
+          tracks: [{
+            id: '__preview-track__',
+            title: 'Mon premier titre',
+            coverImageUrl: null,
+            createdAt: now,
+            projectId: '__preview-project__',
+            positionInProject: 0,
+            versions: [],
+          }],
+        }]);
+        setProjectsLoaded(true);
+        setCurrentProjectId((cur) => cur ?? '__preview-project__');
+        return;
+      }
     }
     let alive = true;
     loadProjects().then((list) => {
@@ -2232,11 +2315,7 @@ function VersionsAppAuthed() {
       setProjects(next);
       setProjectsLoaded(true);
       try { localStorage.setItem('versions_projects_cache', JSON.stringify(next)); } catch { /* ignore */ }
-      if (next.length === 0) {
-        setNeedsOnboarding(true);
-        return;
-      }
-      setNeedsOnboarding(false);
+      if (next.length === 0) return;
       const firstProject = next[0];
       // NB : on ne précharge plus l'audio du 1ᵉʳ morceau au boot.
       // L'utilisateur n'écoute pas systématiquement dès la connexion,
@@ -2246,14 +2325,6 @@ function VersionsAppAuthed() {
     }).catch(() => {});
     return () => { alive = false; };
   }, [user, projectsRefreshKey, authLoading]);
-
-  const handleOnboardingCreate = async (name) => {
-    const created = await createProject(name);
-    if (!created?.id) throw new Error(s.errors.projectCreate);
-    setCurrentProjectId(created.id);
-    setNeedsOnboarding(false);
-    refreshProjects();
-  };
 
   // ── Language ──
   // Priorité de chargement : localStorage > profile.langue Supabase > navigator.language > 'fr'
@@ -2747,13 +2818,7 @@ function VersionsAppAuthed() {
       <FontLink />
       <GlobalStyles />
       <MockupStyles />
-      {needsOnboarding && (
-        <OnboardingModal
-          displayName={userProfile?.prenom || null}
-          onCreate={handleOnboardingCreate}
-        />
-      )}
-      <div className={showSidebar ? "app" : "dapp"}>
+<div className={showSidebar ? "app" : "dapp"}>
         {/* Desktop Sidebar */}
         {showSidebar && (
           <Sidebar

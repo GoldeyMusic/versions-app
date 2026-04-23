@@ -8,6 +8,9 @@ import useLang from '../hooks/useLang';
  *
  * Montée via portail dans document.body pour échapper à tout conteneur
  * `overflow: auto` (sidebar, accordéon, etc.) qui pourrait la clipper.
+ *
+ * Utilise la grammaire "mini-modal" du site : add-mini-backdrop, add-mini-card,
+ * add-mini-title, add-mini-input, add-mini-foot, add-mini-btn[.is-primary].
  */
 export default function RenameModal({
   title,
@@ -25,28 +28,22 @@ export default function RenameModal({
   const trimmed = (value || '').trim();
   const disabled = !trimmed || trimmed === originalValue;
   return createPortal((
-    <div
-      onClick={onCancel}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 10000,
-        background: 'rgba(0,0,0,.55)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: "'DM Sans', sans-serif",
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: 380, maxWidth: '90vw',
-          background: '#141416', border: '1px solid #2a2a2e',
-          borderRadius: 14, padding: 22, boxShadow: '0 20px 60px rgba(0,0,0,.6)',
-        }}
-      >
-        <div style={{ fontSize: 14, color: '#e8e8ea', marginBottom: 14, fontWeight: 500 }}>
-          {title}
+    <div className="add-mini-backdrop" onClick={onCancel}>
+      <div className="add-mini-card" onClick={(e) => e.stopPropagation()}>
+        <div className="add-mini-title">
+          {(() => {
+            // Colore le dernier mot en amber (via <em>) pour rester raccord
+            // avec la grammaire des autres modales (« Ajouter quoi ? »,
+            // « Nouveau titre », etc.).
+            if (typeof title !== 'string') return title;
+            const idx = title.lastIndexOf(' ');
+            if (idx < 0) return title;
+            return <>{title.slice(0, idx)} <em>{title.slice(idx + 1)}</em></>;
+          })()}
         </div>
         <input
           ref={inputRef}
+          className="add-mini-input"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
@@ -54,31 +51,13 @@ export default function RenameModal({
             if (e.key === 'Escape') onCancel();
           }}
           placeholder={placeholder}
-          style={{
-            width: '100%', padding: '10px 12px', fontSize: 14,
-            background: '#0e0e10', border: '1px solid #2a2a2e',
-            borderRadius: 8, color: '#e8e8ea', outline: 'none',
-            fontFamily: 'inherit', boxSizing: 'border-box',
-          }}
         />
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+        <div className="add-mini-foot">
+          <button className="add-mini-btn" onClick={onCancel}>{s.common.cancel}</button>
           <button
-            onClick={onCancel}
-            style={{
-              padding: '8px 16px', fontSize: 14, borderRadius: 8,
-              background: 'transparent', border: '1px solid #2a2a2e',
-              color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >{s.common.cancel}</button>
-          <button
+            className="add-mini-btn is-primary"
             onClick={onSubmit}
             disabled={disabled}
-            style={{
-              padding: '8px 16px', fontSize: 14, borderRadius: 8,
-              background: '#f5b056', border: 'none',
-              color: '#141416', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit',
-              opacity: disabled ? 0.5 : 1,
-            }}
           >{effConfirm}</button>
         </div>
       </div>

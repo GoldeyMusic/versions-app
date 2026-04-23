@@ -1,6 +1,11 @@
 import { useEffect, useRef } from 'react';
 import useLang from '../hooks/useLang';
 
+/**
+ * ConfirmModal — confirmation générique (delete / discard / etc.).
+ * Utilise la grammaire "mini-modal" du site : add-mini-backdrop, add-mini-card,
+ * add-mini-title, add-mini-body-text, add-mini-foot, add-mini-btn[.is-primary|.is-danger].
+ */
 export default function ConfirmModal({
   title,
   message = '',
@@ -29,62 +34,23 @@ export default function ConfirmModal({
   }, [onConfirm, onCancel]);
 
   return (
-    <div
-      onClick={onCancel}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 10000,
-        background: 'rgba(0,0,0,.55)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: "'DM Sans', sans-serif",
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: 440, maxWidth: '90vw',
-          background: '#141416', border: '1px solid #2a2a2e',
-          borderRadius: 14, padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,.6)',
-        }}
-      >
-        <div style={{ fontSize: 14, color: '#e8e8ea', marginBottom: 10, fontWeight: 500 }}>
-          {effTitle}
-        </div>
-        <div style={{ fontSize: 14, color: '#c5c5c7', lineHeight: 1.6, marginBottom: 20 }}>
-          {message}
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+    <div className="add-mini-backdrop" onClick={onCancel}>
+      <div className="add-mini-card" onClick={(e) => e.stopPropagation()}>
+        <div className="add-mini-title">{effTitle}</div>
+        {message && <div className="add-mini-body-text">{message}</div>}
+        <div className="add-mini-foot">
           {effCancel && (
-            <button
-              onClick={onCancel}
-              style={{
-                padding: '8px 16px', fontSize: 14, borderRadius: 8,
-                background: 'transparent', border: '1px solid #2a2a2e',
-                color: '#c5c5c7', cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              {effCancel}
-            </button>
+            <button className="add-mini-btn" onClick={onCancel}>{effCancel}</button>
           )}
           {tertiaryLabel && (
-            <button
-              onClick={onTertiary}
-              style={{
-                padding: '8px 16px', fontSize: 14, borderRadius: 8,
-                background: 'transparent', border: '1px solid #f5b05666',
-                color: '#f5b056', cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
+            <button className="add-mini-btn is-primary" onClick={onTertiary}>
               {tertiaryLabel}
             </button>
           )}
           <button
             ref={okRef}
+            className={`add-mini-btn ${danger ? 'is-danger' : 'is-primary'}`}
             onClick={onConfirm}
-            style={{
-              padding: '8px 16px', fontSize: 14, borderRadius: 8,
-              background: danger ? '#ef6b6b' : '#f5b056', border: 'none',
-              color: '#141416', cursor: 'pointer', fontWeight: 500, fontFamily: 'inherit',
-            }}
           >
             {effConfirm}
           </button>

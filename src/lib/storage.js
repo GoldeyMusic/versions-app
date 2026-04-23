@@ -1006,20 +1006,11 @@ export async function clearTrackCoverImage(trackId) {
 /**
  * Delete a project — removes audio files from Storage, then the row
  * (DB cascade deletes tracks + versions).
- * Refuses to delete the user's last remaining project.
- * Returns { ok, reason? } so the UI can react to the "last project" case.
+ * Returns { ok, reason? } pour remonter les erreurs DB à l'UI.
  */
 export async function deleteProject(projectId) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, reason: 'no-user' };
-
-  const { count } = await supabase
-    .from('projects')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id);
-  if ((count ?? 0) <= 1) {
-    return { ok: false, reason: 'last-project' };
-  }
 
   const { data: tracks } = await supabase
     .from('tracks')

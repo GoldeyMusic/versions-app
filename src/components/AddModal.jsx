@@ -4,6 +4,25 @@ import useLang from '../hooks/useLang';
 import DAWS from '../constants/daws';
 
 /**
+ * Met en amber (via <em>) le dernier mot d'un titre de modale, en conservant
+ * une éventuelle ponctuation finale (« ? », « ! », etc.) collée au mot.
+ * Exemples :
+ *   "Dans quel projet ?" → "Dans quel " + <em>projet ?</em>
+ *   "Nom du projet"      → "Nom du " + <em>projet</em>
+ *   "À quel titre ?"     → "À quel " + <em>titre ?</em>
+ */
+function amberLastWord(str) {
+  if (typeof str !== 'string') return str;
+  const m = str.match(/^(.+?)\s+(\S+)(\s*[?!.,:;]+)?\s*$/);
+  if (!m) return str;
+  return (
+    <>
+      {m[1]} <em>{m[2]}{m[3] || ''}</em>
+    </>
+  );
+}
+
+/**
  * AddModal — modale unifiée d'ajout depuis la home.
  * Style mini-modal (aligné Réglages) : card sombre #0a0b10, rows
  * surélevées #111216, boutons mono uppercase pill outline. Titre
@@ -337,7 +356,7 @@ export default function AddModal({
 
         {step === 'new-project-name' && (
           <>
-            <div className="add-mini-section-title">{s.addModal.newProjectStepTitle}</div>
+            <div className="add-mini-title">{amberLastWord(s.addModal.newProjectStepTitle)}</div>
             <input
               autoFocus
               className="add-mini-input"
@@ -367,7 +386,7 @@ export default function AddModal({
 
         {step === 'pick-project' && (
           <>
-            <div className="add-mini-section-title">{s.addModal.pickProjectTitle}</div>
+            <div className="add-mini-title">{amberLastWord(s.addModal.pickProjectTitle)}</div>
             {projects.map((p) => {
               const n = p.tracks?.length || 0;
               return (
@@ -402,7 +421,7 @@ export default function AddModal({
 
         {step === 'pick-track' && (
           <>
-            <div className="add-mini-section-title">{s.addModal.pickTrackTitle}</div>
+            <div className="add-mini-title">{amberLastWord(s.addModal.pickTrackTitle)}</div>
             {allTracks.map((t) => {
               const n = t.versions?.length || 0;
               return (
@@ -435,6 +454,20 @@ export default function AddModal({
 
         {step === 'upload' && uploadCtx && (
           <>
+            <div className="add-mini-title">
+              {(() => {
+                // Réutilise les libellés des choix root pour rester raccord
+                // avec ce que l'utilisateur vient de cliquer.
+                const label = uploadCtx.mode === 'add-version'
+                  ? s.addModal.choiceAddVersionLabel
+                  : s.addModal.choiceNewTrackLabel;
+                // Colorie le dernier mot en amber (via <em>), comme le titre
+                // « Ajouter quoi ? » du step root.
+                const idx = label.lastIndexOf(' ');
+                if (idx < 0) return label;
+                return <>{label.slice(0, idx)} <em>{label.slice(idx + 1)}</em></>;
+              })()}
+            </div>
             {/* Bandeau projet verrouillé */}
             <div className="add-mini-upload-banner">
               <span style={{ fontSize: 12, color: 'var(--amber)' }}>●</span>
