@@ -626,7 +626,8 @@ export default function MockupStyles() {
   .vchip.active {
     background: var(--amber-glow);
     border-color: #f5b05666;
-    box-shadow: 0 0 0 1px #f5b05633, 0 4px 14px rgba(245,176,86,0.08);
+    /* Drop-shadow seule, pas de halo 1px qui double la bordure. */
+    box-shadow: 0 4px 14px rgba(245,176,86,0.08);
   }
   .vchip .vname {
     font-family: var(--mono); font-size: 12px; color: var(--soft); letter-spacing: 1px;
@@ -681,20 +682,24 @@ export default function MockupStyles() {
   /* ══════════════════════════════════════════════════════════════════ */
   .fiche-topbar-wrap {
     position: sticky; top: 0; z-index: 10;
-    /* Aucun background solide : la topbar doit laisser transparaître le
-       halo ambient de la page (comme sur la Home) pour éviter la barre
-       sombre distincte qui créait une démarcation en haut de page.
-       Le backdrop-filter prend le relais dès qu'on scrolle : le contenu
-       qui passe sous la topbar est flouté, donc la topbar reste lisible
-       sans avoir besoin d'un fond opaque. */
+    /* Topbar totalement invisible : ni fond solide, ni backdrop-filter.
+       Le fond ambient de la page (halos) remonte jusqu'en haut, comme
+       sur la Home. Lorsqu'on scrolle, le contenu passe derrière la topbar
+       sans flou ni démarcation. Si le recouvrement visuel devient gênant,
+       on ajoutera un gradient mask plutôt qu'un fond opaque. */
     background: transparent;
-    backdrop-filter: blur(20px) saturate(1.1);
-    -webkit-backdrop-filter: blur(20px) saturate(1.1);
-    padding: 16px 40px 0;
+    /* padding-top 22px = meme que sidebar. Combine avec line-height: 1 sur
+       .fiche-topbar-title (voir plus bas), la baseline du titre s'aligne par
+       construction avec celle du logo VERSIONS de la sidebar. */
+    padding: 22px 40px 0;
     display: flex; flex-direction: column;
   }
   .fiche-topbar-wrap .fiche-topbar {
     display: flex; align-items: center; gap: 14px;
+    /* Boite de 38px = meme hauteur que l'image logo VERSIONS de la sidebar.
+       Combine avec padding-top 22px du wrap, le centre vertical (y=41) matche
+       le centre du logo sidebar par construction. */
+    min-height: 38px;
     padding-bottom: 16px;
     /* Pas de border-bottom : on veut que la topbar se fonde visuellement
        avec la page (pas de "barre header" délimitée). */
@@ -747,6 +752,9 @@ export default function MockupStyles() {
   .fiche-topbar-meta .ver-label {
     font-family: var(--mono); font-size: 9.5px; letter-spacing: 1.5px;
     color: var(--muted); text-transform: uppercase;
+    white-space: pre-line;
+    text-align: right;
+    line-height: 1.35;
   }
   .fiche-topbar-meta .ver-label b { color: var(--green); font-weight: 500; }
   .fiche-topbar-meta .ver-label b.pending { color: var(--amber); }
@@ -777,6 +785,85 @@ export default function MockupStyles() {
   .fiche-topbar-wrap .versions-row-wrap {
     position: relative;
   }
+
+  /* Rangée de chips de versions rétablie (2026-04-23). */
+
+  /* Variante inline (2026-04-23) : chips sur la même ligne que le titre,
+     à droite de « Your Song Chanté », avant le badge et les actions.
+     Conteneur en flex : flèche gauche | zone scroll (max 2 chips) | flèche droite.
+     Pas de flex-grow : le badge/actions sont poussés à droite par margin-left: auto. */
+  .fiche-topbar-wrap .versions-row-wrap.versions-row-inline {
+    flex: 0 0 auto;
+    min-width: 0;
+    margin-left: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .fiche-topbar-wrap .versions-row-wrap.versions-row-inline .versions-row-v2 {
+    padding: 0;
+    flex: 0 0 auto;
+    scroll-behavior: smooth;
+    gap: 7px;
+  }
+  /* Carrousel activé uniquement à partir de 3 versions : contrainte de largeur
+     (2 chips max visibles) + largeur fixe par chip pour un cap propre.
+     En dessous (1 ou 2 versions) les chips prennent leur largeur naturelle
+     et aucun scroll/flèches n'apparaît. */
+  .fiche-topbar-wrap .versions-row-wrap.versions-row-inline.has-carousel .versions-row-v2 {
+    width: 159px;       /* 2*76 + 1*7 (gap) = pile 2 chips visibles */
+    max-width: 159px;
+  }
+  .fiche-topbar-wrap .versions-row-wrap.versions-row-inline.has-carousel .versions-row-v2 .vchip {
+    flex: 0 0 76px;
+    width: 76px;
+    justify-content: center;
+  }
+  /* En mode inline, les flèches remplacent les fades comme indicateur d'overflow. */
+  .fiche-topbar-wrap .versions-row-wrap.versions-row-inline .versions-row-fade {
+    display: none;
+  }
+
+  /* Flèches de navigation carrousel — toujours cliquables (le clamp du scroll
+     gère les bords). L'état .is-edge atténue visuellement au lieu de bloquer. */
+  .fiche-topbar-wrap .vchip-arrow {
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1px solid var(--border, rgba(255,255,255,0.1));
+    background: transparent;
+    color: var(--soft, rgba(255,255,255,0.72));
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0;
+    transition: background .15s, border-color .15s, color .15s, opacity .15s;
+  }
+  .fiche-topbar-wrap .vchip-arrow:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(245,166,35,0.45);
+    color: var(--amber);
+  }
+  .fiche-topbar-wrap .vchip-arrow.is-edge {
+    opacity: 0.35;
+  }
+  .fiche-topbar-wrap .vchip-arrow.is-edge:hover {
+    opacity: 0.6;
+  }
+  .fiche-topbar-wrap .vchip-arrow svg { width: 11px; height: 11px; }
+
+  /* TEMP (2026-04-22) — resserre les espaces verticaux desktop v2 pour remonter
+     le contenu et l'aligner avec la colonne chat. Réduit en cascade :
+       - padding top de la topbar
+       - padding-bottom de la ligne topbar
+       - padding top du grid .page
+       - margin top de la pochette (col-cover-wrap)
+     + aligne le panneau chat sur le haut du contenu (top: 58px au lieu de 72px).
+     Pour réactiver l'espacement d'origine : supprimer ce bloc. */
+  .fiche-v2 .fiche-topbar-wrap { padding-top: 8px !important; }
+  .fiche-v2 .fiche-topbar-wrap .fiche-topbar { padding-bottom: 8px !important; }
+  .fiche-v2 .page { padding-top: 8px !important; }
+  .fiche-v2 .col-cover-wrap { margin-top: 0 !important; }
+  /* (override top: X supprimé — remplacé par l'alignement structurel grid+sticky plus bas) */
   .fiche-topbar-wrap .versions-row-v2 {
     display: flex; align-items: center; gap: 8px;
     padding: 10px 0 12px;
@@ -800,11 +887,11 @@ export default function MockupStyles() {
   /* VChip v2 (row layout) — scopé à .versions-row-v2 pour préserver le mobile */
   .versions-row-v2 .vchip {
     flex-shrink: 0;
-    padding: 8px 14px;
+    padding: 5px 10px;
     border-radius: 999px;
     background: var(--card);
     border: 1px solid var(--border);
-    display: flex; flex-direction: row; align-items: center; gap: 10px;
+    display: flex; flex-direction: row; align-items: center; gap: 7px;
     min-width: 0;
   }
   .versions-row-v2 .vchip:hover {
@@ -814,18 +901,21 @@ export default function MockupStyles() {
   .versions-row-v2 .vchip.active {
     border-color: var(--amber);
     background: rgba(245,166,35,0.06);
-    box-shadow: 0 0 0 1px var(--amber), 0 0 16px rgba(245,166,35,0.25);
+    /* Glow uniquement (pas de halo ambre 1px qui se faisait rogner quand la
+       chip active atteignait un bord du scroll container). La bordure ambre
+       suffit à marquer l'état actif. */
+    box-shadow: 0 0 16px rgba(245,166,35,0.25);
   }
   .versions-row-v2 .vchip .vname {
-    font-family: var(--mono); font-size: 10px; letter-spacing: 1.2px;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 1px;
     color: var(--muted); text-transform: uppercase;
     margin-top: 0;
     font-weight: 500;
   }
   .versions-row-v2 .vchip.active .vname { color: var(--amber); }
   .versions-row-v2 .vchip .vscore {
-    font-family: var(--body); font-weight: 600; font-size: 15px;
-    letter-spacing: -0.3px;
+    font-family: var(--body); font-weight: 600; font-size: 12.5px;
+    letter-spacing: -0.2px;
     line-height: 1;
     margin-top: 0;
     color: var(--text);
@@ -836,7 +926,7 @@ export default function MockupStyles() {
   .versions-row-v2 .vchip .vscore.low { color: var(--red); }
   .versions-row-v2 .vchip .vscore .pct { display: none; }
   .versions-row-v2 .vchip .vdelta-inline {
-    font-family: var(--mono); font-size: 10px; letter-spacing: 0.5px;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.4px;
     background: transparent; padding: 0;
     color: var(--green);
   }
@@ -846,20 +936,51 @@ export default function MockupStyles() {
 
   .vchip-new {
     flex-shrink: 0;
-    padding: 8px 16px;
+    padding: 5px 11px;
     border-radius: 999px;
     background: transparent;
     border: 1px dashed rgba(245,166,35,0.6);
     color: var(--amber);
     cursor: pointer;
-    font-family: var(--mono); font-size: 11px; letter-spacing: 1px;
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.9px;
     text-transform: uppercase; font-weight: 500;
-    display: inline-flex; align-items: center; gap: 6px;
+    display: inline-flex; align-items: center; gap: 5px;
     transition: background .15s, border-color .15s;
   }
   .vchip-new:hover {
     background: rgba(245,166,35,0.08);
     border-color: var(--amber);
+  }
+
+  /* Label « version active » à côté du bouton + Nouvelle version :
+     même style typographique et chromatique que l'eyebrow « Note de version »
+     (mono muted white + dot cerulean à glow). Cohérence visuelle entre les
+     repères discrets de l'app. */
+  .fiche-topbar-wrap .versions-row-wrap.versions-row-inline .active-version-label {
+    flex-shrink: 1;
+    min-width: 0;
+    margin-left: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    color: var(--muted, rgba(255,255,255,0.5));
+    max-width: 160px;
+  }
+  .fiche-topbar-wrap .versions-row-wrap.versions-row-inline .active-version-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--muted, rgba(255,255,255,0.5));
+    flex-shrink: 0;
+  }
+  .fiche-topbar-wrap .versions-row-wrap.versions-row-inline .active-version-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* ══════════════════════════════════════════════════════════════════ */
@@ -876,8 +997,10 @@ export default function MockupStyles() {
      Le chat reste ancré en aside (3ᵉ colonne via .fiche-layout.has-chat).
      ══════════════════════════════════════════════════════════════════════ */
   .fiche-v2 .page {
+    /* Grid 6 colonnes pour permettre 1/3-2/3 en row 2 (pochette/score)
+       et 1/2-1/2 en row 3 (diagnostic/plan) sur le meme grid. */
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-auto-flow: dense;
     column-gap: 20px;
     row-gap: 18px;
@@ -888,13 +1011,101 @@ export default function MockupStyles() {
      pour permettre le placement explicite en grid (row/col alignés). */
   .fiche-v2 .page > .f2-col-main,
   .fiche-v2 .page > .f2-col-side { display: contents; }
-  .fiche-v2 .page .vocal-suggest   { grid-column: 1 / -1; }
-  .fiche-v2 .page .row-verdict     { grid-column: 1; }
-  .fiche-v2 .page .col-cover       { grid-column: 2; }
-  .fiche-v2 .page .col-diag        { grid-column: 1; }
-  .fiche-v2 .page .col-plan        { grid-column: 2; }
-  .fiche-v2 .page .row-qualitative { grid-column: 1 / -1; }
-  .fiche-v2 .page .notes-section   { grid-column: 1 / -1; }
+  .fiche-v2 .page .vocal-suggest        { grid-column: 1 / -1; grid-row: 1; }
+  /* Rangee 2 : le grand cadre score global (.row-verdict) prend toute la largeur,
+     la pochette se superpose dessus a gauche (z-index + meme grid-row) pour
+     donner l'impression d'etre "dans" le rectangle. .rv-left a un padding-left
+     calcule pour laisser la place au visuel. */
+  .fiche-v2 .page .col-cover-wrap  { grid-column: 1 / span 2; grid-row: 2; z-index: 2; }
+  .fiche-v2 .page .row-verdict     { grid-column: 1 / -1; grid-row: 2; z-index: 1; }
+  .fiche-v2 .page .row-verdict .rv-left {
+    /* Padding-left reserve la place de la pochette (spanning 2/6 cols + gap).
+       2/6 = 33.33% ; le +40px couvre le gap + respiration interne. */
+    padding-left: calc(33.33% + 40px);
+  }
+  /* Override du wrapper pochette en contexte grid v2 : on stretch le wrapper
+     sur toute sa cellule (2/6), on applique un padding-left pour aligner
+     visuellement sur le contenu de col-diag en dessous, et on recentre la
+     pochette dans l'espace restant via flex. aspect-ratio deplace sur
+     .col-cover pour que le wrapper ne devienne pas un carre geant. */
+  .fiche-v2 .page .col-cover-wrap {
+    justify-self: stretch;
+    align-self: center;
+    width: auto;
+    max-width: none;
+    aspect-ratio: auto;
+    padding-left: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    margin: 12px 0;
+  }
+  .fiche-v2 .page .col-cover-wrap .col-cover-holder {
+    position: relative;
+    width: 100%;
+    max-width: 250px;
+    aspect-ratio: 1 / 1;
+  }
+  .fiche-v2 .page .col-cover-wrap .col-cover {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    max-width: none;
+  }
+  /* Pill type vocal : coin supérieur droit de l'artwork, escape le
+     overflow:hidden de .col-cover grâce au holder parent. */
+  .fiche-v2 .col-cover-holder .cover-vocal-pill {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 5;
+  }
+  /* Neutralise le translateY correctif de la topbar et renforce le fond
+     pour rester lisible par-dessus les halos colorés de l'artwork. */
+  .fiche-v2 .col-cover-holder .cover-vocal-pill .vocal-pill-wrap {
+    transform: none;
+  }
+  .fiche-v2 .col-cover-holder .cover-vocal-pill .vocal-pill {
+    background: rgba(15, 15, 18, 0.6);
+    backdrop-filter: blur(8px) saturate(1.1);
+    -webkit-backdrop-filter: blur(8px) saturate(1.1);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #fff;
+  }
+  .fiche-v2 .col-cover-holder .cover-vocal-pill .vocal-pill:hover:not(:disabled) {
+    border-color: rgba(255, 255, 255, 0.32);
+    background: rgba(15, 15, 18, 0.72);
+  }
+  /* Menu de la pill : s'aligne à droite (au lieu de left:0) pour ne pas
+     déborder de l'artwork quand la pill est dans le coin supérieur droit. */
+  .fiche-v2 .col-cover-holder .cover-vocal-pill .vocal-pill-menu {
+    left: auto;
+    right: 0;
+  }
+  /* Le score-eyebrow reste a sa place d'origine (premier enfant de .rv-left,
+     meme style que les autres eyebrows). On annule juste le padding-left
+     calc(33.33% + 40px) qui reservait la place de la pochette, via un
+     margin-left negatif, pour qu'il s'aligne avec la bordure interne gauche
+     du card (= 24px, meme que diag-eyebrow / plan-eyebrow). */
+  .fiche-v2 .row-verdict .rv-left .score-eyebrow {
+    margin-left: calc(-33.33% - 16px);
+  }
+  /* Rangees 3-4 : col-diag a gauche, a droite Plan d'action (et optionnellement
+     Intention artistique au-dessus).
+     - Par defaut (pas d'intention) : col-plan directement en haut de la colonne
+       droite (rangee 3), col-diag tient sur une seule rangee.
+     - Si .intent-panel-fiche est present : il prend la rangee 3 a droite,
+       col-plan descend sur la rangee 4, col-diag s'etire sur 2 rangees pour
+       combler la hauteur a gauche. (:has() gere la bascule automatiquement) */
+  .fiche-v2 .page .col-diag            { grid-column: 1 / span 3; grid-row: 3; }
+  .fiche-v2 .page .col-plan            { grid-column: 4 / span 3; grid-row: 3; align-self: start; }
+  .fiche-v2 .page .intent-panel-fiche  { grid-column: 4 / span 3; grid-row: 3; align-self: start; }
+  .fiche-v2 .page:has(.intent-panel-fiche) .col-diag { grid-row: 3 / span 2; }
+  .fiche-v2 .page:has(.intent-panel-fiche) .col-plan { grid-row: 4; }
+  /* Rangees pleine largeur sous les 2 colonnes */
+  .fiche-v2 .page .row-qualitative { grid-column: 1 / -1; grid-row: 5; }
+  .fiche-v2 .page .notes-section   { grid-column: 1 / -1; grid-row: 6; }
 
   /* Mobile / drawer : les wrappers f2-col-* doivent s'effacer pour ne pas
      perturber le flow vertical historique. display: contents remonte les
@@ -1130,17 +1341,17 @@ export default function MockupStyles() {
     font-weight: 500;
   }
   .fiche-v2 .row-verdict .rv-left .mi-tile .mi-word {
+    /* Casse alignee sur le verdict et la citation de l'ecoute qualitative :
+       weight 300 + color soft, pour sortir du ton "titre" et rester sobre. */
     font-family: var(--body, 'DM Sans', sans-serif);
-    font-weight: 600;
+    font-weight: 300;
     font-size: 14px;
     margin-top: 2px;
-    color: var(--text, #f5f4ef);
+    color: var(--soft, rgba(255,255,255,0.78));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  /* Appréciations textuelles (Bon / Large / Moyen…) gardées en blanc —
-     la couleur sémantique vit déjà dans la ring + la valeur chiffrée. */
 
   /* Écran un peu étroit : ring sur le dessus, tuiles en 2 colonnes en dessous */
   @media (max-width: 1100px) {
@@ -1250,7 +1461,9 @@ export default function MockupStyles() {
     flex-shrink: 0;
     width: 10px;
     height: 10px;
-    margin-top: 10px;
+    /* Positionne entre les 2 lignes du h1 (line-height 1.55 sur 16px =
+       ~24.8px par ligne → ~20px centre le caret sur la separation). */
+    margin-top: 20px;
     border-right: 1.5px solid var(--muted, rgba(255,255,255,0.5));
     border-bottom: 1.5px solid var(--muted, rgba(255,255,255,0.5));
     transform: rotate(45deg);
@@ -1258,7 +1471,7 @@ export default function MockupStyles() {
   }
   .fiche-v2 .row-verdict .rv-left .verdict-text.expanded .verdict-caret {
     transform: rotate(225deg);
-    margin-top: 14px;
+    margin-top: 24px;
   }
   .fiche-v2 .row-verdict .rv-left .verdict-text .verdict-toggle:hover .verdict-caret {
     border-color: var(--amber, #f5a623);
@@ -1267,14 +1480,26 @@ export default function MockupStyles() {
      Le h1 reprend la recette .di-name (DM Sans 14 / 400) mais un cran au-dessus
      pour rester la "phrase d'accroche". Le p suit .di-detail (14 / 300 / soft). */
   .fiche-v2 .row-verdict .rv-left .verdict-text h1 {
+    /* Casse alignee sur la citation de l'ecoute qualitative (.q-citation p)
+       pour garder la hierarchie : verdict = recap sobre, pas un titre tape-a-l'oeil. */
     font-family: var(--body, 'DM Sans', sans-serif);
-    font-size: 18px;
-    line-height: 1.4;
-    font-weight: 500;
+    font-size: 16px;
+    line-height: 1.55;
+    font-weight: 300;
     font-style: normal;
-    color: var(--text, #f5f4ef);
+    color: var(--soft, rgba(255,255,255,0.78));
     letter-spacing: 0;
     margin: 0 0 8px;
+  }
+  /* Verdict collapsed : max 2 lignes avec ellipsis, pour inciter l'utilisateur
+     a cliquer sur le toggle ">" pour lire la suite. Quand expanded, pas de clamp. */
+  .fiche-v2 .row-verdict .rv-left .verdict-text.collapsed .verdict-toggle h1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .fiche-v2 .row-verdict .rv-left .verdict-text h1 em,
   .fiche-v2 .row-verdict .rv-left .verdict-text h1 b,
@@ -3219,18 +3444,19 @@ export default function MockupStyles() {
     cursor: not-allowed;
   }
   .fiche-v2 .notes-panel .notes-actions .btn.primary {
-    background: var(--amber, #f5a623);
-    color: #0a0a0c;
+    background: transparent;
+    color: var(--amber, #f5a623);
     border-color: var(--amber, #f5a623);
   }
   .fiche-v2 .notes-panel .notes-actions .btn.primary:hover:not(:disabled) {
-    background: #ffc77a;
-    border-color: #ffc77a;
+    background: rgba(245, 166, 35, 0.12);
+    border-color: var(--amber, #f5a623);
+    color: var(--amber, #f5a623);
   }
   .fiche-v2 .notes-panel .notes-actions .btn.primary:disabled {
-    background: var(--amber, #f5a623);
+    background: transparent;
     border-color: var(--amber, #f5a623);
-    color: #0a0a0c;
+    color: var(--amber, #f5a623);
   }
 
   /* Section 3 : Diagnostic */
@@ -3691,21 +3917,33 @@ export default function MockupStyles() {
     box-sizing: border-box;
     position: relative;
   }
+  /* Layout desktop v2 avec chat : grid 2 colonnes (contenu + chat).
+     Le chat est sticky pour rester visible au scroll, mais son point de
+     depart est cale NATURELLEMENT sur le haut de .page via le grid : plus
+     de "top" hardcode qui desaligne quand on touche a la topbar. */
   .fiche-layout.has-chat {
-    padding-right: 416px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 400px;
+    column-gap: 16px;
+    padding-right: 16px;
+    align-items: start;
   }
+  .fiche-layout.has-chat > .page { min-width: 0; }
   .fiche-chat-side {
-    position: fixed;
-    /* Juste sous la ligne du titre de la version (topbar = 16px pad-top
-       + ~34px row + ~10-14px respiration ≈ 66-72px). Le panel recouvre
-       la row des chips de versions, d'où le z-index > topbar (10) pour
-       rester au 1er plan quand on scrolle. */
+    position: sticky;
+    /* top doit etre >= hauteur de la topbar sticky pour que le chat ne
+       passe pas dessous quand on scrolle. Au repos (non scrolle) le chat
+       demarre a sa position naturelle dans le grid, alignee avec .page. */
     top: 72px;
-    right: 16px;
-    bottom: 84px;         /* 68px player + 16px respiration */
-    width: 384px;
+    align-self: start;
+    /* margin-top cale le haut du chat sur le haut de la card row-verdict.
+       Valeur ajustee a partir des mesures getBoundingClientRect(). */
+    margin-top: 26px;
+    height: calc(100vh - 72px - 84px - 26px); /* 72 top + 84 bottom + 26 margin */
+    width: 100%;
     z-index: 12;
     display: flex;
+    margin-right: 0;
   }
   .chat-panel.chat-panel-anchored {
     position: relative;
@@ -7353,55 +7591,107 @@ export default function MockupStyles() {
     }
   }
 
-  /* ── IntentPanel sur FicheScreen (rappel de l'intention) ─── */
-  .intent-panel-fiche {
-    margin: 0 0 18px 0;
-    padding: 14px 18px;
-    background: linear-gradient(180deg,
-      rgba(245, 158, 11, 0.08) 0%,
-      rgba(245, 158, 11, 0.03) 100%);
-    border: 1px solid rgba(245, 158, 11, 0.28);
-    border-left: 3px solid var(--amber, #F59E0B);
-    border-radius: 10px;
+  /* ── IntentPanel sur FicheScreen ──────────────────────────────────
+     Aligné sur le style de .plan-panel (même card, même eyebrow ambre,
+     même halo bas-droit) pour cohérence visuelle dans la colonne droite.
+     Eyebrow toujours visible ; corps (prompt) déployable au clic. */
+  .fiche-v2 .intent-panel-fiche {
+    position: relative;
+    overflow: hidden;
+    background: var(--card);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin: 0 0 14px;
   }
-  .intent-panel-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 6px;
-    flex-wrap: wrap;
-  }
-  .intent-panel-kicker {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--amber, #F59E0B);
-    font-weight: 600;
-  }
-  .intent-panel-kicker .dot {
-    width: 6px;
-    height: 6px;
+  .fiche-v2 .intent-panel-fiche::before {
+    content: '';
+    position: absolute;
+    bottom: -60px; right: -60px;
+    width: 220px; height: 220px;
     border-radius: 50%;
     background: var(--amber, #F59E0B);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+    filter: blur(80px);
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: 0;
   }
-  .intent-panel-scope {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-  .intent-panel-body {
+  .fiche-v2 .intent-panel-fiche > * { position: relative; z-index: 1; }
+
+  /* Eyebrow / titre cliquable — même typo que .plan-eyebrow.
+     Structure : label (titre + scope en colonne) | chevron. */
+  .fiche-v2 .intent-panel-fiche .intent-panel-eyebrow {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border: 0;
+    padding: 0;
     margin: 0;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+    font: inherit;
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-title-row .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--amber);
+    flex-shrink: 0;
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-title {
+    white-space: nowrap;
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-scope {
+    font-family: var(--mono);
+    color: var(--muted, rgba(255,255,255,0.5));
+    letter-spacing: 1.4px;
+    font-size: 10px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    /* aligné avec le texte « INTENTION ARTISTIQUE » (dot 6px + gap 10px) */
+    padding-left: 16px;
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-chev {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--amber);
+    margin-left: auto;
+    transition: transform .2s ease;
+  }
+  .fiche-v2 .intent-panel-fiche.open .intent-panel-chev {
+    transform: rotate(180deg);
+  }
+  /* Corps (prompt) — apparaît au clic, aligné sur le contenu du card. */
+  .fiche-v2 .intent-panel-fiche .intent-panel-body {
+    margin: 14px 0 0;
+    padding: 0;
     font-family: var(--body);
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.55;
     color: var(--text);
     font-style: italic;
   }

@@ -762,14 +762,90 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13l-5-5 5-5"/></svg>
             </button>
           )}
-          <div className="fiche-topbar-title">
-            <TrackTitleTextV2 title={track.title} />
-            <VocalTypePill track={track} onRefresh={onTracksRefresh} />
+          {/* Titre supprimé de la topbar : il est déjà affiché en gros sur
+              l'artwork (.cover-big-title) en colonne droite. */}
+          <div className={`versions-row-wrap versions-row-inline${versions.length >= 3 ? ' has-carousel' : ''}`}>
+            {versions.length >= 3 && (
+              <button
+                type="button"
+                className={`vchip-arrow left${!showFadeLeft ? ' is-edge' : ''}`}
+                onClick={() => {
+                  const el = scrollRef.current;
+                  if (!el) return;
+                  const step = el.clientWidth || 80;
+                  el.scrollBy({ left: -step, behavior: 'smooth' });
+                }}
+                aria-label="Versions précédentes"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <path d="M7.5 2.5L4 6l3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            )}
+            <div ref={scrollRef} className="versions-row-v2">
+              {versions.map((v, idx) => {
+                const score = v.analysisResult?.fiche?.globalScore;
+                const prev = idx > 0 ? versions[idx - 1]?.analysisResult?.fiche?.globalScore : null;
+                const delta = (typeof score === 'number' && typeof prev === 'number') ? score - prev : null;
+                const isActive = v.name === currentVersionName;
+                return (
+                  <VChip
+                    key={v.id}
+                    track={track}
+                    version={v}
+                    idx={idx}
+                    isActive={isActive}
+                    score={score}
+                    delta={delta}
+                    inlineDelta
+                    onSelect={onSelectVersion}
+                    onRefresh={onTracksRefresh}
+                    onShare={onShareVersion}
+                    onExport={onExportVersion}
+                    onDeleted={(deleted) => {
+                      if (deleted.name === currentVersionName && versions.length > 1) {
+                        const next = versions.find(x => x.id !== deleted.id);
+                        if (next) onSelectVersion?.(track, next);
+                      }
+                    }}
+                  />
+                );
+              })}
+            </div>
+            {versions.length >= 3 && (
+              <button
+                type="button"
+                className={`vchip-arrow right${!showFadeRight ? ' is-edge' : ''}`}
+                onClick={() => {
+                  const el = scrollRef.current;
+                  if (!el) return;
+                  const step = el.clientWidth || 80;
+                  el.scrollBy({ left: step, behavior: 'smooth' });
+                }}
+                aria-label="Versions suivantes"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            )}
+            <button
+              className="vchip-new"
+              title={s.fiche.newVersionTitle}
+              onClick={() => onAddVersion && onAddVersion(track)}
+            >+ {s.fiche.newVersionTitle || 'Nouvelle version'}</button>
+            {(currentVersionName || current?.name) && (
+              <span className="active-version-label" title="Version active">
+                <span className="active-version-dot" aria-hidden="true" />
+                <span className="active-version-name">
+                  {currentVersionName || current?.name}
+                </span>
+              </span>
+            )}
           </div>
           {current && (
             <div className="fiche-topbar-meta">
               <div className="ver-label"><b className={stageClass}>{stageLabel}</b></div>
-              <div className="ver-name">{currentVersionName || current.name}</div>
             </div>
           )}
           {current && (onShareVersion || onExportVersion) && (
@@ -807,45 +883,6 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
           )}
         </div>
 
-        <div className="versions-row-wrap">
-          <div ref={scrollRef} className="versions-row-v2">
-            {versions.map((v, idx) => {
-              const score = v.analysisResult?.fiche?.globalScore;
-              const prev = idx > 0 ? versions[idx - 1]?.analysisResult?.fiche?.globalScore : null;
-              const delta = (typeof score === 'number' && typeof prev === 'number') ? score - prev : null;
-              const isActive = v.name === currentVersionName;
-              return (
-                <VChip
-                  key={v.id}
-                  track={track}
-                  version={v}
-                  idx={idx}
-                  isActive={isActive}
-                  score={score}
-                  delta={delta}
-                  inlineDelta
-                  onSelect={onSelectVersion}
-                  onRefresh={onTracksRefresh}
-                  onShare={onShareVersion}
-                  onExport={onExportVersion}
-                  onDeleted={(deleted) => {
-                    if (deleted.name === currentVersionName && versions.length > 1) {
-                      const next = versions.find(x => x.id !== deleted.id);
-                      if (next) onSelectVersion?.(track, next);
-                    }
-                  }}
-                />
-              );
-            })}
-            <button
-              className="vchip-new"
-              title={s.fiche.newVersionTitle}
-              onClick={() => onAddVersion && onAddVersion(track)}
-            >+ {s.fiche.newVersionTitle || 'Nouvelle version'}</button>
-          </div>
-          {showFadeLeft && <div className="versions-row-fade left" aria-hidden="true" />}
-          {showFadeRight && <div className="versions-row-fade right" aria-hidden="true" />}
-        </div>
       </div>
     );
   }
@@ -1776,6 +1813,7 @@ function NotesSection({ versionId, initialNotes, v2 = false }) {
 // Renvoie null s'il n'y en a aucune (pipeline non-calibré ou ancien run).
 function IntentPanel({ analysisResult, currentTrack, versionInDb }) {
   const { s } = useLang();
+  const [open, setOpen] = useState(false);
   const fresh = (typeof analysisResult?.intent_used === 'string' && analysisResult.intent_used.trim()) || null;
   const verIntent = (typeof versionInDb?.versionIntent === 'string' && versionInDb.versionIntent.trim()) || null;
   const trkIntent = (typeof currentTrack?.artisticIntent === 'string' && currentTrack.artisticIntent.trim()) || null;
@@ -1788,14 +1826,31 @@ function IntentPanel({ analysisResult, currentTrack, versionInDb }) {
     ? (s.fiche?.intentScopeVersion || 'cette version')
     : (s.fiche?.intentScopeTrack || 'ce titre');
   return (
-    <section className="intent-panel-fiche" aria-label="Intention artistique">
-      <div className="intent-panel-head">
-        <span className="intent-panel-kicker">
-          <span className="dot" /> {s.fiche?.intentKicker || 'Intention artistique'}
+    <section className={`intent-panel-fiche${open ? ' open' : ''}`} aria-label="Intention artistique">
+      <button
+        type="button"
+        className="intent-panel-eyebrow"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="intent-panel-label">
+          <span className="intent-panel-title-row">
+            <span className="dot" />
+            <span className="intent-panel-title">
+              {s.fiche?.intentKicker || 'Intention artistique'}
+            </span>
+          </span>
+          <span className="intent-panel-scope">
+            {s.fiche?.intentScopePrefix || 'Appliquée à'} {scopeLabel}
+          </span>
         </span>
-        <span className="intent-panel-scope">{s.fiche?.intentScopePrefix || 'Appliquée à'} {scopeLabel}</span>
-      </div>
-      <p className="intent-panel-body">« {intent} »</p>
+        <span className="intent-panel-chev" aria-hidden="true">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M3 4.5l3 3 3-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </button>
+      {open && <p className="intent-panel-body">« {intent} »</p>}
     </section>
   );
 }
@@ -2038,12 +2093,6 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
 
           {/* COLONNE PRINCIPALE (col 1 en v2 desktop) : Score global + Diagnostic */}
           <div className="f2-col-main">
-          {/* 0b · Intention artistique (si déclarée pour ce titre/version) */}
-          <IntentPanel
-            analysisResult={displayAR}
-            currentTrack={currentTrack}
-            versionInDb={versionInDb}
-          />
           {/* 1 · Verdict / Score global */}
           <section className="row-verdict">
             <div className="rv-left">
@@ -2262,42 +2311,60 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 }));
                 return (
                   <div className="col-cover-wrap">
-                    <div
-                      className={`col-cover${currentTrack?.coverImageUrl ? ' has-image' : ' no-image'}`}
-                      aria-label={title}
-                    >
-                      {currentTrack?.coverImageUrl ? (
-                        <img
-                          src={currentTrack.coverImageUrl}
-                          alt=""
-                          className="cover-img"
-                          loading="lazy"
+                    <div className="col-cover-holder">
+                      <div
+                        className={`col-cover${currentTrack?.coverImageUrl ? ' has-image' : ' no-image'}`}
+                        aria-label={title}
+                      >
+                        {currentTrack?.coverImageUrl ? (
+                          <img
+                            src={currentTrack.coverImageUrl}
+                            alt=""
+                            className="cover-img"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <>
+                            {halos.map((hl, i) => (
+                              <span
+                                key={i}
+                                className="ca-halo"
+                                style={{
+                                  left: `${hl.x}%`,
+                                  top: `${hl.y}%`,
+                                  width: `${hl.size}%`,
+                                  background: `radial-gradient(circle, ${hl.color} 0%, transparent 62%)`,
+                                  opacity: hl.opacity,
+                                }}
+                                aria-hidden
+                              />
+                            ))}
+                            <div className="cover-big-title" aria-hidden>
+                              {title}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      {/* Pill type vocal : coin supérieur droit de l'artwork,
+                          déplacée depuis la topbar. Hors de .col-cover pour que
+                          son menu dropdown ne soit pas rogné par overflow:hidden. */}
+                      <div className="cover-vocal-pill">
+                        <VocalTypePill
+                          track={currentTrack}
+                          onRefresh={() => loadTracks().then(setTracks)}
                         />
-                      ) : (
-                        <>
-                          {halos.map((hl, i) => (
-                            <span
-                              key={i}
-                              className="ca-halo"
-                              style={{
-                                left: `${hl.x}%`,
-                                top: `${hl.y}%`,
-                                width: `${hl.size}%`,
-                                background: `radial-gradient(circle, ${hl.color} 0%, transparent 62%)`,
-                                opacity: hl.opacity,
-                              }}
-                              aria-hidden
-                            />
-                          ))}
-                          <div className="cover-big-title" aria-hidden>
-                            {title}
-                          </div>
-                        </>
-                      )}
+                      </div>
                     </div>
                   </div>
                 );
               })()}
+              {/* 0b · Intention artistique — bande repliable juste au-dessus
+                     de Plan d'action, dans la colonne de droite. */}
+              <IntentPanel
+                analysisResult={displayAR}
+                currentTrack={currentTrack}
+                versionInDb={versionInDb}
+              />
               {plan.length > 0 && (
               <div className="col-plan">
                 {(() => {
