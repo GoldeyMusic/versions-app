@@ -341,7 +341,36 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   // que `onDone` n'a pas été appelé (sinon l'utilisateur croit que c'est
   // fini mais on attend encore Claude).
   const pctByPhase = [8, 38, 68, 94];
-  const pct = pctByPhase[Math.max(0, Math.min(phase, 3))];
+
+  // Ramp progressif pendant la phase 2 (writing / Claude) : sans ça, l'anneau
+  // restait bloqué à 68 % pendant 30-60 s, donnant l'impression que le
+  // processus était figé. Courbe asymptotique 1-e^(-t/20) qui monte vite
+  // au début puis ralentit, capée à 0.95 pour ne jamais dépasser 90 % avant
+  // le vrai all_done (qui bascule phase=3 → 94 %).
+  const [writingRamp, setWritingRamp] = useState(0);
+  const writingStartRef = useRef(null);
+  useEffect(() => {
+    if (phase !== 2) {
+      writingStartRef.current = null;
+      setWritingRamp(0);
+      return;
+    }
+    writingStartRef.current = Date.now();
+    const tick = () => {
+      if (writingStartRef.current == null) return;
+      const elapsed = (Date.now() - writingStartRef.current) / 1000;
+      const ramp = Math.min(0.95, 1 - Math.exp(-elapsed / 20));
+      setWritingRamp(ramp);
+    };
+    tick();
+    const id = setInterval(tick, 250);
+    return () => clearInterval(id);
+  }, [phase]);
+
+  const basePct = pctByPhase[Math.max(0, Math.min(phase, 3))];
+  const pct = phase === 2
+    ? Math.round(basePct + (90 - basePct) * writingRamp)
+    : basePct;
   const radius = 100;
   const circumference = 2 * Math.PI * radius; // ≈ 628.32
   const dashOffset = circumference * (1 - pct / 100);
