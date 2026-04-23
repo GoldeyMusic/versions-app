@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import API from '../constants/api';
 // import CompareButton from '../components/CompareButton'; // mis en sommeil
-import VChip from '../components/VChip';
+// VChip (carousel de chips V1/V2/V3) remplacé par VersionDropdown — import retiré.
 import ExportPdfModal from '../components/ExportPdfModal';
 import ShareLinkModal from '../components/ShareLinkModal';
 import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
@@ -695,66 +695,102 @@ function VocalTypePill({ track, onRefresh }) {
   );
 }
 
-// ── Timeline (sticky bar avec chips versions) ──────────────
+// ── Version dropdown (partagé mobile + desktop) ──────────────
+// Remplace l'ancien carousel de chips V1/V2/V3 : un trigger compact
+// "Nom version ▾" ouvre un menu listant toutes les versions (nom + delta + score)
+// et expose l'action "+ Nouvelle version" au pied du menu.
 
-function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onShareVersion, onExportVersion, onTracksRefresh, onGoHome }) {
-  const { s } = useLang();
-  const isMobile = useMobile();
-  const scrollRef = useRef(null);
-  const [showFadeRight, setShowFadeRight] = useState(false);
-  const [showFadeLeft, setShowFadeLeft] = useState(false);
-  // Dropdown mobile : trigger compact qui affiche le nom de la version
-  // active et ouvre un menu listant toutes les versions.
-  const [versionDropdownOpen, setVersionDropdownOpen] = useState(false);
-  const versionDropdownRef = useRef(null);
+function VersionDropdown({ track, currentVersionName, versions, onSelectVersion, onAddVersion, newVersionLabel, showAddInMenu = true }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const current = versions.find((v) => v.name === currentVersionName) || versions[versions.length - 1];
+
   useEffect(() => {
-    if (!versionDropdownOpen) return;
-    const onDown = (e) => {
-      if (!versionDropdownRef.current?.contains(e.target)) setVersionDropdownOpen(false);
-    };
-    const onEsc = (e) => { if (e.key === 'Escape') setVersionDropdownOpen(false); };
+    if (!open) return;
+    const onDown = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    const onEsc = (e) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onEsc);
     return () => {
       document.removeEventListener('mousedown', onDown);
       document.removeEventListener('keydown', onEsc);
     };
-  }, [versionDropdownOpen]);
+  }, [open]);
+
+  if (!current) return null;
+
+  return (
+    <div className="version-dropdown" ref={ref}>
+      <button
+        type="button"
+        className={`version-dropdown-trigger${open ? ' is-open' : ''}`}
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <b>{currentVersionName || current.name}</b>
+        <svg className="vdd-chev" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <path d="M2 4l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <div className="version-dropdown-menu" role="listbox">
+          {versions.map((v, idx) => {
+            const score = v.analysisResult?.fiche?.globalScore;
+            const prev = idx > 0 ? versions[idx - 1]?.analysisResult?.fiche?.globalScore : null;
+            const delta = (typeof score === 'number' && typeof prev === 'number') ? score - prev : null;
+            const isActive = v.name === currentVersionName;
+            return (
+              <button
+                key={v.id}
+                type="button"
+                className={`vdd-item${isActive ? ' is-active' : ''}`}
+                onClick={() => {
+                  if (!isActive) onSelectVersion?.(track, v);
+                  setOpen(false);
+                }}
+                role="option"
+                aria-selected={isActive}
+              >
+                <span className="vdd-item-name">{v.name}</span>
+                <span className="vdd-item-meta">
+                  {typeof delta === 'number' && delta !== 0 && (
+                    <span className={`vdd-item-delta${delta < 0 ? ' down' : ''}`}>
+                      {delta > 0 ? '↑' : '↓'}{Math.abs(delta)}
+                    </span>
+                  )}
+                  {typeof score === 'number' && (
+                    <span className="vdd-item-score">{Math.round(score)}</span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+          {showAddInMenu && onAddVersion && (
+            <button
+              type="button"
+              className="vdd-item vdd-item-add"
+              onClick={() => { setOpen(false); onAddVersion(track); }}
+            >
+              <span aria-hidden="true">+</span>
+              <span>{newVersionLabel}</span>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Timeline (sticky bar topbar + dropdown versions) ──────────────
+
+function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onShareVersion, onExportVersion, onTracksRefresh, onGoHome }) {
+  const { s } = useLang();
+  const isMobile = useMobile();
 
   const versions = track?.versions || [];
   const currentIdx = versions.findIndex((v) => v.name === currentVersionName);
   const current = currentIdx >= 0 ? versions[currentIdx] : versions[versions.length - 1];
-  const currentVIdx = currentIdx >= 0 ? currentIdx : versions.length - 1;
-
-  // Auto-scroll sur la version courante
-  useEffect(() => {
-    if (!scrollRef.current || currentVIdx < 0) return;
-    const container = scrollRef.current;
-    const activeChip = container.querySelector('.vchip.active');
-    if (activeChip) {
-      const cRect = container.getBoundingClientRect();
-      const aRect = activeChip.getBoundingClientRect();
-      const target = container.scrollLeft + (aRect.left - cRect.left) - (cRect.width - aRect.width) / 2;
-      container.scrollTo({ left: target, behavior: 'smooth' });
-    }
-  }, [currentVIdx, versions.length]);
-
-  // Surveille l'overflow pour afficher les fades
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const update = () => {
-      setShowFadeLeft(el.scrollLeft > 4);
-      setShowFadeRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-    };
-    update();
-    el.addEventListener('scroll', update);
-    window.addEventListener('resize', update);
-    return () => {
-      el.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
-    };
-  }, [versions.length]);
 
   if (!track) return null;
 
@@ -782,83 +818,23 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
           )}
           {/* Titre supprimé de la topbar : il est déjà affiché en gros sur
               l'artwork (.cover-big-title) en colonne droite. */}
-          <div className={`versions-row-wrap versions-row-inline${versions.length >= 3 ? ' has-carousel' : ''}`}>
-            {versions.length >= 3 && (
+          <div className="fiche-topbar-versions">
+            <VersionDropdown
+              track={track}
+              currentVersionName={currentVersionName}
+              versions={versions}
+              onSelectVersion={onSelectVersion}
+              onAddVersion={onAddVersion}
+              newVersionLabel={s.fiche.newVersionTitle || 'Nouvelle version'}
+              showAddInMenu={false}
+            />
+            {onAddVersion && (
               <button
                 type="button"
-                className={`vchip-arrow left${!showFadeLeft ? ' is-edge' : ''}`}
-                onClick={() => {
-                  const el = scrollRef.current;
-                  if (!el) return;
-                  const step = el.clientWidth || 80;
-                  el.scrollBy({ left: -step, behavior: 'smooth' });
-                }}
-                aria-label="Versions précédentes"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                  <path d="M7.5 2.5L4 6l3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            )}
-            <div ref={scrollRef} className="versions-row-v2">
-              {versions.map((v, idx) => {
-                const score = v.analysisResult?.fiche?.globalScore;
-                const prev = idx > 0 ? versions[idx - 1]?.analysisResult?.fiche?.globalScore : null;
-                const delta = (typeof score === 'number' && typeof prev === 'number') ? score - prev : null;
-                const isActive = v.name === currentVersionName;
-                return (
-                  <VChip
-                    key={v.id}
-                    track={track}
-                    version={v}
-                    idx={idx}
-                    isActive={isActive}
-                    score={score}
-                    delta={delta}
-                    inlineDelta
-                    onSelect={onSelectVersion}
-                    onRefresh={onTracksRefresh}
-                    onShare={onShareVersion}
-                    onExport={onExportVersion}
-                    onDeleted={(deleted) => {
-                      if (deleted.name === currentVersionName && versions.length > 1) {
-                        const next = versions.find(x => x.id !== deleted.id);
-                        if (next) onSelectVersion?.(track, next);
-                      }
-                    }}
-                  />
-                );
-              })}
-            </div>
-            {versions.length >= 3 && (
-              <button
-                type="button"
-                className={`vchip-arrow right${!showFadeRight ? ' is-edge' : ''}`}
-                onClick={() => {
-                  const el = scrollRef.current;
-                  if (!el) return;
-                  const step = el.clientWidth || 80;
-                  el.scrollBy({ left: step, behavior: 'smooth' });
-                }}
-                aria-label="Versions suivantes"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                  <path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            )}
-            <button
-              className="vchip-new"
-              title={s.fiche.newVersionTitle}
-              onClick={() => onAddVersion && onAddVersion(track)}
-            >+ {s.fiche.newVersionTitle || 'Nouvelle version'}</button>
-            {(currentVersionName || current?.name) && (
-              <span className="active-version-label" title="Version active">
-                <span className="active-version-dot" aria-hidden="true" />
-                <span className="active-version-name">
-                  {currentVersionName || current?.name}
-                </span>
-              </span>
+                className="vchip-new"
+                title={s.fiche.newVersionTitle}
+                onClick={() => onAddVersion(track)}
+              >+ {s.fiche.newVersionTitle || 'Nouvelle version'}</button>
             )}
           </div>
           {current && (
@@ -919,59 +895,14 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
               sur l'artwork (.cover-big-title + .cover-vocal-pill). */}
         </span>
         {current && (
-          <div className="version-dropdown" ref={versionDropdownRef}>
-            <button
-              type="button"
-              className={`version-dropdown-trigger${versionDropdownOpen ? ' is-open' : ''}`}
-              onClick={() => setVersionDropdownOpen((v) => !v)}
-              aria-haspopup="listbox"
-              aria-expanded={versionDropdownOpen}
-            >
-              <b>{currentVersionName || current.name}</b>
-              <svg className="vdd-chev" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-                <path d="M2 4l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            {versionDropdownOpen && (
-              <div className="version-dropdown-menu" role="listbox">
-                {versions.map((v) => {
-                  const vScore = v.analysisResult?.fiche?.globalScore;
-                  const isActive = v.name === currentVersionName;
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      className={`vdd-item${isActive ? ' is-active' : ''}`}
-                      onClick={() => {
-                        if (!isActive) onSelectVersion?.(track, v);
-                        setVersionDropdownOpen(false);
-                      }}
-                      role="option"
-                      aria-selected={isActive}
-                    >
-                      <span className="vdd-item-name">{v.name}</span>
-                      {typeof vScore === 'number' && (
-                        <span className="vdd-item-score">{vScore}</span>
-                      )}
-                    </button>
-                  );
-                })}
-                {onAddVersion && (
-                  <button
-                    type="button"
-                    className="vdd-item vdd-item-add"
-                    onClick={() => {
-                      setVersionDropdownOpen(false);
-                      onAddVersion(track);
-                    }}
-                  >
-                    <span aria-hidden="true">+</span>
-                    <span>{s.fiche.newVersionTitle || 'Nouvelle version'}</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          <VersionDropdown
+            track={track}
+            currentVersionName={currentVersionName}
+            versions={versions}
+            onSelectVersion={onSelectVersion}
+            onAddVersion={onAddVersion}
+            newVersionLabel={s.fiche.newVersionTitle || 'Nouvelle version'}
+          />
         )}
       </div>
 

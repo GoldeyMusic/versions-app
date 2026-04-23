@@ -483,6 +483,27 @@ export default function MockupStyles() {
     background: rgba(245,176,86,0.05);
   }
 
+  /* Delta (évolution vs version précédente) dans les items du dropdown.
+     Vert par défaut (progression), rouge si .down (régression). */
+  .version-dropdown-menu .vdd-item-meta {
+    display: inline-flex; align-items: center; gap: 8px;
+    flex-shrink: 0;
+  }
+  .version-dropdown-menu .vdd-item-delta {
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.6px; color: var(--green, #8ee07a);
+    white-space: nowrap;
+  }
+  .version-dropdown-menu .vdd-item-delta.down {
+    color: var(--red, #ff5d5d);
+  }
+
+  /* Wrapper topbar desktop : [dropdown] + [+ Nouvelle version] sur la même ligne */
+  .fiche-topbar-versions {
+    display: inline-flex; align-items: center; gap: 10px;
+    min-width: 0;
+  }
+
   /* Badge type vocal — legacy (conservé pour rétrocompat, remplacé par .vocal-pill) */
   .vocal-badge {
     font-family: var(--mono);
