@@ -3929,21 +3929,22 @@ export default function MockupStyles() {
     align-items: start;
   }
   .fiche-layout.has-chat > .page { min-width: 0; }
+  /* Chat en position: fixed pour rester TOUJOURS visible au scroll, ancré
+     entre la topbar (72 px) et le BottomPlayer (84 px). La colonne droite du
+     grid .fiche-layout.has-chat (400 px) sert de placeholder pour que .page
+     s'arrête à la bonne largeur ; le chat se superpose pixel-perfect dessus.
+     (Ancienne implémentation en position:sticky qui lâchait après un certain
+     scroll selon la hauteur du parent grid — bypass via fixed.) */
   .fiche-chat-side {
-    position: sticky;
-    /* top doit etre >= hauteur de la topbar sticky pour que le chat ne
-       passe pas dessous quand on scrolle. Au repos (non scrolle) le chat
-       demarre a sa position naturelle dans le grid, alignee avec .page. */
-    top: 72px;
-    align-self: start;
-    /* margin-top cale le haut du chat sur le haut de la card row-verdict.
-       Valeur ajustee a partir des mesures getBoundingClientRect(). */
-    margin-top: 26px;
-    height: calc(100vh - 72px - 84px - 26px); /* 72 top + 84 bottom + 26 margin */
-    width: 100%;
+    position: fixed;
+    top: 98px;              /* 72 topbar + 26 marge visuelle */
+    bottom: 100px;          /* 84 bottom player + 16 respiration */
+    /* right et width sont calculés pour matcher exactement la cellule
+       grid de la colonne 2 (400 px) + le padding-right du parent (16 px). */
+    right: 16px;
+    width: 400px;
     z-index: 12;
     display: flex;
-    margin-right: 0;
   }
   .chat-panel.chat-panel-anchored {
     position: relative;
@@ -4267,7 +4268,23 @@ export default function MockupStyles() {
     color: var(--text); opacity: 0.14;
     pointer-events: none;
   }
-  @media (max-width: 1100px) {
+  /* Breakpoint intermédiaire : entre 1300 et 1500 px de viewport, on donne
+     plus de place au slogan (3/4 colonnes au lieu de 2/4) et on laisse la
+     tagline wrap sur plusieurs lignes dans la dernière colonne, SANS
+     réduire sa taille — elle garde sa typo 20 px serif italic d'origine. */
+  @media (max-width: 1500px) {
+    .wh-desktop .wh-intro-row .wh-slogan {
+      grid-column: 1 / 4;
+    }
+    .wh-desktop .wh-intro .wh-tagline-text {
+      grid-column: 4 / 5;
+      max-width: none;
+      justify-self: stretch;
+    }
+  }
+  /* Sous 1300 px de viewport, on bascule en layout colonne : slogan en
+     pleine largeur, tagline en dessous. Évite tout chevauchement. */
+  @media (max-width: 1300px) {
     .wh-desktop .wh-intro-row {
       display: flex; flex-direction: column;
       align-items: flex-start; gap: 8px;
@@ -4279,7 +4296,9 @@ export default function MockupStyles() {
     }
     .wh-desktop .wh-intro .wh-tagline-text {
       padding-left: 0;
-      max-width: 720px; margin-top: 4px;
+      max-width: 720px; margin-top: 8px;
+      font-size: 20px;
+      line-height: 1.45;
     }
     .wh-desktop .wh-intro .wh-tagline-text::before { display: none; }
   }
@@ -7235,48 +7254,102 @@ export default function MockupStyles() {
           kickers, cards sur --s1 avec border --border).
           ============================================================ */}
       <style>{`
+  /* L'écran d'intention prend toute la hauteur du viewport, fond transparent
+     (hérite du fond ambient de la page avec les halos — comme la Home et la
+     fiche). Le contenu est lui-même capé en largeur via un max-width sur les
+     enfants directs pour garder une lecture confortable. */
   .intent-screen {
     min-height: 100vh;
-    background: var(--bg);
     color: var(--text);
     font-family: var(--body);
-    padding: 48px 32px 64px;
-    max-width: 1200px;
-    margin: 0 auto;
+    padding: 64px 32px;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .intent-screen > * {
+    width: 100%;
+    max-width: 1000px;
+  }
+  .intent-screen-compact > * {
+    max-width: 640px;
   }
   .intent-screen-compact {
-    max-width: 720px;
-    padding: 64px 24px;
+    padding: 72px 24px;
+  }
+  /* Espacement de la waveform animée, du panneau tips et du bouton Annuler
+     pour respecter les mêmes respirations que le .ap-stack du Loading. */
+  .intent-screen .ap-wave {
+    margin-top: 28px;
+    margin-bottom: 4px;
+  }
+  .intent-screen .ap-tip {
+    margin-top: 16px;
+  }
+  /* Le bouton « Annuler l'analyse » devient direct enfant de .intent-screen :
+     on l'isole (pas de max-width étiré à 1000 px), on le centre via
+     align-self, et on lui donne l'espacement vertical du Loading. */
+  .intent-screen > .intent-btn-cancel {
+    width: auto !important;
+    max-width: none !important;
+    align-self: center;
+    margin-top: 24px;
   }
 
-  /* ── Header : kicker + titre + subtitle ───────────────────── */
-  .intent-head {
+  /* Logo VERSIONS en tête d'écran, même traitement que .ap-logo du
+     Loading : drop-shadow ambre subtile, hauteur 60 px. S'aligne avec
+     le centrage flex du parent .intent-screen. */
+  .intent-logo {
+    width: auto !important;
+    max-width: 200px !important;
+    height: 60px;
+    display: block;
     margin-bottom: 32px;
+    filter: drop-shadow(0 6px 22px rgba(245,166,35,0.28));
+  }
+
+  /* ── Header : kicker + titre + subtitle ─────────────────────
+     Typo calée sur la topbar fiche (pas de serif immense) : titre
+     en body/bold 24-26 px, accent ambre italique sur les mots-clés. */
+  .intent-head {
+    margin-bottom: 28px;
   }
   .intent-kicker {
     font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.12em;
+    font-size: 10px;
+    letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--amber);
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .intent-kicker::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--amber);
   }
   .intent-title {
-    font-family: var(--serif);
-    font-weight: 500;
-    font-size: 34px;
-    line-height: 1.2;
+    font-family: var(--body);
+    font-weight: 700;
+    font-size: 26px;
+    line-height: 1.3;
     color: var(--text);
-    margin: 0 0 10px;
-    letter-spacing: -0.01em;
+    margin: 0 0 12px;
+    letter-spacing: -0.4px;
   }
   .intent-title em {
-    font-style: italic;
+    font-style: normal;
+    font-weight: 700;
     color: var(--amber);
   }
   .intent-subtitle {
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.55;
     color: var(--soft);
     margin: 0;
@@ -7307,25 +7380,53 @@ export default function MockupStyles() {
     min-width: 0;
   }
 
-  /* ── Perception card (CE QUE J'ENTENDS) ───────────────────── */
+  /* ── Perception card (CE QUE J'ENTENDS) ─────────────────────
+     Harmonisée avec les cards de la fiche (plan-panel, intent-panel-fiche) :
+     fond var(--card), border standard, radius 14 px, contenu en body font.
+     Eyebrow mono ambre + dot reproduisent le pattern Notes/Plan. */
   .intent-perception {
-    background: var(--s1);
-    border: 1px solid var(--border);
-    border-left: 2px solid var(--amber-line);
-    border-radius: 10px;
-    padding: 18px 20px;
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
+    padding: 20px 22px;
+    overflow: hidden;
   }
+  .intent-perception::before {
+    content: '';
+    position: absolute;
+    bottom: -60px; right: -60px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: var(--amber, #F59E0B);
+    filter: blur(80px);
+    opacity: 0.10;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .intent-perception > * { position: relative; z-index: 1; }
   .intent-perception-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.14em;
+    font-size: 10.5px;
+    letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--amber);
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+  }
+  .intent-perception-kicker::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--amber);
+    flex-shrink: 0;
   }
   .intent-perception-lead {
-    font-family: var(--serif);
-    font-size: 17px;
+    font-family: var(--body);
+    font-size: 15px;
     line-height: 1.55;
     font-weight: 400;
     color: var(--text);
@@ -7337,24 +7438,26 @@ export default function MockupStyles() {
     margin-top: 14px;
   }
   .intent-chip {
-    font-family: var(--body);
-    font-size: 11px;
-    padding: 4px 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 5px 10px;
     border-radius: 999px;
-    background: var(--s3);
-    color: var(--soft);
-    border: 1px solid var(--border);
-    letter-spacing: 0.02em;
+    background: rgba(255,255,255,0.04);
+    color: var(--soft, rgba(255,255,255,0.72));
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    text-transform: uppercase;
   }
   .intent-tag {
     font-family: var(--mono);
     font-size: 10px;
-    padding: 4px 10px;
+    letter-spacing: 1px;
+    padding: 5px 10px;
     border-radius: 999px;
-    background: var(--amber-glow);
+    background: transparent;
     color: var(--amber);
-    border: 1px solid var(--amber-line);
-    letter-spacing: 0.04em;
+    border: 1px solid rgba(245, 166, 35, 0.35);
+    text-transform: uppercase;
   }
 
   /* ── Textarea ─────────────────────────────────────────────── */
@@ -7365,15 +7468,15 @@ export default function MockupStyles() {
   }
   .intent-textarea {
     width: 100%;
-    min-height: 160px;
+    min-height: 140px;
     resize: vertical;
-    background: var(--s1);
-    border: 1px solid var(--border-strong);
-    border-radius: 10px;
-    padding: 14px 16px 28px;
+    background: var(--card, rgba(255,255,255,0.02));
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
+    padding: 16px 18px 32px;
     color: var(--text);
     font-family: var(--body);
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.55;
     box-sizing: border-box;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -7384,8 +7487,7 @@ export default function MockupStyles() {
   }
   .intent-textarea:focus {
     outline: none;
-    border-color: var(--amber-line);
-    box-shadow: 0 0 0 3px var(--amber-glow);
+    border-color: var(--amber-line, rgba(245,166,35,0.45));
   }
   .intent-char-count {
     position: absolute;
@@ -7401,97 +7503,159 @@ export default function MockupStyles() {
   .intent-scope {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
   .intent-scope-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-family: var(--mono);
     font-size: 10px;
-    letter-spacing: 0.14em;
+    letter-spacing: 1.4px;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--muted, rgba(255,255,255,0.5));
+  }
+  .intent-scope-label::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--muted, rgba(255,255,255,0.5));
   }
   .intent-seg {
     display: inline-flex;
     padding: 4px;
-    background: var(--s1);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    background: transparent;
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 999px;
     width: fit-content;
+    gap: 2px;
   }
   .intent-seg-btn {
-    font-family: var(--body);
-    font-size: 13px;
-    padding: 8px 14px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 7px 14px;
     background: transparent;
     border: 0;
-    border-radius: 7px;
-    color: var(--soft);
+    border-radius: 999px;
+    color: var(--soft, rgba(255,255,255,0.72));
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
   }
-  .intent-seg-btn:hover {
+  .intent-seg-btn:hover:not(.on) {
+    background: rgba(255,255,255,0.04);
     color: var(--text);
   }
   .intent-seg-btn.on {
-    background: var(--amber);
-    color: var(--bg);
-    font-weight: 500;
+    background: rgba(245, 166, 35, 0.12);
+    color: var(--amber, #f5a623);
+    /* Pas de fond solide : pattern ambre transparent aligné sur les
+       autres états actifs de l'app (chips, bouton Enregistrer Notes). */
   }
 
-  /* ── Actions (ghost + primary) ───────────────────────────── */
+  /* ── Actions (ghost + primary) ───────────────────────────────
+     Style mono/uppercase calé sur le bouton + Nouvelle version et les
+     boutons Notes (ambre transparent, pas de fond solide).
+     Le bouton « Annuler » n'est PAS ici : il est posé plus bas, après
+     le panneau tips, comme sur le Loading. */
   .intent-actions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
     align-items: center;
-    margin-top: 4px;
+    gap: 10px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .intent-actions button { white-space: nowrap; }
+  .intent-btn-ghost,
+  .intent-btn-primary {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 9px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+    flex-shrink: 0;
   }
   .intent-btn-ghost {
-    font-family: var(--body);
-    font-size: 14px;
-    padding: 11px 18px;
     background: transparent;
-    border: 1px solid var(--border-strong);
-    border-radius: 999px;
-    color: var(--soft);
-    cursor: pointer;
-    transition: border-color 0.15s ease, color 0.15s ease;
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    color: var(--soft, rgba(255,255,255,0.72));
   }
   .intent-btn-ghost:hover {
-    border-color: var(--text);
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.18);
     color: var(--text);
   }
   .intent-btn-primary {
-    font-family: var(--body);
-    font-weight: 500;
-    font-size: 14px;
-    padding: 12px 20px;
-    background: var(--amber);
-    border: 0;
-    border-radius: 999px;
-    color: var(--bg);
-    cursor: pointer;
-    transition: transform 0.1s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-    box-shadow: 0 6px 20px var(--amber-glow);
+    background: transparent;
+    border: 1px solid var(--amber, #f5a623);
+    color: var(--amber, #f5a623);
   }
   .intent-btn-primary:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 24px var(--amber-glow);
+    background: rgba(245, 166, 35, 0.12);
   }
   .intent-btn-primary:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-    box-shadow: none;
+  }
+  /* Bouton « Annuler l'analyse » — même style que .ap-cancel du Loading :
+     outline très discret, hover rouge pour signaler le côté destructif.
+     Positionné automatiquement à droite grâce au justify-content: space-between
+     du parent .intent-actions. */
+  .intent-btn-cancel {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    padding: 9px 14px;
+    border-radius: 999px;
+    color: var(--muted, rgba(255,255,255,0.5));
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    line-height: 1;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+    flex-shrink: 0;
+  }
+  .intent-btn-cancel:hover {
+    color: var(--red, #ff5d5d);
+    border-color: rgba(255, 93, 93, 0.4);
+    background: rgba(255, 93, 93, 0.04);
   }
 
-  /* ── Examples (colonne latérale) ─────────────────────────── */
+  /* ── Examples (colonne latérale) ──────────────────────────
+     Alignés sur le pattern card unifié de la refonte : fond var(--card),
+     border 14 px radius. Eyebrow "DES EXEMPLES POUR TE LANCER" en mono muted
+     avec dot cerulean (même que .notes-eyebrow de la fiche).  */
   .intent-examples-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-family: var(--mono);
     font-size: 10px;
-    letter-spacing: 0.14em;
+    letter-spacing: 1.4px;
     text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 10px;
+    color: var(--muted, rgba(255,255,255,0.5));
+    margin-bottom: 12px;
+  }
+  .intent-examples-title::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--cerulean, #5cb8cc);
   }
   .intent-examples {
     display: flex;
@@ -7501,25 +7665,25 @@ export default function MockupStyles() {
   .intent-example {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
     text-align: left;
-    padding: 12px 14px;
-    background: var(--s1);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    padding: 14px 16px;
+    background: var(--card);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
     color: var(--soft);
     cursor: pointer;
     transition: background 0.15s ease, border-color 0.15s ease;
     font-family: var(--body);
   }
   .intent-example:hover {
-    background: var(--s2);
-    border-color: var(--amber-line);
+    background: rgba(255,255,255,0.03);
+    border-color: rgba(245,166,35,0.35);
   }
   .intent-example-label {
     font-family: var(--mono);
-    font-size: 9px;
-    letter-spacing: 0.14em;
+    font-size: 9.5px;
+    letter-spacing: 1.4px;
     text-transform: uppercase;
     color: var(--amber);
   }
@@ -7532,18 +7696,28 @@ export default function MockupStyles() {
 
   /* ── Pipeline (colonne latérale) ─────────────────────────── */
   .intent-pipeline {
-    padding: 14px 16px;
-    background: var(--s1);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    padding: 16px 18px;
+    background: var(--card);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
   }
   .intent-pipeline-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-family: var(--mono);
     font-size: 10px;
-    letter-spacing: 0.14em;
+    letter-spacing: 1.4px;
     text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 10px;
+    color: var(--muted, rgba(255,255,255,0.5));
+    margin-bottom: 12px;
+  }
+  .intent-pipeline-title::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--cerulean, #5cb8cc);
   }
   .intent-pipeline-step {
     position: relative;

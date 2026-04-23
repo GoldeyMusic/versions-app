@@ -17,6 +17,7 @@
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react';
+import useLang from '../hooks/useLang';
 
 const HINTS = [
   "Ex : je veux garder ce côté brut, lo-fi — la voix en retrait est un choix, je cherche un grain à la Frank Ocean / Blonde…",
@@ -25,11 +26,43 @@ const HINTS = [
   "Ex : c'est une démo, pas un master. Dis-moi surtout si l'arrangement tient debout.",
 ];
 
-const EXAMPLES = [
+// Pool d'exemples catégorisés. À chaque montage de la page, on tire 3 exemples
+// différents (shuffle stable) pour varier l'inspiration donnée à l'utilisateur.
+// Les 3 familles (Référence, Choix assumé, Garde-fou) illustrent 3 angles
+// différents d'une intention artistique.
+const EXAMPLES_POOL = [
+  // ── Références sonores
   { label: 'Référence', text: 'Je cherche un son à la Frank Ocean — Blonde, pas Channel Orange.' },
+  { label: 'Référence', text: "Je vise une ambiance à la SZA / SOS — chaud, enveloppant, voix bien en avant." },
+  { label: 'Référence', text: 'Plus proche de Radiohead / In Rainbows que de Kid A — analogique, organique.' },
+  { label: 'Référence', text: "Direction Tame Impala / Currents — synthés un peu voilés, basse qui respire." },
+  { label: 'Référence', text: "Esprit Burial / Untrue — nocturne, voix hantée, kicks sourds." },
+  { label: 'Référence', text: 'Comme un morceau de The Weeknd / After Hours — synth pop 80s un peu froide.' },
+
+  // ── Choix assumés
   { label: 'Choix assumé', text: "La voix en retrait, c'est voulu — pas un défaut de mix." },
+  { label: 'Choix assumé', text: "Les aigus volontairement doux, je veux un son mat, pas brillant." },
+  { label: 'Choix assumé', text: "Batterie pas parfaitement quantifiée, c'est joué live, c'est le feeling que je cherche." },
+  { label: 'Choix assumé', text: "Arrangement minimaliste par choix — pas besoin de rajouter des couches." },
+  { label: 'Choix assumé', text: "Basse saturée volontairement, c'est le son — pas une erreur de gain." },
+
+  // ── Garde-fous
   { label: 'Garde-fou', text: 'Je veux garder ce côté brut, lo-fi. Ne me propose pas de le "propre-r".' },
+  { label: 'Garde-fou', text: "C'est une démo, pas un master. Dis-moi surtout si l'arrangement tient debout." },
+  { label: 'Garde-fou', text: "Pas de polissage sur la voix — je veux garder le grain et les respirations." },
+  { label: 'Garde-fou', text: "Ne me dis pas de réduire le low end, j'aime quand ça pousse en bas." },
+  { label: 'Garde-fou', text: "Garde le côté 'maquette' — je ne cherche pas un son radio FM." },
 ];
+
+// Shuffle Fisher-Yates : pioche 3 exemples distincts sans ordre privilégié.
+function pickExamples(pool, n = 3) {
+  const arr = [...pool];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, n);
+}
 
 export default function IntentionScreen({
   perception,
@@ -38,14 +71,40 @@ export default function IntentionScreen({
   inheritedIntent = null,
   onSubmit,
   onSkip,
+  onCancel,
 }) {
+  const { s } = useLang();
   const [intent, setIntent] = useState('');
   const [scope, setScope] = useState('track');
   const [hintIndex, setHintIndex] = useState(0);
   const areaRef = useRef(null);
 
+  // On pioche 3 exemples au hasard dans le pool à chaque montage.
+  // useState(() => ...) fige le tirage pour toute la durée de l'écran :
+  // l'utilisateur ne verra pas les exemples changer sous ses yeux, mais
+  // à la prochaine visite de la page le tirage sera différent.
+  const [examples] = useState(() => pickExamples(EXAMPLES_POOL, 3));
+
   const trackTitle = config?.title || '';
   const versionName = config?.version || '';
+
+  // Tips « Le saviez-vous ? » — même source que LoadingScreen (s.loading.tips).
+  // On les mélange une fois au montage et on les fait tourner toutes les 12s.
+  const tipsSource = Array.isArray(s?.loading?.tips) ? s.loading.tips : [];
+  const [shuffledTips] = useState(() => {
+    const arr = [...tipsSource];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  });
+  const [tipIdx, setTipIdx] = useState(0);
+  useEffect(() => {
+    if (!shuffledTips.length) return;
+    const id = setInterval(() => setTipIdx((i) => (i + 1) % shuffledTips.length), 12000);
+    return () => clearInterval(id);
+  }, [shuffledTips.length]);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -65,8 +124,14 @@ export default function IntentionScreen({
   if (!isFirstVersion && inheritedIntent) {
     return (
       <div className="intent-screen intent-screen-compact">
+        <img
+          src="/logo-versions.svg"
+          alt=""
+          aria-hidden="true"
+          className="intent-logo"
+        />
         <div className="intent-head">
-          <div className="intent-kicker">Étape 2/3 · intention</div>
+          <div className="intent-kicker">Étape 2/3 · intention artistique</div>
           <h2 className="intent-title">
             Cette <em>{versionName || 'nouvelle version'}</em> de {trackTitle} — tu gardes la même direction&nbsp;?
           </h2>
@@ -104,6 +169,32 @@ export default function IntentionScreen({
             Lancer le diagnostic calibré →
           </button>
         </div>
+
+        {/* Waveform animée + Carte « Le saviez-vous ? » — mêmes composants
+            que sur le Loading pour une continuité visuelle totale. */}
+        <div className="ap-wave" aria-hidden="true">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <span key={i} />
+          ))}
+        </div>
+        {shuffledTips.length > 0 && (
+          <div className="ap-tip" role="region" aria-label={s.loading.didYouKnow}>
+            <div className="ap-tip-kicker">
+              <span className="ap-tip-dot" aria-hidden="true" />
+              {s.loading.didYouKnow}
+            </div>
+            <div key={tipIdx} className="ap-tip-body">
+              {shuffledTips[tipIdx]}
+            </div>
+          </div>
+        )}
+
+        {/* Bouton Annuler en fin d'écran, isolé, comme sur le Loading */}
+        {onCancel && (
+          <button className="intent-btn-cancel" type="button" onClick={onCancel}>
+            Annuler l'analyse
+          </button>
+        )}
       </div>
     );
   }
@@ -119,8 +210,14 @@ export default function IntentionScreen({
 
   return (
     <div className="intent-screen">
+      <img
+        src="/logo-versions.svg"
+        alt=""
+        aria-hidden="true"
+        className="intent-logo"
+      />
       <div className="intent-head">
-        <div className="intent-kicker">Étape 2/3 · intention</div>
+        <div className="intent-kicker">Étape 2/3 · intention artistique</div>
         <h2 className="intent-title">
           Avant d'aller plus loin, voici ma <em>lecture</em> de ce morceau.
         </h2>
@@ -203,9 +300,9 @@ export default function IntentionScreen({
           <div>
             <div className="intent-examples-title">Des exemples pour te lancer</div>
             <div className="intent-examples">
-              {EXAMPLES.map((ex) => (
+              {examples.map((ex, i) => (
                 <button
-                  key={ex.label}
+                  key={`${ex.label}-${i}`}
                   type="button"
                   className="intent-example"
                   onClick={() => handleExampleClick(ex.text)}
@@ -218,13 +315,38 @@ export default function IntentionScreen({
           </div>
 
           <div className="intent-pipeline">
-            <div className="intent-pipeline-title">Pipeline</div>
-            <div className="intent-pipeline-step done">Écoute qualitative · Gemini</div>
-            <div className="intent-pipeline-step active">Ton intention</div>
-            <div className="intent-pipeline-step">Diagnostic calibré · Claude</div>
+            <div className="intent-pipeline-step done">Écoute qualitative</div>
+            <div className="intent-pipeline-step active">Ton intention artistique</div>
+            <div className="intent-pipeline-step">Diagnostic calibré</div>
           </div>
         </div>
       </div>
+
+      {/* Waveform animée + Carte « Le saviez-vous ? » — mêmes composants
+          que sur le Loading pour une continuité visuelle totale. */}
+      <div className="ap-wave" aria-hidden="true">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <span key={i} />
+        ))}
+      </div>
+      {shuffledTips.length > 0 && (
+        <div className="ap-tip" role="region" aria-label={s.loading.didYouKnow}>
+          <div className="ap-tip-kicker">
+            <span className="ap-tip-dot" aria-hidden="true" />
+            {s.loading.didYouKnow}
+          </div>
+          <div key={tipIdx} className="ap-tip-body">
+            {shuffledTips[tipIdx]}
+          </div>
+        </div>
+      )}
+
+      {/* Bouton Annuler en fin d'écran, isolé, comme sur le Loading */}
+      {onCancel && (
+        <button className="intent-btn-cancel" type="button" onClick={onCancel}>
+          Annuler l'analyse
+        </button>
+      )}
     </div>
   );
 }

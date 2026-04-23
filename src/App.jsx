@@ -2657,6 +2657,7 @@ function VersionsAppAuthed() {
             inheritedIntent={intentCtx?.inheritedIntent || null}
             onSubmit={handleIntentSubmit}
             onSkip={handleIntentSkip}
+            onCancel={handleSidebarNewTrack}
           />
         );
       }
