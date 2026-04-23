@@ -404,6 +404,85 @@ export default function MockupStyles() {
     letter-spacing: 1.5px;
   }
 
+  /* ─── Version dropdown (mobile) ─────────────────────────────────────
+     Remplace le carousel de chips versions par un trigger compact
+     qui ouvre un menu déroulant. Si ça prouve, on pourra le remonter
+     côté desktop pour gagner de la place. */
+  .version-dropdown { position: relative; display: inline-flex; }
+  .version-dropdown-trigger {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px;
+    background: transparent;
+    border: 1px solid rgba(245,166,35,0.45);
+    border-radius: 999px;
+    color: var(--amber);
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    line-height: 16px; cursor: pointer;
+    transition: border-color .15s, background .15s;
+    appearance: none; -webkit-appearance: none;
+  }
+  .version-dropdown-trigger b {
+    font-weight: 500; color: var(--amber); letter-spacing: 1.2px;
+  }
+  .version-dropdown-trigger:hover,
+  .version-dropdown-trigger.is-open {
+    border-color: var(--amber);
+    background: rgba(245,176,86,0.08);
+  }
+  .version-dropdown-trigger .vdd-chev {
+    transition: transform .18s ease;
+  }
+  .version-dropdown-trigger.is-open .vdd-chev {
+    transform: rotate(180deg);
+  }
+  .version-dropdown-menu {
+    position: absolute; top: calc(100% + 6px); left: 0;
+    min-width: 180px; max-width: 90vw;
+    background: var(--s1);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    padding: 6px;
+    display: flex; flex-direction: column;
+    gap: 2px; z-index: 40;
+    animation: fadeup .18s ease;
+  }
+  .version-dropdown-menu .vdd-item {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; width: 100%;
+    padding: 10px 12px; border-radius: 8px;
+    background: transparent; border: none;
+    color: var(--soft);
+    font-family: var(--body); font-size: 14px; font-weight: 500;
+    text-align: left; cursor: pointer;
+    transition: background .12s, color .12s;
+  }
+  .version-dropdown-menu .vdd-item:hover {
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+  }
+  .version-dropdown-menu .vdd-item.is-active {
+    background: rgba(245,176,86,0.08);
+    color: var(--amber);
+  }
+  .version-dropdown-menu .vdd-item-score {
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 1px; color: var(--muted);
+  }
+  .version-dropdown-menu .vdd-item.is-active .vdd-item-score {
+    color: var(--amber);
+  }
+  .version-dropdown-menu .vdd-item-add {
+    color: var(--muted);
+    border-top: 1px dashed rgba(255,255,255,0.06);
+    margin-top: 2px; padding-top: 12px;
+  }
+  .version-dropdown-menu .vdd-item-add:hover {
+    color: var(--amber);
+    background: rgba(245,176,86,0.05);
+  }
+
   /* Badge type vocal — legacy (conservé pour rétrocompat, remplacé par .vocal-pill) */
   .vocal-badge {
     font-family: var(--mono);
@@ -1364,6 +1443,157 @@ export default function MockupStyles() {
       grid-template-columns: 1fr 1fr;
     }
   }
+
+  /* ─── Fiche v2 — tablette étroite / mobile ─────────────────────────────
+     Sous 900px on casse la grille 6-colonnes desktop et on empile les
+     sections verticalement (pochette → verdict → diagnostic → plan →
+     qualitative → notes). Le chat reste un drawer en mobile (has-chat
+     absent), donc pas de 3ᵉ colonne à gérer. */
+  @media (max-width: 900px) {
+    .fiche-v2 .page {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 16px;
+      padding: 16px 16px 80px;
+    }
+    /* display: contents fait remonter les enfants de f2-col-main / side
+       directement au niveau du flex parent .page. Ça permet d'ordonner
+       pochette → score → diag → plan → qualitative → notes sans tenir
+       compte de leur colonne d'origine (main ou side). */
+    .fiche-v2 .page > .f2-col-main,
+    .fiche-v2 .page > .f2-col-side {
+      display: contents;
+    }
+    /* Ordre d'empilement mobile :
+       0 vocal-suggest (banner) · 1 pochette · 2 score · 3 diag · 4 plan
+       · 5 qualitative · 6 notes. */
+    .fiche-v2 .page .vocal-suggest   { order: 0; }
+    .fiche-v2 .page .col-cover-wrap  { order: 1; }
+    .fiche-v2 .page .row-verdict     { order: 2; }
+    .fiche-v2 .page .col-diag        { order: 3; }
+    .fiche-v2 .page .col-plan,
+    .fiche-v2 .page .intent-panel-fiche { order: 4; }
+    .fiche-v2 .page .row-qualitative { order: 5; }
+    .fiche-v2 .page .notes-section   { order: 6; }
+    /* Neutralise les grid-column/row du layout desktop (qui faisaient
+       déborder les enfants puisqu'on n'est plus en grid). */
+    .fiche-v2 .page .vocal-suggest,
+    .fiche-v2 .page .col-cover-wrap,
+    .fiche-v2 .page .row-verdict,
+    .fiche-v2 .page .col-diag,
+    .fiche-v2 .page .col-plan,
+    .fiche-v2 .page .intent-panel-fiche,
+    .fiche-v2 .page .row-qualitative,
+    .fiche-v2 .page .notes-section {
+      grid-column: auto;
+      grid-row: auto;
+    }
+    /* Pochette : on neutralise le padding-left 48px et le stretch desktop,
+       on la centre horizontalement dans .page (qui est flex column). */
+    .fiche-v2 .page .col-cover-wrap {
+      width: 100%;
+      max-width: 280px;
+      padding-left: 0;
+      padding-right: 0;
+      margin: 0 auto;
+      align-self: center;
+      justify-self: center;
+      justify-content: center;
+    }
+    .fiche-v2 .page .col-cover-wrap .col-cover-holder {
+      max-width: 100%;
+    }
+    /* row-verdict : padding-left calc(33.33% + 40px) réservait la place
+       de la pochette superposée en desktop. En mobile, plus de superposition —
+       la pochette est au-dessus en bloc. On remet un padding interne normal
+       pour que le contenu ne colle pas aux bords du cadre. */
+    .fiche-v2 .page .row-verdict .rv-left {
+      padding-left: 22px;
+    }
+    /* rv-top empile verticalement (score ring au-dessus des 6 indicateurs),
+       indicateurs en grille 2x3 compacte. */
+    .fiche-v2 .row-verdict .rv-left .rv-top {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 16px;
+    }
+    .fiche-v2 .row-verdict .rv-left .rv-top .mix-indicators {
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    /* Gros chiffre du score ring : 56px sort du cercle sur mobile —
+       on réduit à 40px. !important car la règle desktop (même specificity)
+       vient plus tard dans le fichier et gagnerait sinon le cascade. */
+    .fiche-v2 .row-verdict .rv-left .score-ring .big,
+    .fiche-v2 .score-ring .big {
+      font-size: 40px !important;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .fiche-v2 .row-verdict .rv-left .score-ring .big-suffix,
+    .fiche-v2 .score-ring .big-suffix {
+      font-size: 9px !important;
+      margin-top: 6px;
+    }
+
+    /* Padding uniforme sur tous les panels de la fiche en mobile pour que
+       l'enchaînement vertical soit visuellement régulier. */
+    .fiche-v2 .row-verdict .rv-left,
+    .fiche-v2 .diag-panel,
+    .fiche-v2 .plan-panel,
+    .fiche-v2 .notes-panel {
+      padding: 20px 22px !important;
+    }
+
+    /* Neutralise toutes les marges top/bottom sur les sections directes
+       de .page — le rythme vertical est géré uniquement par le gap: 16px
+       du flex parent, pour un espacement strictement uniforme. */
+    .fiche-v2 .page > .row-qualitative,
+    .fiche-v2 .page > .notes-section,
+    .fiche-v2 .page > .col-cover-wrap,
+    .fiche-v2 .page > .row-verdict,
+    .fiche-v2 .page > .col-diag,
+    .fiche-v2 .page > .col-plan,
+    .fiche-v2 .page > .intent-panel-fiche,
+    .fiche-v2 .page > .vocal-suggest,
+    .fiche-v2 .col-diag,
+    .fiche-v2 .col-plan {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    /* Panels directement en flex items : plus de margin-top/bottom qui
+       s'ajoute au gap: 16px de .page. */
+    .fiche-v2 .diag-panel,
+    .fiche-v2 .plan-panel,
+    .fiche-v2 .row-qualitative > *,
+    .fiche-v2 .notes-section {
+      margin: 0 !important;
+    }
+
+    /* Badge type vocal sur la pochette : le 9.5px/3-8px par défaut fait
+       très petit à côté des pills 11px du reste du site. On l'aligne sur
+       la grammaire .add-mini-btn / .wh-btn pour rester raccord. */
+    .fiche-v2 .col-cover-holder .cover-vocal-pill .vocal-pill {
+      font-size: 11px;
+      letter-spacing: 1.2px;
+      padding: 6px 14px;
+      line-height: 14px;
+      border-radius: 999px;
+    }
+    .fiche-v2 .col-cover-holder .cover-vocal-pill {
+      top: 12px;
+      right: 12px;
+    }
+  }
+
+  /* Très petit mobile : indicateurs 1 col. */
+  @media (max-width: 420px) {
+    .fiche-v2 .row-verdict .rv-left .rv-top .mix-indicators {
+      grid-template-columns: 1fr;
+    }
+  }
+
 
   /* Typo du gros nombre dans le ring — on passe en DM Sans geometric
      (comme la maquette) pour une lisibilité plus nette que Cormorant 58px. */
@@ -3730,6 +3960,12 @@ export default function MockupStyles() {
 
   /* Volume : icône + popup slider vertical (réutilisable dans player + hero) */
   .pl-volume { position: relative; flex-shrink: 0; }
+  /* Mobile (portrait ou paysage) : pas de contrôle volume dans le player —
+     on utilise le volume matériel du téléphone. Même media query que
+     useMobile (hooks/useMobile.js). */
+  @media (max-width: 768px), (max-height: 500px) {
+    .pl-volume { display: none !important; }
+  }
   .pl-volume-btn {
     display: flex; align-items: center; justify-content: center;
     width: 28px; height: 28px; border-radius: 6px;
@@ -3801,10 +4037,15 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 12px; letter-spacing: 2px;
     color: var(--amber); text-transform: uppercase;
   }
+  /* Aligné sur .add-mini-close (modales) : 28×28 radius 8, transparent,
+     hover doux sur s2. Cohérent avec le reste des fermetures du site. */
   .chat-head .cclose {
-    width: 24px; height: 24px; border-radius: 6px;
+    width: 28px; height: 28px;
     display: flex; align-items: center; justify-content: center;
+    background: transparent; border: none;
     color: var(--muted); cursor: pointer;
+    border-radius: 8px;
+    transition: color .15s, background .15s;
   }
   .chat-head .cclose:hover { color: var(--text); background: var(--s2); }
   .chat-head-actions {
@@ -4302,9 +4543,176 @@ export default function MockupStyles() {
     }
     .wh-desktop .wh-intro .wh-tagline-text::before { display: none; }
   }
-  /* Mobile : on cache l'ancien wh-tagline-hero de la Home desktop refondue —
-     sur mobile, le rendu mobile existant est inchangé. */
+  /* wh-tagline-hero n'est plus utilisée (la tagline vit dans wh-intro).
+     Cette règle reste par sécurité si un template externe le réintroduit. */
   .wh-desktop .wh-tagline-hero { display: none; }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     HOME DESKTOP — Responsive (tablette / mobile)
+     La structure JSX est la même sur tous écrans (même wh-intro,
+     wh-onboarding, wh-cols, wh-stats) ; seul le layout se transforme ici.
+     ═══════════════════════════════════════════════════════════════════ */
+
+  /* Tablette : stats passent en grille 2x2 au lieu de 4 colonnes. */
+  @media (max-width: 960px) {
+    .wh-desktop .wh-stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* Tablette étroite / grand mobile : les deux colonnes de wh-cols
+     s'empilent. Permet aux cartes (projets + conseils) d'être lisibles. */
+  @media (max-width: 860px) {
+    .wh-desktop .wh-cols {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  /* Mobile : ajustements typo + padding pour que tout rentre proprement
+     à 375–420px de viewport. */
+  @media (max-width: 640px) {
+    /* Intro : padding resserré, slogan divisé par ~2, tagline plus petite. */
+    .wh-desktop .wh-intro {
+      padding: 12px 0 10px;
+      gap: 10px;
+    }
+    .wh-desktop .wh-intro-row {
+      padding: 14px 0 16px;
+      gap: 10px;
+    }
+    .wh-eyebrow {
+      font-size: 10px; letter-spacing: 2px;
+    }
+    .wh-slogan {
+      font-size: 52px;
+      letter-spacing: -1.8px;
+      line-height: 0.98;
+    }
+    .wh-desktop .wh-slogan .wh-slogan-line {
+      white-space: normal;
+    }
+    .wh-desktop .wh-intro .wh-tagline-text {
+      font-size: 18px;
+      line-height: 1.4;
+      padding-left: 0;
+    }
+    .wh-desktop .wh-intro .wh-tagline-text::before { display: none; }
+
+    /* Bloc onboarding : stack la colonne gauche (welcome+CTAs) sur la
+       checklist. Padding et welcome resserrés. */
+    .wh-onboarding {
+      grid-template-columns: 1fr;
+      padding: 24px 22px;
+      gap: 20px;
+    }
+    .wh-ob-welcome {
+      font-size: 30px;
+      letter-spacing: -0.8px;
+    }
+    .wh-ob-tagline {
+      font-size: 18px;
+      line-height: 1.35;
+    }
+    .wh-ob-ctas { gap: 8px; }
+
+    /* Stats : 2x2 reste OK, mais on réduit la hauteur min et les valeurs. */
+    .wh-stat {
+      padding: 14px 14px;
+      min-height: 96px;
+    }
+    .wh-stat-value { font-size: 32px; letter-spacing: -0.8px; }
+    .wh-stat-label, .wh-stat-hint {
+      font-size: 9.5px; letter-spacing: 1.5px;
+    }
+
+    /* Override du preview 0 projet (50/50 inline) pour stacker aussi. */
+    .wh-desktop .wh-cols[style*="1fr) minmax(0, 1fr)"] {
+      grid-template-columns: 1fr !important;
+    }
+
+    /* ─── Rythme vertical uniforme sur toute la Home mobile ───────────
+       Même recette que la fiche : un seul gap 16px à tous les niveaux de
+       containers flex (welcome-home, wh-cols, wh-col-left/right, wh-stats,
+       wh-rcol-cards). Neutralisation des margins internes qui s'ajoutaient. */
+    .welcome-home.wh-desktop { gap: 16px !important; }
+    .wh-desktop .wh-cols { gap: 16px !important; }
+    .wh-desktop .wh-col-left { gap: 16px !important; }
+    .wh-desktop .wh-col-right { gap: 16px !important; }
+    .wh-desktop .wh-stats { gap: 16px !important; }
+    .wh-rcol-cards { gap: 12px !important; }
+
+    /* Neutralise les margin top/bottom sur les sections directes
+       de .welcome-home pour que seul le gap régisse l'écart. */
+    .welcome-home.wh-desktop > .wh-intro,
+    .welcome-home.wh-desktop > .wh-stats,
+    .welcome-home.wh-desktop > .wh-onboarding,
+    .welcome-home.wh-desktop > .wh-cols,
+    .welcome-home.wh-desktop > .wh-tagline-hero {
+      margin: 0 !important;
+    }
+
+    /* Padding uniforme sur les "cartes" de la Home — stats, rcol-section,
+       wh-onboarding, wh-card intérieures — pour un rythme régulier. */
+    .wh-rcol-section {
+      padding: 18px 18px 16px;
+    }
+    .wh-stat {
+      padding: 16px 16px;
+    }
+    .wh-onboarding {
+      padding: 22px 20px !important;
+    }
+  }
+
+  /* Très petit mobile : encore un poil de compaction. */
+  @media (max-width: 380px) {
+    .wh-slogan { font-size: 42px; letter-spacing: -1.4px; }
+    .wh-ob-welcome { font-size: 26px; }
+  }
+
+  /* Mobile en mode paysage : la largeur peut dépasser 900px (ex: iPhone
+     14 Pro Max landscape = 932×430), donc les breakpoints max-width ne
+     déclenchent plus. On se base sur max-height pour détecter un mobile
+     landscape et appliquer les typos compactes — mais on profite de la
+     largeur disponible (~900px) pour laisser le slogan plus présent. */
+  @media (max-height: 500px) {
+    .wh-slogan {
+      font-size: 64px;
+      letter-spacing: -2.2px;
+      line-height: 0.98;
+    }
+    .wh-desktop .wh-slogan .wh-slogan-line {
+      white-space: normal;
+    }
+    .wh-desktop .wh-intro .wh-tagline-text {
+      font-size: 18px;
+      line-height: 1.4;
+      padding-left: 0;
+    }
+    .wh-desktop .wh-intro .wh-tagline-text::before { display: none; }
+    .wh-desktop .wh-intro {
+      padding: 8px 0 6px;
+    }
+    .wh-desktop .wh-intro-row {
+      padding: 8px 0 10px;
+    }
+    .wh-ob-welcome { font-size: 32px; letter-spacing: -1px; }
+    .wh-ob-tagline { font-size: 18px; }
+
+    /* Fiche en paysage : score ring plus gros (on a la place) mais le
+       chiffre doit rester contenu. 44px sur un ring 140×140 = respiration. */
+    .fiche-v2 .row-verdict .rv-left .score-ring .big,
+    .fiche-v2 .score-ring .big {
+      font-size: 44px !important;
+      letter-spacing: -1.2px;
+      line-height: 1;
+    }
+    .fiche-v2 .row-verdict .rv-left .score-ring .big-suffix,
+    .fiche-v2 .score-ring .big-suffix {
+      font-size: 10px !important;
+      margin-top: 6px;
+    }
+  }
 
   /* ── Hero "Reprends où tu étais" ── */
   .wh-hero {
@@ -7052,30 +7460,29 @@ export default function MockupStyles() {
     .player .pl-meta .pl-title { font-size: 12px; }
     .player .pl-meta { min-width: 100px; }
     .player .pl-wave { display: none; }
-    /* Mobile : wavesurfer caché, scrubber range visible (plus léger côté perf) */
-    .player .pl-wavesurfer { display: none; }
-    .player .pl-scrubber {
-      display: block;
-      flex: 1; min-width: 0;
-      -webkit-appearance: none; appearance: none;
-      height: 3px; border-radius: 2px;
-      background: var(--muted2);
-      cursor: pointer;
-    }
-    .player .pl-scrubber::-webkit-slider-thumb {
-      -webkit-appearance: none; appearance: none;
-      width: 12px; height: 12px; border-radius: 50%;
-      background: var(--amber); border: none;
-      cursor: pointer;
-    }
-    .player .pl-scrubber::-moz-range-thumb {
-      width: 12px; height: 12px; border-radius: 50%;
-      background: var(--amber); border: none;
-      cursor: pointer;
-    }
+    /* Mobile : wavesurfer visible (même rendu que desktop, on garde les
+       barres audio), scrubber range caché. */
+    .player .pl-wavesurfer { display: block; }
+    .player .pl-scrubber { display: none; }
     .player .pl-time { font-size: 9px; min-width: 60px; }
-    .player { gap: 12px; height: 60px; }
+    .player { gap: 8px; height: 60px; }
     .player .pl-btn { width: 34px; height: 34px; }
+    /* Les deux boutons prev/next collent davantage au play : on resserre
+       les pl-ctrl et on leur donne moins de padding interne pour gagner
+       de la place à droite pour le titre et le scrubber. */
+    .player .pl-ctrl {
+      width: 24px; height: 24px;
+    }
+    /* Le groupe {prev | play | next} se suit avec un gap encore plus
+       resserré, puis le titre respire à 10px. On utilise margin pour ça. */
+    .player .pl-ctrl + .pl-btn,
+    .player .pl-btn + .pl-ctrl {
+      margin-left: -2px;
+    }
+    .player .pl-ctrl + .pl-meta,
+    .player .pl-btn + .pl-meta {
+      margin-left: 4px;
+    }
   }
 
   /* ─────────────────────────────────────────────────────

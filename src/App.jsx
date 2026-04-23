@@ -1581,83 +1581,30 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     </div>
   );
 
+  // Même JSX pour desktop et mobile : on render systématiquement la structure
+  // "desktop" (wh-intro + desktopStats/desktopOnboarding + wh-cols) et on laisse
+  // les media queries adapter le layout (stack 2→1 col, réduction typo, etc.).
+  // Pour hasContent : intro + stats + projets+cartes. Pour onboarding : intro +
+  // hero "bienvenue" + cartes selon nb de projets.
   return (
-    <div className={`welcome-home${!isMobile ? ' wh-desktop' : ''}`}>
-      {/* Bouton Ajouter desktop : déplacé dans la sidebar (sous la liste
-          des projets) pour rester accessible quel que soit l'écran. */}
-
-      {/* Header — même tagline desktop/mobile, avec mot en orange.
-          En desktop, masquée ici et réinsérée sous les stats. */}
-      <div className="wh-tagline-hero">
-        <div className="wh-tagline-text">« {renderTagline(homeTagline)} »</div>
-      </div>
-
-      {isMobile ? (
-        <>
-          {actionsBar}
-          {projectsAccordion}
-          {mobileEmpty}
-          {/* Tips masqués jusqu'à ce que les projets soient connus — évite
-              l'affichage tips-avant-projets quand il n'y a pas encore de cache */}
-          {projectsLoaded && tipsBlock}
-          {projectsLoaded && pedagoBlock}
-        </>
-      ) : hasContent ? (
-        <>
-          {/* Bloc intro desktop v2 — eyebrow violet, slogan fixe en 88px,
-              tagline rotative en petit italique. Remplace l'ancien desktopHero. */}
-          <div className="wh-intro">
-            <div className="wh-eyebrow">
-              {nTitres === 1
-                ? s.home.heroEyebrowActiveSingle.replace('{name}', displayName || '')
-                : s.home.heroEyebrowActive.replace('{name}', displayName || '').replace('{n}', String(nTitres))}
+    <div className="welcome-home wh-desktop">
+      {projectsLoaded ? (
+        hasContent ? (
+          <>
+            <div className="wh-intro">
+              <div className="wh-eyebrow">
+                {nTitres === 1
+                  ? s.home.heroEyebrowActiveSingle.replace('{name}', displayName || '')
+                  : s.home.heroEyebrowActive.replace('{name}', displayName || '').replace('{n}', String(nTitres))}
+              </div>
+              <div className="wh-intro-row">
+                <h1 className="wh-slogan">
+                  <span className="wh-slogan-line">{s.home.sloganStart}<em>{s.home.sloganEm}</em>,</span><br />{s.home.sloganEnd.replace(/^,\s*/, '')}
+                </h1>
+                <div className="wh-tagline-text">{renderTagline(homeTagline)}</div>
+              </div>
             </div>
-            <div className="wh-intro-row">
-              <h1 className="wh-slogan">
-                <span className="wh-slogan-line">{s.home.sloganStart}<em>{s.home.sloganEm}</em>,</span><br />{s.home.sloganEnd.replace(/^,\s*/, '')}
-              </h1>
-              <div className="wh-tagline-text">{renderTagline(homeTagline)}</div>
-            </div>
-          </div>
-          {desktopStats}
-          <div className="wh-cols">
-            <div className="wh-col-left">{projectsAccordion}</div>
-            <div className="wh-col-right">
-              {userBlock}
-              {knowBlock}
-            </div>
-          </div>
-        </>
-      ) : projectsLoaded ? (
-        <>
-          {/* Même structure que hasContent : .wh-intro + bloc action (à la place
-              des stats) + 2 colonnes. Garantit l'homogénéité visuelle entre la
-              Home "compte neuf" et la Home habituelle, et évite la duplication
-              du knowBlock qui existait dans l'ancienne branche. */}
-          <div className="wh-intro">
-            <div className="wh-eyebrow">
-              {(s.home.heroEyebrowWelcome || '').replace('{name}', displayName || '').trim()}
-            </div>
-            <div className="wh-intro-row">
-              <h1 className="wh-slogan">
-                <span className="wh-slogan-line">{s.home.sloganStart}<em>{s.home.sloganEm}</em>,</span><br />{s.home.sloganEnd.replace(/^,\s*/, '')}
-              </h1>
-              <div className="wh-tagline-text">{renderTagline(homeTagline)}</div>
-            </div>
-          </div>
-          {desktopOnboarding}
-          {totalProjects === 0 ? (
-            /* 0 projet : pas d'accordéon à gauche — on met Recommandations
-               et Le saviez-vous côte à côte en 50/50, l'espace est mieux
-               rempli et on évite la colonne "projets" vide. */
-            <div
-              className="wh-cols"
-              style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}
-            >
-              <div className="wh-col-left">{userBlock}</div>
-              <div className="wh-col-right">{knowBlock}</div>
-            </div>
-          ) : (
+            {desktopStats}
             <div className="wh-cols">
               <div className="wh-col-left">{projectsAccordion}</div>
               <div className="wh-col-right">
@@ -1665,8 +1612,47 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 {knowBlock}
               </div>
             </div>
-          )}
-        </>
+          </>
+        ) : (
+          <>
+            {/* Même structure que hasContent : .wh-intro + bloc action (à la place
+                des stats) + 2 colonnes. Garantit l'homogénéité visuelle entre la
+                Home "compte neuf" et la Home habituelle, et évite la duplication
+                du knowBlock qui existait dans l'ancienne branche. */}
+            <div className="wh-intro">
+              <div className="wh-eyebrow">
+                {(s.home.heroEyebrowWelcome || '').replace('{name}', displayName || '').trim()}
+              </div>
+              <div className="wh-intro-row">
+                <h1 className="wh-slogan">
+                  <span className="wh-slogan-line">{s.home.sloganStart}<em>{s.home.sloganEm}</em>,</span><br />{s.home.sloganEnd.replace(/^,\s*/, '')}
+                </h1>
+                <div className="wh-tagline-text">{renderTagline(homeTagline)}</div>
+              </div>
+            </div>
+            {desktopOnboarding}
+            {totalProjects === 0 ? (
+              /* 0 projet : pas d'accordéon à gauche — on met Recommandations
+                 et Le saviez-vous côte à côte en 50/50, l'espace est mieux
+                 rempli et on évite la colonne "projets" vide. */
+              <div
+                className="wh-cols"
+                style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}
+              >
+                <div className="wh-col-left">{userBlock}</div>
+                <div className="wh-col-right">{knowBlock}</div>
+              </div>
+            ) : (
+              <div className="wh-cols">
+                <div className="wh-col-left">{projectsAccordion}</div>
+                <div className="wh-col-right">
+                  {userBlock}
+                  {knowBlock}
+                </div>
+              </div>
+            )}
+          </>
+        )
       ) : null /* première session sans cache — on ne montre rien plutôt que flasher l'écran d'onboarding */}
 
       {modalsSlot}

@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
 
-// Desktop = viewport ≥ 1024px.
-// Pensé pour Versions: UX desktop = user avec DAW ouvert à côté,
-// donc on bascule en split 2 colonnes (cf. useMobile qui reste à 768px
-// pour les bascules mobile/tablet déjà en place).
+// Desktop = viewport ≥ 1024px ET hauteur > 500px (pour exclure les mobiles
+// en paysage, typiquement 800-932 × 375-430, qui seraient détectés comme
+// desktop par la seule width alors qu'on veut y garder le layout mobile).
+const isDesktopSize = () =>
+  typeof window !== "undefined" &&
+  window.innerWidth >= 1024 &&
+  window.innerHeight > 500;
+
 const useIsDesktop = () => {
-  const [isDesktop, setIsDesktop] = useState(
-    typeof window !== "undefined" ? window.innerWidth >= 1024 : false
-  );
+  const [isDesktop, setIsDesktop] = useState(isDesktopSize);
 
   useEffect(() => {
-    const fn = () => setIsDesktop(window.innerWidth >= 1024);
+    const fn = () => setIsDesktop(isDesktopSize());
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
   }, []);

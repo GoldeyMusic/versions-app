@@ -214,6 +214,15 @@ export default function BottomPlayer({
           return g;
         })();
 
+        // Mobile portrait : la waveform gardée à échelle "normale" (barres
+        // lisibles) défile en suivant la lecture, au lieu d'être compressée
+        // dans la largeur du container. minPxPerSec = 60 → une chanson de
+        // 3 min occupe ~11 000 px, bien plus que le viewport, donc scroll
+        // automatique via autoScroll (activé par défaut en WaveSurfer v7).
+        const isMobilePortrait = typeof window !== 'undefined'
+          && window.matchMedia('(max-width: 768px)').matches
+          && window.matchMedia('(orientation: portrait)').matches;
+
         const ws = WaveSurfer.create({
           container: containerRef.current,
           // Bars "à venir" en blanc très léger,
@@ -229,6 +238,9 @@ export default function BottomPlayer({
           normalize: true,
           interact: true,
           media: audio,
+          ...(isMobilePortrait
+            ? { minPxPerSec: 60, autoScroll: true, autoCenter: true, fillParent: false }
+            : {}),
         });
 
         ws.on('timeupdate', (t) => setCurrentTime(t));

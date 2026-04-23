@@ -703,6 +703,23 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
   const scrollRef = useRef(null);
   const [showFadeRight, setShowFadeRight] = useState(false);
   const [showFadeLeft, setShowFadeLeft] = useState(false);
+  // Dropdown mobile : trigger compact qui affiche le nom de la version
+  // active et ouvre un menu listant toutes les versions.
+  const [versionDropdownOpen, setVersionDropdownOpen] = useState(false);
+  const versionDropdownRef = useRef(null);
+  useEffect(() => {
+    if (!versionDropdownOpen) return;
+    const onDown = (e) => {
+      if (!versionDropdownRef.current?.contains(e.target)) setVersionDropdownOpen(false);
+    };
+    const onEsc = (e) => { if (e.key === 'Escape') setVersionDropdownOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [versionDropdownOpen]);
 
   const versions = track?.versions || [];
   const currentIdx = versions.findIndex((v) => v.name === currentVersionName);
@@ -898,17 +915,63 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13l-5-5 5-5"/></svg>
             </button>
           )}
-          <span><TrackTitleText title={track.title} /></span>
-          {/* Contrôle type vocal : toujours visible, cliquable pour changer après coup
-              (étape 5 de la feature). L'état "vocal" (chanté) est affiché pour permettre
-              aussi de basculer un titre chanté en instrumental si besoin. */}
-          <VocalTypePill track={track} onRefresh={onTracksRefresh} />
+          {/* Titre + badge type vocal retirés : tous deux déjà visibles
+              sur l'artwork (.cover-big-title + .cover-vocal-pill). */}
         </span>
         {current && (
-          <span className="vsub">
-            <span className="vlabel">{stageLabel}</span>
-            <b>{currentVersionName || current.name}</b>
-          </span>
+          <div className="version-dropdown" ref={versionDropdownRef}>
+            <button
+              type="button"
+              className={`version-dropdown-trigger${versionDropdownOpen ? ' is-open' : ''}`}
+              onClick={() => setVersionDropdownOpen((v) => !v)}
+              aria-haspopup="listbox"
+              aria-expanded={versionDropdownOpen}
+            >
+              <b>{currentVersionName || current.name}</b>
+              <svg className="vdd-chev" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                <path d="M2 4l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {versionDropdownOpen && (
+              <div className="version-dropdown-menu" role="listbox">
+                {versions.map((v) => {
+                  const vScore = v.analysisResult?.fiche?.globalScore;
+                  const isActive = v.name === currentVersionName;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      className={`vdd-item${isActive ? ' is-active' : ''}`}
+                      onClick={() => {
+                        if (!isActive) onSelectVersion?.(track, v);
+                        setVersionDropdownOpen(false);
+                      }}
+                      role="option"
+                      aria-selected={isActive}
+                    >
+                      <span className="vdd-item-name">{v.name}</span>
+                      {typeof vScore === 'number' && (
+                        <span className="vdd-item-score">{vScore}</span>
+                      )}
+                    </button>
+                  );
+                })}
+                {onAddVersion && (
+                  <button
+                    type="button"
+                    className="vdd-item vdd-item-add"
+                    onClick={() => {
+                      setVersionDropdownOpen(false);
+                      onAddVersion(track);
+                    }}
+                  >
+                    <span aria-hidden="true">+</span>
+                    <span>{s.fiche.newVersionTitle || 'Nouvelle version'}</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -948,60 +1011,8 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
         </div>
       )}
 
-      <div className="versions-block">
-        {/* CompareButton retiré — en sommeil */}
-        <span className="versions-label">{s.fiche.versionsLabel}</span>
-        <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
-          <div
-            ref={scrollRef}
-            className="versions-row"
-            style={{
-              overflowX: 'auto', overflowY: 'visible', paddingTop: 7, marginTop: -3,
-              scrollbarWidth: 'none', msOverflowStyle: 'none',
-              flexWrap: 'nowrap', maxWidth: '100%',
-            }}
-          >
-            <style>{`.versions-row::-webkit-scrollbar { display: none; }`}</style>
-            {versions.map((v, idx) => {
-              const score = v.analysisResult?.fiche?.globalScore;
-              const prev = idx > 0 ? versions[idx - 1]?.analysisResult?.fiche?.globalScore : null;
-              const delta = (typeof score === 'number' && typeof prev === 'number') ? score - prev : null;
-              const isActive = v.name === currentVersionName;
-              return (
-                <span key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  {delta != null && (
-                    <span className={`vdelta${delta < 0 ? ' down' : ''}`}>
-                      {delta > 0 ? '↑' : delta < 0 ? '↓' : ''}{Math.abs(delta)}
-                    </span>
-                  )}
-                  <VChip track={track} version={v} idx={idx} isActive={isActive} score={score} onSelect={onSelectVersion} onRefresh={onTracksRefresh} onShare={onShareVersion} onExport={onExportVersion} onDeleted={(deleted) => { if (deleted.name === currentVersionName && versions.length > 1) { const next = versions.find(x => x.id !== deleted.id); if (next) onSelectVersion?.(track, next); } }} />
-                </span>
-              );
-            })}
-            <button
-              className="new-version-btn"
-              title={s.fiche.newVersionTitle}
-              onClick={() => onAddVersion && onAddVersion(track)}
-              style={{ flexShrink: 0 }}
-            >+</button>
-          </div>
-          {/* Fades */}
-          {showFadeLeft && (
-            <div style={{
-              position: 'absolute', left: 0, top: 0, bottom: 0, width: 40,
-              pointerEvents: 'none',
-              background: 'linear-gradient(to right, rgba(20,20,22,.9), transparent)',
-            }} />
-          )}
-          {showFadeRight && (
-            <div style={{
-              position: 'absolute', right: 0, top: 0, bottom: 0, width: 40,
-              pointerEvents: 'none',
-              background: 'linear-gradient(to left, rgba(20,20,22,.9), transparent)',
-            }} />
-          )}
-        </div>
-      </div>
+      {/* .versions-block supprimée en mobile : le choix de version passe
+          désormais par le dropdown compact dans .track-title. */}
     </div>
   );
 }
@@ -1243,7 +1254,19 @@ function VersionChat({ versionId, config, analysisResult, open, onClose, anchore
                 </svg>
               </button>
             )}
-            {!anchored && <button className="cclose" onClick={onClose}>✕</button>}
+            {!anchored && (
+              <button
+                type="button"
+                className="cclose"
+                onClick={onClose}
+                title={s.common?.close || 'Fermer'}
+                aria-label={s.common?.close || 'Fermer'}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
         <div className="chat-body">
@@ -2087,7 +2110,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           />
         )}
 
-        <div className={`fiche-layout${!chatAsDrawer && rawFiche ? ' has-chat fiche-v2' : ''}`}>
+        <div className={`fiche-layout${rawFiche ? ' fiche-v2' : ''}${!chatAsDrawer && rawFiche ? ' has-chat' : ''}`}>
         <div className="page">
           {!rawFiche ? (
             <AnalyzingState stage={stage} />
@@ -2111,23 +2134,21 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               {/* Calque halo clippé : permet au panel de rester overflow:visible
                   pour que les tooltips des tuiles puissent déborder vers le bas. */}
               <div className="rv-halo" aria-hidden="true" />
-              {!chatAsDrawer && score != null && (
+              {score != null && (
                 <div className="score-eyebrow">
                   <span className="dot" />
                   {s.fiche.scoreGlobalTitle || 'Score global'}
                 </div>
               )}
-              {score != null && !chatAsDrawer ? (
+              {score != null && (
                 <div className="rv-top">
                   <ScoreRingBig value={score} prevScore={prevScore} />
                   <MixIndicators
                     items={computeMixIndicators(rawFiche, elements, score, s)}
                   />
                 </div>
-              ) : (
-                score != null && <ScoreRingBig value={score} prevScore={prevScore} />
               )}
-              {!chatAsDrawer && score != null && (
+              {score != null && (
                 <>
                   {(() => {
                     if (typeof prevScore !== 'number') return null;
@@ -2261,31 +2282,18 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     );
                   });
 
-                  // Desktop v2 : panel unifié avec eyebrow ambre + halo bas-droite
-                  if (!chatAsDrawer) {
-                    return (
-                      <section className="diag-panel">
-                        <div className="diag-eyebrow">
-                          <span className="dot" />
-                          {s.fiche.diagTitle} · {elements.length} {elements.length > 1 ? s.fiche.categoryPlural : s.fiche.categorySingular}
-                        </div>
-                        <div className="diag-cats">
-                          {renderCats()}
-                        </div>
-                      </section>
-                    );
-                  }
-
-                  // Mobile : layout historique avec section-head
+                  // Rendu v2 (desktop + mobile) : panel unifié avec eyebrow
+                  // ambre + halo. Les media queries adaptent la taille mobile.
                   return (
-                    <>
-                      <div className="section-head">
-                        <span className="t">{s.fiche.diagTitle}</span>
-                        <span className="line" />
-                        <span className="count">{elements.length} {elements.length > 1 ? s.fiche.categoryPlural : s.fiche.categorySingular}</span>
+                    <section className="diag-panel">
+                      <div className="diag-eyebrow">
+                        <span className="dot" />
+                        {s.fiche.diagTitle} · {elements.length} {elements.length > 1 ? s.fiche.categoryPlural : s.fiche.categorySingular}
                       </div>
-                      {renderCats()}
-                    </>
+                      <div className="diag-cats">
+                        {renderCats()}
+                      </div>
+                    </section>
                   );
                 })()}
             </div>
@@ -2296,7 +2304,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           <div className="f2-col-side">
               {/* Pochette carrée (v2 desktop) — artwork fait de halos color\u00e9s seed\u00e9s
                   + titre en gros (police du logo VERSIONS). Remplaçable par l'upload user. */}
-              {!chatAsDrawer && (() => {
+              {(() => {
                 const title = config?.title || '';
                 let h = 0;
                 for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) >>> 0;
@@ -2385,9 +2393,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   const hasResolved = resolvedCount > 0;
                   const visibleCount = hideResolved ? (plan.length - resolvedCount) : plan.length;
 
-                  // ── Desktop v2 : panel unifié type maquette .panel.mint-glow
-                  //    avec eyebrow ambre + cards .plan-card.p0/p1/p2/resolved ──
-                  if (!chatAsDrawer) {
+                  // ── Rendu v2 unifié (desktop + mobile) : panel avec eyebrow
+                  //    ambre + cards .plan-card.p0/p1/p2/resolved ──
+                  if (true) {
                     const tagFor = (prio, done) => {
                       if (done) return s.fiche.planTagResolved;
                       if (prio === 'high' || prio === 'haute') return s.fiche.planTagPriority;
@@ -2656,7 +2664,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             key={versionInDb?.id || 'pending'}
             versionId={versionInDb?.id || null}
             initialNotes={(analysisResult && analysisResult.userNotes) || ''}
-            v2={!chatAsDrawer}
+            v2
           />
           </>
           )}
