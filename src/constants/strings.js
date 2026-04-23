@@ -436,7 +436,7 @@ const STRINGS = {
       menuRenameTrack: "Renommer",
       menuExportTrack: "Exporter la fiche",
       menuDeleteTrack: "Supprimer le titre",
-      stageAllDone: "Fiche\nd'analyse",
+      stageAllDone: "Test\nDispatch",
       stageFicheDone: "Écoute en cours",
       stageOther: "Analyse en cours",
       versionsLabel: "Versions",
