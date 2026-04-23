@@ -2238,9 +2238,10 @@ function VersionsAppAuthed() {
       }
       setNeedsOnboarding(false);
       const firstProject = next[0];
-      const firstTrack = firstProject?.tracks?.[0];
-      const latest = firstTrack?.versions?.[firstTrack.versions.length - 1];
-      if (latest?.storagePath) resolveAudio(latest.storagePath).catch(() => {});
+      // NB : on ne précharge plus l'audio du 1ᵉʳ morceau au boot.
+      // L'utilisateur n'écoute pas systématiquement dès la connexion,
+      // ça consommait de l'egress Supabase pour rien. Le preload ciblé
+      // se fait désormais à l'ouverture d'une fiche (preloadTrackVersions).
       if (firstProject?.id) setCurrentProjectId((cur) => cur ?? firstProject.id);
     }).catch(() => {});
     return () => { alive = false; };

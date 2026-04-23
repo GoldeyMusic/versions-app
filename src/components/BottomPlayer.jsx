@@ -83,12 +83,20 @@ export async function resolveAudio(storagePath) {
   return audio;
 }
 
-/** Preload next tracks in playlist silently in background */
-function preloadPlaylist(playlist, currentIdx, count = 2) {
-  for (let i = 1; i <= count; i++) {
-    const next = playlist?.[currentIdx + i];
-    if (next?.storagePath && !audioPool.has(next.storagePath)) {
-      resolveAudio(next.storagePath).catch(() => {});
+/**
+ * Preload toutes les versions d'un morceau en arrière-plan.
+ * Appelé à l'ouverture d'une fiche : garantit un switch V1/V2/V3 instantané
+ * pour l'écoute comparative A/B sans délai au premier clic.
+ *
+ * NB : on ne précharge PAS les autres morceaux de la playlist — le gain
+ * perceptuel est faible (arrêt naturel entre deux titres) alors que le coût
+ * en egress Supabase est significatif. Voir commit egress-optim.
+ */
+export function preloadTrackVersions(versions) {
+  if (!Array.isArray(versions)) return;
+  for (const v of versions) {
+    if (v?.storagePath && !audioPool.has(v.storagePath)) {
+      resolveAudio(v.storagePath).catch(() => {});
     }
   }
 }
@@ -171,8 +179,12 @@ export default function BottomPlayer({
         // Applique le volume courant sur le nouvel audio (via le store global)
         audio.volume = volumeStore.value;
 
-        // Preload next tracks in playlist
-        if (playlist?.length) preloadPlaylist(playlist, currentIdx || 0, 2);
+        // Plus de preload des morceaux suivants ici : le gain perceptuel est
+        // faible (arrêt naturel entre deux titres) alors que chaque preload
+        // consomme un full download MP3 en egress Supabase. Le preload ciblé
+        // des versions du morceau en cours est piloté depuis FicheScreen via
+        // preloadTrackVersions() — c'est là que l'écoute A/B a vraiment besoin
+        // de zéro délai.
 
         // Update WaveSurfer visualization (async, audio already plays)
         if (wsRef.current) {

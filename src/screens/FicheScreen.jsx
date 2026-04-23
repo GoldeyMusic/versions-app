@@ -6,6 +6,7 @@ import ExportPdfModal from '../components/ExportPdfModal';
 import ShareLinkModal from '../components/ShareLinkModal';
 import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
 import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized } from '../lib/storage';
+import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
 import { renderWithEmphasis, formatAnalyzedAt, splitVerdict, applyVocalTypeToFiche, isVoiceCategory } from '../lib/ficheHelpers.jsx';
@@ -1897,6 +1898,17 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     let alive = true;
     loadTracks().then((t) => { if (alive) setTracks(t); });
   }, [config?.title, config?.version, analysisResult, refreshKey]);
+
+  // Préchargement ciblé des versions du morceau courant : dès que la fiche
+  // est ouverte, on télécharge en arrière-plan les MP3 de toutes les versions
+  // (V1/V2/V3…) pour que le switch A/B soit instantané, même au 1ᵉʳ clic.
+  // C'est le remplaçant ciblé du preload "playlist entière" qui consommait
+  // de l'egress Supabase pour des morceaux que l'utilisateur n'allait pas écouter.
+  useEffect(() => {
+    if (!config?.title) return;
+    const t = tracks.find((x) => x.title === config.title);
+    if (t?.versions?.length) preloadTrackVersions(t.versions);
+  }, [tracks, config?.title]);
 
   // body class pour le chat (maquette utilise body.chat-open)
   useEffect(() => {
