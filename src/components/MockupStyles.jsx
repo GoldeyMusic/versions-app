@@ -1118,6 +1118,16 @@ export default function MockupStyles() {
      calcule pour laisser la place au visuel. */
   .fiche-v2 .page .col-cover-wrap  { grid-column: 1 / span 2; grid-row: 2; z-index: 2; }
   .fiche-v2 .page .row-verdict     { grid-column: 1 / -1; grid-row: 2; z-index: 1; }
+  /* Quand un tooltip est ouvert (score global ou tuile mix), on booste le
+     z-index de toute la row pour que le tooltip puisse déborder au-dessus
+     du Plan d'action / Diagnostic qui suit dans la grille. Sans ça, le
+     z-index interne du tooltip (200) reste plafonné par la row (1). */
+  .fiche-v2 .page .row-verdict:has(.score-ring.tip-open),
+  .fiche-v2 .page .row-verdict:has(.score-ring:hover),
+  .fiche-v2 .page .row-verdict:has(.mi-tile.tip-open),
+  .fiche-v2 .page .row-verdict:has(.mi-tile:hover) {
+    z-index: 100;
+  }
   .fiche-v2 .page .row-verdict .rv-left {
     /* Padding-left reserve la place de la pochette (spanning 2/6 cols + gap).
        2/6 = 33.33% ; le +40px couvre le gap + respiration interne. */
