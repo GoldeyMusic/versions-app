@@ -19,17 +19,9 @@
 import { useState, useEffect, useRef } from 'react';
 import useLang from '../hooks/useLang';
 
-const HINTS = [
-  "Ex : je veux garder ce côté brut, lo-fi — la voix en retrait est un choix, je cherche un grain à la Frank Ocean / Blonde…",
-  "Ex : je cherche un son à la SZA / SOS — chaud, enveloppant, voix bien en avant…",
-  "Ex : la voix est volontairement en retrait, comme un souvenir — ne me propose pas de la remonter.",
-  "Ex : c'est une démo, pas un master. Dis-moi surtout si l'arrangement tient debout.",
-];
-
-// Pool d'exemples catégorisés. À chaque montage de la page, on tire 3 exemples
-// différents (shuffle stable) pour varier l'inspiration donnée à l'utilisateur.
-// Les 3 familles (Référence, Choix assumé, Garde-fou) illustrent 3 angles
-// différents d'une intention artistique.
+// Pool d'exemples catégorisés. Utilisé comme source du placeholder rotatif
+// du textarea (les 3 familles — Référence, Choix assumé, Garde-fou —
+// illustrent des angles différents d'une intention artistique).
 const EXAMPLES_POOL = [
   // ── Références sonores
   { label: 'Référence', text: 'Je cherche un son à la Frank Ocean — Blonde, pas Channel Orange.' },
@@ -54,14 +46,15 @@ const EXAMPLES_POOL = [
   { label: 'Garde-fou', text: "Garde le côté 'maquette' — je ne cherche pas un son radio FM." },
 ];
 
-// Shuffle Fisher-Yates : pioche 3 exemples distincts sans ordre privilégié.
-function pickExamples(pool, n = 3) {
+// Shuffle Fisher-Yates : mélange stable du pool pour varier l'ordre de
+// présentation des exemples-placeholders à chaque montage de l'écran.
+function shufflePool(pool) {
   const arr = [...pool];
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  return arr.slice(0, n);
+  return arr;
 }
 
 export default function IntentionScreen({
@@ -79,11 +72,12 @@ export default function IntentionScreen({
   const [hintIndex, setHintIndex] = useState(0);
   const areaRef = useRef(null);
 
-  // On pioche 3 exemples au hasard dans le pool à chaque montage.
-  // useState(() => ...) fige le tirage pour toute la durée de l'écran :
-  // l'utilisateur ne verra pas les exemples changer sous ses yeux, mais
-  // à la prochaine visite de la page le tirage sera différent.
-  const [examples] = useState(() => pickExamples(EXAMPLES_POOL, 3));
+  // Exemples utilisés comme placeholder rotatif du textarea.
+  // Shuffle figé au montage : l'ordre de rotation est stable pendant toute
+  // la durée de l'écran, mais varie d'une visite à l'autre.
+  const [hints] = useState(() =>
+    shufflePool(EXAMPLES_POOL).map((ex) => `Ex : ${ex.text}`)
+  );
 
   const trackTitle = config?.title || '';
   const versionName = config?.version || '';
@@ -108,15 +102,10 @@ export default function IntentionScreen({
 
   useEffect(() => {
     const t = setInterval(() => {
-      setHintIndex((i) => (i + 1) % HINTS.length);
+      setHintIndex((i) => (i + 1) % hints.length);
     }, 3500);
     return () => clearInterval(t);
-  }, []);
-
-  const handleExampleClick = (text) => {
-    setIntent(text);
-    areaRef.current?.focus();
-  };
+  }, [hints.length]);
 
   // ─────────────────────────────────────────────────────────
   // Variante B : V2+ avec intention héritée
@@ -155,9 +144,6 @@ export default function IntentionScreen({
         </div>
 
         <div className="intent-actions">
-          <button className="intent-btn-ghost" onClick={onSkip}>
-            Passer cette étape →
-          </button>
           <button
             className="intent-btn-primary"
             onClick={() => {
@@ -167,6 +153,9 @@ export default function IntentionScreen({
             }}
           >
             Lancer le diagnostic calibré →
+          </button>
+          <button className="intent-btn-ghost" onClick={onSkip}>
+            Passer cette étape →
           </button>
         </div>
 
@@ -219,106 +208,62 @@ export default function IntentionScreen({
       <div className="intent-head">
         <div className="intent-kicker">Étape 2/3 · intention artistique</div>
         <h2 className="intent-title">
-          Avant d'aller plus loin, voici ma <em>lecture</em> de ce morceau.
+          Précise-moi tes <em>intentions artistiques</em>
         </h2>
-        <p className="intent-subtitle">
-          Corrige-moi ou complète si je passe à côté. L'analyse qui suit sera
-          calibrée sur ce que tu me dis.
-        </p>
       </div>
 
-      <div className="intent-grid">
-        {/* Colonne principale : perception + formulaire */}
-        <div className="intent-col-main">
-          <div className="intent-perception">
-            <div className="intent-perception-kicker">CE QUE J'ENTENDS</div>
-            <div className="intent-perception-lead">
-              {perception?.lead || "J'écoute…"}
-            </div>
-            {(perception?.tags?.length > 0 || perception?.bpm || perception?.duration) && (
-              <div className="intent-perception-meta">
-                {perception?.tags?.map((t) => (
-                  <span key={t} className="intent-chip">{t}</span>
-                ))}
-                {perception?.bpm && <span className="intent-tag">BPM ~{perception.bpm}</span>}
-                {perception?.duration && <span className="intent-tag">{perception.duration}</span>}
-              </div>
-            )}
-          </div>
-
-          <div className="intent-textarea-wrap">
-            <textarea
-              ref={areaRef}
-              className="intent-textarea"
-              placeholder={HINTS[hintIndex]}
-              value={intent}
-              onChange={(e) => setIntent(e.target.value)}
-              maxLength={600}
-            />
-            <div className="intent-char-count">{intent.length} / 600</div>
-          </div>
-
-          {/* Sélecteur de portée (uniquement si V1) */}
-          {isFirstVersion && (
-            <div className="intent-scope">
-              <div className="intent-scope-label">Portée de l'intention</div>
-              <div className="intent-seg">
-                <button
-                  type="button"
-                  className={`intent-seg-btn ${scope === 'track' ? 'on' : ''}`}
-                  onClick={() => setScope('track')}
-                >
-                  Pour le titre
-                </button>
-                <button
-                  type="button"
-                  className={`intent-seg-btn ${scope === 'version' ? 'on' : ''}`}
-                  onClick={() => setScope('version')}
-                >
-                  Cette version uniquement
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="intent-actions">
-            <button className="intent-btn-ghost" onClick={onSkip}>
-              Passer cette étape →
-            </button>
-            <button
-              className="intent-btn-primary"
-              onClick={handleSubmit}
-              disabled={!intent.trim()}
-            >
-              Lancer le diagnostic calibré →
-            </button>
-          </div>
+      {/* Layout centré colonne unique — les exemples vivent désormais
+          dans le placeholder rotatif du textarea (plus de panneau latéral).
+          NOTE: bloc "Voilà ce que j'entends" + carte Lecture initiale
+          retirés pour tester un flow plus direct (perception backend
+          reste calculée côté API mais pas affichée ici). */}
+      <div className="intent-col-main intent-col-main-centered">
+        <div className="intent-textarea-wrap">
+          <textarea
+            ref={areaRef}
+            className="intent-textarea"
+            placeholder={hints[hintIndex]}
+            value={intent}
+            onChange={(e) => setIntent(e.target.value)}
+            maxLength={600}
+          />
+          <div className="intent-char-count">{intent.length} / 600</div>
         </div>
 
-        {/* Colonne latérale : exemples + pipeline */}
-        <div className="intent-col-side">
-          <div>
-            <div className="intent-examples-title">Des exemples pour te lancer</div>
-            <div className="intent-examples">
-              {examples.map((ex, i) => (
-                <button
-                  key={`${ex.label}-${i}`}
-                  type="button"
-                  className="intent-example"
-                  onClick={() => handleExampleClick(ex.text)}
-                >
-                  <span className="intent-example-label">{ex.label}</span>
-                  <span className="intent-example-body">« {ex.text} »</span>
-                </button>
-              ))}
+        {/* Sélecteur de portée (uniquement si V1) */}
+        {isFirstVersion && (
+          <div className="intent-scope">
+            <div className="intent-scope-label">Portée de l'intention</div>
+            <div className="intent-seg">
+              <button
+                type="button"
+                className={`intent-seg-btn ${scope === 'track' ? 'on' : ''}`}
+                onClick={() => setScope('track')}
+              >
+                Pour le titre
+              </button>
+              <button
+                type="button"
+                className={`intent-seg-btn ${scope === 'version' ? 'on' : ''}`}
+                onClick={() => setScope('version')}
+              >
+                Cette version uniquement
+              </button>
             </div>
           </div>
+        )}
 
-          <div className="intent-pipeline">
-            <div className="intent-pipeline-step done">Écoute qualitative</div>
-            <div className="intent-pipeline-step active">Ton intention artistique</div>
-            <div className="intent-pipeline-step">Diagnostic calibré</div>
-          </div>
+        <div className="intent-actions">
+          <button
+            className="intent-btn-primary"
+            onClick={handleSubmit}
+            disabled={!intent.trim()}
+          >
+            Lancer le diagnostic calibré →
+          </button>
+          <button className="intent-btn-ghost" onClick={onSkip}>
+            Passer cette étape →
+          </button>
         </div>
       </div>
 

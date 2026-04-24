@@ -7811,19 +7811,23 @@ export default function MockupStyles() {
     max-width: 1000px;
   }
   .intent-screen-compact > * {
-    max-width: 640px;
+    max-width: 520px;
   }
   .intent-screen-compact {
     padding: 72px 24px;
   }
   /* Espacement de la waveform animée, du panneau tips et du bouton Annuler
-     pour respecter les mêmes respirations que le .ap-stack du Loading. */
+     pour respecter les mêmes respirations que le .ap-stack du Loading.
+     Largeur resserrée à 640 px pour s'aligner sur le bloc centré
+     (.intent-col-main-centered) plutôt que d'étaler à 1000 px. */
   .intent-screen .ap-wave {
     margin-top: 28px;
     margin-bottom: 4px;
+    max-width: 520px;
   }
   .intent-screen .ap-tip {
     margin-top: 16px;
+    max-width: 520px;
   }
   /* Le bouton « Annuler l'analyse » devient direct enfant de .intent-screen :
      on l'isole (pas de max-width étiré à 1000 px), on le centre via
@@ -7851,7 +7855,7 @@ export default function MockupStyles() {
      Typo calée sur la topbar fiche (pas de serif immense) : titre
      en body/bold 24-26 px, accent ambre italique sur les mots-clés. */
   .intent-head {
-    margin-bottom: 28px;
+    margin-bottom: 20px;
   }
   .intent-kicker {
     font-family: var(--mono);
@@ -7877,7 +7881,7 @@ export default function MockupStyles() {
     font-size: 26px;
     line-height: 1.3;
     color: var(--text);
-    margin: 0 0 12px;
+    margin: 0;
     letter-spacing: -0.4px;
   }
   .intent-title em {
@@ -7896,8 +7900,29 @@ export default function MockupStyles() {
     font-style: italic;
     color: var(--text);
   }
+  /* Titre de relance — bascule entre la carte "Lecture initiale" et le
+     textarea d'intention. Aligné en taille/graisse sur .intent-title
+     pour donner deux titres de même poids visuel. Marges à 0 : le
+     rythme vertical est tenu par le gap: 20px du parent .intent-col-main. */
+  .intent-section-title {
+    font-family: var(--body);
+    font-weight: 700;
+    font-size: 26px;
+    line-height: 1.3;
+    color: var(--text);
+    letter-spacing: -0.4px;
+    margin: 0;
+  }
+  .intent-section-title em {
+    font-style: normal;
+    font-weight: 700;
+    color: var(--amber);
+  }
 
-  /* ── Grid 2 colonnes (desktop) ────────────────────────────── */
+  /* ── Grid 2 colonnes (desktop) ──────────────────────────────
+     Conservé pour compat éventuelle — actuellement inutilisé : l'écran
+     V1 a été recentré sur une seule colonne (.intent-col-main-centered).
+  */
   .intent-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.6fr) minmax(240px, 0.9fr);
@@ -7909,6 +7934,21 @@ export default function MockupStyles() {
     flex-direction: column;
     gap: 20px;
     min-width: 0;
+  }
+  /* Variante colonne unique centrée — même respiration que les premières
+     étapes d'upload (largeur ~640 px, contenu centré vertical+horizontal
+     via le flex du parent .intent-screen). */
+  .intent-col-main-centered {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  /* Header aligné à gauche dans la largeur centrée (max-width du parent). */
+  .intent-screen:has(.intent-col-main-centered) .intent-head {
+    width: 100%;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
   }
   .intent-col-side {
     display: flex;
