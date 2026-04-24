@@ -385,7 +385,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
 
         {/* Logo VERSIONS posé à plat (pas de cadre) */}
         <img
-          src="/logo-versions.svg"
+          src="/logo-versions-2.svg"
           alt=""
           aria-hidden="true"
           className="ap-logo"

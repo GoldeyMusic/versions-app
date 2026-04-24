@@ -125,7 +125,7 @@ export default function IntentionScreen({
     return (
       <div className="intent-screen intent-screen-compact">
         <img
-          src="/logo-versions.svg"
+          src="/logo-versions-2.svg"
           alt=""
           aria-hidden="true"
           className="intent-logo"
@@ -211,7 +211,7 @@ export default function IntentionScreen({
   return (
     <div className="intent-screen">
       <img
-        src="/logo-versions.svg"
+        src="/logo-versions-2.svg"
         alt=""
         aria-hidden="true"
         className="intent-logo"

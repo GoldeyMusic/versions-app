@@ -46,7 +46,7 @@ export default function AuthScreen() {
       <div className="auth-card">
         {/* Logo */}
         <div className="auth-logo">
-          <img src="/logo-versions.svg" alt="" style={{ height: 40, width: 'auto' }} />
+          <img src="/logo-versions-2.svg" alt="" style={{ height: 40, width: 'auto' }} />
           <div className="auth-brand">
             {"VER"}<span className="accent">{"Si"}</span>{"ONS"}
           </div>
