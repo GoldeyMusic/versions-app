@@ -5129,12 +5129,27 @@ export default function MockupStyles() {
   /* Poignée de déplacement DnD (home) */
   .wh-drag-handle {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 16px; height: 20px; flex-shrink: 0;
+    width: 20px; height: 28px; flex-shrink: 0;
     cursor: grab; color: #c5c5c7;
     transition: opacity .15s;
     margin-right: -4px;
+    opacity: 0;
+    /* Indispensable pour le drag tactile : désactive le pan navigateur
+       et la sélection de texte sur la poignée, sinon mobile scrolle la
+       page ou sélectionne au long-press au lieu de drag. */
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
   .wh-drag-handle:active { cursor: grabbing; }
+  .wh-track-row:hover .wh-drag-handle { opacity: 0.55; }
+  /* Sur devices tactiles (pas de :hover) : la poignée est visible en
+     permanence, sans quoi l'utilisateur ne sait pas où attraper la ligne. */
+  @media (hover: none) {
+    .wh-drag-handle { opacity: 0.6; }
+    .wh-drag-handle:active { opacity: 0.9; }
+  }
   .wh-track-row:hover {
     border-color: rgba(245,176,86,0.3); background: rgba(245,176,86,0.04);
   }

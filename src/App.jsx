@@ -1748,7 +1748,6 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
         onDragEnd={() => { if (setDrag) setDrag(null); setDropOver(null); }}
         title={s.home.trackDragHandle}
         aria-label={s.home.trackMove}
-        style={{ opacity: hover ? 0.55 : 0 }}
       >
         <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor" aria-hidden>
           <circle cx="3" cy="3" r="1.1"/><circle cx="7" cy="3" r="1.1"/>
