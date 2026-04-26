@@ -1,18 +1,18 @@
 import { useState } from 'react';
 
 /**
- * EvolutionBanner — bandeau discret affiche au-dessus de la fiche d une
- * version V_n quand une version precedente a deja ete analysee.
+ * EvolutionBanner — panneau d'évolution version-à-version, charté comme
+ * les autres panneaux de la colonne droite (Intention artistique, Plan
+ * d'action) : card sur fond `--card` avec halo coloré bottom-right,
+ * eyebrow mono uppercase + dot, structure cliquable / expand inline.
  *
  * Props :
- *   - evolution : objet retourne par l API
+ *   - evolution : objet retourné par l'API
  *       { resume, progres[], regressions[], persistants[], nouveaux[], dominante }
- *   - previousVersionName : ex "V1" — affiche en label si fourni, sinon
- *     fallback "la version precedente".
+ *   - previousVersionName : ex "v1" — affiché en titre du panneau ("DEPUIS V1").
  *
- * Volontairement sobre : 1 ligne fermee + trait coloré, expansion inline
- * sans modale. Items purement informatifs (non cliquables) — c est un
- * signal de progression, pas un nouveau plan d action.
+ * Items purement informatifs (non cliquables). Si rien à dire, le composant
+ * renvoie null.
  */
 export default function EvolutionBanner({ evolution, previousVersionName }) {
   const [open, setOpen] = useState(false);
@@ -27,105 +27,150 @@ export default function EvolutionBanner({ evolution, previousVersionName }) {
     dominante = 'neutre',
   } = evolution;
 
-  // Si on n a vraiment rien a dire, on n affiche pas le bandeau.
   const hasAnyItem =
     progres.length + regressions.length + persistants.length + nouveaux.length > 0;
   if (!resume && !hasAnyItem) return null;
 
-  // Couleur du trait gauche selon la dominante de l evolution.
-  const accent =
-    dominante === 'progres' ? '#7bd88f'
-    : dominante === 'regressions' ? '#ef6b6b'
-    : '#7c7c80'; // neutre = gris discret pour ne pas surcharger la palette ambre
+  // Couleurs alignées sur les vars CSS de la fiche (voir MockupStyles.jsx).
+  const haloColor =
+    dominante === 'progres' ? 'var(--mint, #8ee07a)'
+    : dominante === 'regressions' ? 'var(--red, #ff5d5d)'
+    : 'var(--amber, #f5a623)';
 
-  const arrow =
-    dominante === 'progres' ? '↗'
-    : dominante === 'regressions' ? '↘'
-    : '→';
+  // Le titre du panneau : on s'aligne avec "INTENTION ARTISTIQUE" / "PLAN
+  // D'ACTION" — texte court, mono uppercase, dot ambré en préfixe.
+  const titleText = previousVersionName ? `Depuis ${previousVersionName}` : 'Depuis la dernière';
 
-  const prevLabel = previousVersionName ? `Depuis ${previousVersionName}` : 'Depuis la dernière';
-
-  // Compactes a droite : on n affiche un chip que si la liste correspondante
-  // est non vide, pour eviter "0↑ 0↓ 0→" qui parasite le visuel.
+  // Compteurs compacts à droite — affichés uniquement si la liste a du contenu.
   const chips = [];
-  if (progres.length) chips.push({ key: 'p', txt: `${progres.length}↑`, color: '#7bd88f' });
-  if (regressions.length) chips.push({ key: 'r', txt: `${regressions.length}↓`, color: '#ef6b6b' });
-  if (persistants.length) chips.push({ key: 's', txt: `${persistants.length}→`, color: '#7c7c80' });
-  if (nouveaux.length) chips.push({ key: 'n', txt: `+${nouveaux.length}`, color: '#f5b056' });
+  if (progres.length) chips.push({ key: 'p', txt: `${progres.length}↑`, color: 'var(--mint, #8ee07a)' });
+  if (regressions.length) chips.push({ key: 'r', txt: `${regressions.length}↓`, color: 'var(--red, #ff5d5d)' });
+  if (persistants.length) chips.push({ key: 's', txt: `${persistants.length}→`, color: 'var(--muted, rgba(255,255,255,0.5))' });
+  if (nouveaux.length) chips.push({ key: 'n', txt: `+${nouveaux.length}`, color: 'var(--amber, #f5a623)' });
 
-  // Le bandeau s appuie sur les memes valeurs que le reste de la fiche
-  // (font, palette) — cf. FicheScreen.jsx — pour rester coherent visuellement.
   return (
     <section
       style={{
-        // Le composant ne se positionne pas lui-même : son parent (wrapper
-        // dans la colonne droite, ou autre futur emplacement) gère le grid.
-        // On garde juste les styles visuels, neutres au layout.
-        borderLeft: `2px solid ${accent}`,
-        borderTop: '1px solid #2a2a2e',
-        borderRight: '1px solid #2a2a2e',
-        borderBottom: '1px solid #2a2a2e',
-        borderRadius: 8,
-        background: 'rgba(245,176,86,.02)',
+        // Card identique à .intent-panel-fiche / .plan-panel pour homogénéité
+        // visuelle dans la colonne droite (cf. MockupStyles.jsx).
+        position: 'relative',
         overflow: 'hidden',
+        background: 'var(--card, #15151a)',
+        border: '1px solid var(--border, rgba(255,255,255,0.08))',
+        borderRadius: 14,
+        padding: '20px 22px',
+        width: '100%',
+        boxSizing: 'border-box',
       }}
       aria-label="Évolution depuis la version précédente"
     >
-      {/* Ligne fermee — toujours rendue, cliquable pour expand */}
+      {/* Halo coloré bottom-right (couleur = dominante de l'évolution) */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          bottom: -60,
+          right: -60,
+          width: 220,
+          height: 220,
+          borderRadius: '50%',
+          background: haloColor,
+          filter: 'blur(80px)',
+          opacity: 0.12,
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+
+      {/* Eyebrow cliquable — structure alignée sur .intent-panel-eyebrow */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
         style={{
+          position: 'relative',
+          zIndex: 1,
           width: '100%',
           display: 'flex',
           alignItems: 'center',
-          gap: 12,
-          padding: '8px 14px',
+          gap: 10,
           background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          color: '#c5c5c7',
+          border: 0,
+          padding: 0,
+          margin: 0,
+          cursor: hasAnyItem ? 'pointer' : 'default',
           textAlign: 'left',
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: 13,
-          lineHeight: 1.45,
+          color: 'inherit',
+          font: 'inherit',
         }}
-        aria-expanded={open}
       >
-        <span style={{ color: accent, fontSize: 14, lineHeight: 1, flexShrink: 0 }}>{arrow}</span>
         <span
           style={{
-            fontFamily: 'JetBrains Mono, monospace',
-            fontSize: 11,
-            letterSpacing: 1.5,
-            color: '#7c7c80',
-            textTransform: 'uppercase',
-            flexShrink: 0,
-          }}
-        >
-          {prevLabel}
-        </span>
-        <span
-          style={{
-            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: 4,
             minWidth: 0,
-            color: '#ededed',
-            fontWeight: 300,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
+            flex: 1,
           }}
         >
-          {resume || '—'}
+          {/* Titre : DOT + "DEPUIS V1" (mono uppercase ambré, comme les autres panneaux) */}
+          <span
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              fontFamily: 'var(--mono, JetBrains Mono, monospace)',
+              fontSize: 10.5,
+              letterSpacing: 2.2,
+              textTransform: 'uppercase',
+              color: 'var(--amber, #f5a623)',
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: 'var(--amber, #f5a623)',
+                flexShrink: 0,
+              }}
+            />
+            <span style={{ whiteSpace: 'nowrap' }}>{titleText}</span>
+          </span>
+
+          {/* Sous-titre : le résumé qualitatif. Aligné sur le texte du titre
+              (padding-left = dot 6px + gap 10px = 16px), tronqué si trop long. */}
+          {resume && (
+            <span
+              style={{
+                paddingLeft: 16,
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: 13,
+                lineHeight: 1.4,
+                color: 'var(--text, #ededed)',
+                fontWeight: 300,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%',
+              }}
+              title={resume}
+            >
+              {resume}
+            </span>
+          )}
         </span>
+
+        {/* Chips compactes (n↑ n↓ n→ +n) — aperçu rapide des deltas */}
         {chips.length > 0 && (
           <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             {chips.map((c) => (
               <span
                 key={c.key}
                 style={{
-                  fontFamily: 'JetBrains Mono, monospace',
-                  fontSize: 12,
+                  fontFamily: 'var(--mono, JetBrains Mono, monospace)',
+                  fontSize: 11.5,
                   color: c.color,
                   letterSpacing: 0.5,
                 }}
@@ -135,37 +180,51 @@ export default function EvolutionBanner({ evolution, previousVersionName }) {
             ))}
           </span>
         )}
+
+        {/* Chevron — même style que .intent-panel-chev */}
         {hasAnyItem && (
           <span
-            style={{
-              color: '#7c7c80',
-              fontSize: 10,
-              transform: open ? 'rotate(180deg)' : 'none',
-              transition: 'transform .18s ease',
-              flexShrink: 0,
-            }}
             aria-hidden="true"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--amber, #f5a623)',
+              marginLeft: 4,
+              transform: open ? 'rotate(180deg)' : 'none',
+              transition: 'transform .2s ease',
+            }}
           >
-            ▾
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path
+                d="M3 4.5l3 3 3-3"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </span>
         )}
       </button>
 
-      {/* Detail expand — listes courtes, alignees sur le label de gauche */}
+      {/* Body — listes courtes alignées sur le texte du titre (padding-left 16px) */}
       {open && hasAnyItem && (
         <div
           style={{
-            padding: '6px 14px 14px 14px',
+            position: 'relative',
+            zIndex: 1,
+            marginTop: 14,
+            paddingLeft: 16,
             display: 'flex',
             flexDirection: 'column',
-            gap: 12,
-            borderTop: '1px solid #2a2a2e',
+            gap: 10,
           }}
         >
-          <EvolutionList label="Progrès" items={progres} color="#7bd88f" />
-          <EvolutionList label="Régressions" items={regressions} color="#ef6b6b" />
-          <EvolutionList label="Persistants" items={persistants} color="#7c7c80" />
-          <EvolutionList label="Nouveaux" items={nouveaux} color="#f5b056" />
+          <EvolutionList label="Progrès" items={progres} color="var(--mint, #8ee07a)" />
+          <EvolutionList label="Régressions" items={regressions} color="var(--red, #ff5d5d)" />
+          <EvolutionList label="Persistants" items={persistants} color="var(--muted, rgba(255,255,255,0.5))" />
+          <EvolutionList label="Nouveaux" items={nouveaux} color="var(--amber, #f5a623)" />
         </div>
       )}
     </section>
@@ -175,22 +234,19 @@ export default function EvolutionBanner({ evolution, previousVersionName }) {
 function EvolutionList({ label, items, color }) {
   if (!items || !items.length) return null;
   return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <span
         style={{
-          fontFamily: 'JetBrains Mono, monospace',
-          fontSize: 11,
-          letterSpacing: 1.5,
+          fontFamily: 'var(--mono, JetBrains Mono, monospace)',
+          fontSize: 10,
+          letterSpacing: 1.4,
           color,
           textTransform: 'uppercase',
-          flexShrink: 0,
-          width: 90,
-          paddingTop: 2,
         }}
       >
         {label}
       </span>
-      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 3 }}>
         {items.map((it, i) => (
           <li
             key={i}
@@ -198,7 +254,7 @@ function EvolutionList({ label, items, color }) {
               fontFamily: "'DM Sans', sans-serif",
               fontSize: 13,
               lineHeight: 1.55,
-              color: '#c5c5c7',
+              color: 'var(--text, #c5c5c7)',
               fontWeight: 300,
               display: 'flex',
               gap: 8,

@@ -2334,14 +2334,17 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                      row-gap du grid principal pour des espacements uniformes. */}
               {(evolution || hasIntentSource) && (
                 <div
+                  className="evo-intent-stack"
                   style={{
                     gridColumn: '4 / span 3',
                     gridRow: 3,
                     alignSelf: 'start',
                     display: 'flex',
                     flexDirection: 'column',
+                    alignItems: 'stretch', // chaque enfant prend toute la largeur
                     gap: 18,
                     minWidth: 0,
+                    width: '100%',
                   }}
                 >
                   {evolution && (
