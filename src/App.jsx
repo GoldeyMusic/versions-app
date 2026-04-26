@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import STRINGS, { pick } from "./constants/strings";
 import T from "./constants/theme";
 import API from "./constants/api";
@@ -592,14 +592,15 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const { lang, s } = useLang();
   const pool = (fr, en) => (lang === 'en' ? en : fr);
   // Rotation des conseils : un tip distinct à chaque ouverture, sans répétition consécutive
-  const [tip] = useState(() => pickTip(pool(SAVIEZ_VOUS_TIPS, SAVIEZ_VOUS_TIPS_EN), 'versions_tip_saviez'));
-  const [prochainPasTip] = useState(() => pickTip(pool(PROCHAIN_PAS_TIPS, PROCHAIN_PAS_TIPS_EN), 'versions_tip_prochain'));
-  const [aQuoiTip] = useState(() => pickTip(pool(A_QUOI_CA_SERT_TIPS, A_QUOI_CA_SERT_TIPS_EN), 'versions_tip_aquoi'));
-  const [pourquoiTip] = useState(() => pickTip(pool(POURQUOI_VERSIONS_TIPS, POURQUOI_VERSIONS_TIPS_EN), 'versions_tip_pourquoi'));
-  const [conseilTip] = useState(() => pickTip(pool(CONSEIL_TIPS, CONSEIL_TIPS_EN), 'versions_tip_conseil'));
-  const [progressionNoScoreTip] = useState(() => pickTip(pool(PROGRESSION_TIPS_NO_SCORE, PROGRESSION_TIPS_NO_SCORE_EN), 'versions_tip_progression_noscore'));
-  const [progressionWithScoreTip] = useState(() => pickTip(pool(PROGRESSION_TIPS_WITH_SCORE, PROGRESSION_TIPS_WITH_SCORE_EN), 'versions_tip_progression_score'));
-  const [homeTagline] = useState(() => pickTip(pool(HOME_TAGLINES, HOME_TAGLINES_EN), 'versions_tip_tagline'));
+  // useMemo + dep [lang] → re-pick dans la pool de la langue active à chaque switch FR/EN
+  const tip = useMemo(() => pickTip(pool(SAVIEZ_VOUS_TIPS, SAVIEZ_VOUS_TIPS_EN), 'versions_tip_saviez'), [lang]);
+  const prochainPasTip = useMemo(() => pickTip(pool(PROCHAIN_PAS_TIPS, PROCHAIN_PAS_TIPS_EN), 'versions_tip_prochain'), [lang]);
+  const aQuoiTip = useMemo(() => pickTip(pool(A_QUOI_CA_SERT_TIPS, A_QUOI_CA_SERT_TIPS_EN), 'versions_tip_aquoi'), [lang]);
+  const pourquoiTip = useMemo(() => pickTip(pool(POURQUOI_VERSIONS_TIPS, POURQUOI_VERSIONS_TIPS_EN), 'versions_tip_pourquoi'), [lang]);
+  const conseilTip = useMemo(() => pickTip(pool(CONSEIL_TIPS, CONSEIL_TIPS_EN), 'versions_tip_conseil'), [lang]);
+  const progressionNoScoreTip = useMemo(() => pickTip(pool(PROGRESSION_TIPS_NO_SCORE, PROGRESSION_TIPS_NO_SCORE_EN), 'versions_tip_progression_noscore'), [lang]);
+  const progressionWithScoreTip = useMemo(() => pickTip(pool(PROGRESSION_TIPS_WITH_SCORE, PROGRESSION_TIPS_WITH_SCORE_EN), 'versions_tip_progression_score'), [lang]);
+  const homeTagline = useMemo(() => pickTip(pool(HOME_TAGLINES, HOME_TAGLINES_EN), 'versions_tip_tagline'), [lang]);
   // Menu 3-points ouvert pour un projet donné (null = aucun)
   const [openProjectMenuId, setOpenProjectMenuId] = useState(null);
   // true si l'utilisateur a cliqué "+ Nouveau projet" depuis le picker "Nouveau titre"
