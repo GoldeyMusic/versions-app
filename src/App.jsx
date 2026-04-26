@@ -2447,6 +2447,9 @@ function VersionsAppAuthed() {
         if (job.listening) {
           setAnalysisResult(prev => ({ ...prev, listening: job.listening, _stage: job.stage }));
         }
+        if (job.evolution) {
+          setAnalysisResult(prev => ({ ...prev, evolution: job.evolution, _stage: job.stage }));
+        }
         if (job.status === "complete" || job.status === "error") {
           clearInterval(pollingRef.current);
           pollingRef.current = null;
@@ -2454,7 +2457,7 @@ function VersionsAppAuthed() {
           if (job.status === "complete" && !savedRef.current) {
             savedRef.current = true;
             setAnalysisResult(prev => {
-              const full = { ...prev, fiche: job.fiche || prev?.fiche, listening: job.listening || prev?.listening, storagePath: job.storagePath || prev?.storagePath || null, _stage: "all_done" };
+              const full = { ...prev, fiche: job.fiche || prev?.fiche, listening: job.listening || prev?.listening, evolution: job.evolution || prev?.evolution || null, storagePath: job.storagePath || prev?.storagePath || null, _stage: "all_done" };
               saveAnalysis(config, full, job.storagePath || prev?.storagePath || null, lang)
                 .then((ids) => {
                   // Persiste l'intention au scope choisi (track/version)

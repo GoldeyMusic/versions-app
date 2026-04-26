@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import API from '../constants/api';
 import { loadTracks, deleteTrack, renameTrack } from '../lib/storage';
 import useLang from '../hooks/useLang';
+import EvolutionBanner from './EvolutionBanner';
 
 /**
  * FicheScreen — rendu fidèle à mockup-v3.html.
@@ -805,6 +806,8 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   } : null);
   const fiche = analysisResult?.fiche || null;
   const listening = analysisResult?.listening || null;
+  const evolution = analysisResult?.evolution || null;
+  const previousVersionName = analysisResult?._previousVersionName || null;
   const stage = analysisResult?._stage || 'idle';
   const plan = fiche?.plan || [];
   const elements = fiche?.elements || [];
@@ -905,6 +908,14 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               })()}
             </div>
           </section>
+
+          {/* 1.5 · Évolution depuis la version précédente (bandeau discret) */}
+          {evolution && (
+            <EvolutionBanner
+              evolution={evolution}
+              previousVersionName={previousVersionName}
+            />
+          )}
 
           {/* 2 · Écoute qualitative (Gemini + Claude) */}
           {listening && <ListeningSection listening={listening} />}

@@ -93,6 +93,8 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
               onDone({
                 fiche: job.fiche,
                 listening: job.listening || null,
+                evolution: job.evolution || null,
+                _previousVersionName: previousVersionName,
                 meta: job.meta,
                 audioHash: config.audioHash,
                 storagePath: job.storagePath || null,
@@ -132,13 +134,26 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
         }
 
         // Récupérer la fiche de la version précédente du même titre (calibrage)
+        // + l'écoute associée pour pouvoir générer le bandeau d'évolution
+        // (suivi inter-versions). Si la dernière version n'a pas d'écoute
+        // (vieille analyse), on bascule sur previousFiche seul, comme avant.
         let previousFiche = null;
+        let previousAnalysisResult = null;
+        let previousVersionName = null;
         try {
           const allTracks = await loadTracks();
           const sameTitle = allTracks.find((t) => t.title === config.title);
           if (sameTitle?.versions?.length) {
             const last = sameTitle.versions[sameTitle.versions.length - 1];
             previousFiche = last?.analysisResult?.fiche || null;
+            previousVersionName = last?.name || null;
+            if (last?.analysisResult?.fiche && last?.analysisResult?.listening) {
+              previousAnalysisResult = {
+                fiche: last.analysisResult.fiche,
+                listening: last.analysisResult.listening,
+                intent_used: last.analysisResult.intent_used || null,
+              };
+            }
           }
         } catch {}
 
@@ -185,6 +200,9 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
         formData.append("locale", lang || 'fr');
         if (userId) formData.append("userId", userId);
         if (previousFiche) formData.append("previousFiche", JSON.stringify(previousFiche));
+        if (previousAnalysisResult) {
+          formData.append("previousAnalysisResult", JSON.stringify(previousAnalysisResult));
+        }
         if (durationSeconds) formData.append("durationSeconds", String(durationSeconds));
 
         // ── Gestion du feature flag intention ──
@@ -267,6 +285,8 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
             onDone({
               fiche: job.fiche || null,
               listening: job.listening || null,
+              evolution: job.evolution || null,
+              _previousVersionName: previousVersionName,
               meta: job.meta,
               audioHash: config.audioHash,
               storagePath: job.storagePath || null,
@@ -280,6 +300,8 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
             onDone({
               fiche: job.fiche,
               listening: job.listening || null,
+              evolution: job.evolution || null,
+              _previousVersionName: previousVersionName,
               meta: job.meta,
               audioHash: config.audioHash,
               storagePath: job.storagePath || null,
