@@ -1527,7 +1527,10 @@ export default function MockupStyles() {
     .fiche-v2 .page .row-qualitative { order: 6; }
     .fiche-v2 .page .notes-section   { order: 7; }
     /* Neutralise les grid-column/row du layout desktop (qui faisaient
-       déborder les enfants puisqu'on n'est plus en grid). */
+       déborder les enfants puisqu'on n'est plus en grid). On reset aussi
+       align-self : en grid c'est l'axe block, mais en flex column c'est
+       l'axe horizontal — laisser `align-self: start` rétrécirait le panel
+       à la largeur de son contenu (ex. .col-plan en mobile). */
     .fiche-v2 .page .vocal-suggest,
     .fiche-v2 .page .col-cover-wrap,
     .fiche-v2 .page .row-verdict,
@@ -1538,6 +1541,7 @@ export default function MockupStyles() {
     .fiche-v2 .page .notes-section {
       grid-column: auto;
       grid-row: auto;
+      align-self: stretch;
     }
     /* Pochette : on neutralise le padding-left 48px et le stretch desktop,
        on la centre horizontalement dans .page (qui est flex column). */
