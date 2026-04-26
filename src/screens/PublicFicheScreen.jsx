@@ -248,7 +248,7 @@ export default function PublicFicheScreen({ token }) {
                                     {it.why && <div className="di-detail">{it.why}</div>}
                                     {it.how && (
                                       <div className="di-how">
-                                        <span className="di-how-label">Recette</span>
+                                        <span className="di-how-label">Action</span>
                                         <code>{it.how}</code>
                                       </div>
                                     )}

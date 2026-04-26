@@ -328,7 +328,7 @@ function drawDiagnostic(doc, cursor, elements) {
       }
       if (it.how) {
         setFont(doc, 'italic', 9, COLORS.subtle);
-        const recipe = `Recette : ${it.how}`;
+        const recipe = `Action : ${it.how}`;
         const lines = wrap(doc, recipe, CONTENT_W - 4);
         lines.forEach((l) => {
           ensureSpace(doc, cursor, 4);
