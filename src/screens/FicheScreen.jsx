@@ -2067,6 +2067,18 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             onRefresh={() => loadTracks().then(setTracks)}
           />
 
+          {/* 0.5 · Bandeau d'évolution depuis la version précédente (discret).
+                  Placé HORS de f2-col-main car celui-ci est display:contents
+                  dans un CSS grid — un enfant sans grid-column finit dans
+                  une mini-cellule. Ici on est frère direct du grid `.page`,
+                  avec gridColumn: 1 / -1 pour traverser toute la largeur. */}
+          {evolution && (
+            <EvolutionBanner
+              evolution={evolution}
+              previousVersionName={evolutionPrevName}
+            />
+          )}
+
           {/* COLONNE PRINCIPALE (col 1 en v2 desktop) : Score global + Diagnostic */}
           <div className="f2-col-main">
           {/* 1 · Verdict / Score global */}
@@ -2164,16 +2176,6 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               </div>
             </div>
           </section>
-
-          {/* 1.5 · Bandeau d'évolution depuis la version précédente (discret).
-                  Apporte le qualitatif (résumé + listes courtes), complément du
-                  delta numérique déjà rendu dans .score-calibration. */}
-          {evolution && (
-            <EvolutionBanner
-              evolution={evolution}
-              previousVersionName={evolutionPrevName}
-            />
-          )}
 
           {/* 2 · Diagnostic par élément — directement sous le score global, en col 1 */}
           {elements.length > 0 && (

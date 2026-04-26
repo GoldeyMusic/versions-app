@@ -58,8 +58,11 @@ export default function EvolutionBanner({ evolution, previousVersionName }) {
   return (
     <section
       style={{
-        marginTop: 18,
-        marginBottom: -6, // laisse ListeningSection (marginTop:48) gerer l espace en dessous
+        // gridColumn: 1 / -1 force le bandeau à traverser toutes les colonnes
+        // du CSS grid `.fiche-v2 .page` (sinon il finit en auto-placement
+        // dans une mini-cellule). Sur les layouts non-grid, c'est ignoré.
+        gridColumn: '1 / -1',
+        marginBottom: 12,
         borderLeft: `2px solid ${accent}`,
         borderTop: '1px solid #2a2a2e',
         borderRight: '1px solid #2a2a2e',
