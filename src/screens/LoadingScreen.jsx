@@ -50,6 +50,12 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
         setPhase(0);
         sentFadr.current = false;
 
+        // Nom de la version précédente (utilisé pour libeller le bandeau
+        // d'évolution côté front). Déclaré AVANT le bloc resume pour
+        // éviter une TDZ — sinon le mode resume crashe en référençant
+        // cette variable qui ne serait définie que plus bas.
+        let previousVersionName = null;
+
         // ── Mode RESUME : on reprend un job existant (retour depuis
         // IntentionScreen après submit/skip). On SKIP tout le setup
         // (hash, dup check, POST /start) et on saute direct au polling
@@ -58,6 +64,16 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           jobIdRef.current = config.resumeJobId;
           console.log("↩️ VERSIONS Resume polling existing job:", config.resumeJobId);
           setPhase(2);
+          // Best-effort : récupère le nom de la dernière version du même
+          // titre pour libeller correctement le bandeau "Depuis V_n" si
+          // une évolution a bien été générée côté backend. Pas bloquant.
+          try {
+            const allTracks = await loadTracks();
+            const sameTitle = allTracks.find((t) => t.title === config.title);
+            if (sameTitle?.versions?.length) {
+              previousVersionName = sameTitle.versions[sameTitle.versions.length - 1]?.name || null;
+            }
+          } catch { /* noop : fallback "Depuis la dernière" */ }
           const jobId = config.resumeJobId;
           let attempts = 0;
           let noFicheRetries = 0;
@@ -137,9 +153,9 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
         // + l'écoute associée pour pouvoir générer le bandeau d'évolution
         // (suivi inter-versions). Si la dernière version n'a pas d'écoute
         // (vieille analyse), on bascule sur previousFiche seul, comme avant.
+        // (previousVersionName est déclaré en haut du run pour le mode resume.)
         let previousFiche = null;
         let previousAnalysisResult = null;
-        let previousVersionName = null;
         try {
           const allTracks = await loadTracks();
           const sameTitle = allTracks.find((t) => t.title === config.title);
