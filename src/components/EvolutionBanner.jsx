@@ -39,7 +39,9 @@ export default function EvolutionBanner({ evolution, previousVersionName }) {
 
   // Le titre du panneau : on s'aligne avec "INTENTION ARTISTIQUE" / "PLAN
   // D'ACTION" — texte court, mono uppercase, dot ambré en préfixe.
-  const titleText = previousVersionName ? `Depuis ${previousVersionName}` : 'Depuis la dernière';
+  const titleText = previousVersionName
+    ? `Évolution depuis ${previousVersionName}`
+    : 'Évolution depuis la dernière';
 
   // Compteurs compacts à droite — affichés uniquement si la liste a du contenu.
   const chips = [];
