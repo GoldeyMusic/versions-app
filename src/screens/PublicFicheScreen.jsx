@@ -12,6 +12,7 @@ import {
   splitVerdict,
   applyVocalTypeToFiche,
   isVoiceCategory,
+  normalizeDiagItem,
 } from '../lib/ficheHelpers.jsx';
 import { fetchPublicFiche, translateAnalysisResult } from '../lib/storage';
 import useLang from '../hooks/useLang';
@@ -216,7 +217,7 @@ export default function PublicFicheScreen({ token }) {
                         </span>
                       </div>
                       {elements.map((el, idx) => {
-                        const items = el.items || [];
+                        const items = (el.items || []).map(normalizeDiagItem);
                         const scores = items.map((it) => it.score).filter((s) => typeof s === 'number');
                         const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
                         const isVoice = isVoiceCategory(el.cat);
@@ -230,19 +231,30 @@ export default function PublicFicheScreen({ token }) {
                               <span className="count">
                                 {isPendingVoice
                                   ? s.fiche.pendingVoiceStep
-                                  : `${items.length} ${items.length > 1 ? s.fiche.elementPlural : s.fiche.elementSingular}${avg != null ? `${s.fiche.avgPrefix}${avg.toFixed(1).replace(/\.0$/, '')}` : ''}`}
+                                  : `${items.length} ${items.length > 1 ? s.fiche.elementPlural : s.fiche.elementSingular}${avg != null ? `${s.fiche.avgPrefix}${Math.round(avg)}` : ''}`}
                               </span>
                             </div>
                             <div className="diag-cat-body">
                               {items.map((it, i) => (
-                                <div key={it.id || i} className="diag-item">
+                                <div key={it.id || i} className={`diag-item${it.priority ? ` prio-${it.priority}` : ''}`}>
                                   <ScoreRingSmall value={it.score} />
                                   <div className="di-body">
-                                    <div className="di-name">{it.label}</div>
-                                    {it.detail && <div className="di-detail">{it.detail}</div>}
-                                    {Array.isArray(it.tools) && it.tools.length > 0 && (
+                                    <div className="di-name">
+                                      {it.priority && (
+                                        <span className={`di-prio prio-${it.priority}`} aria-label={`priorité ${it.priority}`} />
+                                      )}
+                                      {it.title}
+                                    </div>
+                                    {it.why && <div className="di-detail">{it.why}</div>}
+                                    {it.how && (
+                                      <div className="di-how">
+                                        <span className="di-how-label">Recette</span>
+                                        <code>{it.how}</code>
+                                      </div>
+                                    )}
+                                    {it.plugin_pick && (
                                       <div className="di-tools">
-                                        {it.tools.map((t) => <span key={t}>{t}</span>)}
+                                        <span className="di-plugin">{it.plugin_pick}</span>
                                       </div>
                                     )}
                                   </div>
@@ -307,10 +319,10 @@ export default function PublicFicheScreen({ token }) {
                                   <div className="linked-elements">
                                     <div className="label">{s.fiche.focusLinkedItems}</div>
                                     <div className="le-list">
-                                      {linkedItems.map((it) => (
+                                      {linkedItems.map(normalizeDiagItem).map((it) => (
                                         <div className="le" key={it.id}>
                                           <span className="cat">{it.cat}</span>
-                                          <span className="name">{it.label}</span>
+                                          <span className="name">{it.title}</span>
                                           {typeof it.score === 'number' && <ScoreRingSmall value={it.score} />}
                                         </div>
                                       ))}

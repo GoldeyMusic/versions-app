@@ -5,6 +5,7 @@
 // Le rendu est texte, vectoriel, sobre — optimisé pour partage par mail.
 
 import { jsPDF } from 'jspdf';
+import { normalizeDiagItem } from './ficheHelpers.jsx';
 
 // ── Palette (alignée sur la charte Versions) ──────────────
 const COLORS = {
@@ -299,33 +300,46 @@ function drawDiagnostic(doc, cursor, elements) {
     safeText(doc, el.cat || 'Element', MARGIN.left, cursor.y);
     cursor.y += 5;
 
-    items.forEach((it) => {
+    items.forEach((rawIt) => {
+      const it = normalizeDiagItem(rawIt);
       ensureSpace(doc, cursor, 12);
       setFont(doc, 'bold', 10, COLORS.text);
       let xLabel = MARGIN.left + 4;
       if (typeof it.score === 'number') {
         const c =
-          it.score >= 7 ? COLORS.green : it.score >= 4 ? COLORS.orange : COLORS.redSoft;
+          it.score >= 75 ? COLORS.green : it.score >= 50 ? COLORS.orange : COLORS.redSoft;
         setFont(doc, 'bold', 9, c);
-        const s = it.score.toFixed(1).replace(/\.0$/, '');
-        safeText(doc, s, MARGIN.left + 4, cursor.y);
-        xLabel = MARGIN.left + 13;
+        safeText(doc, String(it.score), MARGIN.left + 4, cursor.y);
+        xLabel = MARGIN.left + 14;
         setFont(doc, 'bold', 10, COLORS.text);
       }
-      safeText(doc, it.label || '', xLabel, cursor.y);
+      const prioPrefix = it.priority
+        ? `[${it.priority.toUpperCase()}] `
+        : '';
+      safeText(doc, `${prioPrefix}${it.title || ''}`, xLabel, cursor.y);
       cursor.y += 4.5;
 
-      if (it.detail) {
-        paragraph(doc, cursor, it.detail, {
+      if (it.why) {
+        paragraph(doc, cursor, it.why, {
           color: COLORS.subtle,
           size: 9.5,
           indent: 4,
         });
       }
-      if (Array.isArray(it.tools) && it.tools.length) {
+      if (it.how) {
+        setFont(doc, 'italic', 9, COLORS.subtle);
+        const recipe = `Recette : ${it.how}`;
+        const lines = wrap(doc, recipe, CONTENT_W - 4);
+        lines.forEach((l) => {
+          ensureSpace(doc, cursor, 4);
+          doc.text(l, MARGIN.left + 4, cursor.y);
+          cursor.y += 4;
+        });
+      }
+      if (it.plugin_pick) {
         setFont(doc, 'italic', 9, COLORS.muted);
-        const tools = `Outils : ${it.tools.join(', ')}`;
-        const lines = wrap(doc, tools, CONTENT_W - 4);
+        const plugin = `Plugin recommandé : ${it.plugin_pick}`;
+        const lines = wrap(doc, plugin, CONTENT_W - 4);
         lines.forEach((l) => {
           ensureSpace(doc, cursor, 4);
           doc.text(l, MARGIN.left + 4, cursor.y);

@@ -46,6 +46,29 @@ export function splitVerdict(text) {
   return { headline: text.trim(), rest: '' };
 }
 
+// Normalise un item de diagnostic pour absorber l'évolution de schéma
+// backend (ticket 1.1) : ancien { label, detail, tools[], score /10 }
+// → nouveau { title, why, how, plugin_pick, priority, score /100 }.
+// Heuristique d'échelle : score > 10 ⇒ déjà /100, sinon ×10.
+export function normalizeDiagItem(it) {
+  if (!it || typeof it !== 'object') return it;
+  const rawScore = typeof it.score === 'number' ? it.score : null;
+  const score100 = rawScore == null
+    ? null
+    : (rawScore > 10 ? Math.round(rawScore) : Math.round(rawScore * 10));
+  const how = it.how
+    || (Array.isArray(it.tools) && it.tools.length ? it.tools.join(' · ') : '');
+  return {
+    ...it,
+    title: it.title || it.label || '',
+    why: it.why || it.detail || '',
+    how,
+    plugin_pick: it.plugin_pick || '',
+    priority: (it.priority || '').toLowerCase(),
+    score: score100,
+  };
+}
+
 // Détecte si une catégorie de diagnostic concerne la voix.
 // Robuste aux variantes de casse et aux éventuels synonymes.
 export function isVoiceCategory(cat) {
@@ -91,7 +114,7 @@ export function applyVocalTypeToFiche(fiche, vocalType) {
       return !ids.every((id) => voiceItemIds.has(id)); // retire si tous les liens sont dans VOIX
     });
     const scores = filteredElements
-      .flatMap((el) => (el?.items || []).map((it) => it?.score))
+      .flatMap((el) => (el?.items || []).map((it) => normalizeDiagItem(it)?.score))
       .filter((s) => typeof s === 'number');
     const recomputed = scores.length
       ? scores.reduce((a, b) => a + b, 0) / scores.length

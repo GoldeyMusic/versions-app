@@ -10,7 +10,7 @@ import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateT
 import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
-import { renderWithEmphasis, formatAnalyzedAt, splitVerdict, applyVocalTypeToFiche, isVoiceCategory } from '../lib/ficheHelpers.jsx';
+import { renderWithEmphasis, formatAnalyzedAt, splitVerdict, applyVocalTypeToFiche, isVoiceCategory, normalizeDiagItem } from '../lib/ficheHelpers.jsx';
 import useMobile from '../hooks/useMobile';
 import useNarrowDesktop from '../hooks/useNarrowDesktop';
 import useLang from '../hooks/useLang';
@@ -140,12 +140,12 @@ function pickCatAvg(elements, keywords) {
   );
   if (!el) return null;
   const scores = (el.items || [])
-    .map((it) => (typeof it.score === 'number' ? it.score : null))
-    .filter((x) => x != null);
+    .map((it) => normalizeDiagItem(it)?.score)
+    .filter((x) => typeof x === 'number');
   if (!scores.length) return null;
-  // scores items sont sur /10 dans le modèle courant
+  // normalizeDiagItem ramène déjà tous les scores sur /100.
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-  return Math.round(avg * 10); // /10 → /100
+  return Math.round(avg);
 }
 
 function clampScore(v, fallback) {
@@ -340,12 +340,15 @@ function MixIndicators({ items }) {
   );
 }
 
-// Anneau 32x32 (items diag) — dasharray=82 ; couleur par seuil
+// Anneau 32x32 (items diag) — dasharray=82 ; couleur par seuil.
+// Schéma /100 (ticket 1.1). Rétrocompat : si la valeur est ≤ 10
+// (ancien format /10), on la passe à l'échelle /100 pour l'affichage.
 export function ScoreRingSmall({ value }) {
   if (typeof value !== 'number') return null;
-  const v = Math.max(0, Math.min(10, value));
-  const offset = 82 - (82 * v) / 10;
-  const color = v < 5 ? '#ef6b6b' : v < 7.5 ? '#f5b056' : '#7bd88f';
+  const scaled = value > 10 ? value : value * 10;
+  const v = Math.max(0, Math.min(100, scaled));
+  const offset = 82 - (82 * v) / 100;
+  const color = v < 50 ? '#ef6b6b' : v < 75 ? '#f5b056' : '#7bd88f';
   const stroke22 = `${color}2a`;
   return (
     <div className="sring" style={{ width: 32, height: 32, position: 'relative' }}>
@@ -1056,10 +1059,10 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
           <div className="linked-elements" style={{ marginBottom: 20 }}>
             <div className="label">{s.fiche.focusLinkedItems}</div>
             <div className="le-list">
-              {linkedItems.map((it) => (
+              {linkedItems.map(normalizeDiagItem).map((it) => (
                 <div className="le" key={it.id}>
                   <span className="cat">{it.cat}</span>
-                  <span className="name">{it.label}</span>
+                  <span className="name">{it.title}</span>
                   {typeof it.score === 'number' && <ScoreRingSmall value={it.score} />}
                 </div>
               ))}
@@ -2189,8 +2192,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   };
                   const renderCats = () => elements.map((el, idx) => {
                     const open = openCat === idx;
-                    const count = el.items?.length || 0;
-                    const scores = (el.items || []).map((it) => it.score).filter((s) => typeof s === 'number');
+                    const items = (el.items || []).map(normalizeDiagItem);
+                    const count = items.length;
+                    const scores = items.map((it) => it.score).filter((s) => typeof s === 'number');
                     const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
                     const isVoice = isVoiceCategory(el?.cat);
                     const catLabel = (isVoice && voiceLabelOverride) ? s.fiche.voiceComingSoon : el.cat;
@@ -2207,19 +2211,30 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                           <span className="count">
                             {isVoice && voiceLabelOverride
                               ? s.fiche.pendingVoiceStep
-                              : `${count} ${count > 1 ? s.fiche.elementPlural : s.fiche.elementSingular}${avg != null ? `${s.fiche.avgPrefix}${avg.toFixed(1).replace(/\.0$/, '')}` : ''}`}
+                              : `${count} ${count > 1 ? s.fiche.elementPlural : s.fiche.elementSingular}${avg != null ? `${s.fiche.avgPrefix}${Math.round(avg)}` : ''}`}
                           </span>
                         </div>
                         <div className="diag-cat-body">
-                          {(el.items || []).map((it, i) => (
-                            <div key={it.id || i} className="diag-item">
+                          {items.map((it, i) => (
+                            <div key={it.id || i} className={`diag-item${it.priority ? ` prio-${it.priority}` : ''}`}>
                               <ScoreRingSmall value={it.score} />
                               <div className="di-body">
-                                <div className="di-name">{it.label}</div>
-                                {it.detail && <div className="di-detail">{it.detail}</div>}
-                                {Array.isArray(it.tools) && it.tools.length > 0 && (
+                                <div className="di-name">
+                                  {it.priority && (
+                                    <span className={`di-prio prio-${it.priority}`} aria-label={`priorité ${it.priority}`} />
+                                  )}
+                                  {it.title}
+                                </div>
+                                {it.why && <div className="di-detail">{it.why}</div>}
+                                {it.how && (
+                                  <div className="di-how">
+                                    <span className="di-how-label">Recette</span>
+                                    <code>{it.how}</code>
+                                  </div>
+                                )}
+                                {it.plugin_pick && (
                                   <div className="di-tools">
-                                    {it.tools.map((t) => <span key={t}>{t}</span>)}
+                                    <span className="di-plugin">{it.plugin_pick}</span>
                                   </div>
                                 )}
                               </div>
@@ -2470,13 +2485,13 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                                     )}
                                     {linkedItems.length > 0 && (
                                       <div className="p-links">
-                                        {linkedItems.map((it) => (
+                                        {linkedItems.map(normalizeDiagItem).map((it) => (
                                           <span
                                             key={it.id}
                                             className="chip cerulean"
-                                            title={`${it.cat} · ${it.label}${typeof it.score === 'number' ? ` · ${it.score}` : ''}`}
+                                            title={`${it.cat} · ${it.title}${typeof it.score === 'number' ? ` · ${it.score}` : ''}`}
                                           >
-                                            {it.label}{typeof it.score === 'number' ? ` · ${it.score}` : ''}
+                                            {it.title}{typeof it.score === 'number' ? ` · ${it.score}` : ''}
                                           </span>
                                         ))}
                                       </div>
@@ -2598,10 +2613,10 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                                 <div className="linked-elements">
                                   <div className="label">{s.fiche.focusLinkedItems}</div>
                                   <div className="le-list">
-                                    {linkedItems.map((it) => (
+                                    {linkedItems.map(normalizeDiagItem).map((it) => (
                                       <div className="le" key={it.id}>
                                         <span className="cat">{it.cat}</span>
-                                        <span className="name">{it.label}</span>
+                                        <span className="name">{it.title}</span>
                                         {typeof it.score === 'number' && <ScoreRingSmall value={it.score} />}
                                       </div>
                                     ))}

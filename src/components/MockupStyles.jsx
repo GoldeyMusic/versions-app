@@ -3801,6 +3801,44 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 12px; color: var(--muted);
     padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px;
   }
+  /* Ticket 1.1 — nouveau schema notes : priority / how / plugin_pick */
+  .diag-item .di-name {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .diag-item .di-prio {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--muted, #7c7c80);
+  }
+  .diag-item .di-prio.prio-high { background: #ef6b6b; box-shadow: 0 0 0 3px rgba(239,107,107,0.18); }
+  .diag-item .di-prio.prio-med  { background: #f5b056; box-shadow: 0 0 0 3px rgba(245,176,86,0.16); }
+  .diag-item .di-prio.prio-low  { background: #7bd88f; box-shadow: 0 0 0 3px rgba(123,216,143,0.14); }
+  .diag-item .di-how {
+    display: flex; align-items: flex-start; gap: 8px;
+    margin: 6px 0 10px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-left: 2px solid var(--amber, #f5b056);
+    border-radius: 3px;
+  }
+  .diag-item .di-how .di-how-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1.4px;
+    color: var(--amber, #f5b056); text-transform: uppercase;
+    flex-shrink: 0; padding-top: 2px;
+  }
+  .diag-item .di-how code {
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
+    color: var(--soft); background: transparent; padding: 0;
+    word-break: break-word;
+  }
+  .diag-item .di-tools .di-plugin {
+    font-family: var(--mono); font-size: 12px;
+    color: var(--amber, #f5b056);
+    padding: 3px 8px;
+    border: 1px solid rgba(245, 176, 86, 0.4);
+    border-radius: 4px;
+    background: rgba(245, 176, 86, 0.08);
+  }
 
   /* ── FOCUS — overlay plein écran pour un chantier ── */
   .focus {
