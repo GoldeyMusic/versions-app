@@ -5,6 +5,7 @@ import API from '../constants/api';
 import ExportPdfModal from '../components/ExportPdfModal';
 import ShareLinkModal from '../components/ShareLinkModal';
 import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
+import EvolutionBanner from '../components/EvolutionBanner';
 import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized } from '../lib/storage';
 import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
@@ -1991,6 +1992,15 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   const prevScore = adjustVersionScore(prevVersion);
   const prevDuration = prevVersion?.analysisResult?.fiche?.duration_seconds ?? null;
 
+  // ── Suivi inter-versions (bandeau évolution discret) ──
+  // Si le backend a généré un objet `evolution` (= une V précédente
+  // avec listening était stockée), on l'affiche juste sous le verdict
+  // pour donner le qualitatif de l'évolution (le delta numérique étant
+  // déjà rendu par .score-calibration).
+  const evolution = displayAR?.evolution || null;
+  const evolutionPrevName =
+    displayAR?._previousVersionName || prevVersion?.name || null;
+
   const toggleCat = (i) => setOpenCat((prev) => (prev === i ? null : i));
 
   const toggleResolved = (key, planIdx = null) => {
@@ -2154,6 +2164,16 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               </div>
             </div>
           </section>
+
+          {/* 1.5 · Bandeau d'évolution depuis la version précédente (discret).
+                  Apporte le qualitatif (résumé + listes courtes), complément du
+                  delta numérique déjà rendu dans .score-calibration. */}
+          {evolution && (
+            <EvolutionBanner
+              evolution={evolution}
+              previousVersionName={evolutionPrevName}
+            />
+          )}
 
           {/* 2 · Diagnostic par élément — directement sous le score global, en col 1 */}
           {elements.length > 0 && (
