@@ -1517,11 +1517,15 @@ export default function MockupStyles() {
     .fiche-v2 .page .vocal-suggest   { order: 0; }
     .fiche-v2 .page .col-cover-wrap  { order: 1; }
     .fiche-v2 .page .row-verdict     { order: 2; }
-    .fiche-v2 .page .col-diag        { order: 3; }
+    /* Évolution depuis Vn + Intention artistique : juste avant le diagnostic
+       par élément. Sans cette règle, le wrapper hérite de l'order par défaut
+       (0) et remonte tout en haut, au-dessus de la pochette. */
+    .fiche-v2 .page .evo-intent-stack { order: 3; }
+    .fiche-v2 .page .col-diag        { order: 4; }
     .fiche-v2 .page .col-plan,
-    .fiche-v2 .page .intent-panel-fiche { order: 4; }
-    .fiche-v2 .page .row-qualitative { order: 5; }
-    .fiche-v2 .page .notes-section   { order: 6; }
+    .fiche-v2 .page .intent-panel-fiche { order: 5; }
+    .fiche-v2 .page .row-qualitative { order: 6; }
+    .fiche-v2 .page .notes-section   { order: 7; }
     /* Neutralise les grid-column/row du layout desktop (qui faisaient
        déborder les enfants puisqu'on n'est plus en grid). */
     .fiche-v2 .page .vocal-suggest,
