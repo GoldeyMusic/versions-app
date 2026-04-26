@@ -1994,12 +1994,19 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
 
   // ── Suivi inter-versions (bandeau évolution discret) ──
   // Si le backend a généré un objet `evolution` (= une V précédente
-  // avec listening était stockée), on l'affiche juste sous le verdict
-  // pour donner le qualitatif de l'évolution (le delta numérique étant
-  // déjà rendu par .score-calibration).
+  // avec listening était stockée), on l'affiche dans la colonne droite
+  // juste au-dessus du panneau Intention artistique. Le delta numérique
+  // reste rendu dans .score-calibration de la zone verdict.
   const evolution = displayAR?.evolution || null;
   const evolutionPrevName =
     displayAR?._previousVersionName || prevVersion?.name || null;
+  // Pré-calcul de la présence d'une intention (mêmes sources que IntentPanel),
+  // pour décider si le wrapper colonne-droite (bandeau + intent) doit être rendu.
+  const hasIntentSource = !!(
+    (typeof displayAR?.intent_used === 'string' && displayAR.intent_used.trim()) ||
+    (typeof versionInDb?.versionIntent === 'string' && versionInDb.versionIntent.trim()) ||
+    (typeof currentTrack?.artisticIntent === 'string' && currentTrack.artisticIntent.trim())
+  );
 
   const toggleCat = (i) => setOpenCat((prev) => (prev === i ? null : i));
 
@@ -2066,18 +2073,6 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             listening={listening}
             onRefresh={() => loadTracks().then(setTracks)}
           />
-
-          {/* 0.5 · Bandeau d'évolution depuis la version précédente (discret).
-                  Placé HORS de f2-col-main car celui-ci est display:contents
-                  dans un CSS grid — un enfant sans grid-column finit dans
-                  une mini-cellule. Ici on est frère direct du grid `.page`,
-                  avec gridColumn: 1 / -1 pour traverser toute la largeur. */}
-          {evolution && (
-            <EvolutionBanner
-              evolution={evolution}
-              previousVersionName={evolutionPrevName}
-            />
-          )}
 
           {/* COLONNE PRINCIPALE (col 1 en v2 desktop) : Score global + Diagnostic */}
           <div className="f2-col-main">
@@ -2331,13 +2326,37 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   </div>
                 );
               })()}
-              {/* 0b · Intention artistique — bande repliable juste au-dessus
-                     de Plan d'action, dans la colonne de droite. */}
-              <IntentPanel
-                analysisResult={displayAR}
-                currentTrack={currentTrack}
-                versionInDb={versionInDb}
-              />
+              {/* 0b · Wrapper colonne droite : bandeau d'évolution + Intention.
+                     Les deux sont stackés en flex column dans un seul grid-item
+                     (col 4 / span 3, row 3) pour rester au-dessus du Plan d'action
+                     sans casser les règles CSS existantes (.intent-panel-fiche
+                     et .col-plan). Le gap interne (18px) est aligné sur le
+                     row-gap du grid principal pour des espacements uniformes. */}
+              {(evolution || hasIntentSource) && (
+                <div
+                  style={{
+                    gridColumn: '4 / span 3',
+                    gridRow: 3,
+                    alignSelf: 'start',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 18,
+                    minWidth: 0,
+                  }}
+                >
+                  {evolution && (
+                    <EvolutionBanner
+                      evolution={evolution}
+                      previousVersionName={evolutionPrevName}
+                    />
+                  )}
+                  <IntentPanel
+                    analysisResult={displayAR}
+                    currentTrack={currentTrack}
+                    versionInDb={versionInDb}
+                  />
+                </div>
+              )}
               {plan.length > 0 && (
               <div className="col-plan">
                 {(() => {
