@@ -3839,6 +3839,93 @@ export default function MockupStyles() {
     border-radius: 4px;
     background: rgba(245, 176, 86, 0.08);
   }
+  /* Ticket 2.1 — checklist cochable + compteur de progression */
+  .diag-item .di-check {
+    width: 22px; height: 22px;
+    flex-shrink: 0;
+    margin-top: 5px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: #0c0c0d;
+    transition: border-color .15s ease, background .15s ease, transform .1s ease;
+    padding: 0;
+  }
+  .diag-item .di-check:hover:not(:disabled) {
+    border-color: var(--amber, #f5b056);
+    background: rgba(245, 176, 86, 0.08);
+  }
+  .diag-item .di-check:focus-visible {
+    outline: 2px solid var(--amber, #f5b056);
+    outline-offset: 2px;
+  }
+  .diag-item .di-check:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+  }
+  .diag-item .di-check.checked {
+    background: var(--amber, #f5b056);
+    border-color: var(--amber, #f5b056);
+  }
+  .diag-item .di-check.checked:hover:not(:disabled) {
+    background: var(--amber, #f5b056);
+  }
+  .diag-item .di-check.checked:active {
+    transform: scale(.94);
+  }
+  /* Item coché : titre/why barrés et grisés pour signaler "fait". */
+  .diag-item.is-done .di-name,
+  .diag-item.is-done .di-detail {
+    text-decoration: line-through;
+    text-decoration-color: rgba(255,255,255,0.3);
+    color: var(--muted, #7c7c80);
+  }
+  .diag-item.is-done .di-how,
+  .diag-item.is-done .di-tools {
+    opacity: 0.5;
+  }
+  .diag-item.is-done .sring {
+    opacity: 0.55;
+  }
+
+  /* Compteur global "X/N complétés (Y%)" dans le diag-eyebrow */
+  .diag-progress {
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-left: auto;
+    padding-left: 14px;
+  }
+  .diag-progress-bar {
+    width: 90px; height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    display: inline-block;
+  }
+  .diag-progress-bar-fill {
+    display: block; height: 100%;
+    background: var(--amber, #f5b056);
+    border-radius: 2px;
+    transition: width .2s ease;
+  }
+  .diag-progress-label {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--muted, #7c7c80);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  /* diag-eyebrow doit pouvoir étirer le compteur à droite */
+  .fiche-v2 .diag-panel .diag-eyebrow,
+  .diag-eyebrow {
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 720px) {
+    .diag-progress { width: 100%; margin-left: 0; padding-left: 0; }
+    .diag-progress-bar { flex: 1; width: auto; }
+    .diag-item .di-check { width: 20px; height: 20px; margin-top: 4px; }
+  }
 
   /* ── FOCUS — overlay plein écran pour un chantier ── */
   .focus {

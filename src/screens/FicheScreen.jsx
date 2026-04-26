@@ -6,7 +6,7 @@ import ExportPdfModal from '../components/ExportPdfModal';
 import ShareLinkModal from '../components/ShareLinkModal';
 import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
 import EvolutionBanner from '../components/EvolutionBanner';
-import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized } from '../lib/storage';
+import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion } from '../lib/storage';
 import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
@@ -22,6 +22,15 @@ import useLang from '../hooks/useLang';
  */
 
 // ── Helpers ──────────────────────────────────────────────
+
+// Identifiant stable pour la persistance Supabase de la checklist (Ticket 2.1).
+// On préfère l'id backend ; à défaut on retombe sur (categorie::index::titre)
+// pour rester stable d'une analyse à l'autre tant que le contenu ne bouge pas.
+function diagItemKey(catId, item, idx) {
+  if (item?.id) return String(item.id);
+  const head = (item?.title || '').slice(0, 60);
+  return `${catId || 'cat'}::${idx}::${head}`;
+}
 
 function findItalicIdx(title) {
   if (!title) return -1;
@@ -1828,6 +1837,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   const [openPlanIdx, setOpenPlanIdx] = useState(null);
   const [resolved, setResolved] = useState(new Set());
   const [hideResolved, setHideResolved] = useState(false);
+  // Ticket 2.1 — items diagnostiques cochés (clés stables via diagItemKey).
+  // Set<string>. Persisté dans Supabase (table mix_note_completions).
+  const [completedItems, setCompletedItems] = useState(new Set());
   const [chatOpen, setChatOpen] = useState(false);
   const [exportTarget, setExportTarget] = useState(null); // { track, version } ouverts dans la modale d'export PDF
   const [shareTarget, setShareTarget] = useState(null);   // { track, version } ouverts dans la modale de partage
@@ -1886,6 +1898,36 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, [openPlanIdx, chatOpen]);
+
+  // Ticket 2.1 — charge l'état de la checklist quand on change de version.
+  // versionInDb?.id n'est pas dispo tant que la version n'est pas persistée
+  // (cas pending) ; loadNoteCompletions retourne alors un Set vide silencieux.
+  const completionsVersionId = (() => {
+    const dbTrack2 = tracks.find((t) => t.title === config?.title) || null;
+    const v = dbTrack2?.versions?.find((vv) => vv.name === config?.version);
+    return v?.id || null;
+  })();
+  useEffect(() => {
+    if (!completionsVersionId) { setCompletedItems(new Set()); return; }
+    let alive = true;
+    loadNoteCompletions(completionsVersionId).then((set) => {
+      if (alive) setCompletedItems(set);
+    });
+    return () => { alive = false; };
+  }, [completionsVersionId]);
+
+  // Toggle d'une checkbox d'item diag — optimistic update + persist.
+  const toggleItemCompletion = (itemKey) => {
+    if (!completionsVersionId) return;
+    const wasCompleted = completedItems.has(itemKey);
+    setCompletedItems((prev) => {
+      const next = new Set(prev);
+      if (wasCompleted) next.delete(itemKey);
+      else next.add(itemKey);
+      return next;
+    });
+    setNoteCompletion(completionsVersionId, itemKey, !wasCompleted);
+  };
 
   const dbTrack = tracks.find((t) => t.title === config?.title) || null;
   // Si le track DB existe mais ne contient pas encore la version courante (save en cours),
@@ -2190,6 +2232,24 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     if (k.includes('master') || k.includes('loudness')) return 'amber';
                     return 'cerulean';
                   };
+                  // Ticket 2.1 — totaux pour le compteur "X/N complétés (Y%)".
+                  // On exclut les items de la catégorie voix tant que le titre est
+                  // marqué « voix à venir » : ces items sont pending et ne doivent
+                  // pas peser dans la progression.
+                  const allItemKeys = elements.flatMap((el, eIdx) => {
+                    const isVoice = isVoiceCategory(el?.cat);
+                    if (isVoice && voiceLabelOverride) return [];
+                    return (el.items || [])
+                      .map(normalizeDiagItem)
+                      .map((it, i) => diagItemKey(el?.id || el?.cat || `cat${eIdx}`, it, i));
+                  });
+                  const totalCount = allItemKeys.length;
+                  const doneCount = allItemKeys.reduce(
+                    (acc, k) => acc + (completedItems.has(k) ? 1 : 0),
+                    0,
+                  );
+                  const donePct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
                   const renderCats = () => elements.map((el, idx) => {
                     const open = openCat === idx;
                     const items = (el.items || []).map(normalizeDiagItem);
@@ -2199,6 +2259,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     const isVoice = isVoiceCategory(el?.cat);
                     const catLabel = (isVoice && voiceLabelOverride) ? s.fiche.voiceComingSoon : el.cat;
                     const color = catColor(el?.cat);
+                    const catId = el?.id || el?.cat || `cat${idx}`;
                     return (
                       <div key={el.id || el.cat || idx} className={`diag-cat c-${color}${open ? ' open' : ''}${isVoice && voiceLabelOverride ? ' pending-voice' : ''}`}>
                         <div className="diag-cat-head" onClick={() => toggleCat(idx)}>
@@ -2215,31 +2276,51 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                           </span>
                         </div>
                         <div className="diag-cat-body">
-                          {items.map((it, i) => (
-                            <div key={it.id || i} className={`diag-item${it.priority ? ` prio-${it.priority}` : ''}`}>
-                              <ScoreRingSmall value={it.score} />
-                              <div className="di-body">
-                                <div className="di-name">
-                                  {it.priority && (
-                                    <span className={`di-prio prio-${it.priority}`} aria-label={`priorité ${it.priority}`} />
+                          {items.map((it, i) => {
+                            const itemKey = diagItemKey(catId, it, i);
+                            const done = completedItems.has(itemKey);
+                            const canCheck = !!completionsVersionId && !(isVoice && voiceLabelOverride);
+                            return (
+                              <div key={it.id || i} className={`diag-item${it.priority ? ` prio-${it.priority}` : ''}${done ? ' is-done' : ''}`}>
+                                <button
+                                  type="button"
+                                  className={`di-check${done ? ' checked' : ''}`}
+                                  onClick={() => canCheck && toggleItemCompletion(itemKey)}
+                                  disabled={!canCheck}
+                                  aria-pressed={done}
+                                  aria-label={done ? s.fiche.diagItemDoneLabel : s.fiche.diagItemMarkDoneLabel}
+                                  title={done ? s.fiche.diagItemDoneLabel : s.fiche.diagItemMarkDoneLabel}
+                                >
+                                  {done && (
+                                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                                      <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
                                   )}
-                                  {it.title}
+                                </button>
+                                <ScoreRingSmall value={it.score} />
+                                <div className="di-body">
+                                  <div className="di-name">
+                                    {it.priority && (
+                                      <span className={`di-prio prio-${it.priority}`} aria-label={`priorité ${it.priority}`} />
+                                    )}
+                                    {it.title}
+                                  </div>
+                                  {it.why && <div className="di-detail">{it.why}</div>}
+                                  {it.how && (
+                                    <div className="di-how">
+                                      <span className="di-how-label">Action</span>
+                                      <code>{it.how}</code>
+                                    </div>
+                                  )}
+                                  {it.plugin_pick && (
+                                    <div className="di-tools">
+                                      <span className="di-plugin">{it.plugin_pick}</span>
+                                    </div>
+                                  )}
                                 </div>
-                                {it.why && <div className="di-detail">{it.why}</div>}
-                                {it.how && (
-                                  <div className="di-how">
-                                    <span className="di-how-label">Action</span>
-                                    <code>{it.how}</code>
-                                  </div>
-                                )}
-                                {it.plugin_pick && (
-                                  <div className="di-tools">
-                                    <span className="di-plugin">{it.plugin_pick}</span>
-                                  </div>
-                                )}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     );
@@ -2252,6 +2333,19 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                       <div className="diag-eyebrow">
                         <span className="dot" />
                         {s.fiche.diagTitle} · {elements.length} {elements.length > 1 ? s.fiche.categoryPlural : s.fiche.categorySingular}
+                        {totalCount > 0 && (
+                          <span className="diag-progress" title={s.fiche.diagProgressTitle}>
+                            <span className="diag-progress-bar" aria-hidden="true">
+                              <span
+                                className="diag-progress-bar-fill"
+                                style={{ width: `${donePct}%` }}
+                              />
+                            </span>
+                            <span className="diag-progress-label">
+                              {doneCount}/{totalCount} {s.fiche.diagProgressDone} ({donePct}%)
+                            </span>
+                          </span>
+                        )}
                       </div>
                       <div className="diag-cats">
                         {renderCats()}

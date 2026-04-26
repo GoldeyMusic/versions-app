@@ -389,6 +389,66 @@ export async function saveChatHistory(versionId, messages) {
   if (error) console.warn('[storage] saveChatHistory error:', error.message);
 }
 
+// ── Checklist diagnostique (Ticket 2.1) ────────────────────
+// Stocke par (user_id, version_id, item_id) si la reco a été
+// implémentée par l'utilisateur dans son DAW.
+
+/**
+ * Charge l'ensemble des item_id complétés (completed=true) pour une version.
+ * Retourne un Set<string>. Renvoie un set vide si pas de version persistée
+ * ou si l'utilisateur n'est pas connecté.
+ */
+export async function loadNoteCompletions(versionId) {
+  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') {
+    return new Set();
+  }
+  const { data, error } = await supabase
+    .from('mix_note_completions')
+    .select('item_id, completed')
+    .eq('version_id', versionId);
+  if (error) {
+    console.warn('[storage] loadNoteCompletions error:', error.message);
+    return new Set();
+  }
+  return new Set((data || []).filter((r) => r.completed).map((r) => r.item_id));
+}
+
+/**
+ * Marque un item comme complété (upsert) ou décoché (delete) pour la version.
+ * Fire-and-forget : on n'attend pas le résultat côté UI (optimistic update).
+ */
+export async function setNoteCompletion(versionId, itemId, completed) {
+  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return;
+  if (!itemId) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  if (!completed) {
+    const { error } = await supabase
+      .from('mix_note_completions')
+      .delete()
+      .eq('version_id', versionId)
+      .eq('item_id', itemId)
+      .eq('user_id', user.id);
+    if (error) console.warn('[storage] setNoteCompletion delete error:', error.message);
+    return;
+  }
+
+  const { error } = await supabase
+    .from('mix_note_completions')
+    .upsert(
+      {
+        version_id: versionId,
+        item_id: itemId,
+        user_id: user.id,
+        completed: true,
+        completed_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,version_id,item_id' },
+    );
+  if (error) console.warn('[storage] setNoteCompletion upsert error:', error.message);
+}
+
 // ── Lien public (lecture seule) ────────────────────────────
 // Génère un token 128 bits base64url. Utilisé pour les liens partageables.
 // On reste côté client : pas besoin de faire un round-trip pour créer un
