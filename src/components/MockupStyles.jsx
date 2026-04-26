@@ -1529,7 +1529,7 @@ export default function MockupStyles() {
     /* Neutralise les grid-column/row du layout desktop (qui faisaient
        déborder les enfants puisqu'on n'est plus en grid). On reset aussi
        align-self : en grid c'est l'axe block, mais en flex column c'est
-       l'axe horizontal — laisser `align-self: start` rétrécirait le panel
+       l'axe horizontal — laisser align-self start rétrécirait le panel
        à la largeur de son contenu (ex. .col-plan en mobile). */
     .fiche-v2 .page .vocal-suggest,
     .fiche-v2 .page .col-cover-wrap,
