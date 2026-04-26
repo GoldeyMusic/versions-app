@@ -1215,11 +1215,11 @@ export default function MockupStyles() {
   .fiche-v2 .page:has(.intent-panel-fiche) .col-plan { grid-row: 4; }
 
   /* Wrapper qui empile EvolutionBanner + IntentPanel dans la colonne droite,
-     juste au-dessus de Plan d'action. On en fait un seul grid-item (col 4-6,
-     row 3) pour éviter les conflits avec les règles `.intent-panel-fiche` /
-     `.col-plan`. À l'intérieur, IntentPanel doit reprendre 100% de largeur
-     (sa règle grid d'origine ne s'applique plus puisqu'il n'est plus enfant
-     direct du grid `.page`). */
+     juste au-dessus de Plan d action. On en fait un seul grid-item (col 4-6,
+     row 3) pour eviter les conflits avec les regles .intent-panel-fiche /
+     .col-plan. A l interieur, IntentPanel doit reprendre 100% de largeur
+     (sa regle grid d origine ne s applique plus puisqu il n est plus enfant
+     direct du grid .page). */
   .fiche-v2 .evo-intent-stack > .intent-panel-fiche {
     grid-column: auto;
     grid-row: auto;
