@@ -40,8 +40,9 @@
   - **Dashboard connecté compte neuf** : un seul gros bloc *"Analysez votre 1er morceau"* 80% écran. À 3+ analyses : timeline + percentile par genre (à activer quand cohorte suffisante) + récents.
   ✅ Livré — fusionné avec 1.2 en landing publique (#/ = landing, #/dashboard = espace de travail, logo pointe vers landing, lien À propos en sidebar). Le contenu "comment on évalue" est intégré comme sections scrollables (différenciateurs, axes d'analyse, limites assumées). Sample report (3.2) et calibrations dashboard cold-start restent à faire séparément. Cf. journal 2026-04-27.
 
-- [ ] **3.2 — Page `/exemple-de-rapport` (sample report public)**
+- [x] **3.2 — Page `/exemple-de-rapport` (sample report public)**
   Route accessible sans signup, montre la profondeur réelle d'un rapport (mock data réaliste). Lien depuis la landing. Référence : structure du sample d'AubioMix mais avec un morceau francophone et notre angle "intention artistique" en première section.
+  ✅ Livré — page `#/exemple` avec mock data réaliste, intention artistique en tête, lien depuis le hero de la landing.
 
 ## Tier 4 — Fidélisation + différenciation algo (mois 2)
 
@@ -88,3 +89,4 @@ Ces axes restent notre territoire unique vs AubioMix. À garder dans toute déci
 - **2026-04-27** — Tickets 1.1, 2.1 et 2.2 livrés sur `main`. Tier 1 reste sur 1.2 (page `/comment-on-evalue`) ; Tier 2 entièrement clos.
 - **2026-04-27** — Tickets 1.2 et 3.1 fusionnés en une landing publique unique (`#/`), accessible connecté comme déconnecté. Le contenu "comment on évalue" devient des sections scrollables (différenciateurs, 6 axes d'analyse, limites assumées). Routing : `#/dashboard` pour l'espace de travail, logo pointe vers la landing, lien "À propos" en pied de sidebar. Tier 1 entièrement clos ; Tier 3 partiellement (3.2 sample report et calibrations dashboard cold-start restent ouverts).
 - **2026-04-27** — ✅ Livré — URLs persistantes pour les fiches : `#/fiche/{trackId}/{versionId}`, refresh conserve la fiche (résolveur `pendingFiche` + `getAnalysis` côté Supabase). Hors plan AubioMix mais débloque le partage interne et les bookmarks utilisateur.
+- **2026-04-27** — Ticket 3.2 livré : `SampleFicheScreen` à `#/exemple` (alias `#/sample-report`). Mock data crédible (morceau "Brûle" V2, score 78), intention artistique rendue en tête via `IntentPanel`, structure parité `PublicFicheScreen`, bannière CTA bas de page. Lien "Voir un exemple" en CTA secondaire dans le hero de la landing. **Tier 3 entièrement clos.**
