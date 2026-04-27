@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import API from '../constants/api';
 // import CompareButton from '../components/CompareButton'; // mis en sommeil
 // VChip (carousel de chips V1/V2/V3) remplacé par VersionDropdown — import retiré.
@@ -718,18 +719,41 @@ function VocalTypePill({ track, onRefresh }) {
 
 function VersionDropdown({ track, currentVersionName, versions, onSelectVersion, onAddVersion, newVersionLabel, showAddInMenu = true }) {
   const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 220 });
   const ref = useRef(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
   const current = versions.find((v) => v.name === currentVersionName) || versions[versions.length - 1];
 
   useEffect(() => {
     if (!open) return;
-    const onDown = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    // Click-outside : autorise les clics dans la pill (ref) ET dans le menu portalisé (menuRef).
+    // Sans le menuRef, cliquer un item provoquait setOpen(false) avant que le onClick de l'item
+    // ne s'exécute (selon l'ordre mousedown/click), d'où la sensation que « le dropdown ne montre
+    // plus les autres versions ».
+    const onDown = (e) => {
+      if (ref.current?.contains(e.target)) return;
+      if (menuRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
     const onEsc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    // Reposition lors du scroll/resize : le menu est en position: fixed (portal),
+    // il doit suivre l'ancre. Sinon il « flotte » à l'ancien offset après scroll.
+    const reposition = () => {
+      if (!triggerRef.current) return;
+      const r = triggerRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 6, left: r.left, width: Math.max(r.width, 220) });
+    };
+    reposition();
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onEsc);
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
     return () => {
       document.removeEventListener('mousedown', onDown);
       document.removeEventListener('keydown', onEsc);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
     };
   }, [open]);
 
@@ -738,6 +762,7 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
   return (
     <div className="version-dropdown" ref={ref}>
       <button
+        ref={triggerRef}
         type="button"
         className={`version-dropdown-trigger${open ? ' is-open' : ''}`}
         onClick={() => setOpen((v) => !v)}
@@ -749,8 +774,18 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
           <path d="M2 4l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      {open && (
-        <div className="version-dropdown-menu" role="listbox">
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          className="version-dropdown-menu version-dropdown-menu-portal"
+          role="listbox"
+          style={{
+            position: 'fixed',
+            top: menuPos.top,
+            left: menuPos.left,
+            minWidth: menuPos.width,
+          }}
+        >
           {versions.map((v, idx) => {
             const score = v.analysisResult?.fiche?.globalScore;
             const prev = idx > 0 ? versions[idx - 1]?.analysisResult?.fiche?.globalScore : null;
@@ -792,7 +827,8 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
               <span>{newVersionLabel}</span>
             </button>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -2443,7 +2479,13 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                                 <button
                                   type="button"
                                   className={`di-check${done ? ' checked' : ''}`}
-                                  onClick={() => canCheck && toggleItemCompletion(itemKey)}
+                                  onClick={(e) => {
+                                    // stopPropagation défensif : empêche tout bubbling vers un
+                                    // ancêtre éventuel (futurs ajouts dans .diag-cat / .diag-item)
+                                    // de réagir au clic et de masquer le toggle de la checkbox.
+                                    e.stopPropagation();
+                                    if (canCheck) toggleItemCompletion(itemKey);
+                                  }}
                                   disabled={!canCheck}
                                   aria-pressed={done}
                                   aria-label={done ? s.fiche.diagItemDoneLabel : s.fiche.diagItemMarkDoneLabel}

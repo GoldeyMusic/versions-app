@@ -448,6 +448,14 @@ export default function MockupStyles() {
     gap: 2px; z-index: 40;
     animation: fadeup .18s ease;
   }
+  /* Variante portalisée (rendue dans <body>) : neutralise les styles
+     d'ancrage absolu hérités, conserve l'apparence + monte le z-index
+     pour être au-dessus des stacking contexts (topbar sticky, chat, ...). */
+  .version-dropdown-menu-portal {
+    top: auto; left: auto; /* écrasés par le style inline */
+    z-index: 1000;
+    max-width: min(90vw, 360px);
+  }
   .version-dropdown-menu .vdd-item {
     display: flex; align-items: center; justify-content: space-between;
     gap: 12px; width: 100%;
@@ -1112,6 +1120,12 @@ export default function MockupStyles() {
   .fiche-v2 .page > .f2-col-main,
   .fiche-v2 .page > .f2-col-side { display: contents; }
   .fiche-v2 .page .vocal-suggest        { grid-column: 1 / -1; grid-row: 1; }
+  /* Bandeaux pleine largeur en tête de fiche : ReleaseReadinessBanner (4.3),
+     PlateauBanner / FINAL badge (4.4). Sans ce span, ils sont auto-placés
+     par le grid 6 colonnes et n'occupent qu'1 colonne (~16% de largeur). */
+  .fiche-v2 .page .release-readiness,
+  .fiche-v2 .page .plateau-banner,
+  .fiche-v2 .page .final-badge-banner  { grid-column: 1 / -1; }
   /* Rangee 2 : le grand cadre score global (.row-verdict) prend toute la largeur,
      la pochette se superpose dessus a gauche (z-index + meme grid-row) pour
      donner l'impression d'etre "dans" le rectangle. .rv-left a un padding-left
@@ -1127,6 +1141,15 @@ export default function MockupStyles() {
   .fiche-v2 .page .row-verdict:has(.mi-tile.tip-open),
   .fiche-v2 .page .row-verdict:has(.mi-tile:hover) {
     z-index: 100;
+  }
+  /* Quand row-verdict monte à z-index 100 pour laisser le tooltip déborder,
+     la pochette (z-index: 2 par défaut) passe DERRIÈRE et disparaît visuellement.
+     On la remonte au-dessus de row-verdict pour qu'elle reste visible. */
+  .fiche-v2 .page:has(.row-verdict .score-ring.tip-open) .col-cover-wrap,
+  .fiche-v2 .page:has(.row-verdict .score-ring:hover) .col-cover-wrap,
+  .fiche-v2 .page:has(.row-verdict .mi-tile.tip-open) .col-cover-wrap,
+  .fiche-v2 .page:has(.row-verdict .mi-tile:hover) .col-cover-wrap {
+    z-index: 101;
   }
   .fiche-v2 .page .row-verdict .rv-left {
     /* Padding-left reserve la place de la pochette (spanning 2/6 cols + gap).
@@ -1211,7 +1234,14 @@ export default function MockupStyles() {
   .fiche-v2 .page .col-diag            { grid-column: 1 / span 3; grid-row: 3; }
   .fiche-v2 .page .col-plan            { grid-column: 4 / span 3; grid-row: 3; align-self: start; }
   .fiche-v2 .page .intent-panel-fiche  { grid-column: 4 / span 3; grid-row: 3; align-self: start; }
+  /* Quand le wrapper .evo-intent-stack est présent dans la colonne droite (row 3),
+     col-plan descend en row 4 et col-diag s'étire sur 2 lignes pour garder
+     l'équilibre visuel. On cible .evo-intent-stack (toujours rendu si evolution
+     OU intent existe) plutôt que .intent-panel-fiche, qui peut être null lorsque
+     seul EvolutionBanner est affiché — sans ça, col-plan se superpose à evo. */
+  .fiche-v2 .page:has(.evo-intent-stack) .col-diag,
   .fiche-v2 .page:has(.intent-panel-fiche) .col-diag { grid-row: 3 / span 2; }
+  .fiche-v2 .page:has(.evo-intent-stack) .col-plan,
   .fiche-v2 .page:has(.intent-panel-fiche) .col-plan { grid-row: 4; }
 
   /* Wrapper qui empile EvolutionBanner + IntentPanel dans la colonne droite,
