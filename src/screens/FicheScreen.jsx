@@ -1221,26 +1221,54 @@ function DspEditModal({ version, track, initial, onClose, onSaved }) {
           />
         </div>
 
-        <label
+        {/* Checkbox custom stylée — le reset CSS du site masque les
+            inputs natifs, on rend donc le carré nous-mêmes. */}
+        <div
+          role="checkbox"
+          aria-checked={applyAll}
+          aria-disabled={!canApplyAll || saving}
+          tabIndex={canApplyAll && !saving ? 0 : -1}
+          onClick={() => { if (canApplyAll && !saving) setApplyAll((v) => !v); }}
+          onKeyDown={(e) => {
+            if (!canApplyAll || saving) return;
+            if (e.key === ' ' || e.key === 'Enter') {
+              e.preventDefault();
+              setApplyAll((v) => !v);
+            }
+          }}
           style={{
             display: 'flex', alignItems: 'center', gap: 10,
-            marginTop: 4, marginBottom: 14,
+            marginTop: 6, marginBottom: 16,
             fontSize: 13, color: canApplyAll ? 'var(--soft)' : 'var(--muted)',
-            cursor: canApplyAll ? 'pointer' : 'default',
+            cursor: canApplyAll && !saving ? 'pointer' : 'default',
             opacity: canApplyAll ? 1 : 0.55,
+            userSelect: 'none',
           }}
         >
-          <input
-            type="checkbox"
-            checked={applyAll}
-            onChange={(e) => setApplyAll(e.target.checked)}
-            disabled={!canApplyAll || saving}
-            style={{ accentColor: 'var(--amber)' }}
-          />
-          {canApplyAll
-            ? `Appliquer aussi aux ${otherVersionsCount} autre${otherVersionsCount > 1 ? 's' : ''} version${otherVersionsCount > 1 ? 's' : ''} de ce titre`
-            : 'Aucune autre version sur ce titre'}
-        </label>
+          <span
+            aria-hidden="true"
+            style={{
+              width: 16, height: 16,
+              borderRadius: 4,
+              border: `1px solid ${applyAll ? 'var(--amber)' : 'rgba(255,255,255,0.25)'}`,
+              background: applyAll ? 'var(--amber)' : 'transparent',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+              transition: 'all .12s',
+            }}
+          >
+            {applyAll && (
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#1b1108" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2.5 6.2l2.3 2.3L9.5 3.5" />
+              </svg>
+            )}
+          </span>
+          <span>
+            {canApplyAll
+              ? `Appliquer aussi aux ${otherVersionsCount} autre${otherVersionsCount > 1 ? 's' : ''} version${otherVersionsCount > 1 ? 's' : ''} de ce titre`
+              : 'Aucune autre version sur ce titre'}
+          </span>
+        </div>
 
         <div className="add-mini-foot">
           <button
