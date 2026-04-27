@@ -3040,14 +3040,18 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     return 'cerulean';
                   };
                   // Ticket 2.1 — totaux pour le compteur "X/N complétés (Y%)".
-                  // On exclut les items de la catégorie voix tant que le titre est
-                  // marqué « voix à venir » : ces items sont pending et ne doivent
-                  // pas peser dans la progression.
+                  // On exclut :
+                  //   - les items de la catégorie voix tant que le titre est marqué
+                  //     « voix à venir » (pending, ne doit pas peser sur la progression),
+                  //   - les items de validation (score >= 75) qui n'ont pas de checkbox
+                  //     visible (rien à "traiter"). Sinon le ratio serait toujours
+                  //     incomplet alors que l'utilisateur n'a rien à cocher.
                   const allItemKeys = elements.flatMap((el, eIdx) => {
                     const isVoice = isVoiceCategory(el?.cat);
                     if (isVoice && voiceLabelOverride) return [];
                     return (el.items || [])
                       .map(normalizeDiagItem)
+                      .filter((it) => !(typeof it.score === 'number' && it.score >= 75))
                       .map((it, i) => diagItemKey(el?.id || el?.cat || `cat${eIdx}`, it, i));
                   });
                   const totalCount = allItemKeys.length;
@@ -3087,29 +3091,56 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                             const itemKey = diagItemKey(catId, it, i);
                             const done = completedItems.has(itemKey);
                             const canCheck = !!completionsVersionId && !(isVoice && voiceLabelOverride);
+                            // Items de validation (score >= 75) = "RAS" / déjà bien.
+                            // La checkbox n'a pas de sens : on ne "traite" pas un point
+                            // qui ne pose pas problème. Seuls les correctifs gardent la
+                            // case + son label "À traiter / Traité".
+                            const isCorrective = !(typeof it.score === 'number' && it.score >= 75);
                             return (
                               <div key={it.id || i} className={`diag-item${it.priority ? ` prio-${it.priority}` : ''}${done ? ' is-done' : ''}${it.advice_locked ? ' advice-locked' : ''}`}>
-                                <button
-                                  type="button"
-                                  className={`di-check${done ? ' checked' : ''}`}
-                                  onClick={(e) => {
-                                    // stopPropagation défensif : empêche tout bubbling vers un
-                                    // ancêtre éventuel (futurs ajouts dans .diag-cat / .diag-item)
-                                    // de réagir au clic et de masquer le toggle de la checkbox.
-                                    e.stopPropagation();
-                                    if (canCheck) toggleItemCompletion(itemKey);
-                                  }}
-                                  disabled={!canCheck}
-                                  aria-pressed={done}
-                                  aria-label={done ? s.fiche.diagItemDoneLabel : s.fiche.diagItemMarkDoneLabel}
-                                  title={done ? s.fiche.diagItemDoneLabel : s.fiche.diagItemMarkDoneLabel}
-                                >
-                                  {done && (
-                                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                                      <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                  )}
-                                </button>
+                                {isCorrective && (
+                                  <div
+                                    style={{
+                                      display: 'flex', flexDirection: 'column',
+                                      alignItems: 'center', gap: 4,
+                                      flexShrink: 0, marginTop: 5,
+                                    }}
+                                  >
+                                    <button
+                                      type="button"
+                                      className={`di-check${done ? ' checked' : ''}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (canCheck) toggleItemCompletion(itemKey);
+                                      }}
+                                      disabled={!canCheck}
+                                      aria-pressed={done}
+                                      aria-label={done ? s.fiche.diagItemDoneLabel : s.fiche.diagItemMarkDoneLabel}
+                                      title={done ? s.fiche.diagItemDoneLabel : s.fiche.diagItemMarkDoneLabel}
+                                      style={{ marginTop: 0 }}
+                                    >
+                                      {done && (
+                                        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                                          <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                      )}
+                                    </button>
+                                    <span
+                                      style={{
+                                        fontFamily: 'var(--mono)',
+                                        fontSize: 9,
+                                        letterSpacing: 1.2,
+                                        textTransform: 'uppercase',
+                                        color: done ? 'var(--amber)' : 'var(--muted)',
+                                        whiteSpace: 'nowrap',
+                                        userSelect: 'none',
+                                        opacity: canCheck ? 1 : 0.5,
+                                      }}
+                                    >
+                                      {done ? s.fiche.diagItemDoneShort : s.fiche.diagItemTodoShort}
+                                    </span>
+                                  </div>
+                                )}
                                 <ScoreRingSmall value={it.score} />
                                 <div className="di-body">
                                   <div className="di-name">
