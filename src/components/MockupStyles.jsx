@@ -1115,26 +1115,13 @@ export default function MockupStyles() {
   /* f2-col-* deviennent transparents → leurs enfants montent au niveau .page. */
   .fiche-v2 .page > .f2-col-main,
   .fiche-v2 .page > .f2-col-side { display: contents; }
-  /* Pochette + score sur la même ligne dans .row-verdict :
-     row-verdict devient flex avec la pochette à gauche et .rv-left à droite. */
+  /* Pochette + score sur la même ligne (parité avec le layout 2 colonnes
+     d'avant) : la pochette se superpose à gauche du card .rv-left via
+     absolute positioning. row-verdict est position: relative pour ancrer la
+     pochette. .rv-left réserve l'espace via padding-left, comme avant. */
   .fiche-v2 .page .row-verdict {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-  }
-  .fiche-v2 .page .row-verdict .rv-left { flex: 1; min-width: 0; }
-  .fiche-v2 .page .row-verdict > .col-cover-wrap {
-    flex: 0 0 140px;
-    width: 140px;
-    height: 140px;
-    margin: 0;
-    padding: 0;
-    aspect-ratio: 1 / 1;
-  }
-  .fiche-v2 .page .row-verdict > .col-cover-wrap .col-cover-holder {
-    width: 100%;
-    height: 100%;
-    max-width: none;
+    position: relative;
+    z-index: 1;
   }
   /* Quand un tooltip est ouvert (score global ou tuile mix), on booste le
      z-index de toute la row pour que le tooltip puisse déborder au-dessus
@@ -1156,28 +1143,30 @@ export default function MockupStyles() {
     z-index: 101;
   }
   .fiche-v2 .page .row-verdict .rv-left {
-    /* Layout 1 colonne : pas de padding reservant la place pochette. */
-    padding-left: 0;
+    /* Padding-left reserve la place de la pochette (33.33% + 40px), comme
+       dans le layout 2 colonnes d'avant. */
+    padding-left: calc(33.33% + 40px);
   }
-  /* Override du wrapper pochette en contexte grid v2 : on stretch le wrapper
-     sur toute sa cellule (2/6), on applique un padding-left pour aligner
-     visuellement sur le contenu de col-diag en dessous, et on recentre la
-     pochette dans l'espace restant via flex. aspect-ratio deplace sur
-     .col-cover pour que le wrapper ne devienne pas un carre geant. */
-  .fiche-v2 .page .col-cover-wrap {
-    justify-self: stretch;
-    align-self: center;
-    width: auto;
-    max-width: none;
-    aspect-ratio: auto;
-    padding-left: 48px;
+  /* Pochette ancree a gauche du card .rv-left via absolute positioning.
+     33.33% de largeur (parite avec le 2/6 de l'ancien grid), holder
+     centre via flex avec max-width 250px et aspect-ratio 1/1. */
+  .fiche-v2 .page .row-verdict > .col-cover-wrap {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 33.33%;
+    margin: 0;
+    z-index: 2;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding-left: 48px;
     box-sizing: border-box;
-    margin: 12px 0;
+    aspect-ratio: auto;
+    max-width: none;
   }
-  .fiche-v2 .page .col-cover-wrap .col-cover-holder {
+  .fiche-v2 .page .row-verdict > .col-cover-wrap .col-cover-holder {
     position: relative;
     width: 100%;
     max-width: 250px;
@@ -1219,7 +1208,14 @@ export default function MockupStyles() {
     left: auto;
     right: 0;
   }
-  /* Layout 1 colonne : pas de padding pochette, donc pas de margin-left négatif sur l'eyebrow. */
+  /* Le score-eyebrow reste a sa place d'origine (premier enfant de .rv-left,
+     meme style que les autres eyebrows). On annule le padding-left
+     calc(33.33% + 40px) qui reserve la place de la pochette, via un
+     margin-left negatif, pour qu'il s'aligne avec la bordure interne gauche
+     du card (= 24px, meme que diag-eyebrow). */
+  .fiche-v2 .row-verdict .rv-left .score-eyebrow {
+    margin-left: calc(-33.33% - 16px);
+  }
 
   /* Wrapper qui empile EvolutionBanner + IntentPanel dans la colonne droite,
      juste au-dessus de Plan d action. On en fait un seul grid-item (col 4-6,
