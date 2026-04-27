@@ -290,7 +290,7 @@ export default function SampleFicheScreen({
   const score = typeof adjustedScore === 'number' ? adjustedScore : null;
 
   // Accordéon strict — un seul state, une seule section ouverte à la fois.
-  // Identifiants : 'intent', 'impression', 'diag::<id>', 'plan::<i>'.
+  // Identifiants : 'intent', 'release', 'impression', 'diag::<id>', 'plan::<i>'.
   // Démo fermée par défaut → le visiteur clique pour ouvrir, comme sur la
   // vraie fiche. Ouvrir une section referme automatiquement la précédente.
   const [openSection, setOpenSection] = useState(null);
@@ -339,8 +339,15 @@ export default function SampleFicheScreen({
             {/* Ticket 4.3 — bandeau "Prêt à sortir / Presque / Pas encore".
                 Avec 3 items high-prio (médium-haut voix, refrain, sibilances)
                 non cochés et un score 78, le verdict tombe sur "Pas encore"
-                — démontre la liste de bloquants exacts. */}
-            <ReleaseReadinessBanner fiche={rawFiche} completedItems={null} />
+                — démontre la liste de bloquants exacts. Intégré à
+                l'accordéon strict : fermé par défaut, controlé via
+                openSection === 'release'. */}
+            <ReleaseReadinessBanner
+              fiche={rawFiche}
+              completedItems={null}
+              open={openSection === 'release'}
+              onToggle={() => toggleSection('release')}
+            />
 
             {/* Verdict */}
             <section className="row-verdict">

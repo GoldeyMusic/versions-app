@@ -13,16 +13,25 @@ import { computeReleaseReadiness } from '../lib/ficheHelpers.jsx';
  * Si la fiche n'a pas de globalScore exploitable, le bandeau n'est pas
  * rendu (on ne veut pas bruiter une analyse encore en cours de stream).
  */
-export default function ReleaseReadinessBanner({ fiche, completedItems }) {
+export default function ReleaseReadinessBanner({ fiche, completedItems, open: openProp, onToggle }) {
   const r = computeReleaseReadiness(fiche, completedItems);
+  // Mode contrôlé optionnel : si `open`/`onToggle` sont fournis (cf.
+  // SampleFicheScreen / accordéon strict), on s'aligne dessus. Sinon, état
+  // interne classique (vraie fiche : ouvert par défaut).
+  const [openInternal, setOpenInternal] = useState(true);
+  const isControlled = typeof openProp === 'boolean';
+  const open = isControlled ? openProp : openInternal;
   // null safety : si la fiche n'a pas de score (stream partiel), on attend.
-  const [open, setOpen] = useState(true);
   if (!fiche || r.score == null) return null;
 
   const cfg = TIER_CONFIG[r.tier];
   const blockerCount = r.blockers.length;
   const hasBlockers = blockerCount > 0;
   const showToggle = hasBlockers && r.tier !== 'ready';
+  const handleToggle = () => {
+    if (onToggle) onToggle();
+    if (!isControlled) setOpenInternal((v) => !v);
+  };
 
   return (
     <section className={`release-readiness rr-${r.tier}`} aria-label="État de sortie">
@@ -30,11 +39,11 @@ export default function ReleaseReadinessBanner({ fiche, completedItems }) {
         className="rr-head"
         role={showToggle ? 'button' : undefined}
         tabIndex={showToggle ? 0 : -1}
-        onClick={showToggle ? () => setOpen((v) => !v) : undefined}
+        onClick={showToggle ? handleToggle : undefined}
         onKeyDown={showToggle ? (e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            setOpen((v) => !v);
+            handleToggle();
           }
         } : undefined}
         style={{ cursor: showToggle ? 'pointer' : 'default' }}
