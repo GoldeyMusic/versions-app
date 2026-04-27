@@ -1,12 +1,19 @@
 import T from '../constants/theme';
 
 /**
- * LandingScreen — page publique pour visiteurs non connectés.
- * Fusionne tickets 1.2 (méthodologie "comment on évalue") et 3.1 (landing
- * publique) en sections scrollables. Le CTA renvoie vers AuthScreen via
- * onStart.
+ * LandingScreen — page de présentation accessible aux visiteurs ET aux
+ * utilisateurs connectés (via `#/home`). Fusionne tickets 1.2 (méthodologie
+ * "comment on évalue") et 3.1 (landing publique) en sections scrollables.
+ *
+ * Visiteur non connecté → onStart bascule vers AuthScreen.
+ * Utilisateur connecté → onStart renvoie sur le dashboard ; libellés des
+ * CTAs adaptés via ctaPrimaryLabel / ctaFooterLabel.
  */
-export default function LandingScreen({ onStart }) {
+export default function LandingScreen({
+  onStart,
+  ctaPrimaryLabel = 'Analyser mon premier titre',
+  ctaFooterLabel = 'Commencer gratuitement',
+}) {
   return (
     <div className="landing-screen">
       <LandingStyles />
@@ -33,7 +40,7 @@ export default function LandingScreen({ onStart }) {
           </h1>
 
           <button type="button" onClick={onStart} className="lp-cta-primary">
-            Analyser mon premier titre
+            {ctaPrimaryLabel}
           </button>
         </div>
       </header>
@@ -166,7 +173,7 @@ export default function LandingScreen({ onStart }) {
           Notre accompagnement.
         </h2>
         <button type="button" onClick={onStart} className="lp-cta-primary lp-cta-footer">
-          Commencer gratuitement
+          {ctaFooterLabel}
         </button>
         <div className="lp-footer-mark">
           {'VER'}<span className="accent">{'Si'}</span>{'ONS'}

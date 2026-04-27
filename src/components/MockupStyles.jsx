@@ -4555,6 +4555,21 @@ export default function MockupStyles() {
     font-size: 14px; line-height: 1; font-weight: 500;
     margin-top: -1px;
   }
+  /* Lien "À propos" — pied de sidebar, discret, mono uppercase muted. */
+  .sidebar-about-btn {
+    align-self: center;
+    margin: 16px 0 14px;
+    padding: 6px 10px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color .15s;
+  }
+  .sidebar-about-btn:hover { color: var(--amber); }
   .wh-desktop .wh-header { margin-bottom: 4px; align-items: flex-start; }
   .wh-desktop .wh-greeting { font-size: 28px; letter-spacing: 2.5px; text-align: left; }
   .wh-desktop .wh-actions { justify-content: flex-start; flex-wrap: wrap; }

@@ -1921,6 +1921,16 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd }) {
                     Ajouter
                   </button>
                 )}
+                <button className="mobile-avatar-popover-item" onClick={() => go('home')}>
+                  <span className="mobile-menu-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="12" y1="16" x2="12" y2="12"/>
+                      <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                  </span>
+                  À propos
+                </button>
                 <button className="mobile-avatar-popover-item" onClick={() => go('reglages')}>
                   <span className="mobile-menu-icon">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1955,8 +1965,16 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd }) {
 /* ── Hash routing (permet "Précédent/Suivant" navigateur) ──
    On utilise des hashs (#/…) : un reload retombe toujours sur index.html
    et Vercel n'a pas besoin de règle de rewrite côté serveur. */
+// `welcome` = dashboard (WelcomeHome — projets/titres). C'est l'écran par
+// défaut sur lequel atterrit un utilisateur connecté qui ouvre l'app.
+// `home` = landing publique. Accessible via `#/home` y compris connecté
+// (ex. depuis le lien "À propos" dans la sidebar).
+// `#/` (racine) résout naturellement vers le dashboard une fois connecté ;
+// pour les visiteurs non connectés, l'auth gate au-dessus court-circuite
+// `screen` et rend la landing directement.
 const SCREEN_HASH = {
-  welcome: '#/',
+  welcome: '#/dashboard',
+  home: '#/home',
   loading: '#/analyse',
   fiche: '#/fiche',
   versions: '#/versions',
@@ -1964,6 +1982,8 @@ const SCREEN_HASH = {
 const HASH_SCREEN = {
   '': 'welcome',
   '#/': 'welcome',
+  '#/dashboard': 'welcome',
+  '#/home': 'home',
   '#/analyse': 'loading',
   '#/fiche': 'fiche',
   '#/versions': 'versions',
@@ -2809,6 +2829,24 @@ function VersionsAppAuthed() {
     );
   }
 
+  // Utilisateur connecté qui visite la landing (#/home, ou clic "À propos"
+  // dans la sidebar) : rendu plein écran sans sidebar/BottomPlayer pour
+  // garder le ton "page de présentation". Les CTAs renvoient au dashboard.
+  if (screen === 'home') {
+    return (
+      <LangContext.Provider value={{ lang, s, setLang, t }}>
+        <FontLink />
+        <GlobalStyles />
+        <MockupStyles />
+        <LandingScreen
+          onStart={() => setScreen('welcome')}
+          ctaPrimaryLabel="Mon tableau de bord"
+          ctaFooterLabel="Mon tableau de bord"
+        />
+      </LangContext.Provider>
+    );
+  }
+
   // On desktop, the sidebar shows the tracks list so we don't need the "versions" screen
   const showSidebar = isDesktop;
   const contentMarginLeft = showSidebar ? SIDEBAR_WIDTH : 0;
@@ -2840,6 +2878,7 @@ function VersionsAppAuthed() {
             userProfile={userProfile}
             onSignOut={signOut}
             onGoHome={goHome}
+            onGoLanding={() => setScreen('home')}
             projects={projects}
             projectsLoaded={projectsLoaded}
           />

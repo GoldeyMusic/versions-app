@@ -25,6 +25,7 @@ export default function Sidebar({
   onSelectVersion,
   onGoReglages,
   onGoHome,
+  onGoLanding,
   onAdd,
   onPlay,
   onToggle,
@@ -330,6 +331,18 @@ export default function Sidebar({
           )}
         </div>
       </div>
+
+      {/* Lien "À propos" en pied de sidebar — accès à la landing publique
+          depuis le dashboard. Discret, mono, sans icône. */}
+      {onGoLanding && (
+        <button
+          type="button"
+          onClick={onGoLanding}
+          className="sidebar-about-btn"
+        >
+          À propos
+        </button>
+      )}
 
       {/* Modale renommer titre */}
       {renameTrackTarget && (
