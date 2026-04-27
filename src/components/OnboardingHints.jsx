@@ -1,44 +1,35 @@
 // ============================================================
 // versions-app / components / OnboardingHints.jsx
-// Petites cartes d'onboarding affichées en bas à gauche du
-// dashboard pour les nouveaux utilisateurs. 4 étapes guidées,
-// ne réapparaissent plus une fois fermées.
+// Petites cartes d'onboarding affichées en bas à gauche pour
+// guider les nouveaux utilisateurs sur un écran donné.
 // ============================================================
 //
+// Props :
+//   - steps        : tableau d'étapes [{ n, title, body }]
+//                    (par défaut HOME_STEPS pour rétro-compat)
+//   - storageKey   : clé localStorage pour le flag 'déjà vu'
+//                    (par défaut celle de la home)
+//
 // Position : fixed, bottom-left, juste au-dessus du BottomPlayer.
-// Persistence : localStorage flag 'versions_onboarding_done'.
 // Style : aligné avec le design system Versions (dark card,
 // halo ambre, mono kicker, body sans).
+//
+// Le composant se masque définitivement après fermeture, mais
+// peut être réaffiché via :
+//   - ?onboarding=show dans l'URL (test/dev)
+//   - événement custom 'versions:replay-onboarding' (déclenché
+//     par le bouton 'Revoir le guide' dans Réglages)
 // ============================================================
 
 import { useEffect, useState } from 'react';
+import { HOME_STEPS, ONBOARDING_STORAGE_KEYS } from '../constants/onboardingSteps';
 
-const STORAGE_KEY = 'versions_onboarding_done';
-
-const STEPS = [
-  {
-    n: 1,
-    title: 'Lance ton analyse',
-    body: "Importe ton mix et donne ton intention artistique. Versions cale son diagnostic sur ce que tu cherches à faire, pas sur des standards génériques.",
-  },
-  {
-    n: 2,
-    title: "Découvre ta fiche d'analyses",
-    body: "Recommandations chiffrées et plugins adaptés à ton DAW.",
-  },
-  {
-    n: 3,
-    title: 'Perfectionne ton mix',
-    body: "Importe une nouvelle version pour suivre ton évolution. Tes corrections sont reconnues — les scores t'aident à te repérer dans ton travail.",
-  },
-  {
-    n: 4,
-    title: "Chat avec l'assistant",
-    body: "Il connaît ta fiche. Demande des précisions sur un sujet, propose-lui une alternative à une action, ou pose une question ciblée sur ton DAW.",
-  },
-];
-
-export default function OnboardingHints() {
+export default function OnboardingHints({
+  steps = HOME_STEPS,
+  storageKey = ONBOARDING_STORAGE_KEYS.home,
+}) {
+  const STEPS = steps;
+  const STORAGE_KEY = storageKey;
   // null = fermé / déjà vu, 0..3 = étape courante
   const [step, setStep] = useState(null);
 
@@ -61,7 +52,7 @@ export default function OnboardingHints() {
     } catch {
       // localStorage indisponible (mode privé navigateur, SSR…) : on n'affiche pas
     }
-  }, []);
+  }, [STORAGE_KEY]);
 
   // Écoute un événement custom pour relancer le guide depuis l'extérieur
   // (ex: bouton 'Revoir le guide' dans Réglages). On efface aussi le flag
@@ -73,7 +64,7 @@ export default function OnboardingHints() {
     };
     window.addEventListener('versions:replay-onboarding', handler);
     return () => window.removeEventListener('versions:replay-onboarding', handler);
-  }, []);
+  }, [STORAGE_KEY]);
 
   const close = () => {
     setStep(null);

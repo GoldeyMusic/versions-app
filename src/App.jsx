@@ -18,6 +18,7 @@ import IntentionScreen from "./screens/IntentionScreen";
 import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
 import OnboardingHints from "./components/OnboardingHints";
+import { HOME_STEPS, ONBOARDING_STORAGE_KEYS } from "./constants/onboardingSteps";
 
 import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage, setTrackCoverImage, clearTrackCoverImage, updateTrackIntent, updateVersionIntent } from "./lib/storage";
 import { assignProjectColors, PROJECT_COLOR_COUNT } from "./lib/projectColors";
@@ -1660,7 +1661,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       ) : null /* première session sans cache — on ne montre rien plutôt que flasher l'écran d'onboarding */}
 
       {modalsSlot}
-      <OnboardingHints />
+      <OnboardingHints steps={HOME_STEPS} storageKey={ONBOARDING_STORAGE_KEYS.home} />
     </div>
   );
 }

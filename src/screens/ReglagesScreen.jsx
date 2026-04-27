@@ -267,9 +267,10 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
           </div>
 
           {/* ── Revoir le guide d'utilisation ──
-              Réefface le flag localStorage et déclenche un événement custom
-              écouté par OnboardingHints. La modale Réglages se ferme et le
-              guide réapparaît immédiatement sur la home. */}
+              Efface les flags localStorage des DEUX guides (home + fiche)
+              et déclenche un événement custom écouté par chaque instance
+              de OnboardingHints. La modale Réglages se ferme et le guide
+              de l'écran courant réapparaît immédiatement. */}
           <div className="rg-row">
             <div>
               <div className="rg-label">{s.reglages.replayOnboardingLabel}</div>
@@ -279,7 +280,14 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
               type="button"
               className="rg-btn"
               onClick={() => {
-                try { window.localStorage.removeItem('versions_onboarding_done'); } catch {}
+                try {
+                  // Compat avec l'ancienne clef + les deux nouvelles clefs scoped
+                  ['versions_onboarding_done',
+                   'versions_onboarding_done_home',
+                   'versions_onboarding_done_fiche'].forEach((k) => {
+                    window.localStorage.removeItem(k);
+                  });
+                } catch {}
                 try { window.dispatchEvent(new CustomEvent('versions:replay-onboarding')); } catch {}
                 if (onClose) onClose();
                 else if (onGoHome) onGoHome();

@@ -18,6 +18,8 @@ import { renderWithEmphasis, formatAnalyzedAt, splitVerdict, applyVocalTypeToFic
 import useMobile from '../hooks/useMobile';
 import useNarrowDesktop from '../hooks/useNarrowDesktop';
 import useLang from '../hooks/useLang';
+import OnboardingHints from '../components/OnboardingHints';
+import { FICHE_STEPS, ONBOARDING_STORAGE_KEYS } from '../constants/onboardingSteps';
 
 /**
  * FicheScreen — rendu fidèle à mockup-v3.html.
@@ -3345,6 +3347,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           />
         </>
       )}
+      <OnboardingHints steps={FICHE_STEPS} storageKey={ONBOARDING_STORAGE_KEYS.fiche} />
     </>
   );
 }
