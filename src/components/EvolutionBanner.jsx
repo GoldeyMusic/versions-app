@@ -14,7 +14,7 @@ import { useState } from 'react';
  * Items purement informatifs (non cliquables). Si rien à dire, le composant
  * renvoie null.
  */
-export default function EvolutionBanner({ evolution, previousVersionName, floorApplied = null }) {
+export default function EvolutionBanner({ evolution, previousVersionName, floorApplied = null, adviceLockApplied = null }) {
   const [open, setOpen] = useState(false);
 
   if (!evolution) return null;
@@ -227,7 +227,7 @@ export default function EvolutionBanner({ evolution, previousVersionName, floorA
           <EvolutionList label="Régressions" items={regressions} color="var(--red, #ff5d5d)" />
           <EvolutionList label="Persistants" items={persistants} color="var(--muted, rgba(255,255,255,0.5))" />
           <EvolutionList label="Nouveaux" items={nouveaux} color="var(--amber, #f5a623)" />
-          {floorApplied && (
+          {(floorApplied || adviceLockApplied) && (
             <div
               style={{
                 marginTop: 4,
@@ -235,12 +235,24 @@ export default function EvolutionBanner({ evolution, previousVersionName, floorA
                 borderTop: '1px dashed rgba(255,255,255,0.08)',
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: 11.5,
-                lineHeight: 1.5,
+                lineHeight: 1.55,
                 color: 'var(--muted, rgba(255,255,255,0.5))',
                 fontStyle: 'italic',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
               }}
             >
-              Plancher de stabilité actif — les régressions courtes sont lissées entre versions.
+              {floorApplied && (
+                <span>Plancher de stabilité actif — les régressions courtes sont lissées entre versions.</span>
+              )}
+              {adviceLockApplied && (
+                <span>
+                  {adviceLockApplied.categories?.length
+                    ? `Sub-score${adviceLockApplied.categories.length > 1 ? 's' : ''} verrouillé${adviceLockApplied.categories.length > 1 ? 's' : ''} sur ${adviceLockApplied.categories.map((c) => c.cat).join(' · ')} — les items cochés implémentés en V_(n-1) ne peuvent pas régresser.`
+                    : 'Sub-scores verrouillés à la baisse sur les items confirmés implémentés.'}
+                </span>
+              )}
             </div>
           )}
         </div>

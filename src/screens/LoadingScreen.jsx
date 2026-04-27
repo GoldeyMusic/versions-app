@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import API from '../constants/api';
 import { confirmDialog } from '../lib/confirm.jsx';
-import { hashAudioFile, findDuplicateAudio, loadTracks, getInheritedIntentByTitle } from "../lib/storage";
+import { hashAudioFile, findDuplicateAudio, loadTracks, getInheritedIntentByTitle, loadNoteCompletions } from "../lib/storage";
 import { supabase } from "../lib/supabase";
 import useLang from '../hooks/useLang';
 
@@ -156,6 +156,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
         // (previousVersionName est déclaré en haut du run pour le mode resume.)
         let previousFiche = null;
         let previousAnalysisResult = null;
+        let previousCompletions = null;
         try {
           const allTracks = await loadTracks();
           const sameTitle = allTracks.find((t) => t.title === config.title);
@@ -169,6 +170,14 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
                 listening: last.analysisResult.listening,
                 intent_used: last.analysisResult.intent_used || null,
               };
+            }
+            // Ticket 4.2 — items cochés "implémentés" sur V_(n-1). Le backend
+            // verrouille les sub-scores concernés à la baisse en V_n.
+            if (last?.id) {
+              try {
+                const set = await loadNoteCompletions(last.id);
+                if (set && set.size) previousCompletions = Array.from(set);
+              } catch {}
             }
           }
         } catch {}
@@ -218,6 +227,9 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
         if (previousFiche) formData.append("previousFiche", JSON.stringify(previousFiche));
         if (previousAnalysisResult) {
           formData.append("previousAnalysisResult", JSON.stringify(previousAnalysisResult));
+        }
+        if (previousCompletions && previousCompletions.length) {
+          formData.append("previousCompletions", JSON.stringify(previousCompletions));
         }
         if (durationSeconds) formData.append("durationSeconds", String(durationSeconds));
 
