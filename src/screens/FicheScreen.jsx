@@ -3091,11 +3091,16 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                             const itemKey = diagItemKey(catId, it, i);
                             const done = completedItems.has(itemKey);
                             const canCheck = !!completionsVersionId && !(isVoice && voiceLabelOverride);
-                            // Items de validation (score >= 75) = "RAS" / déjà bien.
-                            // La checkbox n'a pas de sens : on ne "traite" pas un point
-                            // qui ne pose pas problème. Seuls les correctifs gardent la
-                            // case + son label "À traiter / Traité".
-                            const isCorrective = !(typeof it.score === 'number' && it.score >= 75);
+                            // Validation pure = pas d'action concrète proposée :
+                            // 'how' vide OU commence par "RAS" (Rien À Signaler).
+                            // Dans ce cas, la checkbox n'a pas de sens — il n'y a
+                            // rien à "résoudre". Tous les autres items (avec une
+                            // recette technique dans 'how') gardent la case, même
+                            // si le score est élevé : un score 90 avec une vraie
+                            // recommandation reste une action à appliquer.
+                            const howStr = ((it && it.how) || '').trim();
+                            const isPureValidation = !howStr || /^ras\b/i.test(howStr);
+                            const isCorrective = !isPureValidation;
                             return (
                               <div key={it.id || i} className={`diag-item${it.priority ? ` prio-${it.priority}` : ''}${done ? ' is-done' : ''}${it.advice_locked ? ' advice-locked' : ''}`}>
                                 <ScoreRingSmall value={it.score} />
@@ -3170,8 +3175,13 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                                           <span
                                             aria-hidden="true"
                                             style={{
+                                              // Override de .diag-item .di-tools span qui force
+                                              // padding 3px 8px + border-radius 4px (styles des
+                                              // badges plugin). Sans ces overrides, la case est
+                                              // déformée par le padding hérité.
                                               width: 16, height: 16,
-                                              minWidth: 16, // empêche le flex de l'écraser
+                                              minWidth: 16,
+                                              padding: 0,
                                               borderRadius: 4,
                                               border: `1.5px solid ${done ? 'var(--amber)' : 'rgba(255,255,255,0.25)'}`,
                                               background: done ? 'var(--amber)' : 'transparent',
