@@ -86,6 +86,11 @@ export default function OnboardingHints() {
     else setStep(step + 1);
   };
 
+  const prev = () => {
+    if (step == null || step <= 0) return;
+    setStep(step - 1);
+  };
+
   if (step == null) return null;
 
   const cur = STEPS[step];
@@ -198,8 +203,35 @@ export default function OnboardingHints() {
         {cur.body}
       </p>
 
-      {/* Footer : navigation */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+      {/* Footer : navigation — précédent à gauche, suivant/compris à droite */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        {step > 0 ? (
+          <button
+            type="button"
+            onClick={prev}
+            style={{
+              padding: '8px 14px',
+              borderRadius: 8,
+              border: '1px solid rgba(255,255,255,0.14)',
+              background: 'transparent',
+              color: 'var(--soft)',
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontFamily: 'var(--body)',
+              transition: 'border-color .15s, color .15s',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M8 2l-4 4 4 4" />
+            </svg>
+            Précédent
+          </button>
+        ) : (
+          // Spacer pour garder le bouton "Suivant" aligné à droite à l'étape 1
+          <span aria-hidden="true" />
+        )}
         <button
           type="button"
           onClick={next}
