@@ -140,12 +140,12 @@ export default function LandingScreen({
         <p className="lp-section-lede">{lp.axesLede}</p>
 
         <div className="lp-axes-grid">
-          <AxeCard num="01" label={lp.axe1Label} desc={lp.axe1Desc} />
-          <AxeCard num="02" label={lp.axe2Label} desc={lp.axe2Desc} />
-          <AxeCard num="03" label={lp.axe3Label} desc={lp.axe3Desc} />
-          <AxeCard num="04" label={lp.axe4Label} desc={lp.axe4Desc} />
-          <AxeCard num="05" label={lp.axe5Label} desc={lp.axe5Desc} />
-          <AxeCard num="06" label={lp.axe6Label} desc={lp.axe6Desc} />
+          <AxeCard num="01" label={lp.axe1Label} desc={lp.axe1Desc} tone="amber" pos="tl" />
+          <AxeCard num="02" label={lp.axe2Label} desc={lp.axe2Desc} tone="mint" pos="br" />
+          <AxeCard num="03" label={lp.axe3Label} desc={lp.axe3Desc} tone="cerulean" pos="tr" />
+          <AxeCard num="04" label={lp.axe4Label} desc={lp.axe4Desc} tone="violet" pos="bl" />
+          <AxeCard num="05" label={lp.axe5Label} desc={lp.axe5Desc} tone="amber" pos="br" />
+          <AxeCard num="06" label={lp.axe6Label} desc={lp.axe6Desc} tone="cerulean" pos="bl" />
         </div>
       </section>
 
@@ -186,16 +186,19 @@ export default function LandingScreen({
           {ctaFooter}
         </button>
         <div className="lp-footer-mark">
-          {'VER'}<span className="accent">{'Si'}</span>{'ONS'}
+          <img src="/logo-versions-2.svg" alt="" className="lp-footer-mark-img" />
+          <span className="lp-footer-mark-text">
+            {'VER'}<span className="accent">{'Si'}</span>{'ONS'}
+          </span>
         </div>
       </footer>
     </div>
   );
 }
 
-function AxeCard({ num, label, desc }) {
+function AxeCard({ num, label, desc, tone = 'amber', pos = 'tr' }) {
   return (
-    <div className="lp-axe-card">
+    <div className={`lp-axe-card lp-axe-${tone} lp-axe-pos-${pos}`}>
       <div className="lp-axe-num">{num}</div>
       <div className="lp-axe-body">
         <div className="lp-axe-label">{label}</div>
@@ -428,40 +431,6 @@ function LandingStyles() {
         max-width: 1080px; margin: 0 auto;
       }
       .lp-section-tight { padding: clamp(56px, 9vw, 96px) 24px; }
-      /* Section "ce qu'on analyse" — halo intérieur multi-couleurs.
-         Deux pseudo-éléments hors-axe (céruléen en haut-gauche + violet
-         en bas-droite) qui rappellent la palette des fiches d'analyse
-         sans tomber dans la symétrie. Le contenu remonte en z-index 1
-         pour rester au-dessus des halos. */
-      .lp-section-axes {
-        position: relative;
-        overflow: hidden;
-        border-radius: 24px;
-      }
-      .lp-section-axes > * { position: relative; z-index: 1; }
-      .lp-section-axes::before,
-      .lp-section-axes::after {
-        content: '';
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(80px);
-        pointer-events: none;
-        z-index: 0;
-      }
-      /* Halo céruléen — haut-gauche, dominant */
-      .lp-section-axes::before {
-        top: -10%; left: -8%;
-        width: 520px; height: 520px;
-        background: radial-gradient(circle, rgba(92,184,204,0.30), transparent 70%);
-        opacity: 0.85;
-      }
-      /* Halo violet — bas-droite, plus large mais plus dilué */
-      .lp-section-axes::after {
-        bottom: -18%; right: -10%;
-        width: 600px; height: 600px;
-        background: radial-gradient(circle, rgba(166,126,245,0.26), transparent 70%);
-        opacity: 0.8;
-      }
       .lp-section-eyebrow {
         font-family: ${T.mono}; font-size: 11px; font-weight: 500;
         letter-spacing: 2.4px; color: ${T.amber}; text-transform: uppercase;
@@ -600,11 +569,47 @@ function LandingStyles() {
         border-radius: 14px;
         overflow: hidden;
       }
+      /* Cartes axes — même grammaire de halo que .lp-diff-card. Couleur
+         et position du halo varient par carte (4 tons × 4 positions
+         possibles) pour casser toute symétrie. Halos plus discrets que
+         sur les "atouts" (taille + opacité réduites) car les axes sont
+         informatifs avant tout. */
       .lp-axe-card {
+        position: relative;
+        overflow: hidden;
         background: ${T.s1};
         padding: 26px 22px;
         display: flex; gap: 14px; align-items: flex-start;
         transition: background .2s;
+      }
+      .lp-axe-card::before {
+        content: '';
+        position: absolute;
+        width: 200px; height: 200px;
+        border-radius: 50%;
+        filter: blur(46px);
+        opacity: 0.45;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .lp-axe-card > * { position: relative; z-index: 1; }
+      /* Positions du halo (4 coins) */
+      .lp-axe-pos-tr::before { top: -34%; right: -22%; }
+      .lp-axe-pos-tl::before { top: -34%; left: -22%; }
+      .lp-axe-pos-br::before { bottom: -34%; right: -22%; }
+      .lp-axe-pos-bl::before { bottom: -34%; left: -22%; }
+      /* Couleurs du halo (4 tons) — alignées sur la palette des fiches */
+      .lp-axe-amber::before {
+        background: radial-gradient(circle, rgba(245,166,35,0.50), transparent 70%);
+      }
+      .lp-axe-cerulean::before {
+        background: radial-gradient(circle, rgba(92,184,204,0.45), transparent 70%);
+      }
+      .lp-axe-violet::before {
+        background: radial-gradient(circle, rgba(166,126,245,0.42), transparent 70%);
+      }
+      .lp-axe-mint::before {
+        background: radial-gradient(circle, rgba(142,224,122,0.40), transparent 70%);
       }
       .lp-axe-card:hover { background: ${T.s2}; }
       .lp-axe-num {
@@ -684,22 +689,35 @@ function LandingStyles() {
         display: flex; flex-direction: column; align-items: center;
         gap: 28px; text-align: center;
       }
+      /* Citation footer — recette charte alignée sur .lp-section-title /
+         .lp-tagline-trio : DM Sans 500, em ambre droit weight 600,
+         couleur soft. Plus de Cormorant italique. */
       .lp-footer-quote {
-        font-family: 'Cormorant Garamond', ${T.serif};
-        font-weight: 400;
-        font-size: clamp(26px, 4.6vw, 38px);
-        line-height: 1.25; letter-spacing: -0.2px;
-        color: ${T.text}; margin: 0;
+        font-family: ${T.body};
+        font-weight: 500;
+        font-size: clamp(20px, 2.6vw, 30px);
+        line-height: 1.3; letter-spacing: -0.5px;
+        color: ${T.textSoft}; margin: 0;
       }
       .lp-footer-quote em {
-        font-style: italic; color: ${T.amber}; font-weight: 400;
+        font-family: inherit; font-style: normal; font-weight: 600;
+        letter-spacing: inherit; color: ${T.amber};
       }
       .lp-cta-footer { margin-top: 4px; }
+      /* Marque de signature en pied de page — même grammaire que le hero
+         (logo SVG + wordmark DM Sans 700), mais en plus petit. */
       .lp-footer-mark {
         margin-top: 28px;
+        display: flex; align-items: center; gap: 10px;
+      }
+      .lp-footer-mark-img {
+        height: 28px; width: auto;
+        filter: drop-shadow(0 0 18px rgba(245,166,35,0.18));
+      }
+      .lp-footer-mark-text {
         font-family: ${T.body}; font-weight: 700;
-        font-size: 18px; letter-spacing: -0.3px;
-        color: ${T.muted2};
+        font-size: 22px; letter-spacing: -0.4px;
+        color: ${T.text}; line-height: 1;
       }
 
       /* ── RESPONSIVE ───────────────────────────────── */
