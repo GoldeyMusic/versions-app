@@ -17,6 +17,7 @@ import LoadingScreen from "./screens/LoadingScreen";
 import IntentionScreen from "./screens/IntentionScreen";
 import FicheScreen from "./screens/FicheScreen";
 import VersionsScreen from "./screens/VersionsScreen";
+import OnboardingHints from "./components/OnboardingHints";
 
 import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage, setTrackCoverImage, clearTrackCoverImage, updateTrackIntent, updateVersionIntent } from "./lib/storage";
 import { assignProjectColors, PROJECT_COLOR_COUNT } from "./lib/projectColors";
@@ -1659,6 +1660,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       ) : null /* première session sans cache — on ne montre rien plutôt que flasher l'écran d'onboarding */}
 
       {modalsSlot}
+      <OnboardingHints />
     </div>
   );
 }
@@ -2979,7 +2981,7 @@ function VersionsAppAuthed() {
             inheritedIntent={intentCtx?.inheritedIntent || null}
             onSubmit={handleIntentSubmit}
             onSkip={handleIntentSkip}
-            onCancel={handleSidebarNewTrack}
+            onCancel={goHome}
           />
         );
       }
