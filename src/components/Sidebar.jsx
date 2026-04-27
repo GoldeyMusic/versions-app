@@ -353,17 +353,8 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Lien "À propos" en pied de sidebar — accès à la landing publique
-          depuis le dashboard. Discret, mono, sans icône. */}
-      {onGoLanding && (
-        <button
-          type="button"
-          onClick={onGoLanding}
-          className="sidebar-about-btn"
-        >
-          À propos
-        </button>
-      )}
+      {/* "À propos" retiré du pied de sidebar (2026-04-28). L'accès à la
+          landing publique se fait via le logo cliquable dans le header. */}
 
       {/* Modale renommer titre */}
       {renameTrackTarget && (

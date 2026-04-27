@@ -158,8 +158,8 @@ Libs candidates Node :
 
   **Implémenté** : `dspBlock` dans `claude.js` enrichi avec LRA et truePeak. Verdicts pré-calculés côté Node (LUFS vs cible streaming, LRA vs plage dynamique pop/jazz/cinematic, truePeak vs cible -1 dBTP) injectés dans le prompt pour calibrer le diagnostic master. Claude doit citer textuellement les valeurs et calibrer sa recette en MASTER & LOUDNESS.
 
-- [ ] **2.4 — Affichage front**
-  Bloc "Mesures DSP" dans `FicheScreen.jsx` : graphique 6 bandes (réutiliser le composant chips ou en créer un dédié), valeurs crest/LRA en cartes. Cohérent avec la grammaire visuelle des autres sections.
+- [ ] **2.4 — Affichage front DSP master**
+  Décidé en session 2026-04-27 : on **abandonne** l'idée d'un panneau "Mesures DSP" séparé (trop technique, redondant avec le chip topbar). À la place, on intègre les visuels directement dans la section MASTER & LOUDNESS du diagnostic. Voir Phase 5 ci-dessous (visuels) pour le détail.
 
 - [ ] **2.5 — Tests**
   Comparer les valeurs DSP maison contre une mesure de référence (Logic Pro / Reaper meter). Tolérance ±0.5 dB pour LUFS, ±5% pour spectral bands.
@@ -198,6 +198,62 @@ Libs candidates Node :
 - [ ] **3.6 — Front**
   Carte "Voix" enrichie (LUFS voix, ratio voix/instru, indicateurs sibilances/présence).
   Carte "Image stéréo" enrichie (corrélation, mid/side, mono compat).
+
+---
+
+## Roadmap session 2026-04-28 (Phase 3 stems + visuels fiche)
+
+Décidé en session 2026-04-27. À enchaîner dans cet ordre. Estimation totale : 1 grosse journée + 1 demi-journée si on va au bout.
+
+### A — Visuels données déjà disponibles (LUFS / LRA / TruePeak / scores)
+
+Couleurs : `var(--amber)` pour cible, `var(--muted)` pour neutre, rouge subtle uniquement pour critique. **Pas** de barres mint→rouge style AubioMix. Animations fade-in 150ms, halos `0 0 12px rgba(245,176,86,0.04)` max.
+
+- [ ] **A.1 — Loudness meter (section MASTER & LOUDNESS)**
+  Barre fine ~6px pleine largeur, 4 zones graduées :
+  `< -16 LUFS` Trop sage (gris) · `-16 à -10` Streaming (ambre clair) · `-10 à -7` Compétitif (ambre fort) · `> -7` Surcomprimé (rouge subtle).
+  Curseur trait vertical ambre + valeur mono au-dessus. Affiché si LUFS dispo. *~3h*
+
+- [ ] **A.2 — Mini-cards LRA + True Peak (section MASTER & LOUDNESS)**
+  Deux cards alignées row sous le Loudness meter. Par card : kicker mono caps ("PLAGE DYNAMIQUE" / "TRUE PEAK"), valeur grosse mono ambre, mini-barre horizontale fine 3-4 zones, verdict court ("Confortable" / "Risque clipping" / "Cible OK"). Bordure `rgba(255,255,255,0.08)`. *~2h*
+
+- [ ] **A.3 — Radar 6 catégories (en tête de fiche, à droite de la pochette)**
+  Hexagone constellation (pas de polygone rempli style AubioMix) : 6 axes (voix/instruments/basses/drums/spatial/master), lignes ambre 1px, points ambre sur chaque axe à la position du score moyen de la catégorie. Échelle 0-100 mono petite. Au hover : axe survolé éclairé, valeur affichée. Cohérent avec la grammaire "constellation" de la landing. *~3h*
+
+### B — Phase 3 (stems Fadr) — implémentation
+
+- [ ] **B.1 — Téléchargement des stems Fadr**
+  Dans `decode-api/lib/fadr.js`, fonction `downloadStems(asset)` qui appelle Fadr pour récupérer les URLs signées des 5 stems et les fetch en buffers RAM. Pas de stockage côté nous (jeté après mesure). Mode dégradé si un stem échoue. *~3h*
+
+- [ ] **B.2 — Mesures DSP par stem**
+  Étendre `decode-api/lib/dsp.js` avec `measureStem(buffer, label)` qui retourne `{ lufs, peak, energyBand_5_8kHz, energyBand_1_3kHz }` via ffmpeg ebur128 + filter `astats` ou calcul maison. *~2h*
+
+- [ ] **B.3 — Mesures image stéréo (sur le master, pas sur les stems)**
+  `measureStereoField(buffer)` via ffmpeg `astats` qui donne corrélation L/R + Mid/Side ratio + balance L/R. Ajouter `mono_compat` calculé en re-mesurant le buffer mixed-down en mono. *~3h*
+
+- [ ] **B.4 — Pipeline analyze.js + propagation jusqu'à Claude**
+  Lancer `downloadStems` + `measureStem` x5 + `measureStereoField` en parallèle de l'existant. Mode dégradé sur chaque mesure. Fusionner dans `mergedMetrics.stems` et `mergedMetrics.stereo` passés au prompt Claude. *~2h*
+
+- [ ] **B.5 — Prompt Claude (lib/claude.js)**
+  Enrichir `dspBlock` avec un sous-bloc STEMS et un sous-bloc STEREO. Ajouter des verdicts pré-calculés (voix bien posée, sibilantes objectivement présentes, mono-compat OK, etc.). Aligner les recettes "how" pour qu'elles citent les valeurs voix vs instru quand pertinent. *~2h*
+
+- [ ] **B.6 — Persistence DB**
+  Migration `010_dsp_metrics.sql` : ajouter colonne `versions.dsp_stems jsonb` et `versions.dsp_stereo jsonb`. Storage via `saveAnalysis` dans `storage.js`. *~1h*
+
+### C — Visuels données stems / stéréo (suite des visuels A après Phase 3)
+
+- [ ] **C.1 — Voix vs instru (section VOIX du diagnostic)**
+  Deux jauges horizontales empilées style "stem racks" : barre voix au-dessus, barre instru en-dessous, mêmes échelles, valeurs LUFS mono à droite. Mini-badge ambre "+2.5 LU" entre les deux pour le delta. Verdict mono : si delta dans cible (-3 à +3 LU) → "Voix bien posée ✓" mint, sinon → "À retravailler" ambre/rouge. **Important pour les chanteurs.** *~3h*
+
+- [ ] **C.2 — Stereo field map (section SPATIAL & REVERB)**
+  Cercle dashed L/R minimal (pas de rosace AubioMix), point ambre = position W/D du mix. Width et Depth affichés en mono à côté ("Width 24% · Depth 60%"). Sobre. *~3h*
+
+### Notes pratiques pour la session
+
+- **Pousse régulièrement** (après chaque tâche A.x ou B.x complète) pour pouvoir tester en prod sans accumuler.
+- **Ordre conseillé** : A.1 → A.2 → push & test → A.3 → push & test → B.1-B.6 (un seul push à la fin de la phase 3 backend) → migration DB → push frontend (saveAnalysis + lecture des nouvelles données) → C.1 → push & test → C.2 → push final.
+- **Total estimé** : 27h (~3 jours dev cumulés). Sur une session focus, on fait A entièrement (8h) + B entièrement (13h). C peut être reporté à J+2.
+- **Tests** : lancer une analyse fraîche après chaque push pour valider que rien ne casse. Garder Lacher prise comme morceau de référence (on connaît ses valeurs).
 
 ---
 
