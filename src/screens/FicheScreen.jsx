@@ -1119,9 +1119,13 @@ function DspBadge({ version, analysisResult, track, onRefresh }) {
 }
 
 function DspEditModal({ version, track, initial, onClose, onSaved }) {
+  // LUFS pas editable manuellement : c'est une mesure objective (necessite
+  // un loudness meter pour etre precise). Seuls BPM et tonalite sont des
+  // valeurs que l'artiste connait et peut corriger. LUFS reste affiche dans
+  // le chip topbar quand Fadr le fournit, et sera calcule en interne en
+  // phase 2 du DSP_PLAN pour etre toujours disponible.
   const [bpm, setBpm] = useState(initial?.bpm || '');
   const [key, setKey] = useState(initial?.key || '');
-  const [lufs, setLufs] = useState(initial?.lufs || '');
   const [applyAll, setApplyAll] = useState(false);
   const [saving, setSaving] = useState(false);
   // Plusieurs versions sur le titre ? Si oui la checkbox "appliquer a toutes"
@@ -1148,7 +1152,7 @@ function DspEditModal({ version, track, initial, onClose, onSaved }) {
       await updateVersionDspMetrics(
         version.id,
         track?.id,
-        { bpm: bpm || null, key: key || null, lufs: lufs || null },
+        { bpm: bpm || null, key: key || null },
         applyAll && canApplyAll,
       );
       onSaved?.();
@@ -1187,10 +1191,10 @@ function DspEditModal({ version, track, initial, onClose, onSaved }) {
         </button>
 
         <div className="add-mini-title">
-          Corriger les <em>mesures</em>
+          Corriger BPM et <em>tonalité</em>
         </div>
         <div className="add-mini-body-text">
-          Les valeurs initiales viennent de l'analyse automatique. Tu peux les corriger si nécessaire.
+          Les valeurs initiales viennent de l'analyse automatique. Tu peux les corriger si nécessaire — le LUFS reste mesuré, pas modifiable.
         </div>
 
         <div className="add-mini-field">
@@ -1213,18 +1217,6 @@ function DspEditModal({ version, track, initial, onClose, onSaved }) {
             value={key}
             onChange={(e) => setKey(e.target.value)}
             placeholder="ex: G maj, Am, F#m"
-            disabled={saving}
-          />
-        </div>
-
-        <div className="add-mini-field">
-          <span className="add-mini-field-label">LUFS intégré</span>
-          <input
-            type="text"
-            className="add-mini-input"
-            value={lufs}
-            onChange={(e) => setLufs(e.target.value)}
-            placeholder="ex: -8.4"
             disabled={saving}
           />
         </div>
