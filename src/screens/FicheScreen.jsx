@@ -6,6 +6,7 @@ import ExportPdfModal from '../components/ExportPdfModal';
 import ShareLinkModal from '../components/ShareLinkModal';
 import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
 import EvolutionBanner from '../components/EvolutionBanner';
+import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
 import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion } from '../lib/storage';
 import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
@@ -2185,6 +2186,8 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
 
           {/* COLONNE PRINCIPALE (col 1 en v2 desktop) : Score global + Diagnostic */}
           <div className="f2-col-main">
+          {/* Ticket 4.3 — bandeau "Prêt à sortir / Presque / Pas encore" */}
+          <ReleaseReadinessBanner fiche={rawFiche} completedItems={completedItems} />
           {/* 1 · Verdict / Score global */}
           <section className="row-verdict">
             <div className="rv-left">

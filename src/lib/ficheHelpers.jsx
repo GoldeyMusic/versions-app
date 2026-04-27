@@ -3,6 +3,75 @@
 // react-refresh/only-export-components : un fichier de composants ne doit
 // exporter que des composants, les fonctions utilitaires vivent à côté.
 
+// Reproduit `diagItemKey` de FicheScreen pour que les helpers puissent
+// re-construire la cle d un item sans dependre du composant.
+function buildItemKey(catId, item, idx) {
+  if (item?.id) return String(item.id);
+  const head = (item?.title || '').slice(0, 60);
+  return `${catId || 'cat'}::${idx}::${head}`;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// computeReleaseReadiness (ticket 4.3)
+//
+// A partir d une fiche et de l ensemble des items "implementes" (cf.
+// checklist 2.1), calcule un verdict de pret-a-sortir en 3 paliers :
+//   - 'ready'   → score >= 80 ET tous les items high-prio sont coches
+//   - 'almost'  → score >= 70 ET <= 2 items high-prio non-coches
+//   - 'not-yet' → tout le reste (score < 70, ou trop d items high-prio
+//                 non resolus)
+//
+// Retourne { tier, score, blockers[], totalHigh, uncompletedHigh }.
+// Les blockers contiennent { kind: 'score'|'item', text?, cat?, title? }.
+// ────────────────────────────────────────────────────────────────────
+export function computeReleaseReadiness(fiche, completedItems = new Set()) {
+  const completed = completedItems instanceof Set
+    ? completedItems
+    : new Set(Array.isArray(completedItems) ? completedItems : []);
+  const score = typeof fiche?.globalScore === 'number' ? fiche.globalScore : null;
+  const elements = Array.isArray(fiche?.elements) ? fiche.elements : [];
+
+  let totalHigh = 0;
+  const itemBlockers = [];
+
+  elements.forEach((el, eIdx) => {
+    const items = Array.isArray(el?.items) ? el.items : [];
+    items.forEach((it, iIdx) => {
+      if (!it) return;
+      const prio = (it.priority || '').toString().toLowerCase();
+      if (prio !== 'high') return;
+      totalHigh += 1;
+      const catId = el?.id || el?.cat || `cat${eIdx}`;
+      const key = buildItemKey(catId, it, iIdx);
+      if (!completed.has(key)) {
+        itemBlockers.push({
+          kind: 'item',
+          cat: el?.cat || '',
+          title: it.title || it.label || '',
+        });
+      }
+    });
+  });
+
+  const uncompletedHigh = itemBlockers.length;
+
+  const blockers = [];
+  if (score != null && score < 70) {
+    blockers.push({
+      kind: 'score',
+      text: `Score global ${score}/100 — viser ≥ 80 pour une sortie sereine.`,
+    });
+  }
+  blockers.push(...itemBlockers);
+
+  let tier;
+  if (score != null && score >= 80 && uncompletedHigh === 0) tier = 'ready';
+  else if (score != null && score >= 70 && uncompletedHigh <= 2) tier = 'almost';
+  else tier = 'not-yet';
+
+  return { tier, score, blockers, totalHigh, uncompletedHigh };
+}
+
 export function renderWithEmphasis(text) {
   if (!text) return null;
   const parts = text.split(/(\*[^*]+\*)/g);

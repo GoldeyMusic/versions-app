@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import GlobalStyles from '../components/GlobalStyles';
 import MockupStyles from '../components/MockupStyles';
+import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
 import {
   ScoreRingBig,
   ScoreRingSmall,
@@ -152,6 +153,10 @@ export default function PublicFicheScreen({ token }) {
 
         <main className="public-fiche-main">
           <div className="public-fiche-page">
+            {/* Ticket 4.3 — bandeau "Prêt à sortir" (lecture seule, pas de
+                completedItems sur un partage public — le bandeau reflète
+                la fiche brute uniquement). */}
+            <ReleaseReadinessBanner fiche={rawFiche} completedItems={null} />
             {/* Verdict */}
             <section className="row-verdict">
               <div className="rv-left">

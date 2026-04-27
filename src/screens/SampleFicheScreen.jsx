@@ -1,5 +1,6 @@
 import GlobalStyles from '../components/GlobalStyles';
 import MockupStyles from '../components/MockupStyles';
+import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
 import {
   ScoreRingBig,
   ScoreRingSmall,
@@ -322,6 +323,12 @@ export default function SampleFicheScreen({
               currentTrack={SAMPLE_TRACK}
               versionInDb={null}
             />
+
+            {/* Ticket 4.3 — bandeau "Prêt à sortir / Presque / Pas encore".
+                Avec 3 items high-prio (médium-haut voix, refrain, sibilances)
+                non cochés et un score 78, le verdict tombe sur "Pas encore"
+                — démontre la liste de bloquants exacts. */}
+            <ReleaseReadinessBanner fiche={rawFiche} completedItems={null} />
 
             {/* Verdict */}
             <section className="row-verdict">
