@@ -212,9 +212,9 @@ function LandingStyles() {
           radial-gradient(ellipse 900px 620px at 78% 8%, rgba(245,166,35,0.10), transparent 70%),
           radial-gradient(ellipse 720px 900px at 12% 42%, rgba(92,184,204,0.10), transparent 70%),
           radial-gradient(ellipse 820px 720px at 85% 78%, rgba(166,126,245,0.08), transparent 70%),
-          ${T.black};
-        color: ${T.text};
-        font-family: ${T.body};
+          var(--bg, ${T.black});
+        color: var(--text, ${T.text});
+        font-family: var(--body, ${T.body});
         overflow-x: hidden;
       }
 

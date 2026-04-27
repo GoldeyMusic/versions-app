@@ -263,7 +263,7 @@ export async function downloadScoreCard({
   ctx.font = '500 18px "JetBrains Mono", monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
-  ctx.fillText('versions-app.vercel.app', SIZE / 2, SIZE - 32);
+  ctx.fillText('www.versions.studio', SIZE / 2, SIZE - 32);
 
   // Téléchargement
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));

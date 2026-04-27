@@ -315,7 +315,8 @@ export default function SampleFicheScreen({
         </header>
 
         <main className="public-fiche-main">
-          <div className="public-fiche-page">
+          <div className="sample-stage fiche-v2">
+            <div className="public-fiche-page">
             {/* Intention artistique — différenciateur Versions, en TÊTE de
                 fiche (cf. plan AubioMix : "intention en 1ʳᵉ section"). */}
             <IntentPanel
@@ -522,6 +523,11 @@ export default function SampleFicheScreen({
                 {bottomCtaLabel}
               </button>
             </section>
+            </div>
+
+            <aside className="sample-chat-side" aria-label="Chat de démonstration">
+              <SampleChatPanel />
+            </aside>
           </div>
         </main>
 
@@ -530,6 +536,45 @@ export default function SampleFicheScreen({
         </footer>
       </div>
     </>
+  );
+}
+
+// Chat fictif statique — présenté pour montrer la grammaire de l'app
+// quand le chat est ancré à droite (parité fiche desktop). Pas de logique :
+// les messages sont en dur, l'input est désactivé. Le visiteur clique sur le
+// CTA pour créer son compte s'il veut interagir vraiment.
+function SampleChatPanel() {
+  return (
+    <aside className="chat-panel chat-panel-anchored sample-chat-panel">
+      <div className="chat-head">
+        <span className="ctitle">Discussion</span>
+      </div>
+      <div className="chat-body">
+        <div className="msg user">
+          Pourquoi ma voix sonne un peu noyée dans les refrains ?
+        </div>
+        <div className="msg ai">
+          <span className="ai-label">Versions</span>
+          Dans les refrains, l'accumulation des pads et des harmonies vocales crée un masquage dans les hauts-médiums (2-4 kHz). Ta voix lead perd en présence. Deux solutions : un EQ additif léger à 3 kHz sur la voix, ou une automation de -2 dB sur les pads uniquement pendant les refrains.
+        </div>
+        <div className="msg user">
+          Et si je veux garder l'effet d'ensemble dense ?
+        </div>
+        <div className="msg ai">
+          <span className="ai-label">Versions</span>
+          Dans ce cas, tu peux utiliser un side-chain léger sur les pads déclenché par la voix — ça créera juste assez d'espace sans casser la densité. Essaie un ratio 2:1 avec une attaque rapide.
+        </div>
+      </div>
+      <div className="chat-input">
+        <input
+          type="text"
+          placeholder="Posez une question…"
+          disabled
+          aria-label="Chat de démonstration — désactivé"
+        />
+        <button type="button" disabled>Envoyer</button>
+      </div>
+    </aside>
   );
 }
 
@@ -614,6 +659,60 @@ function SampleStyles() {
         border-color: ${T.amber};
         background: rgba(245,166,35,0.08);
         box-shadow: 0 0 0 6px rgba(245,166,35,0.06);
+      }
+
+      /* ── Stage : page principale + chat fictif à droite ──
+         Sur desktop large (≥ 1180px), on passe en grid 2 colonnes :
+         contenu principal (max 1080) + colonne chat ancrée à droite.
+         Le chat est sticky pour rester visible quand on scrolle la fiche.
+         Sous le seuil, le chat est masqué (mobile/tablette) — la grammaire
+         "chat ancré" est avant tout une démo desktop. */
+      .sample-stage { display: block; width: 100%; }
+      .sample-chat-side { display: none; }
+      @media (min-width: 1180px) {
+        .sample-stage {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 380px;
+          column-gap: 28px;
+          max-width: 1500px;
+          margin: 0 auto;
+          padding: 0 28px;
+          align-items: start;
+        }
+        .sample-stage > .public-fiche-page {
+          margin: 0;          /* le centrage est géré par .sample-stage */
+          padding: 0;
+          max-width: 1080px;
+        }
+        .sample-chat-side {
+          display: flex;
+          position: sticky;
+          top: 88px;          /* topbar 56 + 32 respiration */
+          height: calc(100vh - 88px - 24px);
+          min-height: 480px;
+        }
+        .sample-chat-side .chat-panel.chat-panel-anchored {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          flex: 1;
+          background: ${T.s1};
+          border: 1px solid ${T.border};
+          border-radius: 14px;
+          box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+        }
+      }
+      /* Input désactivé : on garde le rendu visuel actif (pas grisé)
+         pour que la maquette ne donne pas l'impression d'être cassée,
+         mais on bloque le focus / la frappe via [disabled]. */
+      .sample-chat-panel .chat-input input[disabled] {
+        opacity: 1;
+        cursor: not-allowed;
+        background: ${T.s2} !important;
+      }
+      .sample-chat-panel .chat-input button[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
 
       @media (max-width: 768px) {
