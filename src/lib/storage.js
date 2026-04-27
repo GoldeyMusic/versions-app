@@ -636,6 +636,32 @@ export async function renameTrack(trackId, newTitle) {
 }
 
 /**
+ * Met a jour les mesures DSP (BPM, tonalite, LUFS) d une version.
+ * Si applyToAllVersions=true, propage aussi a toutes les versions du meme titre
+ * (utile quand on corrige une tonalite que Fadr a mal detectee : la valeur
+ * corrigee s applique au morceau entier, pas juste a la version courante).
+ *
+ * Les valeurs vides/null/undefined sont ignorees (on ne met a jour que les
+ * champs explicitement fournis et non vides).
+ */
+export async function updateVersionDspMetrics(versionId, trackId, { bpm, key, lufs } = {}, applyToAllVersions = false) {
+  const patch = {};
+  if (bpm != null && String(bpm).trim() !== '') patch.bpm = String(bpm).trim();
+  if (key != null && String(key).trim() !== '') patch.key = String(key).trim();
+  if (lufs != null && String(lufs).trim() !== '') patch.lufs = String(lufs).trim();
+  if (Object.keys(patch).length === 0) return loadTracks();
+
+  if (applyToAllVersions && trackId) {
+    const { error } = await supabase.from('versions').update(patch).eq('track_id', trackId);
+    if (error) console.warn('[storage] updateVersionDspMetrics (track-wide) error:', error.message);
+  } else {
+    const { error } = await supabase.from('versions').update(patch).eq('id', versionId);
+    if (error) console.warn('[storage] updateVersionDspMetrics error:', error.message);
+  }
+  return loadTracks();
+}
+
+/**
  * Change le type vocal d'un titre existant (étape 5 de la feature vocal-type).
  * Accepte 'vocal', 'instrumental_pending', 'instrumental_final'. Retourne la
  * nouvelle liste de tracks pour mettre à jour l'état immédiatement.

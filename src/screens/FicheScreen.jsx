@@ -9,7 +9,7 @@ import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
 import EvolutionBanner from '../components/EvolutionBanner';
 import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
 import PlateauBanner from '../components/PlateauBanner';
-import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion } from '../lib/storage';
+import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion, updateVersionDspMetrics } from '../lib/storage';
 import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
@@ -1022,37 +1022,213 @@ function formatDspKey(rawKey) {
   return k; // "Am", "C#m", déjà compact
 }
 
-function DspBadge({ version, analysisResult }) {
+function DspBadge({ version, analysisResult, track, onRefresh }) {
   const { bpm, key, lufs } = pickDspMetrics(version, analysisResult);
-  if (!bpm && !key && !lufs) return null;
+  const [editOpen, setEditOpen] = useState(false);
+  if (!bpm && !key && !lufs && !version?.id) return null;
+
   const parts = [];
   if (bpm) parts.push(`${bpm} BPM`);
   if (key) parts.push(formatDspKey(key));
   if (lufs) {
-    // Si la valeur stockée n'a pas l'unité, on l'ajoute
     const ls = String(lufs).toLowerCase().includes('lufs') ? String(lufs) : `${lufs} LUFS`;
     parts.push(ls);
   }
+  // Si on a un id de version persistee, le badge devient cliquable pour edition
+  // manuelle (Fadr est imparfait sur la tonalite — voir DSP_PLAN).
+  const editable = !!(version?.id && !String(version.id).startsWith('__pending') && onRefresh);
+  const display = parts.length ? parts.join(' · ') : (editable ? '— · — · —' : null);
+  if (!display) return null;
+
   return (
+    <>
+      <button
+        type="button"
+        className="fiche-topbar-dsp"
+        title={editable ? 'Mesures objectives du fichier audio (clique pour corriger)' : 'Mesures objectives du fichier audio (Fadr)'}
+        onClick={editable ? () => setEditOpen(true) : undefined}
+        style={{
+          display: 'inline-flex', alignItems: 'center',
+          padding: '4px 10px',
+          borderRadius: 999,
+          border: '1px solid rgba(255,255,255,0.1)',
+          background: 'rgba(255,255,255,0.02)',
+          fontFamily: 'var(--mono)',
+          fontSize: 11,
+          letterSpacing: 0.5,
+          color: 'var(--muted)',
+          whiteSpace: 'nowrap',
+          cursor: editable ? 'pointer' : 'default',
+        }}
+      >
+        {display}
+      </button>
+      {editOpen && (
+        <DspEditModal
+          version={version}
+          track={track}
+          initial={{ bpm, key, lufs }}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => { setEditOpen(false); onRefresh?.(); }}
+        />
+      )}
+    </>
+  );
+}
+
+function DspEditModal({ version, track, initial, onClose, onSaved }) {
+  const [bpm, setBpm] = useState(initial?.bpm || '');
+  const [key, setKey] = useState(initial?.key || '');
+  const [lufs, setLufs] = useState(initial?.lufs || '');
+  const [applyAll, setApplyAll] = useState(false);
+  const [saving, setSaving] = useState(false);
+  // Plusieurs versions sur le titre ? Si oui on propose la checkbox "appliquer
+  // a toutes". Sinon ca n a pas de sens (une seule version).
+  const otherVersionsCount = Math.max(0, ((track?.versions || []).length) - 1);
+
+  useEffect(() => {
+    const onEsc = (e) => { if (e.key === 'Escape') onClose?.(); };
+    document.addEventListener('keydown', onEsc);
+    return () => document.removeEventListener('keydown', onEsc);
+  }, [onClose]);
+
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await updateVersionDspMetrics(
+        version.id,
+        track?.id,
+        { bpm: bpm || null, key: key || null, lufs: lufs || null },
+        applyAll && otherVersionsCount > 0,
+      );
+      onSaved?.();
+    } catch (err) {
+      console.warn('[DspEditModal] save failed', err);
+      onClose?.();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return createPortal(
     <div
-      className="fiche-topbar-dsp"
-      title="Mesures objectives du fichier audio (Fadr)"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
       style={{
-        display: 'inline-flex', alignItems: 'center',
-        padding: '4px 10px',
-        borderRadius: 999,
-        border: '1px solid rgba(255,255,255,0.1)',
-        background: 'rgba(255,255,255,0.02)',
-        fontFamily: 'var(--mono)',
-        fontSize: 11,
-        letterSpacing: 0.5,
-        color: 'var(--muted)',
-        whiteSpace: 'nowrap',
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.6)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16,
       }}
     >
-      {parts.join(' · ')}
-    </div>
+      <div
+        role="dialog"
+        aria-modal="true"
+        style={{
+          width: 'min(420px, 100%)',
+          background: 'var(--s1)',
+          border: '1px solid rgba(255,255,255,0.14)',
+          borderRadius: 14,
+          padding: 20,
+          boxShadow: '0 30px 80px rgba(0,0,0,0.6)',
+          fontFamily: 'var(--body)',
+          color: 'var(--text)',
+        }}
+      >
+        <div style={{ fontSize: 11, letterSpacing: 1.2, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 4 }}>
+          Mesures objectives
+        </div>
+        <h3 style={{ margin: '0 0 14px', fontSize: 18, fontWeight: 600 }}>
+          Corriger BPM / Tonalité / LUFS
+        </h3>
+        <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
+          Les valeurs initiales viennent de Fadr. Tu peux les corriger si la détection automatique s'est trompée.
+        </p>
+
+        <div style={{ display: 'grid', gap: 12 }}>
+          <label style={{ display: 'block' }}>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--soft)', marginBottom: 4 }}>BPM</span>
+            <input
+              type="number"
+              value={bpm}
+              onChange={(e) => setBpm(e.target.value)}
+              placeholder="ex: 120"
+              style={inputStyle()}
+            />
+          </label>
+          <label style={{ display: 'block' }}>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--soft)', marginBottom: 4 }}>Tonalité</span>
+            <input
+              type="text"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              placeholder="ex: G maj, Am, F#m"
+              style={inputStyle()}
+            />
+          </label>
+          <label style={{ display: 'block' }}>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--soft)', marginBottom: 4 }}>LUFS intégré</span>
+            <input
+              type="text"
+              value={lufs}
+              onChange={(e) => setLufs(e.target.value)}
+              placeholder="ex: -8.4"
+              style={inputStyle()}
+            />
+          </label>
+        </div>
+
+        {otherVersionsCount > 0 && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16, fontSize: 13, color: 'var(--soft)', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={applyAll}
+              onChange={(e) => setApplyAll(e.target.checked)}
+              style={{ accentColor: 'var(--amber, #f5b056)' }}
+            />
+            Appliquer aussi aux {otherVersionsCount} autre{otherVersionsCount > 1 ? 's' : ''} version{otherVersionsCount > 1 ? 's' : ''} de ce titre
+          </label>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            style={{
+              padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.14)',
+              background: 'transparent', color: 'var(--soft)', fontSize: 13, cursor: 'pointer',
+            }}
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              padding: '8px 14px', borderRadius: 8, border: 0,
+              background: 'var(--amber, #f5b056)', color: '#1b1108', fontSize: 13, fontWeight: 600,
+              cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.6 : 1,
+            }}
+          >
+            {saving ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
+}
+
+function inputStyle() {
+  return {
+    width: '100%', padding: '8px 10px', borderRadius: 6,
+    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'rgba(0,0,0,0.2)',
+    color: 'var(--text)', fontFamily: 'var(--body)', fontSize: 14,
+    boxSizing: 'border-box',
+  };
 }
 
 // ── Timeline (sticky bar topbar + dropdown versions) ──────────────
@@ -1117,7 +1293,7 @@ function Timeline({ track, currentVersionName, stage, analysisResult, onSelectVe
               <div className="ver-label"><b className={stageClass}>{stageLabel}</b></div>
             </div>
           )}
-          {current && <DspBadge version={current} analysisResult={analysisResult} />}
+          {current && <DspBadge version={current} analysisResult={analysisResult} track={track} onRefresh={onTracksRefresh} />}
           {current && (onShareVersion || onExportVersion || onScoreCard) && (
             <div className="fiche-topbar-actions">
               {onShareVersion && (
