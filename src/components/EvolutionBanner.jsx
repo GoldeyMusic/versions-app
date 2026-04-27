@@ -14,7 +14,7 @@ import { useState } from 'react';
  * Items purement informatifs (non cliquables). Si rien à dire, le composant
  * renvoie null.
  */
-export default function EvolutionBanner({ evolution, previousVersionName }) {
+export default function EvolutionBanner({ evolution, previousVersionName, floorApplied = null }) {
   const [open, setOpen] = useState(false);
 
   if (!evolution) return null;
@@ -227,6 +227,22 @@ export default function EvolutionBanner({ evolution, previousVersionName }) {
           <EvolutionList label="Régressions" items={regressions} color="var(--red, #ff5d5d)" />
           <EvolutionList label="Persistants" items={persistants} color="var(--muted, rgba(255,255,255,0.5))" />
           <EvolutionList label="Nouveaux" items={nouveaux} color="var(--amber, #f5a623)" />
+          {floorApplied && (
+            <div
+              style={{
+                marginTop: 4,
+                paddingTop: 10,
+                borderTop: '1px dashed rgba(255,255,255,0.08)',
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: 11.5,
+                lineHeight: 1.5,
+                color: 'var(--muted, rgba(255,255,255,0.5))',
+                fontStyle: 'italic',
+              }}
+            >
+              Plancher de stabilité actif — les régressions courtes sont lissées entre versions.
+            </div>
+          )}
         </div>
       )}
     </section>

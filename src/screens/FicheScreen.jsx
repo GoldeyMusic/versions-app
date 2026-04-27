@@ -2524,6 +2524,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     <EvolutionBanner
                       evolution={evolution}
                       previousVersionName={evolutionPrevName}
+                      floorApplied={displayAR?.fiche?._floor_applied || null}
                     />
                   )}
                   <IntentPanel
