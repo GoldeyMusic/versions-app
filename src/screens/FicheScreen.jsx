@@ -10,6 +10,7 @@ import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateT
 import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
+import { downloadScoreCard } from '../lib/exportScoreCard';
 import { renderWithEmphasis, formatAnalyzedAt, splitVerdict, applyVocalTypeToFiche, isVoiceCategory, normalizeDiagItem } from '../lib/ficheHelpers.jsx';
 import useMobile from '../hooks/useMobile';
 import useNarrowDesktop from '../hooks/useNarrowDesktop';
@@ -797,7 +798,7 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
 
 // ── Timeline (sticky bar topbar + dropdown versions) ──────────────
 
-function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onShareVersion, onExportVersion, onTracksRefresh, onGoHome }) {
+function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onShareVersion, onExportVersion, onScoreCard, onTracksRefresh, onGoHome }) {
   const { s } = useLang();
   const isMobile = useMobile();
 
@@ -855,7 +856,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
               <div className="ver-label"><b className={stageClass}>{stageLabel}</b></div>
             </div>
           )}
-          {current && (onShareVersion || onExportVersion) && (
+          {current && (onShareVersion || onExportVersion || onScoreCard) && (
             <div className="fiche-topbar-actions">
               {onShareVersion && (
                 <button
@@ -869,6 +870,21 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
                   <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
                     <path d="M8 9V2M5.5 4.5L8 2l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M4 8v4.5h8V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              )}
+              {onScoreCard && (
+                <button
+                  type="button"
+                  className="btn-ic"
+                  onClick={() => onScoreCard(track, current)}
+                  title={s.fiche.timelineScoreCardTitle}
+                  aria-label={s.fiche.timelineScoreCardBtn}
+                >
+                  {/* Icône Score Card : carré avec petit anneau */}
+                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+                    <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
                   </svg>
                 </button>
               )}
@@ -919,7 +935,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
         )}
       </div>
 
-      {current && (onShareVersion || onExportVersion) && (
+      {current && (onShareVersion || onExportVersion || onScoreCard) && (
         <div className="fiche-head-actions">
           {onShareVersion && (
             <button
@@ -935,6 +951,20 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
                 <path d="M4 8v4.5h8V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               <span className="fhb-label">{s.fiche.timelineShareBtn}</span>
+            </button>
+          )}
+          {onScoreCard && (
+            <button
+              type="button"
+              className="fiche-head-btn"
+              onClick={() => onScoreCard(track, current)}
+              title={s.fiche.timelineScoreCardTitle}
+            >
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+                <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+              </svg>
+              <span className="fhb-label">{s.fiche.timelineScoreCardBtn}</span>
             </button>
           )}
           {onExportVersion && (
@@ -2086,6 +2116,39 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     setShareTarget({ track, version });
   };
 
+  // Ticket 2.2 — génère et télécharge la Score Card 1080×1080 pour la
+  // version visée. On préfère le displayAR (langue courante) quand c'est
+  // la version actuellement affichée, sinon on retombe sur l'analyse
+  // brute stockée pour la version (FR par défaut).
+  const handleScoreCard = (track, version) => {
+    if (!track || !version) return;
+    const ar = (version?.name === config?.version ? displayAR : null)
+      || version?.analysisResult
+      || (version?.name === config?.version ? analysisResult : null)
+      || null;
+    if (!ar?.fiche) return;
+    const adjusted = applyVocalTypeToFiche(ar.fiche, track?.vocalType || 'vocal');
+    const sc = typeof adjusted.globalScore === 'number' ? adjusted.globalScore : (typeof ar.fiche.globalScore === 'number' ? ar.fiche.globalScore : 0);
+    const verdictText = ar?.fiche?.verdict ? splitVerdict(ar.fiche.verdict).headline : '';
+    // Sub-scores = moyenne des items par catégorie (cohérent avec l'UI fiche).
+    const subScores = (adjusted.elements || []).map((el) => {
+      const items = (el.items || []).map(normalizeDiagItem);
+      const scores = items.map((it) => it.score).filter((n) => typeof n === 'number');
+      const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+      return { cat: el?.cat || '', score: avg };
+    }).filter((x) => typeof x.score === 'number');
+
+    downloadScoreCard({
+      title: track?.title || '',
+      versionName: version?.name || '',
+      score: sc,
+      verdict: verdictText,
+      subScores,
+    }).catch((err) => {
+      console.warn('[scoreCard] échec de la génération', err);
+    });
+  };
+
   return (
     <>
       <main className="main">
@@ -2099,6 +2162,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             onAddVersion={onAddVersion}
             onShareVersion={handleShareVersion}
             onExportVersion={handleExportVersion}
+            onScoreCard={handleScoreCard}
             onTracksRefresh={() => loadTracks().then(setTracks)}
           />
         )}

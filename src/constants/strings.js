@@ -561,8 +561,10 @@ const STRINGS = {
       timelineBackHome: "Accueil",
       timelineShareBtn: "Partager un lien",
       timelineExportBtn: "Exporter en PDF",
+      timelineScoreCardBtn: "Score Card",
       timelineShareTitle: "Générer un lien public lecture seule",
       timelineExportTitle: "Générer un PDF partageable de cette version",
+      timelineScoreCardTitle: "Télécharger une Score Card carrée pour les réseaux sociaux",
       timelineSavingInProgress: "Enregistrement en cours…",
 
       /* VersionChat clear + placeholder */
@@ -1601,8 +1603,10 @@ const STRINGS = {
       timelineBackHome: "Home",
       timelineShareBtn: "Share a link",
       timelineExportBtn: "Export as PDF",
+      timelineScoreCardBtn: "Score Card",
       timelineShareTitle: "Generate a public read-only link",
       timelineExportTitle: "Generate a shareable PDF of this version",
+      timelineScoreCardTitle: "Download a square Score Card for social media",
       timelineSavingInProgress: "Saving in progress…",
 
       /* VersionChat clear + placeholder */
