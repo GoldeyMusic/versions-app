@@ -1992,9 +1992,25 @@ const HASH_SCREEN = {
   '#/versions': 'versions',
 };
 
+// Slugifie un nom (titre, version) pour produire un segment d'URL lisible.
+// Décompose les accents, met en minuscules, remplace les non-alphanumériques
+// par des tirets, puis nettoie. Ex: "Comme un rêve" → "comme-un-reve".
+function slugify(name) {
+  if (!name) return '';
+  return String(name)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
 // Parse une URL hash en { screen, trackId, versionId }.
-// Reconnaît `#/fiche/{trackId}` et `#/fiche/{trackId}/{versionId}` en plus
-// des routes statiques de HASH_SCREEN.
+// Reconnaît `#/fiche/{seg}` et `#/fiche/{seg}/{versionSeg}` en plus des
+// routes statiques de HASH_SCREEN. Les segments peuvent être soit un slug
+// (nouveau format : `comme-un-reve/v2`), soit un UUID (ancien format,
+// rétrocompat). Le résolveur tranche au moment du matching.
 function parseHash(hash) {
   const h = hash || '';
   const m = h.match(/^#\/fiche\/([^/?#]+)(?:\/([^/?#]+))?$/);
@@ -2004,13 +2020,21 @@ function parseHash(hash) {
   return { screen: HASH_SCREEN[h] || null, trackId: null, versionId: null };
 }
 
-// Construit l'URL hash pour un screen donné. La fiche encode le trackId
-// (et le versionId si dispo) pour permettre un reload propre.
+// Construit l'URL hash pour un screen donné. La fiche utilise le slug du
+// titre (et de la version si dispo) pour produire des URLs lisibles —
+// ex: `#/fiche/comme-un-reve/v2`. Fallback UUIDs si le titre manque.
 function buildHash(screen, cfg) {
-  if (screen === 'fiche' && cfg?.trackId) {
-    return cfg.versionId
-      ? `#/fiche/${cfg.trackId}/${cfg.versionId}`
-      : `#/fiche/${cfg.trackId}`;
+  if (screen === 'fiche') {
+    const titleSlug = slugify(cfg?.title || '');
+    const versionSlug = slugify(cfg?.version || '');
+    if (titleSlug) {
+      return versionSlug ? `#/fiche/${titleSlug}/${versionSlug}` : `#/fiche/${titleSlug}`;
+    }
+    if (cfg?.trackId) {
+      return cfg.versionId
+        ? `#/fiche/${cfg.trackId}/${cfg.versionId}`
+        : `#/fiche/${cfg.trackId}`;
+    }
   }
   return SCREEN_HASH[screen] || '#/';
 }
@@ -2311,9 +2335,17 @@ function VersionsAppAuthed() {
       // Deep-link fiche via Back/Forward : si le state actuel ne correspond
       // pas, on délègue au résolveur via setPendingFiche.
       if (parsed.screen === 'fiche' && parsed.trackId) {
-        const matches =
-          config?.trackId === parsed.trackId &&
-          (!parsed.versionId || config?.versionId === parsed.versionId);
+        // Le segment URL peut être un UUID (anciens liens) ou un slug
+        // (nouveau format). On compare avec le config courant sous les
+        // deux formes pour éviter un re-fetch inutile.
+        const trackMatches =
+          parsed.trackId === config?.trackId
+          || (!!config?.title && slugify(config.title) === slugify(parsed.trackId));
+        const versionMatches =
+          !parsed.versionId
+          || parsed.versionId === config?.versionId
+          || (!!config?.version && slugify(config.version) === slugify(parsed.versionId));
+        const matches = trackMatches && versionMatches;
         if (matches && analysisResult) {
           isHashSyncRef.current = true;
           setScreen('fiche');
@@ -2340,16 +2372,26 @@ function VersionsAppAuthed() {
   }, [config, analysisResult]);
 
   // ── Deep-link fiche : résolution `pendingFiche` → fiche réelle ────────
-  // Posé par routeInit ou popstate quand l'URL est `#/fiche/{trackId}/...`.
-  // On attend `projects` pour matcher les IDs (cache localStorage hydrate
-  // déjà la liste à l'init, donc le délai est en général invisible). Si la
-  // version n'est pas précisée, on prend la dernière du titre.
+  // Posé par routeInit ou popstate quand l'URL est `#/fiche/{seg}/...`.
+  // On attend `projects` pour matcher les segments (cache localStorage
+  // hydrate déjà la liste à l'init, donc le délai est en général invisible).
+  // Le segment peut être un slug (nouveau format) ou un UUID (rétrocompat).
+  // Si la version n'est pas précisée, on prend la dernière du titre.
   useEffect(() => {
     if (!pendingFiche || !user || !projectsLoaded) return;
     let alive = true;
     (async () => {
-      const { trackId, versionId } = pendingFiche;
-      const track = projects.flatMap(p => p.tracks || []).find(t => t.id === trackId);
+      const { trackId: trackSeg, versionId: versionSeg } = pendingFiche;
+      const allTracks = projects.flatMap(p => p.tracks || []);
+      // 1) Match direct par UUID (anciennes URLs)
+      let track = allTracks.find(t => t.id === trackSeg);
+      // 2) Fallback : match par slug du titre. Premier match gagne (les
+      //    titres sont uniques par utilisateur dans un projet, et en cas
+      //    de collision inter-projet on préfère le déterminisme).
+      if (!track && trackSeg) {
+        const target = slugify(trackSeg);
+        if (target) track = allTracks.find(t => slugify(t.title) === target);
+      }
       if (!track) {
         if (!alive) return;
         setPendingFiche(null);
@@ -2358,9 +2400,15 @@ function VersionsAppAuthed() {
         window.history.replaceState({ screen: 'welcome' }, '', SCREEN_HASH['welcome']);
         return;
       }
-      const v = versionId
-        ? track.versions?.find(ver => ver.id === versionId)
-        : track.versions?.[track.versions.length - 1];
+      let v = null;
+      if (versionSeg) {
+        v = track.versions?.find(ver => ver.id === versionSeg);
+        if (!v) {
+          const target = slugify(versionSeg);
+          v = track.versions?.find(ver => slugify(ver.name) === target);
+        }
+      }
+      if (!v) v = track.versions?.[track.versions.length - 1];
       if (!v) {
         if (!alive) return;
         setPendingFiche(null);
@@ -2385,8 +2433,13 @@ function VersionsAppAuthed() {
       setPendingFiche(null);
       isHashSyncRef.current = true;
       setScreen('fiche');
-      // Normalise l'URL si on était arrivé sans versionId.
-      const targetHash = `#/fiche/${track.id}/${v.id}`;
+      // Normalise l'URL en slug si on était arrivé en UUID ou sans version.
+      const targetHash = buildHash('fiche', {
+        title: track.title,
+        version: v.name,
+        trackId: track.id,
+        versionId: v.id,
+      });
       if (window.location.hash !== targetHash) {
         window.history.replaceState({ screen: 'fiche' }, '', targetHash);
       }
