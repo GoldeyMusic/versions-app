@@ -1847,9 +1847,18 @@ function NotesSection({ versionId, initialNotes, v2 = false }) {
 //   2. versionInDb.versionIntent      → override au niveau de la version courante
 //   3. currentTrack.artisticIntent    → intention « de base » du titre
 // Renvoie null s'il n'y en a aucune (pipeline non-calibré ou ancien run).
-export function IntentPanel({ analysisResult, currentTrack, versionInDb }) {
+export function IntentPanel({ analysisResult, currentTrack, versionInDb, open: openProp, onToggle }) {
   const { s } = useLang();
-  const [open, setOpen] = useState(false);
+  // Mode contrôlé optionnel : si `open`/`onToggle` sont fournis, on s'aligne
+  // dessus (cf. SampleFicheScreen qui orchestre un accordéon strict). Sinon,
+  // état interne classique (comportement historique sur la vraie fiche).
+  const [openInternal, setOpenInternal] = useState(false);
+  const isControlled = typeof openProp === 'boolean';
+  const open = isControlled ? openProp : openInternal;
+  const handleToggle = () => {
+    if (onToggle) onToggle();
+    if (!isControlled) setOpenInternal((v) => !v);
+  };
   const fresh = (typeof analysisResult?.intent_used === 'string' && analysisResult.intent_used.trim()) || null;
   const verIntent = (typeof versionInDb?.versionIntent === 'string' && versionInDb.versionIntent.trim()) || null;
   const trkIntent = (typeof currentTrack?.artisticIntent === 'string' && currentTrack.artisticIntent.trim()) || null;
@@ -1867,7 +1876,7 @@ export function IntentPanel({ analysisResult, currentTrack, versionInDb }) {
         type="button"
         className="intent-panel-eyebrow"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleToggle}
       >
         <span className="intent-panel-label">
           <span className="intent-panel-title-row">

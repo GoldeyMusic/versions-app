@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import GlobalStyles from '../components/GlobalStyles';
 import MockupStyles from '../components/MockupStyles';
 import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
@@ -288,6 +289,14 @@ export default function SampleFicheScreen({
   } = applyVocalTypeToFiche(rawFiche, data.vocalType);
   const score = typeof adjustedScore === 'number' ? adjustedScore : null;
 
+  // Accordéon strict — un seul state, une seule section ouverte à la fois.
+  // Identifiants : 'intent', 'impression', 'diag::<id>', 'plan::<i>'.
+  // Démo fermée par défaut → le visiteur clique pour ouvrir, comme sur la
+  // vraie fiche. Ouvrir une section referme automatiquement la précédente.
+  const [openSection, setOpenSection] = useState(null);
+  const toggleSection = (id) =>
+    setOpenSection((prev) => (prev === id ? null : id));
+
   return (
     <>
       <FontLink />
@@ -323,6 +332,8 @@ export default function SampleFicheScreen({
               analysisResult={analysisResult}
               currentTrack={SAMPLE_TRACK}
               versionInDb={null}
+              open={openSection === 'intent'}
+              onToggle={() => toggleSection('intent')}
             />
 
             {/* Ticket 4.3 — bandeau "Prêt à sortir / Presque / Pas encore".
@@ -367,8 +378,35 @@ export default function SampleFicheScreen({
               </div>
             </section>
 
-            {/* Écoute qualitative */}
-            {listening && <QualitativeSection listening={listening} />}
+            {/* Écoute qualitative — wrappée dans un collapsible piloté par
+                l'accordéon. La QualitativeSection desktop n'est pas pliable
+                en interne, donc on l'ouvre/ferme depuis l'extérieur via CSS
+                (max-height + overflow:hidden), et on cache son eyebrow
+                interne (`q-eyebrow`) pour ne pas dupliquer le titre. */}
+            {listening && (
+              <div
+                className={`sample-collapse${openSection === 'impression' ? ' is-open' : ''}`}
+              >
+                <button
+                  type="button"
+                  className="sample-collapse-head"
+                  onClick={() => toggleSection('impression')}
+                  aria-expanded={openSection === 'impression'}
+                >
+                  <span className="sc-eyebrow cerulean">
+                    <span className="dot" />Écoute qualitative
+                  </span>
+                  <span className="sc-chev" aria-hidden="true">
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                </button>
+                <div className="sample-collapse-body">
+                  <QualitativeSection listening={listening} />
+                </div>
+              </div>
+            )}
 
             {/* Diagnostic + Plan en deux colonnes (parité PublicFicheScreen) */}
             {(elements.length > 0 || plan.length > 0) && (
@@ -390,10 +428,29 @@ export default function SampleFicheScreen({
                         const isVoice = isVoiceCategory(el.cat);
                         const isPendingVoice = isVoice && voiceLabelOverride;
                         const catLabel = isPendingVoice ? voiceLabelOverride : el.cat;
-                        const catClass = isPendingVoice ? 'diag-cat open pending-voice' : 'diag-cat open';
+                        const sectionId = `diag::${el.id || el.cat || idx}`;
+                        const isOpen = openSection === sectionId;
+                        const catClass = `diag-cat${isOpen ? ' open' : ''}${isPendingVoice ? ' pending-voice' : ''}`;
                         return (
                           <div key={el.id || el.cat || idx} className={catClass}>
-                            <div className="diag-cat-head">
+                            <div
+                              className="diag-cat-head"
+                              onClick={() => toggleSection(sectionId)}
+                              role="button"
+                              tabIndex={0}
+                              aria-expanded={isOpen}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  toggleSection(sectionId);
+                                }
+                              }}
+                            >
+                              <span className="chev">
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                  <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </span>
                               <span className="name">{catLabel}</span>
                               <span className="count">
                                 {items.length} élément{items.length > 1 ? 's' : ''}
@@ -447,16 +504,35 @@ export default function SampleFicheScreen({
                       <div className="priority-list">
                         {plan.map((p, i) => {
                           const prio = (p.p || '').toLowerCase();
+                          const sectionId = `plan::${i}`;
+                          const isOpen = openSection === sectionId;
                           const linkedItems = elements.flatMap((el) =>
                             (el.items || [])
                               .filter((it) => Array.isArray(p.linkedItemIds) && it.id && p.linkedItemIds.includes(it.id))
                               .map((it) => ({ ...it, cat: el.cat }))
                           );
                           return (
-                            <div key={i} className="priority collapsible open read-only">
-                              <div className="priority-head">
+                            <div key={i} className={`priority collapsible sample-priority${isOpen ? ' open' : ''}`}>
+                              <div
+                                className="priority-head"
+                                onClick={() => toggleSection(sectionId)}
+                                role="button"
+                                tabIndex={0}
+                                aria-expanded={isOpen}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    toggleSection(sectionId);
+                                  }
+                                }}
+                              >
                                 <span className={`pbadge ${prio}`}>{(p.p || '').toUpperCase()}</span>
                                 <span className="ptitle">{p.task}</span>
+                                <span className="pchev" aria-hidden="true">
+                                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                    <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                </span>
                               </div>
                               <div className="priority-body">
                                 {p.daw && (
@@ -660,6 +736,125 @@ function SampleStyles() {
         background: rgba(245,166,35,0.08);
         box-shadow: 0 0 0 6px rgba(245,166,35,0.06);
       }
+
+      /* ── Accordéon strict (sample) ───────────────────────
+         Wrapper de section collapsible générique : header cliquable +
+         chevron qui pivote, body en max-height transition. Utilisé pour
+         "Écoute qualitative" (qui n'a pas de collapsible interne sur
+         desktop). Aligné visuellement sur .row-qualitative.stacked
+         (panel cerulean + halo bas-droite). */
+      .sample-collapse {
+        position: relative;
+        overflow: hidden;
+        background: var(--card, ${T.s1});
+        border: 1px solid var(--border, ${T.border});
+        border-radius: 14px;
+      }
+      .sample-collapse::before {
+        content: '';
+        position: absolute;
+        bottom: -60px; right: -60px;
+        width: 220px; height: 220px;
+        border-radius: 50%;
+        background: var(--cerulean, #5cb8cc);
+        filter: blur(80px);
+        opacity: 0.14;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .sample-collapse-head {
+        all: unset;
+        position: relative;
+        z-index: 1;
+        display: flex; align-items: center; gap: 12px;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 16px 22px;
+        cursor: pointer;
+        transition: background .15s;
+      }
+      .sample-collapse-head:hover { background: rgba(255,255,255,0.025); }
+      .sample-collapse-head .sc-eyebrow {
+        font-family: var(--mono, ${T.mono});
+        font-size: 10.5px;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+        line-height: 1;
+      }
+      .sample-collapse-head .sc-eyebrow.cerulean { color: var(--cerulean, #5cb8cc); }
+      .sample-collapse-head .sc-eyebrow.cerulean .dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: var(--cerulean, #5cb8cc);
+        flex-shrink: 0;
+      }
+      .sample-collapse-head .sc-chev {
+        color: var(--muted, ${T.muted});
+        display: inline-flex; align-items: center;
+        transition: transform .18s ease, color .15s;
+      }
+      .sample-collapse.is-open .sc-chev {
+        transform: rotate(90deg);
+        color: var(--cerulean, #5cb8cc);
+      }
+      .sample-collapse-body {
+        position: relative;
+        z-index: 1;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height .28s ease;
+      }
+      .sample-collapse.is-open .sample-collapse-body {
+        max-height: 4000px;
+      }
+      /* Quand la QualitativeSection est wrappée, on retire son fond/halo
+         pour ne pas avoir un panel dans un panel, et on cache son eyebrow
+         interne (notre header le remplace). */
+      .sample-collapse > .sample-collapse-body > .row-qualitative.stacked {
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 0 22px 22px;
+        margin: 0;
+        overflow: visible;
+      }
+      .sample-collapse > .sample-collapse-body > .row-qualitative.stacked::before {
+        display: none;
+      }
+      .sample-collapse > .sample-collapse-body > .row-qualitative.stacked > .q-eyebrow {
+        display: none;
+      }
+
+      /* ── Diag categories collapsibles (sample) ───────────
+         La règle de base .diag-cat.open .diag-cat-body { display: block }
+         est définie dans MockupStyles ; pas besoin de la dupliquer. On
+         ajoute juste le hover sur la head et on s'assure que le chev est
+         bien rendu (la vraie fiche le styled via .fiche-v2 .diag-panel,
+         qu'on n'utilise pas ici — fallback). */
+      .public-fiche-page .diag-cat-head {
+        cursor: pointer;
+        transition: background .15s;
+      }
+      .public-fiche-page .diag-cat-head:hover { background: rgba(255,255,255,0.025); }
+      .public-fiche-page .diag-cat-head .chev {
+        display: inline-flex;
+        align-items: center;
+        color: var(--muted, ${T.muted});
+        transition: transform .15s;
+        flex-shrink: 0;
+      }
+      .public-fiche-page .diag-cat.open .diag-cat-head .chev {
+        transform: rotate(90deg);
+        color: var(--amber, ${T.amber});
+      }
+
+      /* ── Plan items (sample) — retire le pcheck/resolve héritage,
+           ajoute hover ambre comme la vraie fiche en mode collapsible. */
+      .sample-priority .pcheck,
+      .sample-priority .resolve-action { display: none; }
 
       /* ── Stage : page principale + chat fictif à droite ──
          Sur desktop large (≥ 1180px), on passe en grid 2 colonnes :
