@@ -498,7 +498,7 @@ export default function SampleFicheScreen({
                   )}
                 </div>
 
-                <div className="col-plan">
+                <div className="col-plan" style={{display:"none"}}>
                   {plan.length > 0 && (
                     <>
                       <div className="section-head">

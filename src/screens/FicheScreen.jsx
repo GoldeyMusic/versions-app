@@ -2707,7 +2707,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 </div>
               )}
               {plan.length > 0 && (
-              <div className="col-plan">
+              <div className="col-plan" style={{display:"none"}}>
                 {(() => {
                   const planKeys = plan.map((p, i) => `${i}::${(p.task || '').slice(0, 60)}`);
                   const resolvedCount = planKeys.reduce((acc, k) => acc + (resolved.has(k) ? 1 : 0), 0);

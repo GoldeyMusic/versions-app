@@ -1231,8 +1231,8 @@ export default function MockupStyles() {
      - Si .intent-panel-fiche est present : il prend la rangee 3 a droite,
        col-plan descend sur la rangee 4, col-diag s'etire sur 2 rangees pour
        combler la hauteur a gauche. (:has() gere la bascule automatiquement) */
-  .fiche-v2 .page .col-diag            { grid-column: 1 / span 3; grid-row: 3; }
-  .fiche-v2 .page .col-plan            { grid-column: 4 / span 3; grid-row: 3; align-self: start; }
+  .fiche-v2 .page .col-diag            { grid-column: 1 / -1; grid-row: 3; }
+  .fiche-v2 .page .col-plan            { display: none; grid-column: 4 / span 3; grid-row: 3; align-self: start; }
   .fiche-v2 .page .intent-panel-fiche  { grid-column: 4 / span 3; grid-row: 3; align-self: start; }
   /* Quand le wrapper .evo-intent-stack est présent dans la colonne droite (row 3),
      col-plan descend en row 4 et col-diag s'étire sur 2 lignes pour garder
@@ -1240,7 +1240,7 @@ export default function MockupStyles() {
      OU intent existe) plutôt que .intent-panel-fiche, qui peut être null lorsque
      seul EvolutionBanner est affiché — sans ça, col-plan se superpose à evo. */
   .fiche-v2 .page:has(.evo-intent-stack) .col-diag,
-  .fiche-v2 .page:has(.intent-panel-fiche) .col-diag { grid-row: 3 / span 2; }
+  .fiche-v2 .page:has(.intent-panel-fiche) .col-diag { grid-column: 1 / span 3; grid-row: 3 / span 2; }
   .fiche-v2 .page:has(.evo-intent-stack) .col-plan,
   .fiche-v2 .page:has(.intent-panel-fiche) .col-plan { grid-row: 4; }
 

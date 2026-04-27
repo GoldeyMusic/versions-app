@@ -535,7 +535,8 @@ export function exportFicheToPdf({ track, versionName, analysisResult, date, sec
 
   if (S.qualitatif) drawQualitatif(doc, cursor, analysisResult?.listening);
   if (S.diagnostic) drawDiagnostic(doc, cursor, fiche?.elements || []);
-  if (S.plan) drawPlan(doc, cursor, fiche?.plan || []);
+  // REMOVED: section Plan d'action retirée des fiches
+  // if (S.plan) drawPlan(doc, cursor, fiche?.plan || []);
   if (S.notes) drawNotes(doc, cursor, analysisResult?.userNotes || '');
 
   drawFooter(doc);
