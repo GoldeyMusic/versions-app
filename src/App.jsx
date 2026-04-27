@@ -2212,7 +2212,14 @@ function VersionsAppAuthed() {
   // (#/fiche). Sans ça, routeInitRef reste à true et le hash reste sur
   // #/fiche → au relogin, on voit soit la fiche figée, soit welcome avec un
   // hash incohérent. On neutralise tout ici pour repartir propre.
+  //
+  // IMPORTANT : on ne touche à rien pendant `authLoading`. Au cold start, `user`
+  // est null le temps que Supabase résolve la session — sans ce guard, on
+  // efface le hash (`#/dashboard`, `#/fiche/...`) avant même que l'auth ne
+  // confirme que l'utilisateur est connecté, et il atterrit sur la landing au
+  // lieu de la page qu'il rafraîchissait.
   useEffect(() => {
+    if (authLoading) return;
     if (user) return;
     routeInitRef.current = false;
     if (typeof window !== 'undefined' && window.location.hash) {
@@ -2243,7 +2250,7 @@ function VersionsAppAuthed() {
       setScreen('welcome');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, authLoading]);
 
   // ── Hash routing : lecture initiale de l'URL ─────────────
   // Quand l'utilisateur est connecté, on aligne l'écran sur le hash courant.
