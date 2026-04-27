@@ -2226,6 +2226,27 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                       </div>
                     );
                   })()}
+                  {(() => {
+                    // Ticket 4.1 — bandeau plafond de score (score floor protection).
+                    // Affiché uniquement quand le backend a réellement appliqué un cap
+                    // à cause d'items priorité high non résolus.
+                    const sf = rawFiche?.score_floor;
+                    if (!sf || !sf.applied) return null;
+                    const tpl = sf.highCount === 1 ? s.fiche.scoreFloorOneItem : s.fiche.scoreFloorManyItems;
+                    const txt = (tpl || '')
+                      .replace('{count}', String(sf.highCount))
+                      .replace('{ceiling}', String(sf.ceiling));
+                    const orig = (s.fiche.scoreFloorOriginal || '').replace('{original}', String(sf.original));
+                    return (
+                      <div className="score-floor-banner" role="note">
+                        <span className="sf-dot" aria-hidden="true" />
+                        <span className="sf-text">{txt}</span>
+                        {typeof sf.original === 'number' && (
+                          <span className="sf-original" title={orig}>{orig}</span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </>
               )}
               <div className={`verdict-text${verdictExpanded ? ' expanded' : ' collapsed'}`}>
@@ -2525,6 +2546,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                       evolution={evolution}
                       previousVersionName={evolutionPrevName}
                       floorApplied={displayAR?.fiche?._floor_applied || null}
+                      adviceLockApplied={displayAR?.fiche?._advice_lock_applied || null}
                     />
                   )}
                   <IntentPanel

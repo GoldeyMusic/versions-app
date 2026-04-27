@@ -1708,6 +1708,41 @@ export default function MockupStyles() {
   .fiche-v2 .row-verdict .rv-left .score-calibration.down { color: var(--red, #ff5d5d); }
   .fiche-v2 .row-verdict .rv-left .score-calibration.stable { color: var(--muted, rgba(255,255,255,0.5)); }
 
+  /* Ticket 4.1 — bandeau plafond de score : ton ambré, ligne fine sous le delta.
+     Scope aux deux fiches (privée v2 + publique) sans dupliquer la règle. */
+  .row-verdict .rv-left .score-floor-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 6px auto 2px;
+    padding: 6px 12px;
+    border: 1px solid rgba(245, 166, 35, 0.28);
+    background: rgba(245, 166, 35, 0.08);
+    border-radius: 999px;
+    max-width: 480px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--amber, #f5a623);
+  }
+  .row-verdict .rv-left .score-floor-banner .sf-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--amber, #f5a623);
+    flex-shrink: 0;
+  }
+  .row-verdict .rv-left .score-floor-banner .sf-text {
+    color: var(--text, #ededed);
+    font-weight: 400;
+  }
+  .row-verdict .rv-left .score-floor-banner .sf-original {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 10.5px;
+    letter-spacing: 0.6px;
+    color: var(--muted, rgba(255,255,255,0.55));
+  }
+
   /* Verdict en Cormorant italic 16px (cf. .verdict maquette L808) */
   .fiche-v2 .row-verdict .rv-left .verdict-text {
     margin-top: 10px;

@@ -156,6 +156,21 @@ export default function PublicFicheScreen({ token }) {
             <section className="row-verdict">
               <div className="rv-left">
                 {score != null && <ScoreRingBig value={score} prevScore={null} />}
+                {(() => {
+                  // Ticket 4.1 — bandeau plafond de score (lecture seule).
+                  const sf = rawFiche?.score_floor;
+                  if (!sf || !sf.applied) return null;
+                  const tpl = sf.highCount === 1 ? s.fiche.scoreFloorOneItem : s.fiche.scoreFloorManyItems;
+                  const txt = (tpl || '')
+                    .replace('{count}', String(sf.highCount))
+                    .replace('{ceiling}', String(sf.ceiling));
+                  return (
+                    <div className="score-floor-banner" role="note">
+                      <span className="sf-dot" aria-hidden="true" />
+                      <span className="sf-text">{txt}</span>
+                    </div>
+                  );
+                })()}
                 <div className="verdict-text">
                   {(() => {
                     const vText = rawFiche.verdict || rawFiche.summary || '';

@@ -501,6 +501,11 @@ const STRINGS = {
       scoreDeltaDown: "↓ -{delta} points depuis {prev}",
       scoreDeltaStable: "= stable depuis {prev}",
       scoreNote: "Le score reflète la cohérence du mix (spatialisation, dynamique, équilibre, clarté). Il est calibré pour rester comparable d'une version à l'autre du même titre.",
+      /* Ticket 4.1 — plafond de score (high priority unresolved) */
+      scoreFloorBadge: "Plafond {ceiling}/100",
+      scoreFloorOneItem: "Plafond appliqué : 1 item prioritaire à traiter avant de pouvoir dépasser {ceiling}/100.",
+      scoreFloorManyItems: "Plafond appliqué : {count} items prioritaires à traiter avant de pouvoir dépasser {ceiling}/100.",
+      scoreFloorOriginal: "Score brut sans plafond : {original}/100.",
 
       /* Mix indicators (6 tiles dans Score Global) */
       mixIndicators: {
@@ -1537,6 +1542,10 @@ const STRINGS = {
       intentScopePrefix: "Applied to",
       intentScopeTrack: "this title",
       intentScopeVersion: "this version",
+      scoreFloorBadge: "Capped at {ceiling}/100",
+      scoreFloorOneItem: "Score capped: 1 high-priority item to address before exceeding {ceiling}/100.",
+      scoreFloorManyItems: "Score capped: {count} high-priority items to address before exceeding {ceiling}/100.",
+      scoreFloorOriginal: "Raw score without cap: {original}/100.",
       scoreCalibStable: "Calibrated on previous version · stable",
       scoreCalibDelta: "Calibrated on previous version · {delta} pts",
       scoreDeltaUp: "↑ +{delta} points since {prev}",
