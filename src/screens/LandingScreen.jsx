@@ -11,6 +11,7 @@ import T from '../constants/theme';
  */
 export default function LandingScreen({
   onStart,
+  onViewSample,
   ctaPrimaryLabel = 'Analyser mon premier titre',
   ctaFooterLabel = 'Commencer gratuitement',
 }) {
@@ -39,9 +40,16 @@ export default function LandingScreen({
             et vous guide pour améliorer votre mix.
           </h1>
 
-          <button type="button" onClick={onStart} className="lp-cta-primary">
-            {ctaPrimaryLabel}
-          </button>
+          <div className="lp-cta-row">
+            <button type="button" onClick={onStart} className="lp-cta-primary">
+              {ctaPrimaryLabel}
+            </button>
+            {onViewSample && (
+              <button type="button" onClick={onViewSample} className="lp-cta-secondary">
+                Voir un exemple
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -253,9 +261,14 @@ function LandingStyles() {
         font-style: italic; color: ${T.amber}; font-weight: 400;
       }
 
+      /* CTA row : primary + optional secondary "Voir un exemple". */
+      .lp-cta-row {
+        margin-top: 12px;
+        display: flex; flex-wrap: wrap; gap: 12px;
+        justify-content: center; align-items: center;
+      }
       /* CTA — pill ambre, grammaire .auth-submit */
       .lp-cta-primary {
-        margin-top: 12px;
         padding: 16px 32px;
         background: transparent; color: ${T.amber};
         border: 1px solid rgba(245,166,35,0.55); border-radius: 999px;
@@ -267,6 +280,21 @@ function LandingStyles() {
         border-color: ${T.amber};
         background: rgba(245,166,35,0.08);
         box-shadow: 0 0 0 6px rgba(245,166,35,0.06);
+      }
+      /* CTA secondaire — texte muté + bordure très douce, hiérarchie claire
+         vs le primary ambre. */
+      .lp-cta-secondary {
+        padding: 16px 28px;
+        background: transparent; color: ${T.textSoft};
+        border: 1px solid ${T.border}; border-radius: 999px;
+        font-family: ${T.mono}; font-size: 12px; font-weight: 500;
+        letter-spacing: 1.8px; text-transform: uppercase;
+        cursor: pointer; transition: all .15s;
+      }
+      .lp-cta-secondary:hover {
+        color: ${T.text};
+        border-color: ${T.borderStrong};
+        background: rgba(255,255,255,0.02);
       }
 
       /* ── DIVIDERS ─────────────────────────────────── */
@@ -432,7 +460,9 @@ function LandingStyles() {
         .lp-hero { padding: 56px 20px 48px; }
         .lp-footer { padding: 64px 20px 48px; }
         .lp-diff-card { padding: 22px 20px; }
-        .lp-cta-primary { padding: 14px 26px; font-size: 11px; letter-spacing: 1.5px; }
+        .lp-cta-primary, .lp-cta-secondary { padding: 14px 26px; font-size: 11px; letter-spacing: 1.5px; }
+        .lp-cta-row { flex-direction: column; gap: 10px; width: 100%; }
+        .lp-cta-row > button { width: 100%; max-width: 320px; }
       }
     `}</style>
   );

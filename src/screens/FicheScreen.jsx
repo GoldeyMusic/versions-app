@@ -1809,7 +1809,7 @@ function NotesSection({ versionId, initialNotes, v2 = false }) {
 //   2. versionInDb.versionIntent      → override au niveau de la version courante
 //   3. currentTrack.artisticIntent    → intention « de base » du titre
 // Renvoie null s'il n'y en a aucune (pipeline non-calibré ou ancien run).
-function IntentPanel({ analysisResult, currentTrack, versionInDb }) {
+export function IntentPanel({ analysisResult, currentTrack, versionInDb }) {
   const { s } = useLang();
   const [open, setOpen] = useState(false);
   const fresh = (typeof analysisResult?.intent_used === 'string' && analysisResult.intent_used.trim()) || null;

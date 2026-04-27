@@ -25,6 +25,7 @@ import { supabase } from "./lib/supabase";
 import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
 import LandingScreen from "./screens/LandingScreen";
+import SampleFicheScreen from "./screens/SampleFicheScreen";
 import PublicFicheScreen from "./screens/PublicFicheScreen";
 import ReglagesModal from "./components/ReglagesModal";
 import RenameModal from "./components/RenameModal";
@@ -1975,6 +1976,7 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd }) {
 const SCREEN_HASH = {
   welcome: '#/dashboard',
   home: '#/',
+  sample: '#/exemple',
   loading: '#/analyse',
   fiche: '#/fiche',
   versions: '#/versions',
@@ -1982,6 +1984,8 @@ const SCREEN_HASH = {
 const HASH_SCREEN = {
   '#/': 'home',
   '#/home': 'home',
+  '#/exemple': 'sample',
+  '#/sample-report': 'sample',
   '#/dashboard': 'welcome',
   '#/analyse': 'loading',
   '#/fiche': 'fiche',
@@ -2055,6 +2059,7 @@ function VersionsAppAuthed() {
     if (typeof window === 'undefined') return 'welcome';
     const h = window.location.hash;
     if (h === '#/' || h === '#/home') return 'home';
+    if (h === '#/exemple' || h === '#/sample-report') return 'sample';
     return 'welcome';
   });
   // Visiteurs non connectés : landing page par défaut, AuthScreen sur clic CTA.
@@ -2186,16 +2191,30 @@ function VersionsAppAuthed() {
   useEffect(() => {
     if (user) return;
     routeInitRef.current = false;
-    if (typeof window !== 'undefined' && window.location.hash && window.location.hash !== '#/') {
+    if (typeof window !== 'undefined' && window.location.hash) {
       // Ne pas effacer un hash de retour OAuth (Supabase doit pouvoir parser
       // les tokens posés par Google/autres providers dans #access_token=...).
       const h = window.location.hash;
       const isOAuthReturn = h.includes('access_token=') || h.includes('refresh_token=') || h.includes('error=') || h.includes('error_code=');
-      if (!isOAuthReturn) {
+      // Routes publiques accessibles aux visiteurs : on les laisse intactes
+      // pour ne pas casser un deep-link landing/sample.
+      const isPublicRoute = h === '#/' || h === '#/home' || h === '#/exemple' || h === '#/sample-report';
+      if (!isOAuthReturn && !isPublicRoute) {
         window.history.replaceState({ screen: 'welcome' }, '', '#/');
       }
     }
-    if (screen !== 'welcome') {
+    // Pour les visiteurs, on aligne `screen` sur la route publique courante :
+    // sample garde 'sample' (rendu plein écran), tout le reste tombe sur
+    // 'welcome' (l'auth gate rendra la landing à sa place).
+    if (typeof window !== 'undefined') {
+      const h = window.location.hash;
+      const isSample = h === '#/exemple' || h === '#/sample-report';
+      const targetScreen = isSample ? 'sample' : 'welcome';
+      if (screen !== targetScreen) {
+        isHashSyncRef.current = true;
+        setScreen(targetScreen);
+      }
+    } else if (screen !== 'welcome') {
       isHashSyncRef.current = true;
       setScreen('welcome');
     }
@@ -2980,14 +2999,30 @@ function VersionsAppAuthed() {
         window.history.replaceState({}, '', '#/dashboard');
       }
     };
+    const goSample = () => {
+      setShowAuth(false);
+      setScreen('sample');
+      if (typeof window !== 'undefined') {
+        window.history.pushState({ screen: 'sample' }, '', '#/exemple');
+      }
+    };
+    const goLanding = () => {
+      setShowAuth(false);
+      setScreen('welcome');
+      if (typeof window !== 'undefined') {
+        window.history.pushState({ screen: 'welcome' }, '', '#/');
+      }
+    };
+    let view;
+    if (showAuth) view = <AuthScreen />;
+    else if (screen === 'sample') view = <SampleFicheScreen onSignup={goAuth} onBackToLanding={goLanding} />;
+    else view = <LandingScreen onStart={goAuth} onViewSample={goSample} />;
     return (
       <LangContext.Provider value={{ lang, s, setLang, t }}>
         <FontLink />
         <GlobalStyles />
         <MockupStyles />
-        {showAuth
-          ? <AuthScreen />
-          : <LandingScreen onStart={goAuth} />}
+        {view}
       </LangContext.Provider>
     );
   }
@@ -3005,6 +3040,25 @@ function VersionsAppAuthed() {
           onStart={() => setScreen('welcome')}
           ctaPrimaryLabel="Mon tableau de bord"
           ctaFooterLabel="Mon tableau de bord"
+          onViewSample={() => setScreen('sample')}
+        />
+      </LangContext.Provider>
+    );
+  }
+
+  // Connecté + #/exemple : sample plein écran, libellés CTAs adaptés au
+  // contexte (pas de "créer un compte" — l'utilisateur est déjà identifié).
+  if (screen === 'sample') {
+    return (
+      <LangContext.Provider value={{ lang, s, setLang, t }}>
+        <FontLink />
+        <GlobalStyles />
+        <MockupStyles />
+        <SampleFicheScreen
+          onSignup={() => setScreen('welcome')}
+          onBackToLanding={() => setScreen('home')}
+          topbarCtaLabel="Mon tableau de bord"
+          bottomCtaLabel="Mon tableau de bord"
         />
       </LangContext.Provider>
     );
