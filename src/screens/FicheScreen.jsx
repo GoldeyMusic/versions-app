@@ -2232,7 +2232,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             onRefresh={() => loadTracks().then(setTracks)}
           />
 
-          {/* COLONNE PRINCIPALE (col 1 en v2 desktop) : Score global + Diagnostic */}
+          {/* Bloc principal en layout 1 colonne : bandeaux + verdict + score */}
           <div className="f2-col-main">
           {/* Ticket 4.4 — bandeau "FINAL" si la version a été marquée finale,
               sinon plateau detector si convergence avec V_(n-1). */}
@@ -2420,7 +2420,134 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             </div>
           </section>
 
-          {/* 2 · Diagnostic par élément — directement sous le score global, en col 1 */}
+          </div>
+
+          {/* Bloc évolution + intention en layout 1 colonne (la pochette est masquée). */}
+          <div className="f2-col-side">
+              {/* Pochette carrée (v2 desktop) — artwork fait de halos color\u00e9s seed\u00e9s
+                  + titre en gros (police du logo VERSIONS). Remplaçable par l'upload user. */}
+              {(() => {
+                const title = config?.title || '';
+                let h = 0;
+                for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) >>> 0;
+                let seed = h || 1;
+                const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+                // Palette color\u00e9e mais l\u00e9g\u00e8rement d\u00e9satur\u00e9e (tons de pochette abstraite)
+                const palette = [
+                  'rgba(230, 140, 60, 1)',    // amber soutenu
+                  'rgba(110, 185, 110, 1)',   // sage/vert frais
+                  'rgba(215, 115, 170, 1)',   // rose/magenta
+                  'rgba(70, 150, 210, 1)',    // cerulean
+                  'rgba(235, 130, 90, 1)',    // peach
+                  'rgba(150, 110, 210, 1)',   // violet
+                  'rgba(90, 195, 180, 1)',    // teal
+                  'rgba(225, 90, 110, 1)',    // coral/red
+                  'rgba(240, 195, 70, 1)',    // doré
+                ];
+                const halos = Array.from({ length: 9 }, () => ({
+                  x: 5 + rand() * 90,
+                  y: 5 + rand() * 90,
+                  size: 95 + rand() * 70,
+                  color: palette[Math.floor(rand() * palette.length)],
+                  opacity: 0.78 + rand() * 0.22,
+                }));
+                return (
+                  <div className="col-cover-wrap">
+                    <div className="col-cover-holder">
+                      <div
+                        className={`col-cover${currentTrack?.coverImageUrl ? ' has-image' : ' no-image'}`}
+                        aria-label={title}
+                      >
+                        {currentTrack?.coverImageUrl ? (
+                          <img
+                            src={currentTrack.coverImageUrl}
+                            alt=""
+                            className="cover-img"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <>
+                            {halos.map((hl, i) => (
+                              <span
+                                key={i}
+                                className="ca-halo"
+                                style={{
+                                  left: `${hl.x}%`,
+                                  top: `${hl.y}%`,
+                                  width: `${hl.size}%`,
+                                  background: `radial-gradient(circle, ${hl.color} 0%, transparent 62%)`,
+                                  opacity: hl.opacity,
+                                }}
+                                aria-hidden
+                              />
+                            ))}
+                            <div className="cover-big-title" aria-hidden>
+                              {title}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      {/* Pill type vocal : coin supérieur droit de l'artwork,
+                          déplacée depuis la topbar. Hors de .col-cover pour que
+                          son menu dropdown ne soit pas rogné par overflow:hidden. */}
+                      <div className="cover-vocal-pill">
+                        <VocalTypePill
+                          track={currentTrack}
+                          onRefresh={() => loadTracks().then(setTracks)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+              {/* Wrapper évolution + intention — pleine largeur en layout 1 colonne. */}
+              {(evolution || hasIntentSource) && (
+                <div
+                  className="evo-intent-stack"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'stretch',
+                    gap: 18,
+                    minWidth: 0,
+                    width: '100%',
+                  }}
+                >
+                  {evolution && (
+                    <EvolutionBanner
+                      evolution={evolution}
+                      previousVersionName={evolutionPrevName}
+                      floorApplied={rawFiche?.score_floor?.applied ? rawFiche.score_floor : null}
+                      adviceLockApplied={(() => {
+                        // Ticket 4.2 — derive le summary "categories verrouillees"
+                        // depuis advice_check.lockedCategories (array de strings).
+                        const ac = rawFiche?.advice_check;
+                        if (!ac) return null;
+                        const cats = Array.isArray(ac.lockedCategories) ? ac.lockedCategories : [];
+                        const followed = Array.isArray(ac.followed) ? ac.followed.length : 0;
+                        const unfollowed = Array.isArray(ac.unfollowed) ? ac.unfollowed.length : 0;
+                        if (followed + unfollowed === 0) return null;
+                        return {
+                          categories: cats.map((c) => ({ cat: c })),
+                          followed,
+                          unfollowed,
+                        };
+                      })()}
+                    />
+                  )}
+                  <IntentPanel
+                    analysisResult={displayAR}
+                    currentTrack={currentTrack}
+                    versionInDb={versionInDb}
+                  />
+                </div>
+              )}
+          </div>
+
+          {/* Impression d'écoute — pleine largeur, avant le diagnostic */}
+          <QualitativeSection listening={listening} />
+
+          {/* Diagnostic par élément — pleine largeur, après l'impression d'écoute */}
           {elements.length > 0 && (
             <div className="col-diag">
                 {elements.length > 0 && (() => {
@@ -2576,140 +2703,6 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 })()}
             </div>
           )}
-          </div>
-
-          {/* COLONNE SECONDAIRE (col 2 en v2 desktop) : Pochette + Plan d'action */}
-          <div className="f2-col-side">
-              {/* Pochette carrée (v2 desktop) — artwork fait de halos color\u00e9s seed\u00e9s
-                  + titre en gros (police du logo VERSIONS). Remplaçable par l'upload user. */}
-              {(() => {
-                const title = config?.title || '';
-                let h = 0;
-                for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) >>> 0;
-                let seed = h || 1;
-                const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-                // Palette color\u00e9e mais l\u00e9g\u00e8rement d\u00e9satur\u00e9e (tons de pochette abstraite)
-                const palette = [
-                  'rgba(230, 140, 60, 1)',    // amber soutenu
-                  'rgba(110, 185, 110, 1)',   // sage/vert frais
-                  'rgba(215, 115, 170, 1)',   // rose/magenta
-                  'rgba(70, 150, 210, 1)',    // cerulean
-                  'rgba(235, 130, 90, 1)',    // peach
-                  'rgba(150, 110, 210, 1)',   // violet
-                  'rgba(90, 195, 180, 1)',    // teal
-                  'rgba(225, 90, 110, 1)',    // coral/red
-                  'rgba(240, 195, 70, 1)',    // doré
-                ];
-                const halos = Array.from({ length: 9 }, () => ({
-                  x: 5 + rand() * 90,
-                  y: 5 + rand() * 90,
-                  size: 95 + rand() * 70,
-                  color: palette[Math.floor(rand() * palette.length)],
-                  opacity: 0.78 + rand() * 0.22,
-                }));
-                return (
-                  <div className="col-cover-wrap">
-                    <div className="col-cover-holder">
-                      <div
-                        className={`col-cover${currentTrack?.coverImageUrl ? ' has-image' : ' no-image'}`}
-                        aria-label={title}
-                      >
-                        {currentTrack?.coverImageUrl ? (
-                          <img
-                            src={currentTrack.coverImageUrl}
-                            alt=""
-                            className="cover-img"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <>
-                            {halos.map((hl, i) => (
-                              <span
-                                key={i}
-                                className="ca-halo"
-                                style={{
-                                  left: `${hl.x}%`,
-                                  top: `${hl.y}%`,
-                                  width: `${hl.size}%`,
-                                  background: `radial-gradient(circle, ${hl.color} 0%, transparent 62%)`,
-                                  opacity: hl.opacity,
-                                }}
-                                aria-hidden
-                              />
-                            ))}
-                            <div className="cover-big-title" aria-hidden>
-                              {title}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      {/* Pill type vocal : coin supérieur droit de l'artwork,
-                          déplacée depuis la topbar. Hors de .col-cover pour que
-                          son menu dropdown ne soit pas rogné par overflow:hidden. */}
-                      <div className="cover-vocal-pill">
-                        <VocalTypePill
-                          track={currentTrack}
-                          onRefresh={() => loadTracks().then(setTracks)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-              {/* 0b · Wrapper colonne droite : bandeau d'évolution + Intention.
-                     Les deux sont stackés en flex column dans un seul grid-item
-                     (col 4 / span 3, row 3) pour rester au-dessus du Plan d'action
-                     sans casser les règles CSS existantes (.intent-panel-fiche
-                     et .col-plan). Le gap interne (18px) est aligné sur le
-                     row-gap du grid principal pour des espacements uniformes. */}
-              {(evolution || hasIntentSource) && (
-                <div
-                  className="evo-intent-stack"
-                  style={{
-                    gridColumn: '4 / span 3',
-                    gridRow: 3,
-                    alignSelf: 'start',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'stretch', // chaque enfant prend toute la largeur
-                    gap: 18,
-                    minWidth: 0,
-                    width: '100%',
-                  }}
-                >
-                  {evolution && (
-                    <EvolutionBanner
-                      evolution={evolution}
-                      previousVersionName={evolutionPrevName}
-                      floorApplied={rawFiche?.score_floor?.applied ? rawFiche.score_floor : null}
-                      adviceLockApplied={(() => {
-                        // Ticket 4.2 — derive le summary "categories verrouillees"
-                        // depuis advice_check.lockedCategories (array de strings).
-                        const ac = rawFiche?.advice_check;
-                        if (!ac) return null;
-                        const cats = Array.isArray(ac.lockedCategories) ? ac.lockedCategories : [];
-                        const followed = Array.isArray(ac.followed) ? ac.followed.length : 0;
-                        const unfollowed = Array.isArray(ac.unfollowed) ? ac.unfollowed.length : 0;
-                        if (followed + unfollowed === 0) return null;
-                        return {
-                          categories: cats.map((c) => ({ cat: c })),
-                          followed,
-                          unfollowed,
-                        };
-                      })()}
-                    />
-                  )}
-                  <IntentPanel
-                    analysisResult={displayAR}
-                    currentTrack={currentTrack}
-                    versionInDb={versionInDb}
-                  />
-                </div>
-              )}
-          </div>
-
-          {/* 3 · Écoute qualitative — en bas, pleine largeur */}
-          <QualitativeSection listening={listening} />
 
           {/* 4 · Notes perso — tout en bas, pleine largeur */}
           <NotesSection

@@ -1105,33 +1105,18 @@ export default function MockupStyles() {
      Le chat reste ancré en aside (3ᵉ colonne via .fiche-layout.has-chat).
      ══════════════════════════════════════════════════════════════════════ */
   .fiche-v2 .page {
-    /* Grid 6 colonnes pour permettre 1/3-2/3 en row 2 (pochette/score)
-       et 1/2-1/2 en row 3 (diagnostic/plan) sur le meme grid. */
+    /* Layout 1 colonne : tout pleine largeur, ordre source = ordre visuel. */
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    grid-auto-flow: dense;
-    column-gap: 20px;
+    grid-template-columns: 1fr;
     row-gap: 18px;
     align-items: start;
     padding: 20px 28px 80px;
   }
-  /* f2-col-* deviennent transparents → leurs enfants montent au niveau .page
-     pour permettre le placement explicite en grid (row/col alignés). */
+  /* f2-col-* deviennent transparents → leurs enfants montent au niveau .page. */
   .fiche-v2 .page > .f2-col-main,
   .fiche-v2 .page > .f2-col-side { display: contents; }
-  .fiche-v2 .page .vocal-suggest        { grid-column: 1 / -1; grid-row: 1; }
-  /* Bandeaux pleine largeur en tête de fiche : ReleaseReadinessBanner (4.3),
-     PlateauBanner / FINAL badge (4.4). Sans ce span, ils sont auto-placés
-     par le grid 6 colonnes et n'occupent qu'1 colonne (~16% de largeur). */
-  .fiche-v2 .page .release-readiness,
-  .fiche-v2 .page .plateau-banner,
-  .fiche-v2 .page .final-badge-banner  { grid-column: 1 / -1; }
-  /* Rangee 2 : le grand cadre score global (.row-verdict) prend toute la largeur,
-     la pochette se superpose dessus a gauche (z-index + meme grid-row) pour
-     donner l'impression d'etre "dans" le rectangle. .rv-left a un padding-left
-     calcule pour laisser la place au visuel. */
-  .fiche-v2 .page .col-cover-wrap  { grid-column: 1 / span 2; grid-row: 2; z-index: 2; }
-  .fiche-v2 .page .row-verdict     { grid-column: 1 / -1; grid-row: 2; z-index: 1; }
+  /* Pochette masquee en layout 1 colonne (le titre est deja dans la topbar). */
+  .fiche-v2 .page .col-cover-wrap  { display: none; }
   /* Quand un tooltip est ouvert (score global ou tuile mix), on booste le
      z-index de toute la row pour que le tooltip puisse déborder au-dessus
      du Plan d'action / Diagnostic qui suit dans la grille. Sans ça, le
@@ -1152,9 +1137,8 @@ export default function MockupStyles() {
     z-index: 101;
   }
   .fiche-v2 .page .row-verdict .rv-left {
-    /* Padding-left reserve la place de la pochette (spanning 2/6 cols + gap).
-       2/6 = 33.33% ; le +40px couvre le gap + respiration interne. */
-    padding-left: calc(33.33% + 40px);
+    /* Layout 1 colonne : pas de padding reservant la place pochette. */
+    padding-left: 0;
   }
   /* Override du wrapper pochette en contexte grid v2 : on stretch le wrapper
      sur toute sa cellule (2/6), on applique un padding-left pour aligner
@@ -1216,22 +1200,7 @@ export default function MockupStyles() {
     left: auto;
     right: 0;
   }
-  /* Le score-eyebrow reste a sa place d'origine (premier enfant de .rv-left,
-     meme style que les autres eyebrows). On annule juste le padding-left
-     calc(33.33% + 40px) qui reservait la place de la pochette, via un
-     margin-left negatif, pour qu'il s'aligne avec la bordure interne gauche
-     du card (= 24px, meme que diag-eyebrow / plan-eyebrow). */
-  .fiche-v2 .row-verdict .rv-left .score-eyebrow {
-    margin-left: calc(-33.33% - 16px);
-  }
-  /* Rangee 3 : col-diag (le Plan d'action a ete absorbe dans les items du
-     diagnostic). Par defaut col-diag prend toute la largeur ; quand
-     .evo-intent-stack ou .intent-panel-fiche est present a droite (row 3),
-     col-diag se reduit a la moitie gauche (span 3) pour cohabiter. */
-  .fiche-v2 .page .col-diag            { grid-column: 1 / -1; grid-row: 3; }
-  .fiche-v2 .page .intent-panel-fiche  { grid-column: 4 / span 3; grid-row: 3; align-self: start; }
-  .fiche-v2 .page:has(.evo-intent-stack) .col-diag,
-  .fiche-v2 .page:has(.intent-panel-fiche) .col-diag { grid-column: 1 / span 3; }
+  /* Layout 1 colonne : pas de padding pochette, donc pas de margin-left négatif sur l'eyebrow. */
 
   /* Wrapper qui empile EvolutionBanner + IntentPanel dans la colonne droite,
      juste au-dessus de Plan d action. On en fait un seul grid-item (col 4-6,
@@ -1247,9 +1216,7 @@ export default function MockupStyles() {
     box-sizing: border-box;
     margin: 0;
   }
-  /* Rangees pleine largeur sous les 2 colonnes */
-  .fiche-v2 .page .row-qualitative { grid-column: 1 / -1; grid-row: 5; }
-  .fiche-v2 .page .notes-section   { grid-column: 1 / -1; grid-row: 6; }
+  /* Layout 1 colonne : row-qualitative et notes-section prennent automatiquement toute la largeur. */
 
   /* Mobile / drawer : les wrappers f2-col-* doivent s'effacer pour ne pas
      perturber le flow vertical historique. display: contents remonte les
