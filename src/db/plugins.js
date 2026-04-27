@@ -3,7 +3,6 @@ const PLUGINS_DB = {
     label: "EQ",
     paid: [
       { name:"FabFilter Pro-Q 4",      brand:"FabFilter",  desc:"EQ de référence — dynamic EQ, linear phase, zero latency. Standard de l'industrie.", price:"~179€" },
-      { name:"FabFilter Pro-Q 3",      brand:"FabFilter",  desc:"Version précédente, toujours standard. Même qualité sonore.", price:"~179€" },
       { name:"Waves Q10",              brand:"Waves",       desc:"EQ paramétrique classique, large adoption en studio.", price:"~30€" },
       { name:"Waves SSL E-Channel",    brand:"Waves",       desc:"Émulation console SSL 4000E — chaleur analogique, coloration.", price:"~30€" },
       { name:"Waves API 550A/550B",    brand:"Waves",       desc:"Émulation console API — punch et caractère sur les bus.", price:"~30€" },

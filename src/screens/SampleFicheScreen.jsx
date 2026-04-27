@@ -58,7 +58,7 @@ const SAMPLE_DATA = {
               title: 'Médium-haut voix encombré',
               why: "La voix lutte avec le synthé lead dans la zone 2-4 kHz, ce qui mange l'intelligibilité du refrain alors que c'est le moment où le texte doit s'entendre le plus clairement.",
               how: 'EQ dynamique sur le synthé : -3 dB autour de 3 kHz, sidechainé sur le bus voix. Q 1.2, attack 10 ms, release 80 ms.',
-              plugin_pick: 'FabFilter Pro-Q 3 (mode dynamique)',
+              plugin_pick: 'FabFilter Pro-Q 4 (mode dynamique)',
             },
             {
               id: 'it-eq-2',

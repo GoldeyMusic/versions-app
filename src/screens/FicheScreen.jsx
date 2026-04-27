@@ -3102,8 +3102,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                                   <div
                                     style={{
                                       display: 'flex', flexDirection: 'column',
-                                      alignItems: 'center', gap: 4,
+                                      alignItems: 'center', gap: 5,
                                       flexShrink: 0, marginTop: 5,
+                                      width: 92, // assez large pour 'Marquer comme résolu' sur 2 lignes
                                     }}
                                   >
                                     <button
@@ -3126,14 +3127,21 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                                       )}
                                     </button>
                                     <span
+                                      onClick={(e) => {
+                                        // Cliquable aussi : facilite l'usage en élargissant la zone d'action
+                                        e.stopPropagation();
+                                        if (canCheck) toggleItemCompletion(itemKey);
+                                      }}
                                       style={{
                                         fontFamily: 'var(--mono)',
                                         fontSize: 9,
                                         letterSpacing: 1.2,
                                         textTransform: 'uppercase',
                                         color: done ? 'var(--amber)' : 'var(--muted)',
-                                        whiteSpace: 'nowrap',
+                                        textAlign: 'center',
+                                        lineHeight: 1.3,
                                         userSelect: 'none',
+                                        cursor: canCheck ? 'pointer' : 'default',
                                         opacity: canCheck ? 1 : 0.5,
                                       }}
                                     >
