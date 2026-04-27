@@ -118,7 +118,7 @@ Libs candidates Node :
 
 ### Tâches
 
-- [ ] **2.1 — Module `decode-api/lib/dsp.js`**
+- [x] **2.1 — Module `decode-api/lib/dsp.js`** *(LUFS/LRA/truePeak en place ; le reste pour 2.6)*
   Prend un buffer audio (ou un path local) et retourne :
   ```js
   {
@@ -138,10 +138,14 @@ Libs candidates Node :
   }
   ```
 
-- [ ] **2.2 — Brancher dans le pipeline post-Fadr**
+  **Implémenté (2026-04-27, partiel)** : `lib/dsp.js` créé avec `measureMaster(buffer)` qui retourne `{ lufs, lra, truePeak }` via ffmpeg ebur128 (bundle `@ffmpeg-installer/ffmpeg`, conforme ITU-R BS.1770). Spawn ffmpeg sur stdin du buffer, parse le block "Summary" stderr, mode dégradé (null) si timeout/erreur. Ce sont les 3 mesures les plus prioritaires pour la promesse landing. Le reste (crest factor, dcOffset, clipping, spectralBands 6 bandes) est ajouté en 2.6 si besoin — ffmpeg seul ne les calcule pas, il faudra `meyda` ou un calcul maison sur les samples PCM.
+
+- [x] **2.2 — Brancher dans le pipeline post-Fadr**
   Dans `analyze.js` ou équivalent, après réception du fichier audio, appeler `dsp.measureMaster(buffer)` en parallèle de Fadr. Persister dans `dsp_metrics` (Phase 1.3).
 
-- [ ] **2.3 — Enrichir le prompt Claude**
+  **Implémenté** : `dspPromise = dspMeasureMaster(fileBuffer)` lancé en parallèle de Fadr et Gemini dès réception du fichier. `Promise.all([awaitWithTimeout(fadr), awaitWithTimeout(dsp)])` dans `runDiagnosticPhase` — les deux mesures sont attendues en parallèle. Fusion fadr+dsp dans `mergedMetrics` passé à `generateFiche`. Pas de migration `dsp_metrics` jsonb pour l'instant, on persiste juste `lufs` dans la colonne text existante (suffit pour le chip + Claude). On migrera vers jsonb quand on aura plus de mesures (2.6).
+
+- [x] **2.3 — Enrichir le prompt Claude**
   Ajouter un bloc :
   ```
   MESURES DSP MASTER :
@@ -151,6 +155,8 @@ Libs candidates Node :
   - Distribution spectrale : sub 8% / bass 22% / low-mid 18% / mid 15% / hi-mid 22% / highs 15%
   - Clipping : aucun
   ```
+
+  **Implémenté** : `dspBlock` dans `claude.js` enrichi avec LRA et truePeak. Verdicts pré-calculés côté Node (LUFS vs cible streaming, LRA vs plage dynamique pop/jazz/cinematic, truePeak vs cible -1 dBTP) injectés dans le prompt pour calibrer le diagnostic master. Claude doit citer textuellement les valeurs et calibrer sa recette en MASTER & LOUDNESS.
 
 - [ ] **2.4 — Affichage front**
   Bloc "Mesures DSP" dans `FicheScreen.jsx` : graphique 6 bandes (réutiliser le composant chips ou en créer un dédié), valeurs crest/LRA en cartes. Cohérent avec la grammaire visuelle des autres sections.

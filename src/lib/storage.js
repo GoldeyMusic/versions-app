@@ -140,24 +140,31 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
   const finalStoragePath = storagePath || analysisResult?.storagePath || null;
   const localeToPersist = (analysisLocale || 'fr').toString().toLowerCase().slice(0, 2);
 
-  // DSP 1.3 — extraction des mesures Fadr (peuplées par le pipeline backend en 1.1bis).
+  // DSP 1.3 + Phase 2 — extraction des mesures objectives (Fadr + DSP maison).
   // Les colonnes versions.bpm/key/lufs existent depuis l'origine mais n'étaient pas
   // remplies. On les peuple ici pour permettre :
   //   - filtrage/tri rapide par BPM/tonalité dans le dashboard
-  //   - affichage badge topbar (1.4) sans avoir à parser analysis_result.fadrMetrics
+  //   - affichage badge topbar (1.4) sans avoir à parser le JSON
   //   - statistiques d'évolution inter-versions (delta LUFS, etc.)
-  // Si la mesure est absente (Fadr KO/timeout), on n'écrit rien (laisse la valeur
-  // existante intacte, plutôt qu'écraser par null).
+  // Sources :
+  //   - bpm/key : Fadr (fadrMetrics)
+  //   - lufs : ffmpeg ebur128 (dspMetrics) en priorité, sinon Fadr en fallback
+  // Si la mesure est absente, on n'écrit rien (laisse la valeur existante intacte,
+  // plutôt qu'écraser par null — utile pour préserver les corrections manuelles).
   const fm = analysisResult?.fadrMetrics || {};
+  const dm = analysisResult?.dspMetrics || {};
   const fadrBpm = (fm.bpm != null && fm.bpm !== '') ? String(fm.bpm) : null;
   const fadrKey = (typeof fm.key === 'string' && fm.key.trim()) ? fm.key.trim() : null;
-  const fadrLufs = (typeof fm.lufs === 'number' && Number.isFinite(fm.lufs))
-    ? fm.lufs.toFixed(1)
-    : (typeof fm.lufs === 'string' && fm.lufs.trim() ? fm.lufs.trim() : null);
+  // LUFS : on prend en priorité la mesure ffmpeg ebur128 (bien plus fiable que
+  // ce que Fadr renvoie sporadiquement). Fadr en fallback si DSP a échoué.
+  let lufsValue = null;
+  if (typeof dm.lufs === 'number' && Number.isFinite(dm.lufs)) lufsValue = dm.lufs.toFixed(1);
+  else if (typeof fm.lufs === 'number' && Number.isFinite(fm.lufs)) lufsValue = fm.lufs.toFixed(1);
+  else if (typeof fm.lufs === 'string' && fm.lufs.trim()) lufsValue = fm.lufs.trim();
   const dspPatch = {
     ...(fadrBpm ? { bpm: fadrBpm } : {}),
     ...(fadrKey ? { key: fadrKey } : {}),
-    ...(fadrLufs ? { lufs: fadrLufs } : {}),
+    ...(lufsValue ? { lufs: lufsValue } : {}),
   };
 
   if (existing) {

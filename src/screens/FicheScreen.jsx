@@ -995,12 +995,12 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
 // Source de vérité, par ordre :
 //   1. version.bpm/key/lufs (DB) — source canonique, peut avoir été
 //      corrigée manuellement par l'utilisateur via DspEditModal.
-//   2. analysisResult.fadrMetrics — fallback uniquement quand la version
-//      n'est pas encore persistée en DB (id "__pending..."), donc juste
-//      après une analyse fraîche, avant que saveAnalysis ait fini.
-// Cet ordre est crucial : si on prenait fadrMetrics en priorité, une
-// correction manuelle ne serait jamais visible (fadrMetrics garderait
-// l'ancienne valeur tant que l'utilisateur reste sur la page).
+//   2. analysisResult.dspMetrics — phase 2 du DSP_PLAN, mesure ffmpeg
+//      ebur128 (priorité sur fadrMetrics pour le LUFS car bien plus fiable).
+//   3. analysisResult.fadrMetrics — fallback pour les versions pending
+//      (post-analyse, avant que saveAnalysis ait fini).
+// Cet ordre est crucial : si on prenait fadrMetrics ou dspMetrics en
+// priorité, une correction manuelle ne serait jamais visible.
 function pickDspMetrics(version, analysisResult) {
   const isPending = !version?.id || String(version.id).startsWith('__pending');
   const dbBpm = version?.bpm || null;
@@ -1013,12 +1013,15 @@ function pickDspMetrics(version, analysisResult) {
     return { bpm: dbBpm, key: dbKey, lufs: dbLufs };
   }
 
-  // Sinon (version pending ou DB vide), fallback sur fadrMetrics
+  // Sinon (version pending ou DB vide), fallback sur fadrMetrics + dspMetrics
   const fm = analysisResult?.fadrMetrics || {};
+  const dm = analysisResult?.dspMetrics || {};
   const bpm = (fm.bpm != null && fm.bpm !== '') ? String(fm.bpm) : dbBpm;
   const key = (typeof fm.key === 'string' && fm.key.trim()) ? fm.key.trim() : dbKey;
+  // LUFS : ffmpeg ebur128 (dspMetrics) prioritaire car bien plus fiable que Fadr
   let lufs = null;
-  if (typeof fm.lufs === 'number' && Number.isFinite(fm.lufs)) lufs = fm.lufs.toFixed(1);
+  if (typeof dm.lufs === 'number' && Number.isFinite(dm.lufs)) lufs = dm.lufs.toFixed(1);
+  else if (typeof fm.lufs === 'number' && Number.isFinite(fm.lufs)) lufs = fm.lufs.toFixed(1);
   else if (typeof fm.lufs === 'string' && fm.lufs.trim()) lufs = fm.lufs.trim();
   else lufs = dbLufs;
   return { bpm: bpm || null, key: key || null, lufs: lufs || null };
