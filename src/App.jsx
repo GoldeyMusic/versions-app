@@ -1885,7 +1885,7 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd }) {
     <>
       {/* ── Top bar ── */}
       <div className="mobile-topbar">
-        <div className="brand" onClick={() => go('welcome')} style={{ cursor: 'pointer', fontSize: 20, letterSpacing: '-0.3px', gap: 8 }}>
+        <div className="brand" onClick={() => go('home')} style={{ cursor: 'pointer', fontSize: 20, letterSpacing: '-0.3px', gap: 8 }}>
           <img src="/logo-versions-2.svg" alt="" style={{ height: 22, width: 'auto' }} />
           <span>{"VER"}<span className="accent">{"Si"}</span>{"ONS"}</span>
         </div>
@@ -1965,25 +1965,24 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd }) {
 /* ── Hash routing (permet "Précédent/Suivant" navigateur) ──
    On utilise des hashs (#/…) : un reload retombe toujours sur index.html
    et Vercel n'a pas besoin de règle de rewrite côté serveur. */
-// `welcome` = dashboard (WelcomeHome — projets/titres). C'est l'écran par
-// défaut sur lequel atterrit un utilisateur connecté qui ouvre l'app.
-// `home` = landing publique. Accessible via `#/home` y compris connecté
-// (ex. depuis le lien "À propos" dans la sidebar).
-// `#/` (racine) résout naturellement vers le dashboard une fois connecté ;
-// pour les visiteurs non connectés, l'auth gate au-dessus court-circuite
-// `screen` et rend la landing directement.
+// `home` = landing publique, ancrée à la racine `#/`. Accessible aux
+// visiteurs comme aux connectés (logo, lien "À propos").
+// `welcome` = dashboard (WelcomeHome — projets/titres), sur `#/dashboard`.
+// Cold start sans fragment (`location.hash === ''`) → redirection vers
+// le dashboard pour les connectés ; visiter explicitement `#/` affiche
+// la landing même connecté (cf. routeInit + lazy init de `screen`).
+// `#/home` est gardé en alias rétro-compat de `#/`.
 const SCREEN_HASH = {
   welcome: '#/dashboard',
-  home: '#/home',
+  home: '#/',
   loading: '#/analyse',
   fiche: '#/fiche',
   versions: '#/versions',
 };
 const HASH_SCREEN = {
-  '': 'welcome',
-  '#/': 'welcome',
-  '#/dashboard': 'welcome',
+  '#/': 'home',
   '#/home': 'home',
+  '#/dashboard': 'welcome',
   '#/analyse': 'loading',
   '#/fiche': 'fiche',
   '#/versions': 'versions',
@@ -2025,8 +2024,16 @@ function VersionsAppAuthed() {
   const { user, loading: authLoading, signOut } = useAuth();
   const isMobile = useMobile();
   const isDesktop = !isMobile;
-  // On desktop, default = "welcome" (neutral empty state); on mobile, old default = "input"
-  const [screen, setScreen] = useState("welcome");
+  // Initial screen aligné sur l'URL pour éviter un flash dashboard→landing
+  // au cold start quand le hash demande explicitement `#/` ou `#/home`.
+  // Les écrans qui dépendent d'un state volatil (fiche, loading) retombent
+  // sur welcome dans routeInit ci-dessous.
+  const [screen, setScreen] = useState(() => {
+    if (typeof window === 'undefined') return 'welcome';
+    const h = window.location.hash;
+    if (h === '#/' || h === '#/home') return 'home';
+    return 'welcome';
+  });
   // Visiteurs non connectés : landing page par défaut, AuthScreen sur clic CTA.
   const [showAuth, setShowAuth] = useState(false);
   const [homeAddOpen, setHomeAddOpen] = useState(false);
@@ -2174,18 +2181,25 @@ function VersionsAppAuthed() {
   useEffect(() => {
     if (!user || routeInitRef.current) return;
     routeInitRef.current = true;
-    const current = window.location.hash || '#/';
-    // Compat : #/reglages ouvre désormais la modale et renvoie sur #/
-    if (current === '#/reglages') {
+    const rawHash = window.location.hash;
+    // Compat : #/reglages ouvre désormais la modale et renvoie sur le dashboard.
+    if (rawHash === '#/reglages') {
       setReglagesOpen(true);
-      window.history.replaceState({ screen: 'welcome' }, '', '#/');
+      window.history.replaceState({ screen: 'welcome' }, '', '#/dashboard');
       if (screen !== 'welcome') {
         isHashSyncRef.current = true;
         setScreen('welcome');
       }
       return;
     }
-    const target = HASH_SCREEN[current] || 'welcome';
+    // Cold start sans fragment ('') → dashboard pour un connecté.
+    // `#/` explicite (logo, lien direct) → landing.
+    let target;
+    if (rawHash === '') {
+      target = 'welcome';
+    } else {
+      target = HASH_SCREEN[rawHash] || 'welcome';
+    }
     const safe = (target === 'fiche' || target === 'loading') ? 'welcome' : target;
     const targetHash = SCREEN_HASH[safe];
     if (window.location.hash !== targetHash) {
@@ -2817,6 +2831,16 @@ function VersionsAppAuthed() {
     );
   }
   if (!user) {
+    // Quand l'utilisateur clique le CTA de la landing pour s'inscrire/se
+    // connecter, on aligne l'URL sur le dashboard. Comme ça, après login,
+    // routeInit lit `#/dashboard` et renvoie sur le bon écran (au lieu de
+    // re-rendre la landing parce que l'URL était restée à `#/`).
+    const goAuth = () => {
+      setShowAuth(true);
+      if (typeof window !== 'undefined') {
+        window.history.replaceState({}, '', '#/dashboard');
+      }
+    };
     return (
       <LangContext.Provider value={{ lang, s, setLang, t }}>
         <FontLink />
@@ -2824,7 +2848,7 @@ function VersionsAppAuthed() {
         <MockupStyles />
         {showAuth
           ? <AuthScreen />
-          : <LandingScreen onStart={() => setShowAuth(true)} />}
+          : <LandingScreen onStart={goAuth} />}
       </LangContext.Provider>
     );
   }
@@ -2877,7 +2901,6 @@ function VersionsAppAuthed() {
             user={user}
             userProfile={userProfile}
             onSignOut={signOut}
-            onGoHome={goHome}
             onGoLanding={() => setScreen('home')}
             projects={projects}
             projectsLoaded={projectsLoaded}

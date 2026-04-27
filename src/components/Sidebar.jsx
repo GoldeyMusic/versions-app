@@ -24,7 +24,6 @@ export default function Sidebar({
   onSetCurrentProject,
   onSelectVersion,
   onGoReglages,
-  onGoHome,
   onGoLanding,
   onAdd,
   onPlay,
@@ -241,7 +240,7 @@ export default function Sidebar({
 
   return (
     <aside className="sidebar">
-      <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
+      <div className="brand" onClick={onGoLanding} style={{ cursor: 'pointer' }}>
         <img src="/logo-versions-2.svg" alt="" style={{ height: 38, width: 'auto' }} />
         <span>{'VER'}<span className="accent">{'Si'}</span>{'ONS'}</span>
       </div>
