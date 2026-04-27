@@ -2305,6 +2305,82 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           <ReleaseReadinessBanner fiche={rawFiche} completedItems={completedItems} />
           {/* 1 · Verdict / Score global */}
           <section className="row-verdict">
+            {/* Pochette carrée (v2 desktop) — artwork fait de halos color\u00e9s seed\u00e9s
+                + titre en gros (police du logo VERSIONS). Remplaçable par l'upload user. */}
+            {(() => {
+              const title = config?.title || '';
+              let h = 0;
+              for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) >>> 0;
+              let seed = h || 1;
+              const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+              // Palette color\u00e9e mais l\u00e9g\u00e8rement d\u00e9satur\u00e9e (tons de pochette abstraite)
+              const palette = [
+                'rgba(230, 140, 60, 1)',    // amber soutenu
+                'rgba(110, 185, 110, 1)',   // sage/vert frais
+                'rgba(215, 115, 170, 1)',   // rose/magenta
+                'rgba(70, 150, 210, 1)',    // cerulean
+                'rgba(235, 130, 90, 1)',    // peach
+                'rgba(150, 110, 210, 1)',   // violet
+                'rgba(90, 195, 180, 1)',    // teal
+                'rgba(225, 90, 110, 1)',    // coral/red
+                'rgba(240, 195, 70, 1)',    // doré
+              ];
+              const halos = Array.from({ length: 9 }, () => ({
+                x: 5 + rand() * 90,
+                y: 5 + rand() * 90,
+                size: 95 + rand() * 70,
+                color: palette[Math.floor(rand() * palette.length)],
+                opacity: 0.78 + rand() * 0.22,
+              }));
+              return (
+                <div className="col-cover-wrap">
+                  <div className="col-cover-holder">
+                    <div
+                      className={`col-cover${currentTrack?.coverImageUrl ? ' has-image' : ' no-image'}`}
+                      aria-label={title}
+                    >
+                      {currentTrack?.coverImageUrl ? (
+                        <img
+                          src={currentTrack.coverImageUrl}
+                          alt=""
+                          className="cover-img"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <>
+                          {halos.map((hl, i) => (
+                            <span
+                              key={i}
+                              className="ca-halo"
+                              style={{
+                                left: `${hl.x}%`,
+                                top: `${hl.y}%`,
+                                width: `${hl.size}%`,
+                                background: `radial-gradient(circle, ${hl.color} 0%, transparent 62%)`,
+                                opacity: hl.opacity,
+                              }}
+                              aria-hidden
+                            />
+                          ))}
+                          <div className="cover-big-title" aria-hidden>
+                            {title}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {/* Pill type vocal : coin supérieur droit de l'artwork,
+                        déplacée depuis la topbar. Hors de .col-cover pour que
+                        son menu dropdown ne soit pas rogné par overflow:hidden. */}
+                    <div className="cover-vocal-pill">
+                      <VocalTypePill
+                        track={currentTrack}
+                        onRefresh={() => loadTracks().then(setTracks)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
             <div className="rv-left">
               {/* Calque halo clippé : permet au panel de rester overflow:visible
                   pour que les tooltips des tuiles puissent déborder vers le bas. */}
@@ -2424,82 +2500,6 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
 
           {/* Bloc évolution + intention en layout 1 colonne (la pochette est masquée). */}
           <div className="f2-col-side">
-              {/* Pochette carrée (v2 desktop) — artwork fait de halos color\u00e9s seed\u00e9s
-                  + titre en gros (police du logo VERSIONS). Remplaçable par l'upload user. */}
-              {(() => {
-                const title = config?.title || '';
-                let h = 0;
-                for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) >>> 0;
-                let seed = h || 1;
-                const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-                // Palette color\u00e9e mais l\u00e9g\u00e8rement d\u00e9satur\u00e9e (tons de pochette abstraite)
-                const palette = [
-                  'rgba(230, 140, 60, 1)',    // amber soutenu
-                  'rgba(110, 185, 110, 1)',   // sage/vert frais
-                  'rgba(215, 115, 170, 1)',   // rose/magenta
-                  'rgba(70, 150, 210, 1)',    // cerulean
-                  'rgba(235, 130, 90, 1)',    // peach
-                  'rgba(150, 110, 210, 1)',   // violet
-                  'rgba(90, 195, 180, 1)',    // teal
-                  'rgba(225, 90, 110, 1)',    // coral/red
-                  'rgba(240, 195, 70, 1)',    // doré
-                ];
-                const halos = Array.from({ length: 9 }, () => ({
-                  x: 5 + rand() * 90,
-                  y: 5 + rand() * 90,
-                  size: 95 + rand() * 70,
-                  color: palette[Math.floor(rand() * palette.length)],
-                  opacity: 0.78 + rand() * 0.22,
-                }));
-                return (
-                  <div className="col-cover-wrap">
-                    <div className="col-cover-holder">
-                      <div
-                        className={`col-cover${currentTrack?.coverImageUrl ? ' has-image' : ' no-image'}`}
-                        aria-label={title}
-                      >
-                        {currentTrack?.coverImageUrl ? (
-                          <img
-                            src={currentTrack.coverImageUrl}
-                            alt=""
-                            className="cover-img"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <>
-                            {halos.map((hl, i) => (
-                              <span
-                                key={i}
-                                className="ca-halo"
-                                style={{
-                                  left: `${hl.x}%`,
-                                  top: `${hl.y}%`,
-                                  width: `${hl.size}%`,
-                                  background: `radial-gradient(circle, ${hl.color} 0%, transparent 62%)`,
-                                  opacity: hl.opacity,
-                                }}
-                                aria-hidden
-                              />
-                            ))}
-                            <div className="cover-big-title" aria-hidden>
-                              {title}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      {/* Pill type vocal : coin supérieur droit de l'artwork,
-                          déplacée depuis la topbar. Hors de .col-cover pour que
-                          son menu dropdown ne soit pas rogné par overflow:hidden. */}
-                      <div className="cover-vocal-pill">
-                        <VocalTypePill
-                          track={currentTrack}
-                          onRefresh={() => loadTracks().then(setTracks)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
               {/* Wrapper évolution + intention — pleine largeur en layout 1 colonne. */}
               {(evolution || hasIntentSource) && (
                 <div

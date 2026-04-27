@@ -1115,8 +1115,27 @@ export default function MockupStyles() {
   /* f2-col-* deviennent transparents → leurs enfants montent au niveau .page. */
   .fiche-v2 .page > .f2-col-main,
   .fiche-v2 .page > .f2-col-side { display: contents; }
-  /* Pochette masquee en layout 1 colonne (le titre est deja dans la topbar). */
-  .fiche-v2 .page .col-cover-wrap  { display: none; }
+  /* Pochette + score sur la même ligne dans .row-verdict :
+     row-verdict devient flex avec la pochette à gauche et .rv-left à droite. */
+  .fiche-v2 .page .row-verdict {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .fiche-v2 .page .row-verdict .rv-left { flex: 1; min-width: 0; }
+  .fiche-v2 .page .row-verdict > .col-cover-wrap {
+    flex: 0 0 140px;
+    width: 140px;
+    height: 140px;
+    margin: 0;
+    padding: 0;
+    aspect-ratio: 1 / 1;
+  }
+  .fiche-v2 .page .row-verdict > .col-cover-wrap .col-cover-holder {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+  }
   /* Quand un tooltip est ouvert (score global ou tuile mix), on booste le
      z-index de toute la row pour que le tooltip puisse déborder au-dessus
      du Plan d'action / Diagnostic qui suit dans la grille. Sans ça, le
