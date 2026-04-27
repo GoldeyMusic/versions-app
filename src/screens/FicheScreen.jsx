@@ -993,18 +993,34 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
 // ── DSP badge (BPM · tonalité · LUFS) ──────────────────────────
 // DSP 1.4 — chip mono pour la topbar.
 // Source de vérité, par ordre :
-//   1. analysisResult.fadrMetrics (frais, juste après une analyse)
-//   2. version.bpm/key/lufs (DB, peuplé en 1.3 au save)
-// Comme ça le chip apparaît dès la fin de l'analyse, et reste cohérent
-// après recharge.
+//   1. version.bpm/key/lufs (DB) — source canonique, peut avoir été
+//      corrigée manuellement par l'utilisateur via DspEditModal.
+//   2. analysisResult.fadrMetrics — fallback uniquement quand la version
+//      n'est pas encore persistée en DB (id "__pending..."), donc juste
+//      après une analyse fraîche, avant que saveAnalysis ait fini.
+// Cet ordre est crucial : si on prenait fadrMetrics en priorité, une
+// correction manuelle ne serait jamais visible (fadrMetrics garderait
+// l'ancienne valeur tant que l'utilisateur reste sur la page).
 function pickDspMetrics(version, analysisResult) {
+  const isPending = !version?.id || String(version.id).startsWith('__pending');
+  const dbBpm = version?.bpm || null;
+  const dbKey = version?.key || null;
+  const dbLufs = version?.lufs || null;
+  const hasDb = dbBpm || dbKey || dbLufs;
+
+  // Si DB a au moins une valeur ET la version est persistée → DB seule
+  if (hasDb && !isPending) {
+    return { bpm: dbBpm, key: dbKey, lufs: dbLufs };
+  }
+
+  // Sinon (version pending ou DB vide), fallback sur fadrMetrics
   const fm = analysisResult?.fadrMetrics || {};
-  const bpm = (fm.bpm != null && fm.bpm !== '') ? String(fm.bpm) : (version?.bpm || null);
-  const key = (typeof fm.key === 'string' && fm.key.trim()) ? fm.key.trim() : (version?.key || null);
+  const bpm = (fm.bpm != null && fm.bpm !== '') ? String(fm.bpm) : dbBpm;
+  const key = (typeof fm.key === 'string' && fm.key.trim()) ? fm.key.trim() : dbKey;
   let lufs = null;
   if (typeof fm.lufs === 'number' && Number.isFinite(fm.lufs)) lufs = fm.lufs.toFixed(1);
   else if (typeof fm.lufs === 'string' && fm.lufs.trim()) lufs = fm.lufs.trim();
-  else if (version?.lufs) lufs = version.lufs;
+  else lufs = dbLufs;
   return { bpm: bpm || null, key: key || null, lufs: lufs || null };
 }
 
