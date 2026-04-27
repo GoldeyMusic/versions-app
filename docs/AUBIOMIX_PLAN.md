@@ -46,17 +46,21 @@
 
 ## Tier 4 — Fidélisation + différenciation algo (mois 2)
 
-- [ ] **4.1 — Score floor protection en révision**
-  Max -3 points overall, max -5 par sub-score sauf dégradation prouvée par DSP. Réponse directe à "j'ai amélioré et le score baisse". Référence : §5.1 de l'audit.
+- [x] **4.1 — Score floor protection en révision**
+  Plafond ambré sous le score global quand des items priorité high restent à traiter (84 / 79 / 74 selon le compte). Réponse directe à "j'ai uploadé sans rien fixer mais le score grimpe". Backend `score_floor` dans `lib/claude.js`, bandeau front sur fiche privée + publique + rappel dans `EvolutionBanner`.
+  ✅ Livré : `applyScoreFloor` post-processeur backend, banner + CSS `.score-floor-banner`, strings FR/EN.
 
-- [ ] **4.2 — Advice-followed locking**
-  S'appuie sur la checklist (2.1). Si une reco est cochée comme implémentée, le sub-score concerné est verrouillé à la baisse en révision suivante.
+- [x] **4.2 — Advice-followed locking**
+  S'appuie sur la checklist (2.1). Le front envoie les item ids cochés sur V_(n-1) au backend (`previousCompletions`). Backend résout le contenu via `previousAnalysisResult`, l'expose au prompt Claude, puis post-process : matching id puis fallback Jaccard sur titre dans la même catégorie. "followed" si item disparu OU score V_n ≥ V_(n-1) ; "unfollowed" si score baissé → on bumpe le score à oldScore (`advice_locked: true`) et on signale.
+  ✅ Livré : `applyAdviceCheck` backend, icône cadenas par item + récapitulatif `EvolutionBanner` (X confirmés · Y encore présents).
 
-- [ ] **4.3 — Release Readiness verdict**
-  Bandeau en haut du rapport : "Prêt à sortir / Presque / Pas encore" avec liste des blocants exacts. Conditions inspirées d'AubioMix (score ≥ X, pas de notes critiques outstanding, technical integrity ≥ Y, etc.) à calibrer.
+- [x] **4.3 — Release Readiness verdict**
+  Bandeau en tête du rapport : "Prêt à sortir / Presque prêt / Pas encore" avec liste des bloquants exacts. Calibration : `ready` si score ≥ 80 ET tous les items high cochés, `almost` si score ≥ 70 ET ≤ 2 items high non cochés, `not-yet` sinon.
+  ✅ Livré : `computeReleaseReadiness` (ficheHelpers), `ReleaseReadinessBanner.jsx`, branché sur FicheScreen + PublicFicheScreen + SampleFicheScreen.
 
-- [ ] **4.4 — Plateau detector**
-  Si v(n) ≈ v(n-1) sur 6+ critères statistiques (overall ±2, sub-scores ±3, LUFS ±0.5, crest ±0.5, bandes spectrales ±2%) → proposer "marquer comme finale". Badge "Final" sur la fiche, filtre dashboard.
+- [x] **4.4 — Plateau detector**
+  Si v(n) ≈ v(n-1) sur 6+ critères (overall ±2, sub-scores par catégorie ±3) → bandeau ambré "Plateau détecté" avec CTA "Marquer comme finale". Badge mint "VERSION FINALE" + bouton "Retirer" quand `is_final=true`.
+  ✅ Livré : `detectPlateau` (ficheHelpers), `PlateauBanner.jsx`, migration 009 (`versions.is_final` + index partiel), `setVersionFinal` storage helper. LUFS / crest / bandes spectrales restent en texte libre dans `listening.dynamique` — non encore extraits, à reprendre si besoin.
 
 ---
 
@@ -90,3 +94,4 @@ Ces axes restent notre territoire unique vs AubioMix. À garder dans toute déci
 - **2026-04-27** — Tickets 1.2 et 3.1 fusionnés en une landing publique unique (`#/`), accessible connecté comme déconnecté. Le contenu "comment on évalue" devient des sections scrollables (différenciateurs, 6 axes d'analyse, limites assumées). Routing : `#/dashboard` pour l'espace de travail, logo pointe vers la landing, lien "À propos" en pied de sidebar. Tier 1 entièrement clos ; Tier 3 partiellement (3.2 sample report et calibrations dashboard cold-start restent ouverts).
 - **2026-04-27** — ✅ Livré — URLs persistantes pour les fiches : `#/fiche/{trackId}/{versionId}`, refresh conserve la fiche (résolveur `pendingFiche` + `getAnalysis` côté Supabase). Hors plan AubioMix mais débloque le partage interne et les bookmarks utilisateur.
 - **2026-04-27** — Ticket 3.2 livré : `SampleFicheScreen` à `#/exemple` (alias `#/sample-report`). Mock data crédible (morceau "Brûle" V2, score 78), intention artistique rendue en tête via `IntentPanel`, structure parité `PublicFicheScreen`, bannière CTA bas de page. Lien "Voir un exemple" en CTA secondaire dans le hero de la landing. **Tier 3 entièrement clos.**
+- **2026-04-27** — Tier 4 entièrement livré (4.1 → 4.4). Backend `decode-api` : nouveaux post-processeurs `applyScoreFloor` (plafond high-priority) et `applyAdviceCheck` (followed/unfollowed + score lock par item). Front : bandeau `ReleaseReadinessBanner` en tête, `PlateauBanner` + bouton "Marquer comme finale", icône cadenas par item verrouillé, ligne récapitulative dans `EvolutionBanner` (plafond + advice followed/unfollowed). Migration Supabase 009 : `versions.is_final` + index partiel.
