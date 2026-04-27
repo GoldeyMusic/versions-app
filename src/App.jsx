@@ -3098,8 +3098,8 @@ function VersionsAppAuthed() {
         <MockupStyles />
         <LandingScreen
           onStart={() => setScreen('welcome')}
-          ctaPrimaryLabel="Mon tableau de bord"
-          ctaFooterLabel="Mon tableau de bord"
+          ctaPrimaryLabel={s.sidebar.dashboardLink}
+          ctaFooterLabel={s.sidebar.dashboardLink}
           onViewSample={() => setScreen('sample')}
         />
       </LangContext.Provider>
@@ -3117,8 +3117,8 @@ function VersionsAppAuthed() {
         <SampleFicheScreen
           onSignup={() => setScreen('welcome')}
           onBackToLanding={() => setScreen('home')}
-          topbarCtaLabel="Mon tableau de bord"
-          bottomCtaLabel="Mon tableau de bord"
+          topbarCtaLabel={s.sidebar.dashboardLink}
+          bottomCtaLabel={s.sidebar.dashboardLink}
         />
       </LangContext.Provider>
     );
@@ -3170,6 +3170,7 @@ function VersionsAppAuthed() {
             userProfile={userProfile}
             onSignOut={signOut}
             onGoLanding={() => setScreen('home')}
+            onGoDashboard={() => setScreen('welcome')}
             projects={projects}
             projectsLoaded={projectsLoaded}
           />

@@ -727,6 +727,7 @@ const STRINGS = {
       sectionTracks: "Titres",
       sectionProjects: "Projets",
       sectionMyProjects: "Mes projets",
+      dashboardLink: "Tableau de bord",
       newTrack: "+ Nouveau titre",
       newProject: "+ Nouveau projet",
       noTracks: "Aucun titre pour le moment",
@@ -1058,6 +1059,109 @@ const STRINGS = {
         "janvier", "février", "mars", "avril", "mai", "juin",
         "juillet", "août", "septembre", "octobre", "novembre", "décembre",
       ],
+    },
+
+    /* ─────────────── LANDING ─────────────── */
+    landing: {
+      // CTAs (par défaut visiteur — App.jsx peut surcharger pour utilisateur connecté)
+      ctaPrimary: "Analyser mon premier titre",
+      ctaSample: "Voir un exemple",
+      ctaFooter: "Commencer gratuitement",
+
+      // Mockup carte 1 — Score global
+      mockScoreEyebrow: "SCORE GLOBAL",
+      mockScoreTag: "Mix solide",
+      mockScoreBar1: "Équilibre",
+      mockScoreBar2: "Dynamique",
+      mockScoreBar3: "Stéréo",
+      mockScoreBar4: "Saturation",
+
+      // Mockup carte 2 — Diagnostic
+      mockDiagEyebrow: "DIAGNOSTIC",
+      mockDiagTag: "VOIX",
+      mockDiagTitle: "La voix lead manque de présence dans les médiums.",
+      mockDiagHowLabel: "ACTION",
+      mockDiagHowText: "Boost +2 dB autour de 3 kHz, Q ≈ 1.2 — pour faire ressortir la voix sans la rendre agressive.",
+      mockDiagPlugin: "EQ paramétrique",
+      mockDiagCheck: "Appliqué",
+
+      // Mockup carte 3 — Évolution V1→V2
+      mockEvoEyebrow: "ÉVOLUTION",
+      mockEvoUnit: "pts",
+      mockEvoText: "Voix mieux placée, basses plus maîtrisées, image stéréo équilibrée.",
+
+      // Mockup conversation IA — variante alternative aux 3 cartes
+      chatHead: "MA VOIX — REFRAIN",
+      chatVersionPill: "V2",
+      chatUserQ1: "Pourquoi le refrain ne décolle pas ?",
+      chatScoreImpact: "Voix : 74 → 82 estimé",
+      chatUserQ2: "Et la V2 par rapport à la V1 ?",
+      chatEvoDelta: "+7 pts",
+      chatEvoSummary: "Voix mieux placée, basses plus maîtrisées.",
+
+      // Mockup "constellation de chips" — variante mini-éléments décoratifs
+      chip1: "SCORE 82/100",
+      chip2: "MIX SOLIDE",
+      chip3: "VOIX · +2 dB @ 3 kHz",
+      chip4: "EQ PARAMÉTRIQUE",
+      chip5: "↑ +7 PTS · V1→V2",
+      chip6: "INTENTION : POP ÉNERGIQUE",
+      chip7: "BASSES MAÎTRISÉES",
+
+      // Hero — slogan + tagline-trio + sous-titre
+      sloganPart1: "Votre",
+      sloganEm: "assistant",
+      sloganPart2: "de studio",
+      taglineBefore: "écoute,",
+      taglineEm: "comprend",
+      taglineAfter: ", guide.",
+      heroSub: "Versions écoute votre musique, comprend votre intention, et vous guide pour améliorer votre mix.",
+
+      // Section "ce qui nous rend différents"
+      diffEyebrow: "NOS ATOUTS",
+      diffTitleStart: "Pas un rapport.",
+      diffTitleEm: "Un dialogue.",
+      diffCard1Title: "Un ingé son qui vous connaît",
+      diffCard1Body: "Le chat contextuel illimité — pas un rapport statique. Posez toutes vos questions, demandez les détails, contestez l'analyse. Versions garde le fil de votre projet, version après version.",
+      diffCard2Title: "Votre intention en premier",
+      diffCard2BodyBefore: "On ne juge pas votre morceau dans l'absolu. L'analyse est calibrée sur ce que ",
+      diffCard2BodyEm: "vous",
+      diffCard2BodyAfter: " cherchez : l'émotion, le genre, le rendu sonore visé. Vos références deviennent la boussole.",
+      diffCard3Title: "Des recommandations applicables",
+      diffCard3Body: "Pas de \"votre haut médium est un peu chargé\". Des valeurs techniques concrètes, des plages de fréquences, des plugins adaptés à votre DAW. Vous repartez avec un plan d'action.",
+      diffCard4Title: "Le suivi par versions",
+      diffCard4Body: "V1, V2, V3… Versions garde la mémoire de chaque itération. La progression est mesurée — vous voyez ce qui s'améliore et ce qui reste à creuser, sans repartir à zéro à chaque mix.",
+
+      // Section "ce qu'on analyse"
+      axesEyebrow: "CE QU'ON ANALYSE",
+      axesTitleStart: "Six axes,",
+      axesTitleEm: "une écoute complète.",
+      axesLede: "Chaque axe combine une analyse DSP objective et un jugement IA calibré sur votre intention. Aucune note n'est posée sans justification.",
+      axe1Label: "Équilibre fréquentiel",
+      axe1Desc: "Bas, médiums, aigus — pondération entre les bandes, masquages, courbe globale.",
+      axe2Label: "Dynamique",
+      axe2Desc: "Facteur de crête, plage dynamique, transitoires, gestion de la compression.",
+      axe3Label: "Image stéréo",
+      axe3Desc: "Largeur, mono-compatibilité, équilibre L/R, placement des éléments.",
+      axe4Label: "Espace et profondeur",
+      axe4Desc: "Réverbérations, delays, plans avant/arrière, lecture spatiale du mix.",
+      axe5Label: "Cohérence globale",
+      axe5Desc: "Tenue d'ensemble, fluidité entre sections, identité sonore.",
+      axe6Label: "Voix",
+      axe6Desc: "Intelligibilité, présence, sibilances, intégration au reste du mix.",
+
+      // Section "ce qu'on ne fait pas"
+      nopeEyebrow: "CE QU'ON NE FAIT PAS",
+      nopeTitleEm: "Honnête",
+      nopeTitleAfter: " sur nos limites.",
+      nope1: "On ne dicte pas vos arrangements. La structure, les choix créatifs, le parti-pris artistique — c'est votre territoire.",
+      nope2: "On ne remplace pas un ingé son humain. On rend l'expertise accessible quand elle ne l'était pas — pour préparer votre prochain rendez-vous studio, pas pour l'éviter.",
+      nope3: "Le score n'est pas une vérité absolue. C'est un repère, calibré sur votre intention, pas un verdict.",
+
+      // Footer
+      footerQuoteStart: "Votre musique.",
+      footerQuoteEm: "Votre vision.",
+      footerQuoteEnd: "Notre accompagnement.",
     },
   },
 
@@ -1773,6 +1877,7 @@ const STRINGS = {
       sectionTracks: "Tracks",
       sectionProjects: "Projects",
       sectionMyProjects: "My projects",
+      dashboardLink: "Dashboard",
       newTrack: "+ New track",
       newProject: "+ New project",
       noTracks: "No tracks yet",
@@ -2097,6 +2202,100 @@ const STRINGS = {
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December",
       ],
+    },
+
+    /* ─────────────── LANDING ─────────────── */
+    landing: {
+      ctaPrimary: "Analyze my first track",
+      ctaSample: "See an example",
+      ctaFooter: "Get started for free",
+
+      mockScoreEyebrow: "OVERALL SCORE",
+      mockScoreTag: "Solid mix",
+      mockScoreBar1: "Balance",
+      mockScoreBar2: "Dynamics",
+      mockScoreBar3: "Stereo",
+      mockScoreBar4: "Saturation",
+
+      mockDiagEyebrow: "DIAGNOSIS",
+      mockDiagTag: "VOCALS",
+      mockDiagTitle: "The lead vocal lacks presence in the mids.",
+      mockDiagHowLabel: "ACTION",
+      mockDiagHowText: "Boost +2 dB around 3 kHz, Q ≈ 1.2 — to bring the voice forward without making it harsh.",
+      mockDiagPlugin: "Parametric EQ",
+      mockDiagCheck: "Done",
+
+      mockEvoEyebrow: "PROGRESS",
+      mockEvoUnit: "pts",
+      mockEvoText: "Vocals better placed, bass more controlled, stereo image balanced.",
+
+      // Chat conversation mockup — alt version of the 3 cards
+      chatHead: "VOCALS — CHORUS",
+      chatVersionPill: "V2",
+      chatUserQ1: "Why doesn't the chorus take off?",
+      chatScoreImpact: "Vocals: 74 → 82 estimated",
+      chatUserQ2: "How does V2 compare to V1?",
+      chatEvoDelta: "+7 pts",
+      chatEvoSummary: "Vocals better placed, bass more controlled.",
+
+      // Constellation chips mockup — small decorative elements
+      chip1: "SCORE 82/100",
+      chip2: "SOLID MIX",
+      chip3: "VOCALS · +2 dB @ 3 kHz",
+      chip4: "PARAMETRIC EQ",
+      chip5: "↑ +7 PTS · V1→V2",
+      chip6: "INTENT: ENERGETIC POP",
+      chip7: "CONTROLLED BASS",
+
+      sloganPart1: "Your",
+      sloganEm: "studio",
+      sloganPart2: "assistant",
+      taglineBefore: "listens,",
+      taglineEm: "understands",
+      taglineAfter: ", guides.",
+      heroSub: "Versions listens to your music, understands your intent, and guides you to improve your mix.",
+
+      diffEyebrow: "OUR STRENGTHS",
+      diffTitleStart: "Not a report.",
+      diffTitleEm: "A conversation.",
+      diffCard1Title: "A sound engineer who knows you",
+      diffCard1Body: "Unlimited contextual chat — not a static report. Ask all your questions, get details, challenge the analysis. Versions keeps track of your project, version after version.",
+      diffCard2Title: "Your intent comes first",
+      diffCard2BodyBefore: "We don't judge your track in a vacuum. The analysis is calibrated to what ",
+      diffCard2BodyEm: "you",
+      diffCard2BodyAfter: " are after: the emotion, the genre, the sound you have in mind. Your references become the compass.",
+      diffCard3Title: "Actionable recommendations",
+      diffCard3Body: "No more \"your high mids are a bit busy\". Concrete technical values, frequency ranges, plugins matched to your DAW. You leave with a plan.",
+      diffCard4Title: "Version-by-version tracking",
+      diffCard4Body: "V1, V2, V3… Versions remembers every iteration. Progress is measured — you see what's improving and what still needs work, without starting from scratch each mix.",
+
+      axesEyebrow: "WHAT WE ANALYZE",
+      axesTitleStart: "Six axes,",
+      axesTitleEm: "one complete listen.",
+      axesLede: "Each axis combines objective DSP analysis with an AI judgment calibrated to your intent. No score is given without justification.",
+      axe1Label: "Frequency balance",
+      axe1Desc: "Lows, mids, highs — weighting between bands, masking, overall curve.",
+      axe2Label: "Dynamics",
+      axe2Desc: "Crest factor, dynamic range, transients, compression handling.",
+      axe3Label: "Stereo image",
+      axe3Desc: "Width, mono compatibility, L/R balance, element placement.",
+      axe4Label: "Space and depth",
+      axe4Desc: "Reverbs, delays, foreground/background, spatial reading of the mix.",
+      axe5Label: "Overall coherence",
+      axe5Desc: "Cohesion, flow between sections, sonic identity.",
+      axe6Label: "Vocals",
+      axe6Desc: "Intelligibility, presence, sibilance, integration with the rest of the mix.",
+
+      nopeEyebrow: "WHAT WE DON'T DO",
+      nopeTitleEm: "Honest",
+      nopeTitleAfter: " about our limits.",
+      nope1: "We don't dictate your arrangements. Structure, creative choices, artistic stance — that's your territory.",
+      nope2: "We don't replace a human sound engineer. We make expertise accessible where it wasn't before — to prep your next studio session, not to skip it.",
+      nope3: "The score isn't absolute truth. It's a reference point, calibrated to your intent, not a verdict.",
+
+      footerQuoteStart: "Your music.",
+      footerQuoteEm: "Your vision.",
+      footerQuoteEnd: "Our guidance.",
     },
   },
 };

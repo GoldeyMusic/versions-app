@@ -1,4 +1,5 @@
 import T from '../constants/theme';
+import useLang from '../hooks/useLang';
 
 /**
  * LandingScreen — page de présentation accessible aux visiteurs ET aux
@@ -6,15 +7,22 @@ import T from '../constants/theme';
  * "comment on évalue") et 3.1 (landing publique) en sections scrollables.
  *
  * Visiteur non connecté → onStart bascule vers AuthScreen.
- * Utilisateur connecté → onStart renvoie sur le dashboard ; libellés des
- * CTAs adaptés via ctaPrimaryLabel / ctaFooterLabel.
+ * Utilisateur connecté → onStart renvoie sur le dashboard ; les libellés des
+ * CTAs peuvent être surchargés via ctaPrimaryLabel / ctaFooterLabel sinon
+ * c'est `s.landing.ctaPrimary` / `s.landing.ctaFooter` qui s'appliquent
+ * (et basculent FR/EN selon `useLang`).
  */
 export default function LandingScreen({
   onStart,
   onViewSample,
-  ctaPrimaryLabel = 'Analyser mon premier titre',
-  ctaFooterLabel = 'Commencer gratuitement',
+  ctaPrimaryLabel,
+  ctaFooterLabel,
 }) {
+  const { s } = useLang();
+  const lp = s.landing;
+  const ctaPrimary = ctaPrimaryLabel || lp.ctaPrimary;
+  const ctaFooter = ctaFooterLabel || lp.ctaFooter;
+
   return (
     <div className="landing-screen">
       <LandingStyles />
@@ -29,24 +37,37 @@ export default function LandingScreen({
             </div>
           </div>
 
-          <div className="lp-tagline">
-            <span className="lp-tagline-dot">●</span>
-            UN COMPAGNON DE STUDIO, PAS UN JUGE
+          {/* Mockup produit v3 — Constellation de chips.
+              Petits éléments décoratifs qui évoquent le langage produit
+              (score, action, plugin pick, évolution, intention) sans
+              simuler d'UI. Aérien, abstrait, reconnaissable. Pas de
+              container fiche, pas de bulles de chat — juste des fragments
+              flottants disposés en cluster organique. */}
+          <div className="lp-hero-mock" aria-hidden="true">
+            <span className="lp-chip lp-chip-score">{lp.chip1}</span>
+            <span className="lp-chip lp-chip-tag">{lp.chip2}</span>
+            <span className="lp-chip lp-chip-diag">{lp.chip3}</span>
+            <span className="lp-chip lp-chip-plugin">{lp.chip4}</span>
+            <span className="lp-chip lp-chip-evo">{lp.chip5}</span>
+            <span className="lp-chip lp-chip-intent">{lp.chip6}</span>
+            <span className="lp-chip lp-chip-bass">{lp.chip7}</span>
           </div>
 
-          <h1 className="lp-headline">
-            Versions écoute votre musique,<br />
-            <em>comprend votre intention,</em><br />
-            et vous guide pour améliorer votre mix.
+          <h1 className="lp-slogan">
+            <span className="lp-slogan-line">{lp.sloganPart1} <em>{lp.sloganEm}</em></span><br />{lp.sloganPart2}
           </h1>
+          <div className="lp-tagline-trio">
+            {lp.taglineBefore} <em>{lp.taglineEm}</em>{lp.taglineAfter}
+          </div>
+          <p className="lp-hero-sub">{lp.heroSub}</p>
 
           <div className="lp-cta-row">
             <button type="button" onClick={onStart} className="lp-cta-primary">
-              {ctaPrimaryLabel}
+              {ctaPrimary}
             </button>
             {onViewSample && (
               <button type="button" onClick={onViewSample} className="lp-cta-secondary">
-                Voir un exemple
+                {lp.ctaSample}
               </button>
             )}
           </div>
@@ -57,68 +78,53 @@ export default function LandingScreen({
 
       {/* CE QUI NOUS REND DIFFÉRENTS */}
       <section className="lp-section">
-        <div className="lp-section-eyebrow">CE QUI NOUS REND DIFFÉRENTS</div>
+        <div className="lp-section-eyebrow">{lp.diffEyebrow}</div>
         <h2 className="lp-section-title">
-          Pas un rapport. <em>Un dialogue.</em>
+          {lp.diffTitleStart} <em>{lp.diffTitleEm}</em>
         </h2>
 
         <div className="lp-diff-grid">
-          <article className="lp-diff-card">
+          <article className="lp-diff-card lp-diff-amber">
             <div className="lp-diff-icon" aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
               </svg>
             </div>
-            <h3 className="lp-diff-title">Un ingé son qui vous connaît</h3>
-            <p className="lp-diff-body">
-              Le chat contextuel illimité — pas un rapport statique. Posez
-              toutes vos questions, demandez les détails, contestez l'analyse.
-              Versions garde le fil de votre projet, version après version.
-            </p>
+            <h3 className="lp-diff-title">{lp.diffCard1Title}</h3>
+            <p className="lp-diff-body">{lp.diffCard1Body}</p>
           </article>
 
-          <article className="lp-diff-card">
+          <article className="lp-diff-card lp-diff-cerulean">
             <div className="lp-diff-icon" aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
             </div>
-            <h3 className="lp-diff-title">Votre intention en premier</h3>
+            <h3 className="lp-diff-title">{lp.diffCard2Title}</h3>
             <p className="lp-diff-body">
-              On ne juge pas votre morceau dans l'absolu. L'analyse est
-              calibrée sur ce que <em>vous</em> cherchez : l'émotion, le
-              genre, le rendu sonore visé. Vos références deviennent la
-              boussole.
+              {lp.diffCard2BodyBefore}<em>{lp.diffCard2BodyEm}</em>{lp.diffCard2BodyAfter}
             </p>
           </article>
 
-          <article className="lp-diff-card">
+          <article className="lp-diff-card lp-diff-violet">
             <div className="lp-diff-icon" aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
               </svg>
             </div>
-            <h3 className="lp-diff-title">Des recommandations applicables</h3>
-            <p className="lp-diff-body">
-              Pas de "votre haut médium est un peu chargé". Des valeurs
-              techniques concrètes, des plages de fréquences, des plugins
-              adaptés à votre DAW. Vous repartez avec un plan d'action.
-            </p>
+            <h3 className="lp-diff-title">{lp.diffCard3Title}</h3>
+            <p className="lp-diff-body">{lp.diffCard3Body}</p>
           </article>
 
-          <article className="lp-diff-card">
+          <article className="lp-diff-card lp-diff-mint">
             <div className="lp-diff-icon" aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 12h4l3-9 4 18 3-9h4"/>
               </svg>
             </div>
-            <h3 className="lp-diff-title">Le suivi par versions</h3>
-            <p className="lp-diff-body">
-              V1, V2, V3… Versions garde la mémoire de chaque itération.
-              La progression est mesurée — vous voyez ce qui s'améliore et
-              ce qui reste à creuser, sans repartir à zéro à chaque mix.
-            </p>
+            <h3 className="lp-diff-title">{lp.diffCard4Title}</h3>
+            <p className="lp-diff-body">{lp.diffCard4Body}</p>
           </article>
         </div>
       </section>
@@ -126,24 +132,20 @@ export default function LandingScreen({
       <div className="lp-divider" />
 
       {/* CE QU'ON ANALYSE */}
-      <section className="lp-section">
-        <div className="lp-section-eyebrow">CE QU'ON ANALYSE</div>
+      <section className="lp-section lp-section-axes">
+        <div className="lp-section-eyebrow">{lp.axesEyebrow}</div>
         <h2 className="lp-section-title">
-          Six axes, <em>une écoute complète.</em>
+          {lp.axesTitleStart} <em>{lp.axesTitleEm}</em>
         </h2>
-        <p className="lp-section-lede">
-          Chaque axe combine une analyse DSP objective et un jugement IA
-          calibré sur votre intention. Aucune note n'est posée sans
-          justification.
-        </p>
+        <p className="lp-section-lede">{lp.axesLede}</p>
 
         <div className="lp-axes-grid">
-          <AxeCard num="01" label="Équilibre fréquentiel" desc="Bas, médiums, aigus — pondération entre les bandes, masquages, courbe globale." />
-          <AxeCard num="02" label="Dynamique" desc="Crest factor, plage dynamique, transitoires, gestion de la compression." />
-          <AxeCard num="03" label="Image stéréo" desc="Largeur, mono-compatibilité, équilibre L/R, placement des éléments." />
-          <AxeCard num="04" label="Espace et profondeur" desc="Réverbérations, delays, plans avant/arrière, lecture spatiale du mix." />
-          <AxeCard num="05" label="Cohérence globale" desc="Tenue d'ensemble, fluidité entre sections, identité sonore." />
-          <AxeCard num="06" label="Voix" desc="Intelligibilité, présence, sibilances, intégration au reste du mix." />
+          <AxeCard num="01" label={lp.axe1Label} desc={lp.axe1Desc} />
+          <AxeCard num="02" label={lp.axe2Label} desc={lp.axe2Desc} />
+          <AxeCard num="03" label={lp.axe3Label} desc={lp.axe3Desc} />
+          <AxeCard num="04" label={lp.axe4Label} desc={lp.axe4Desc} />
+          <AxeCard num="05" label={lp.axe5Label} desc={lp.axe5Desc} />
+          <AxeCard num="06" label={lp.axe6Label} desc={lp.axe6Desc} />
         </div>
       </section>
 
@@ -151,23 +153,23 @@ export default function LandingScreen({
 
       {/* CE QU'ON NE FAIT PAS */}
       <section className="lp-section lp-section-tight">
-        <div className="lp-section-eyebrow">CE QU'ON NE FAIT PAS</div>
+        <div className="lp-section-eyebrow">{lp.nopeEyebrow}</div>
         <h2 className="lp-section-title">
-          <em>Honnête</em> sur nos limites.
+          <em>{lp.nopeTitleEm}</em>{lp.nopeTitleAfter}
         </h2>
 
         <div className="lp-nope-grid">
-          <div className="lp-nope-item">
+          <div className="lp-nope-item lp-nope-amber">
             <span className="lp-nope-mark" aria-hidden="true">×</span>
-            <p>On ne dicte pas vos arrangements. La structure, les choix créatifs, le parti-pris artistique — c'est votre territoire.</p>
+            <p>{lp.nope1}</p>
           </div>
-          <div className="lp-nope-item">
+          <div className="lp-nope-item lp-nope-cerulean">
             <span className="lp-nope-mark" aria-hidden="true">×</span>
-            <p>On ne remplace pas un ingé son humain. On rend l'expertise accessible quand elle ne l'était pas — pour préparer votre prochain rendez-vous studio, pas pour l'éviter.</p>
+            <p>{lp.nope2}</p>
           </div>
-          <div className="lp-nope-item">
+          <div className="lp-nope-item lp-nope-violet">
             <span className="lp-nope-mark" aria-hidden="true">×</span>
-            <p>Le score n'est pas une vérité absolue. C'est un repère, calibré sur votre intention, pas un verdict.</p>
+            <p>{lp.nope3}</p>
           </div>
         </div>
       </section>
@@ -177,11 +179,11 @@ export default function LandingScreen({
       {/* FOOTER CTA */}
       <footer className="lp-footer">
         <h2 className="lp-footer-quote">
-          Votre musique. <em>Votre vision.</em><br />
-          Notre accompagnement.
+          {lp.footerQuoteStart} <em>{lp.footerQuoteEm}</em><br />
+          {lp.footerQuoteEnd}
         </h2>
         <button type="button" onClick={onStart} className="lp-cta-primary lp-cta-footer">
-          {ctaFooterLabel}
+          {ctaFooter}
         </button>
         <div className="lp-footer-mark">
           {'VER'}<span className="accent">{'Si'}</span>{'ONS'}
@@ -207,12 +209,12 @@ function LandingStyles() {
   return (
     <style>{`
       .landing-screen {
+        position: relative; z-index: 1;
         min-height: 100vh; min-height: 100dvh;
-        background:
-          radial-gradient(ellipse 900px 620px at 78% 8%, rgba(245,166,35,0.10), transparent 70%),
-          radial-gradient(ellipse 720px 900px at 12% 42%, rgba(92,184,204,0.10), transparent 70%),
-          radial-gradient(ellipse 820px 720px at 85% 78%, rgba(166,126,245,0.08), transparent 70%),
-          var(--bg, ${T.black});
+        /* Pas de background local : on laisse passer .ambient-halo (3 calques
+           qui crossfade) injecté globalement dans <body> par App.jsx, comme
+           sur le dashboard et les autres écrans connectés. */
+        background: transparent;
         color: var(--text, ${T.text});
         font-family: var(--body, ${T.body});
         overflow-x: hidden;
@@ -244,21 +246,134 @@ function LandingStyles() {
       .lp-brand .accent, .lp-footer-mark .accent {
         color: ${T.amber}; font-style: normal;
       }
-      .lp-tagline {
+
+      /* ── HERO MOCKUP — Constellation de chips ──────────────────
+         Cluster de petits chips colorés disposés en wrap libre,
+         légèrement inclinés. Évoque le langage produit (score,
+         action, plugin pick, évolution, intention) sans simuler
+         d'écran. Petit, aéré, abstrait. */
+      .lp-hero-mock {
+        display: flex; flex-wrap: wrap;
+        align-items: center; justify-content: center;
+        gap: 10px 14px;
+        width: 100%; max-width: 720px;
+        margin: 8px auto 4px;
+        padding: 8px 4px;
+        pointer-events: none;
+      }
+      .lp-chip {
+        display: inline-flex; align-items: center;
         font-family: ${T.mono}; font-size: 11px; font-weight: 500;
-        letter-spacing: 2.4px; color: ${T.amber}; text-transform: uppercase;
-        display: flex; align-items: center; gap: 10px;
+        letter-spacing: 1.4px; text-transform: uppercase;
+        padding: 6px 12px;
+        border-radius: 999px;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+        box-shadow: 0 8px 24px -10px rgba(0,0,0,0.5);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
       }
-      .lp-tagline-dot { font-size: 10px; opacity: 0.6; line-height: 1; }
-      .lp-headline {
-        font-family: 'Cormorant Garamond', ${T.serif};
-        font-weight: 400;
-        font-size: clamp(28px, 5.2vw, 48px);
-        line-height: 1.18; letter-spacing: -0.3px;
-        color: ${T.text}; max-width: 680px; margin: 8px 0 0;
+      /* Score — ambre (pilier principal) */
+      .lp-chip-score {
+        background: rgba(245,166,35,0.12);
+        border: 1px solid rgba(245,166,35,0.40);
+        color: ${T.amber};
+        transform: rotate(-2deg);
+        font-size: 12.5px;
       }
-      .lp-headline em {
-        font-style: italic; color: ${T.amber}; font-weight: 400;
+      /* Tag mix-quality (Mix solide) — vert */
+      .lp-chip-tag {
+        background: rgba(142,224,122,0.10);
+        border: 1px solid rgba(142,224,122,0.32);
+        color: #8ee07a;
+        transform: rotate(1.5deg);
+      }
+      /* Diagnostic chiffré — céruléen */
+      .lp-chip-diag {
+        background: rgba(92,184,204,0.10);
+        border: 1px solid rgba(92,184,204,0.32);
+        color: #5cb8cc;
+        transform: rotate(-1deg);
+      }
+      /* Plugin pick — violet */
+      .lp-chip-plugin {
+        background: rgba(166,126,245,0.10);
+        border: 1px solid rgba(166,126,245,0.34);
+        color: #c2a8ff;
+        transform: rotate(2deg);
+      }
+      /* Évolution V1→V2 — vert (delta positif) */
+      .lp-chip-evo {
+        background: rgba(142,224,122,0.12);
+        border: 1px solid rgba(142,224,122,0.40);
+        color: #8ee07a;
+        transform: rotate(-2.5deg);
+        font-size: 12px;
+      }
+      /* Intention artistique — ambre dimmé */
+      .lp-chip-intent {
+        background: rgba(245,166,35,0.06);
+        border: 1px solid rgba(245,166,35,0.26);
+        color: rgba(245,166,35,0.85);
+        transform: rotate(1deg);
+      }
+      /* Note "basses maîtrisées" — neutre clair */
+      .lp-chip-bass {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.14);
+        color: rgba(255,255,255,0.72);
+        transform: rotate(-1.5deg);
+      }
+      /* Sous 640 px on neutralise les rotations pour la lisibilité ;
+         le wrap se débrouille tout seul pour le stack. */
+      @media (max-width: 640px) {
+        .lp-hero-mock { gap: 8px; max-width: 100%; }
+        .lp-chip { transform: none !important; font-size: 10.5px; }
+      }
+
+      /* Slogan principal — même grammaire typo que .wh-slogan du dashboard
+         ("Écoute, compare, décide.") : DM Sans 700, gros, line-height
+         serré, em ambre sans italique. */
+      .lp-slogan {
+        font-family: ${T.body}; font-weight: 700;
+        font-size: clamp(48px, 8.4vw, 96px);
+        line-height: 0.96; letter-spacing: -3px;
+        color: ${T.text}; max-width: 760px; margin: 0;
+      }
+      .lp-slogan em {
+        font-family: inherit; font-style: normal; font-weight: inherit;
+        letter-spacing: inherit; color: ${T.amber};
+      }
+      /* Garantit que la 1ʳᵉ ligne du slogan tient d'un bloc, le <br/>
+         force ensuite la 2ᵉ ligne — même technique que .wh-slogan-line. */
+      .lp-slogan .lp-slogan-line { white-space: nowrap; }
+      /* Tagline-trio "écoute, comprend, guide." — placée juste sous le
+         grand slogan, taille intermédiaire pour rester un signal fort
+         sans concurrencer le titre. DM Sans 500 medium, em ambre. */
+      .lp-tagline-trio {
+        font-family: ${T.body}; font-weight: 500;
+        font-size: clamp(18px, 2.2vw, 26px);
+        line-height: 1.3; letter-spacing: -0.4px;
+        color: ${T.textSoft}; margin: 0;
+      }
+      .lp-tagline-trio em {
+        font-style: normal; font-weight: 600; color: ${T.amber};
+      }
+      /* Sous-titre sous le slogan : même grammaire typo que la prose
+         d'écoute qualitative dans les fiches d'analyse — DM Sans 300
+         light, 15px, line-height 1.7, couleur soft. PAS d'italique. */
+      .lp-hero-sub {
+        font-family: ${T.body}; font-style: normal;
+        font-size: 15px; font-weight: 300; line-height: 1.7;
+        color: var(--soft, ${T.textSoft});
+        max-width: 560px; margin: 0;
+      }
+      @media (max-width: 640px) {
+        .lp-slogan {
+          font-size: clamp(40px, 12vw, 64px);
+          letter-spacing: -1.4px;
+        }
+        .lp-slogan .lp-slogan-line { white-space: normal; }
       }
 
       /* CTA row : primary + optional secondary "Voir un exemple". */
@@ -281,20 +396,22 @@ function LandingStyles() {
         background: rgba(245,166,35,0.08);
         box-shadow: 0 0 0 6px rgba(245,166,35,0.06);
       }
-      /* CTA secondaire — texte muté + bordure très douce, hiérarchie claire
-         vs le primary ambre. */
+      /* CTA secondaire — bordure neutre nettement visible (la version
+         précédente à rgba 0.06 était quasi invisible). On garde la même
+         géométrie de pill que le primary, juste sans la couleur ambre. */
       .lp-cta-secondary {
         padding: 16px 28px;
-        background: transparent; color: ${T.textSoft};
-        border: 1px solid ${T.border}; border-radius: 999px;
+        background: transparent; color: ${T.text};
+        border: 1px solid var(--btn-border, rgba(255,255,255,0.28));
+        border-radius: 999px;
         font-family: ${T.mono}; font-size: 12px; font-weight: 500;
         letter-spacing: 1.8px; text-transform: uppercase;
         cursor: pointer; transition: all .15s;
       }
       .lp-cta-secondary:hover {
         color: ${T.text};
-        border-color: ${T.borderStrong};
-        background: rgba(255,255,255,0.02);
+        border-color: var(--btn-border-hover, rgba(255,255,255,0.45));
+        background: rgba(255,255,255,0.04);
       }
 
       /* ── DIVIDERS ─────────────────────────────────── */
@@ -311,21 +428,59 @@ function LandingStyles() {
         max-width: 1080px; margin: 0 auto;
       }
       .lp-section-tight { padding: clamp(56px, 9vw, 96px) 24px; }
+      /* Section "ce qu'on analyse" — halo intérieur multi-couleurs.
+         Deux pseudo-éléments hors-axe (céruléen en haut-gauche + violet
+         en bas-droite) qui rappellent la palette des fiches d'analyse
+         sans tomber dans la symétrie. Le contenu remonte en z-index 1
+         pour rester au-dessus des halos. */
+      .lp-section-axes {
+        position: relative;
+        overflow: hidden;
+        border-radius: 24px;
+      }
+      .lp-section-axes > * { position: relative; z-index: 1; }
+      .lp-section-axes::before,
+      .lp-section-axes::after {
+        content: '';
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+        pointer-events: none;
+        z-index: 0;
+      }
+      /* Halo céruléen — haut-gauche, dominant */
+      .lp-section-axes::before {
+        top: -10%; left: -8%;
+        width: 520px; height: 520px;
+        background: radial-gradient(circle, rgba(92,184,204,0.30), transparent 70%);
+        opacity: 0.85;
+      }
+      /* Halo violet — bas-droite, plus large mais plus dilué */
+      .lp-section-axes::after {
+        bottom: -18%; right: -10%;
+        width: 600px; height: 600px;
+        background: radial-gradient(circle, rgba(166,126,245,0.26), transparent 70%);
+        opacity: 0.8;
+      }
       .lp-section-eyebrow {
         font-family: ${T.mono}; font-size: 11px; font-weight: 500;
         letter-spacing: 2.4px; color: ${T.amber}; text-transform: uppercase;
         text-align: center; margin-bottom: 18px;
       }
+      /* Titres de section — recette strictement alignée sur .lp-tagline-trio
+         "écoute, comprend, guide" : DM Sans 500, em ambre 600 (pas
+         d'italique), couleur soft, taille intermédiaire. */
       .lp-section-title {
-        font-family: 'Cormorant Garamond', ${T.serif};
-        font-weight: 400;
-        font-size: clamp(28px, 4.4vw, 40px);
-        line-height: 1.2; letter-spacing: -0.2px;
-        color: ${T.text}; text-align: center;
-        max-width: 720px; margin: 0 auto;
+        font-family: ${T.body};
+        font-weight: 500;
+        font-size: clamp(18px, 2.2vw, 26px);
+        line-height: 1.3; letter-spacing: -0.4px;
+        color: ${T.textSoft}; text-align: center;
+        max-width: 760px; margin: 0 auto;
       }
       .lp-section-title em {
-        font-style: italic; color: ${T.amber}; font-weight: 400;
+        font-family: inherit; font-style: normal; font-weight: 600;
+        letter-spacing: inherit; color: ${T.amber};
       }
       .lp-section-lede {
         font-family: ${T.body}; font-size: 15px; font-weight: 300;
@@ -340,8 +495,13 @@ function LandingStyles() {
         display: grid; gap: 16px;
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+      /* Cartes "atouts" — halo de couleur radial flouté en haut à droite,
+         même grammaire que les .fg-panel des fiches d'analyse. Chaque
+         carte a sa teinte (amber, cerulean, violet, mint) qui colore à
+         la fois le halo, l'icône, et l'em du body. */
       .lp-diff-card {
         position: relative;
+        overflow: hidden;
         padding: 28px 26px;
         background: ${T.s1};
         border: 1px solid ${T.border};
@@ -349,8 +509,67 @@ function LandingStyles() {
         display: flex; flex-direction: column; gap: 12px;
         transition: border-color .2s, transform .2s;
       }
+      /* Le halo lui-même : cercle radial flouté en pseudo-élément, posé
+         au-dessus du fond mais derrière le contenu (z-index 0 vs 1).
+         Chaque variante place son halo dans un coin différent (et avec
+         une taille légèrement différente) pour casser l'effet "tous
+         éclairés pareil" — rendu hors-axe, jamais centré, jamais
+         strictement aligné, comme l'ambient-halo de l'app. */
+      .lp-diff-card::before {
+        content: '';
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(42px);
+        opacity: 0.55;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .lp-diff-card > * { position: relative; z-index: 1; }
+      /* Variante 1 — Amber (chat contextuel) — halo en haut à droite */
+      .lp-diff-card.lp-diff-amber::before {
+        top: -34%; right: -28%; width: 260px; height: 260px;
+        background: radial-gradient(circle, rgba(245,166,35,0.55), transparent 70%);
+      }
+      .lp-diff-card.lp-diff-amber .lp-diff-icon {
+        background: rgba(245,166,35,0.10);
+        border-color: rgba(245,166,35,0.32);
+        color: ${T.amber};
+      }
+      /* Variante 2 — Cerulean (intention) — halo en bas à gauche */
+      .lp-diff-card.lp-diff-cerulean::before {
+        bottom: -36%; left: -22%; width: 240px; height: 240px;
+        background: radial-gradient(circle, rgba(92,184,204,0.5), transparent 70%);
+        opacity: 0.6;
+      }
+      .lp-diff-card.lp-diff-cerulean .lp-diff-icon {
+        background: rgba(92,184,204,0.10);
+        border-color: rgba(92,184,204,0.32);
+        color: #5cb8cc;
+      }
+      /* Variante 3 — Violet (recommandations) — halo en haut à gauche */
+      .lp-diff-card.lp-diff-violet::before {
+        top: -28%; left: -30%; width: 280px; height: 280px;
+        background: radial-gradient(circle, rgba(166,126,245,0.50), transparent 70%);
+        opacity: 0.5;
+      }
+      .lp-diff-card.lp-diff-violet .lp-diff-icon {
+        background: rgba(166,126,245,0.10);
+        border-color: rgba(166,126,245,0.32);
+        color: #a67ef5;
+      }
+      /* Variante 4 — Mint (suivi versions) — halo en bas à droite */
+      .lp-diff-card.lp-diff-mint::before {
+        bottom: -30%; right: -24%; width: 250px; height: 250px;
+        background: radial-gradient(circle, rgba(142,224,122,0.45), transparent 70%);
+        opacity: 0.55;
+      }
+      .lp-diff-card.lp-diff-mint .lp-diff-icon {
+        background: rgba(142,224,122,0.10);
+        border-color: rgba(142,224,122,0.32);
+        color: #8ee07a;
+      }
       .lp-diff-card:hover {
-        border-color: rgba(245,166,35,0.30);
+        border-color: rgba(255,255,255,0.16);
         transform: translateY(-2px);
       }
       .lp-diff-icon {
@@ -409,12 +628,45 @@ function LandingStyles() {
         display: grid; gap: 14px;
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
+      /* Cases "ce qu'on ne fait pas" — même grammaire de halo que
+         les cartes "atouts", mais en intensité plus discrète (le
+         registre "limites assumées" demande un éclairage plus sobre).
+         Halos hors-axe pour éviter l'effet "tous éclairés pareil". */
       .lp-nope-item {
+        position: relative;
+        overflow: hidden;
         padding: 22px 20px;
-        background: transparent;
+        background: ${T.s1};
         border: 1px solid ${T.border};
         border-radius: 14px;
         display: flex; gap: 12px; align-items: flex-start;
+      }
+      .lp-nope-item::before {
+        content: '';
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(46px);
+        opacity: 0.4;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .lp-nope-item > * { position: relative; z-index: 1; }
+      /* Halo 1 — ambre, top-right */
+      .lp-nope-amber::before {
+        top: -38%; right: -26%; width: 220px; height: 220px;
+        background: radial-gradient(circle, rgba(245,166,35,0.40), transparent 70%);
+      }
+      /* Halo 2 — céruléen, bottom-left */
+      .lp-nope-cerulean::before {
+        bottom: -34%; left: -22%; width: 230px; height: 230px;
+        background: radial-gradient(circle, rgba(92,184,204,0.38), transparent 70%);
+        opacity: 0.45;
+      }
+      /* Halo 3 — violet, top-left */
+      .lp-nope-violet::before {
+        top: -32%; left: -28%; width: 240px; height: 240px;
+        background: radial-gradient(circle, rgba(166,126,245,0.36), transparent 70%);
+        opacity: 0.42;
       }
       .lp-nope-mark {
         font-family: ${T.serif}; font-size: 24px; line-height: 1;

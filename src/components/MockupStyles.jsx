@@ -20,6 +20,12 @@ export default function MockupStyles() {
     --card: #101118;
     --border: rgba(255,255,255,0.06);
     --border-strong: rgba(255,255,255,0.12);
+    /* Bordure dédiée aux boutons "outline / ghost" (transparent + bordure
+       seule). --border à 0.06 est calibré pour les panels/cards et devient
+       quasi invisible sur des boutons posés directement sur le fond — d'où
+       ces deux tokens dédiés, plus contrastés. */
+    --btn-border: rgba(255,255,255,0.28);
+    --btn-border-hover: rgba(255,255,255,0.45);
 
     /* Textes */
     --text: #ededed;
@@ -331,7 +337,7 @@ export default function MockupStyles() {
 
   .sb-play-btn {
     width: 22px; height: 22px; border-radius: 50%;
-    background: transparent; border: 1px solid var(--border);
+    background: transparent; border: 1px solid var(--btn-border);
     color: var(--muted); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0; padding: 0;
@@ -680,11 +686,11 @@ export default function MockupStyles() {
   }
   .vocal-suggest .vs-btn-ghost {
     background: transparent;
-    border: 1px solid var(--border);
+    border: 1px solid var(--btn-border);
     color: var(--textSoft, #b8bdc7);
   }
   .vocal-suggest .vs-btn-ghost:hover:not(:disabled) {
-    border-color: rgba(255,255,255,0.2);
+    border-color: var(--btn-border-hover);
     color: var(--text);
   }
 
@@ -813,7 +819,7 @@ export default function MockupStyles() {
        avec la page (pas de "barre header" délimitée). */
   }
   .fiche-topbar-wrap .fiche-back {
-    background: transparent; border: 1px solid var(--border);
+    background: transparent; border: 1px solid var(--btn-border);
     color: var(--soft); cursor: pointer;
     width: 34px; height: 34px; border-radius: 8px;
     display: inline-flex; align-items: center; justify-content: center;
@@ -821,7 +827,7 @@ export default function MockupStyles() {
     transition: background .15s, color .15s, border-color .15s;
   }
   .fiche-topbar-wrap .fiche-back:hover {
-    background: var(--s1); color: var(--text); border-color: rgba(255,255,255,0.18);
+    background: var(--s1); color: var(--text); border-color: var(--btn-border-hover);
   }
   .fiche-topbar-title {
     font-family: var(--body); font-weight: 700;
@@ -876,7 +882,7 @@ export default function MockupStyles() {
   }
   .fiche-topbar-actions .btn-ic {
     width: 34px; height: 34px; border-radius: 8px;
-    border: 1px solid var(--border); background: transparent;
+    border: 1px solid var(--btn-border); background: transparent;
     color: var(--soft); cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center;
     padding: 0;
@@ -884,7 +890,7 @@ export default function MockupStyles() {
   }
   .fiche-topbar-actions .btn-ic:hover:not(:disabled) {
     background: var(--s1); color: var(--text);
-    border-color: rgba(255,255,255,0.18);
+    border-color: var(--btn-border-hover);
   }
   .fiche-topbar-actions .btn-ic:disabled { opacity: .5; cursor: not-allowed; }
   .fiche-topbar-actions .btn-ic svg { width: 16px; height: 16px; }
@@ -4524,7 +4530,7 @@ export default function MockupStyles() {
   .wh-action {
     display: flex; align-items: center; gap: 8px;
     padding: 12px 22px; border-radius: 10px;
-    background: transparent; border: 1px solid var(--border);
+    background: transparent; border: 1px solid var(--btn-border);
     color: var(--soft); font-family: var(--body); font-size: 14px; font-weight: 300;
     cursor: pointer; transition: all .2s;
   }
@@ -4611,6 +4617,38 @@ export default function MockupStyles() {
     font-size: 14px; line-height: 1; font-weight: 500;
     margin-top: -1px;
   }
+  /* Bouton "Tableau de bord" — placé au-dessus de "Mes projets", offre un
+     retour direct au dashboard depuis n'importe quelle fiche. Grammaire
+     alignée sur un en-tête de projet (padding/radius identiques) avec
+     accent discret (icône amber au hover) pour bien le faire ressortir
+     comme bouton de navigation principal. */
+  .sidebar-dashboard-btn {
+    display: flex; align-items: center; gap: 10px;
+    width: calc(100% - 4px);
+    margin: 0 2px 8px;
+    padding: 8px 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    color: #e8e8ea;
+    font-family: var(--body);
+    font-size: 14px; font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .sidebar-dashboard-btn svg {
+    color: var(--amber);
+    flex-shrink: 0;
+    opacity: 0.85;
+    transition: opacity .15s;
+  }
+  .sidebar-dashboard-btn:hover {
+    background: rgba(245,176,86,.08);
+    border-color: rgba(245,176,86,.25);
+  }
+  .sidebar-dashboard-btn:hover svg { opacity: 1; }
+
   /* Lien "À propos" — pied de sidebar, discret, mono uppercase muted. */
   .sidebar-about-btn {
     align-self: center;
@@ -5056,7 +5094,7 @@ export default function MockupStyles() {
   .wh-btn {
     display: inline-flex; align-items: center; justify-content: center;
     gap: 6px; padding: 10px 20px; border-radius: 999px;
-    background: transparent; border: 1px solid var(--border);
+    background: transparent; border: 1px solid var(--btn-border);
     color: var(--soft);
     font-family: var(--mono); font-size: 11px; font-weight: 500;
     letter-spacing: 1.2px; text-transform: uppercase;
@@ -5388,7 +5426,7 @@ export default function MockupStyles() {
   .wh-track-play {
     position: relative;
     width: 40px; height: 40px; border-radius: 8px;
-    background: transparent; border: 1px solid var(--border);
+    background: transparent; border: 1px solid var(--btn-border);
     color: var(--muted); cursor: pointer; flex-shrink: 0; padding: 0;
     display: flex; align-items: center; justify-content: center;
     transition: all .15s;
@@ -5869,7 +5907,7 @@ export default function MockupStyles() {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 9px 16px; border-radius: 999px;
     font-family: var(--body); font-size: 14px; font-weight: 500;
-    background: transparent; border: 1px solid var(--border);
+    background: transparent; border: 1px solid var(--btn-border);
     color: var(--soft); cursor: pointer;
     transition: all .15s;
   }
@@ -6335,7 +6373,7 @@ export default function MockupStyles() {
   .reglages-save:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
   .reglages-signout {
     width: 100%; padding: 12px 16px; border-radius: 10px;
-    background: transparent; border: 1px solid var(--border);
+    background: transparent; border: 1px solid var(--btn-border);
     color: var(--red); font-family: var(--mono); font-size: 12px;
     letter-spacing: 1px; text-transform: uppercase;
     cursor: pointer; transition: all .2s;
@@ -6521,7 +6559,7 @@ export default function MockupStyles() {
   .rg-mini .rg-btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     padding: 10px 20px; border-radius: 999px;
-    background: transparent; border: 1px solid var(--border);
+    background: transparent; border: 1px solid var(--btn-border);
     color: var(--soft);
     font-family: var(--mono); font-size: 11px; font-weight: 500;
     letter-spacing: 1.2px; text-transform: uppercase;
@@ -6820,7 +6858,7 @@ export default function MockupStyles() {
   /* Upload : pill (vocal) + select wrap (daw) */
   .add-mini-pill {
     padding: 8px 14px; border-radius: 999px;
-    background: transparent; border: 1px solid var(--border);
+    background: transparent; border: 1px solid var(--btn-border);
     color: var(--soft);
     cursor: pointer; font-family: var(--body);
     font-size: 13px; font-weight: 500;
@@ -6858,7 +6896,7 @@ export default function MockupStyles() {
   .add-mini-btn {
     display: inline-flex; align-items: center; justify-content: center;
     gap: 6px; padding: 10px 20px; border-radius: 999px;
-    background: transparent; border: 1px solid var(--border);
+    background: transparent; border: 1px solid var(--btn-border);
     color: var(--soft);
     font-family: var(--mono); font-size: 11px; font-weight: 500;
     letter-spacing: 1.2px; text-transform: uppercase;
@@ -7402,7 +7440,7 @@ export default function MockupStyles() {
 
   .versions-s-btn-icon {
     width: 30px; height: 30px; border-radius: 6px;
-    background: transparent; border: 1px solid var(--border);
+    background: transparent; border: 1px solid var(--btn-border);
     color: var(--muted); cursor: pointer; transition: all .15s;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
@@ -8385,12 +8423,12 @@ export default function MockupStyles() {
   }
   .intent-btn-ghost {
     background: transparent;
-    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border: 1px solid var(--btn-border, rgba(255,255,255,0.28));
     color: var(--soft, rgba(255,255,255,0.72));
   }
   .intent-btn-ghost:hover {
     background: rgba(255,255,255,0.04);
-    border-color: rgba(255,255,255,0.18);
+    border-color: var(--btn-border-hover, rgba(255,255,255,0.45));
     color: var(--text);
   }
   .intent-btn-primary {

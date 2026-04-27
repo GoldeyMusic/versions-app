@@ -25,6 +25,7 @@ export default function Sidebar({
   onSelectVersion,
   onGoReglages,
   onGoLanding,
+  onGoDashboard,
   onAdd,
   onPlay,
   onToggle,
@@ -284,6 +285,27 @@ export default function Sidebar({
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0, marginTop: 8 }}>
+        {/* Bouton Tableau de bord — placé AU-DESSUS de "Mes projets" pour
+            offrir un retour direct au dashboard depuis n'importe quelle
+            fiche d'analyse. Style aligné sur les en-têtes de projet
+            (padding/radius/font) pour rester cohérent dans la sidebar. */}
+        {onGoDashboard && (
+          <button
+            type="button"
+            onClick={onGoDashboard}
+            className="sidebar-dashboard-btn"
+            aria-label={s.sidebar.dashboardLink}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <rect x="3" y="3" width="7" height="9" rx="1.5" />
+              <rect x="14" y="3" width="7" height="5" rx="1.5" />
+              <rect x="14" y="12" width="7" height="9" rx="1.5" />
+              <rect x="3" y="16" width="7" height="5" rx="1.5" />
+            </svg>
+            <span>{s.sidebar.dashboardLink}</span>
+          </button>
+        )}
+
         <div className="section-label">{s.sidebar.sectionMyProjects}</div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '0 2px' }}>
