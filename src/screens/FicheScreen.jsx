@@ -3098,57 +3098,6 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                             const isCorrective = !(typeof it.score === 'number' && it.score >= 75);
                             return (
                               <div key={it.id || i} className={`diag-item${it.priority ? ` prio-${it.priority}` : ''}${done ? ' is-done' : ''}${it.advice_locked ? ' advice-locked' : ''}`}>
-                                {isCorrective && (
-                                  <div
-                                    style={{
-                                      display: 'flex', flexDirection: 'column',
-                                      alignItems: 'center', gap: 5,
-                                      flexShrink: 0, marginTop: 5,
-                                      width: 92, // assez large pour 'Marquer comme résolu' sur 2 lignes
-                                    }}
-                                  >
-                                    <button
-                                      type="button"
-                                      className={`di-check${done ? ' checked' : ''}`}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (canCheck) toggleItemCompletion(itemKey);
-                                      }}
-                                      disabled={!canCheck}
-                                      aria-pressed={done}
-                                      aria-label={done ? s.fiche.diagItemDoneLabel : s.fiche.diagItemMarkDoneLabel}
-                                      title={done ? s.fiche.diagItemDoneLabel : s.fiche.diagItemMarkDoneLabel}
-                                      style={{ marginTop: 0 }}
-                                    >
-                                      {done && (
-                                        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                                          <path d="M2.5 6l2.5 2.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
-                                      )}
-                                    </button>
-                                    <span
-                                      onClick={(e) => {
-                                        // Cliquable aussi : facilite l'usage en élargissant la zone d'action
-                                        e.stopPropagation();
-                                        if (canCheck) toggleItemCompletion(itemKey);
-                                      }}
-                                      style={{
-                                        fontFamily: 'var(--mono)',
-                                        fontSize: 9,
-                                        letterSpacing: 1.2,
-                                        textTransform: 'uppercase',
-                                        color: done ? 'var(--amber)' : 'var(--muted)',
-                                        textAlign: 'center',
-                                        lineHeight: 1.3,
-                                        userSelect: 'none',
-                                        cursor: canCheck ? 'pointer' : 'default',
-                                        opacity: canCheck ? 1 : 0.5,
-                                      }}
-                                    >
-                                      {done ? s.fiche.diagItemDoneShort : s.fiche.diagItemTodoShort}
-                                    </span>
-                                  </div>
-                                )}
                                 <ScoreRingSmall value={it.score} />
                                 <div className="di-body">
                                   <div className="di-name">
@@ -3176,9 +3125,69 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                                       <code>{it.how}</code>
                                     </div>
                                   )}
-                                  {it.plugin_pick && (
-                                    <div className="di-tools">
-                                      <span className="di-plugin">{it.plugin_pick}</span>
+                                  {(it.plugin_pick || isCorrective) && (
+                                    <div
+                                      className="di-tools"
+                                      style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        gap: 10,
+                                      }}
+                                    >
+                                      {it.plugin_pick
+                                        ? <span className="di-plugin">{it.plugin_pick}</span>
+                                        : <span aria-hidden="true" />
+                                      }
+                                      {isCorrective && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (canCheck) toggleItemCompletion(itemKey);
+                                          }}
+                                          disabled={!canCheck}
+                                          aria-pressed={done}
+                                          aria-label={done ? s.fiche.diagItemDoneLabel : s.fiche.diagItemMarkDoneLabel}
+                                          title={done ? s.fiche.diagItemDoneLabel : s.fiche.diagItemMarkDoneLabel}
+                                          style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 8,
+                                            padding: '4px 10px',
+                                            borderRadius: 999,
+                                            border: `1.5px solid ${done ? 'var(--amber)' : 'var(--border)'}`,
+                                            background: done ? 'rgba(245,176,86,0.12)' : 'transparent',
+                                            color: done ? 'var(--amber)' : 'var(--muted)',
+                                            cursor: canCheck ? 'pointer' : 'not-allowed',
+                                            opacity: canCheck ? 1 : 0.45,
+                                            fontFamily: 'var(--mono)',
+                                            fontSize: 10,
+                                            letterSpacing: 1.2,
+                                            textTransform: 'uppercase',
+                                            whiteSpace: 'nowrap',
+                                            flexShrink: 0,
+                                            transition: 'border-color .15s, background .15s, color .15s',
+                                          }}
+                                        >
+                                          <span
+                                            aria-hidden="true"
+                                            style={{
+                                              width: 14, height: 14,
+                                              borderRadius: 3,
+                                              border: `1.5px solid ${done ? 'var(--amber)' : 'var(--border)'}`,
+                                              background: done ? 'var(--amber)' : 'transparent',
+                                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                              flexShrink: 0,
+                                            }}
+                                          >
+                                            {done && (
+                                              <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#1b1108" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                                <path d="M2.5 6.2l2.3 2.3L9.5 3.5" />
+                                              </svg>
+                                            )}
+                                          </span>
+                                          {done ? s.fiche.diagItemDoneShort : s.fiche.diagItemTodoShort}
+                                        </button>
+                                      )}
                                     </div>
                                   )}
                                 </div>
