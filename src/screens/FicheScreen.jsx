@@ -2544,10 +2544,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               )}
           </div>
 
-          {/* Impression d'écoute — pleine largeur, avant le diagnostic */}
-          <QualitativeSection listening={listening} />
-
-          {/* Diagnostic par élément — pleine largeur, après l'impression d'écoute */}
+          {/* Diagnostic par élément — pleine largeur, avant l'impression d'écoute */}
           {elements.length > 0 && (
             <div className="col-diag">
                 {elements.length > 0 && (() => {
@@ -2703,6 +2700,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 })()}
             </div>
           )}
+
+          {/* Impression d'écoute — pleine largeur, après le diagnostic */}
+          <QualitativeSection listening={listening} />
 
           {/* 4 · Notes perso — tout en bas, pleine largeur */}
           <NotesSection
