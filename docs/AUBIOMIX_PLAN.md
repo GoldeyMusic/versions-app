@@ -19,8 +19,9 @@
   Modifier le prompt pour imposer un schema strict : `{section, priority(high/med/low), title, why, how(avec valeurs Hz/dB/Q/ratio/attack/release/GR), plugin_pick}`. Référence : §6.3 et §8.1 de l'audit. Effet : chaque note devient actionnable comme chez AubioMix (ex. *"compress vocal: 2:1, 10-20ms attack, 80-120ms release, 2-4dB GR"*).
   ✅ Livré : schema strict `{section, priority, title, score /100, why, how, plugin_pick}` dans `decode-api/lib/claude.js` + front adapté (`FicheScreen`, `PublicFicheScreen`, `exportPdf`, `ficheHelpers.normalizeDiagItem` avec rétrocompat ancien schema `{label, detail, tools[], score /10}`).
 
-- [ ] **1.2 — Page `/comment-on-evalue`**
+- [x] **1.2 — Page `/comment-on-evalue`**
   Équivalent francophone du `/evaluation-framework` d'AubioMix. 1500-2500 mots, prose + encadrés. Décrit notre méthodologie : axes évalués, pondérations, gates, ce qu'on mesure objectivement vs ce qui relève du jugement IA. Effet : autorité, SEO, trust. **À écrire à 2 mains avec David** (ne jamais citer Gemini/Claude — cf. `feedback_no_source_citations`).
+  ✅ Livré — fusionné en landing publique (#/ = landing, #/dashboard = espace de travail, logo pointe vers landing, lien À propos en sidebar). Cf. ticket 3.1 et journal 2026-04-27.
 
 ## Tier 2 — Engagement + viralité (semaine 2)
 
@@ -34,9 +35,10 @@
 
 ## Tier 3 — Vitrine (semaines 3-4)
 
-- [ ] **3.1 — Refonte home : séparer landing publique vs dashboard connecté**
+- [x] **3.1 — Refonte home : séparer landing publique vs dashboard connecté**
   - **Landing publique (déconnecté)** : hero avec mockup rapport intégré (PAS juste promesse texte) + 5-7 cartes bénéfices (pas 13 comme AubioMix) + How It Works 4-5 étapes + bloc trust persona + pricing + footer riche.
   - **Dashboard connecté compte neuf** : un seul gros bloc *"Analysez votre 1er morceau"* 80% écran. À 3+ analyses : timeline + percentile par genre (à activer quand cohorte suffisante) + récents.
+  ✅ Livré — fusionné avec 1.2 en landing publique (#/ = landing, #/dashboard = espace de travail, logo pointe vers landing, lien À propos en sidebar). Le contenu "comment on évalue" est intégré comme sections scrollables (différenciateurs, axes d'analyse, limites assumées). Sample report (3.2) et calibrations dashboard cold-start restent à faire séparément. Cf. journal 2026-04-27.
 
 - [ ] **3.2 — Page `/exemple-de-rapport` (sample report public)**
   Route accessible sans signup, montre la profondeur réelle d'un rapport (mock data réaliste). Lien depuis la landing. Référence : structure du sample d'AubioMix mais avec un morceau francophone et notre angle "intention artistique" en première section.
@@ -84,3 +86,5 @@ Ces axes restent notre territoire unique vs AubioMix. À garder dans toute déci
 
 - **2026-04-26** — Plan initial agréé après audit complet. Séquence 4 tiers. Audit livré dans `docs/audit_aubiomix.md`.
 - **2026-04-27** — Tickets 1.1, 2.1 et 2.2 livrés sur `main`. Tier 1 reste sur 1.2 (page `/comment-on-evalue`) ; Tier 2 entièrement clos.
+- **2026-04-27** — Tickets 1.2 et 3.1 fusionnés en une landing publique unique (`#/`), accessible connecté comme déconnecté. Le contenu "comment on évalue" devient des sections scrollables (différenciateurs, 6 axes d'analyse, limites assumées). Routing : `#/dashboard` pour l'espace de travail, logo pointe vers la landing, lien "À propos" en pied de sidebar. Tier 1 entièrement clos ; Tier 3 partiellement (3.2 sample report et calibrations dashboard cold-start restent ouverts).
+- **2026-04-27** — ✅ Livré — URLs persistantes pour les fiches : `#/fiche/{trackId}/{versionId}`, refresh conserve la fiche (résolveur `pendingFiche` + `getAnalysis` côté Supabase). Hors plan AubioMix mais débloque le partage interne et les bookmarks utilisateur.
