@@ -52,8 +52,21 @@ Le pipeline d'analyse actuel n'utilise **aucune mesure DSP** dans la fiche, alor
 **Coût/analyse** : +~0.05 $ (tokens Claude prompt enrichi)
 **Effet immédiat** : "BPM mesuré, LUFS mesuré, tonalité mesurée" devient honnête.
 
-- [ ] **1.1 — Vérifier le pipeline Fadr → analyse**
+- [x] **1.1 — Vérifier le pipeline Fadr → analyse**
   Tracer dans le code que `extractFadrData(task)` est bien appelé et que son retour (`{bpm, key, lufs, stems, …}`) arrive jusqu'au point où le prompt Claude est construit. Identifier où ça se perd actuellement.
+
+  **Constat (2026-04-27)** : Fadr est du **code mort** dans le pipeline live. Détail :
+  - `decode-api/lib/fadr.js` exporte bien `analyzeFile()` + `extractFadrData()`, mais **aucun fichier de `decode-api/` ne fait `require('./fadr')`** (vérifié : 0 match).
+  - `decode-api/api/analyze.js` (route `/start` + `/diagnose/:jobId`, le pipeline réel) appelle uniquement `analyzeListening` (Gemini) → `retrievePureMixContext` (RAG) → `generateFiche` (Claude). Pas un seul appel à `analyzeFile()` de Fadr.
+  - `decode-api/api/listen.js` et `decode-api/api/chat.js` acceptent un champ `fadrData` dans le `req.body`, mais **le front (`versions-app/src`) ne l'envoie jamais** (vérifié : 0 occurrence de `fadrData` côté front).
+  - Bonus : `api/listen.js` passe même `fadrData` à `analyzeListening` à la place de `mode` (mauvaise arité — `analyzeListening(buffer, mime, title, artist, mode, vocalType, locale)`). Ce sera à nettoyer si on garde cette route.
+  - `FADR_API_KEY` n'est utilisée que dans `lib/fadr.js` (jamais lue ailleurs).
+  - Conclusion : ces données ne se "perdent" pas, elles n'existent pas au runtime. Le prompt Claude qui annonce *"Tu n'as AUCUNE MESURE"* est factuellement correct aujourd'hui.
+
+  **Conséquence pour 1.2+** : avant de reformuler le prompt Claude (1.2), il faut **brancher Fadr dans `api/analyze.js`** (appel `analyzeFile` puis `extractFadrData`, en parallèle de Gemini), puis transmettre les valeurs à `generateFiche` via un nouveau paramètre. Tâche ajoutée ci-dessous (1.1bis).
+
+- [ ] **1.1bis — Brancher Fadr dans le pipeline `analyze.js`**
+  Dans `decode-api/api/analyze.js`, importer `{ analyzeFile, extractFadrData }` de `../lib/fadr`. Lancer `analyzeFile(fileBuffer, …)` **en parallèle** de `analyzeListening` (Promise.all ou pattern parallèle similaire au transcodage) après réception du fichier. À l'issue, appeler `extractFadrData(task)` et stocker le résultat dans le `ctx`/job sous une clé `fadrMetrics`. Propager `fadrMetrics` jusqu'à `generateFiche` (nouvelle signature). Gérer les erreurs Fadr en mode dégradé : si Fadr échoue ou timeout, on continue sans mesures (le pipeline ne doit pas casser).
 
 - [ ] **1.2 — Reformuler le prompt Claude principal**
   Dans `decode-api/lib/claude.js`, retirer la consigne *"Tu n'as AUCUNE MESURE"*. Remplacer par un bloc en tête de prompt :
