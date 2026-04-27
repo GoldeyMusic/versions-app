@@ -833,6 +833,9 @@ const STRINGS = {
       miniAccountLabel: "Compte",
       miniAccountPlanFree: "Free",
       miniAccountPlanPremium: "Premium",
+      replayOnboardingLabel: "Guide d'utilisation",
+      replayOnboardingHint: "Reprendre le guide étape par étape",
+      replayOnboardingBtn: "Revoir",
       close: "Fermer",
     },
 
@@ -1985,6 +1988,9 @@ const STRINGS = {
       miniAccountLabel: "Account",
       miniAccountPlanFree: "Free",
       miniAccountPlanPremium: "Premium",
+      replayOnboardingLabel: "Onboarding guide",
+      replayOnboardingHint: "Restart the step-by-step guide",
+      replayOnboardingBtn: "Replay",
       close: "Close",
     },
 

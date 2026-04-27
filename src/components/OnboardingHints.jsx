@@ -43,13 +43,36 @@ export default function OnboardingHints() {
   const [step, setStep] = useState(null);
 
   // Au mount : si jamais vu, on démarre sur l'étape 1.
+  // Bypass possible via ?onboarding=show dans l'URL (utile en dev/test
+  // pour forcer l'affichage sans toucher à localStorage).
   useEffect(() => {
     try {
+      const url = new URL(window.location.href);
+      const force = url.searchParams.get('onboarding') === 'show'
+        || (window.location.hash || '').includes('onboarding=show');
+      if (force) {
+        // On laisse le flag tel quel, mais on force l'affichage le temps
+        // de la session courante.
+        setStep(0);
+        return;
+      }
       const done = window.localStorage.getItem(STORAGE_KEY);
       if (!done) setStep(0);
     } catch {
       // localStorage indisponible (mode privé navigateur, SSR…) : on n'affiche pas
     }
+  }, []);
+
+  // Écoute un événement custom pour relancer le guide depuis l'extérieur
+  // (ex: bouton 'Revoir le guide' dans Réglages). On efface aussi le flag
+  // pour que ça reste cohérent au prochain reload.
+  useEffect(() => {
+    const handler = () => {
+      try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
+      setStep(0);
+    };
+    window.addEventListener('versions:replay-onboarding', handler);
+    return () => window.removeEventListener('versions:replay-onboarding', handler);
   }, []);
 
   const close = () => {

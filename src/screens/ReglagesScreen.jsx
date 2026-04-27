@@ -266,6 +266,29 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
             <div className="rg-value muted">{planLabel}</div>
           </div>
 
+          {/* ── Revoir le guide d'utilisation ──
+              Réefface le flag localStorage et déclenche un événement custom
+              écouté par OnboardingHints. La modale Réglages se ferme et le
+              guide réapparaît immédiatement sur la home. */}
+          <div className="rg-row">
+            <div>
+              <div className="rg-label">{s.reglages.replayOnboardingLabel}</div>
+              <div className="rg-hint">{s.reglages.replayOnboardingHint}</div>
+            </div>
+            <button
+              type="button"
+              className="rg-btn"
+              onClick={() => {
+                try { window.localStorage.removeItem('versions_onboarding_done'); } catch {}
+                try { window.dispatchEvent(new CustomEvent('versions:replay-onboarding')); } catch {}
+                if (onClose) onClose();
+                else if (onGoHome) onGoHome();
+              }}
+            >
+              {s.reglages.replayOnboardingBtn}
+            </button>
+          </div>
+
           {saved && <div className="rg-saved-chip">{s.reglages.saved}</div>}
 
           {/* ── Footer ── */}
