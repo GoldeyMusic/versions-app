@@ -3152,10 +3152,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                                           title={done ? s.fiche.diagItemDoneLabel : s.fiche.diagItemMarkDoneLabel}
                                           style={{
                                             display: 'inline-flex', alignItems: 'center', gap: 8,
-                                            padding: '4px 10px',
-                                            borderRadius: 999,
-                                            border: `1.5px solid ${done ? 'var(--amber)' : 'var(--border)'}`,
-                                            background: done ? 'rgba(245,176,86,0.12)' : 'transparent',
+                                            padding: 0,
+                                            border: 0,
+                                            background: 'transparent',
                                             color: done ? 'var(--amber)' : 'var(--muted)',
                                             cursor: canCheck ? 'pointer' : 'not-allowed',
                                             opacity: canCheck ? 1 : 0.45,
@@ -3165,22 +3164,25 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                                             textTransform: 'uppercase',
                                             whiteSpace: 'nowrap',
                                             flexShrink: 0,
-                                            transition: 'border-color .15s, background .15s, color .15s',
+                                            transition: 'color .15s',
                                           }}
                                         >
                                           <span
                                             aria-hidden="true"
                                             style={{
-                                              width: 14, height: 14,
-                                              borderRadius: 3,
-                                              border: `1.5px solid ${done ? 'var(--amber)' : 'var(--border)'}`,
+                                              width: 16, height: 16,
+                                              minWidth: 16, // empêche le flex de l'écraser
+                                              borderRadius: 4,
+                                              border: `1.5px solid ${done ? 'var(--amber)' : 'rgba(255,255,255,0.25)'}`,
                                               background: done ? 'var(--amber)' : 'transparent',
                                               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                               flexShrink: 0,
+                                              boxSizing: 'border-box',
+                                              transition: 'border-color .15s, background .15s',
                                             }}
                                           >
                                             {done && (
-                                              <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#1b1108" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#1b1108" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                                 <path d="M2.5 6.2l2.3 2.3L9.5 3.5" />
                                               </svg>
                                             )}
