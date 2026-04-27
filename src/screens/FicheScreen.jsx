@@ -722,23 +722,23 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 220 });
   // actionFor : sous-menu d'actions (renommer/supprimer) pour UNE version precise.
-  // null = ferme. Sinon : { v, top, left }.
+  // null = ferme. Sinon : { v }. Le sous-menu est rendu DANS le menu principal
+  // (en position absolute ancree sur la ligne), pas dans un second portal :
+  // garantit qu'il est dans menuRef et evite les click-outside transitoires.
   const [actionFor, setActionFor] = useState(null);
   const ref = useRef(null);
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
-  const actionRef = useRef(null);
   const current = versions.find((v) => v.name === currentVersionName) || versions[versions.length - 1];
 
   useEffect(() => {
     if (!open) return;
-    // Click-outside : autorise les clics dans la pill (ref), le menu portalisé (menuRef)
-    // ET le sous-menu d'actions (actionRef). Sans cette derniere autorisation, cliquer
-    // sur Renommer/Supprimer fermait le dropdown avant l'execution du handler.
+    // Click-outside : autorise les clics dans la pill (ref) et dans le menu (menuRef).
+    // Le sous-menu d'actions est rendu DANS le menu, donc menuRef.contains le couvre
+    // automatiquement.
     const onDown = (e) => {
       if (ref.current?.contains(e.target)) return;
       if (menuRef.current?.contains(e.target)) return;
-      if (actionRef.current?.contains(e.target)) return;
       setOpen(false);
       setActionFor(null);
     };
@@ -753,9 +753,6 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
       if (!triggerRef.current) return;
       const r = triggerRef.current.getBoundingClientRect();
       setMenuPos({ top: r.bottom + 6, left: r.left, width: Math.max(r.width, 220) });
-      // Si un sous-menu actions est ouvert, on le ferme au scroll (sa position
-      // ne suit pas, plus simple que de la recalculer).
-      if (actionFor) setActionFor(null);
     };
     reposition();
     document.addEventListener('mousedown', onDown);
@@ -770,13 +767,12 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
     };
   }, [open, actionFor]);
 
-  // Ouvre le sous-menu d'actions pour la version cliquee. e.stopPropagation
+  // Ouvre/toggle le sous-menu d'actions pour la version cliquee. e.stopPropagation
   // pour ne pas declencher la selection de version sur la ligne parent.
   const openActionMenu = (e, v) => {
     e.stopPropagation();
     e.preventDefault();
-    const r = e.currentTarget.getBoundingClientRect();
-    setActionFor({ v, top: r.bottom + 4, left: Math.max(8, r.right - 200) });
+    setActionFor((prev) => (prev?.v?.id === v.id ? null : { v }));
   };
 
   const closeAll = () => { setActionFor(null); setOpen(false); };
@@ -911,7 +907,8 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
                       background: actionFor?.v?.id === v.id ? 'rgba(245,176,86,.18)' : 'transparent',
                       color: 'inherit', cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      opacity: 0.7,
+                      opacity: 0.85,
+                      flexShrink: 0,
                     }}
                   >
                     <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
@@ -920,6 +917,58 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
                       <circle cx="11" cy="7" r="1.3" fill="currentColor" />
                     </svg>
                   </button>
+                )}
+                {/* Sous-menu d'actions ancré en position absolute SUR la ligne.
+                    Rendu dans menuRef, donc le click-outside listener ne le
+                    confond pas avec un clic exterieur. */}
+                {actionFor?.v?.id === v.id && (
+                  <div
+                    role="menu"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 4px)',
+                      right: 6,
+                      minWidth: 200,
+                      background: 'var(--s1)',
+                      border: '1px solid rgba(255,255,255,0.14)',
+                      borderRadius: 8,
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                      padding: 4,
+                      zIndex: 50,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={(e) => { e.stopPropagation(); handleRename(v); }}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left',
+                        padding: '8px 12px', borderRadius: 6, border: 0,
+                        background: 'transparent', color: 'var(--soft)',
+                        cursor: 'pointer', fontSize: 13, fontFamily: 'var(--body)',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      {s.vchip?.renameLabel || 'Renommer'}
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={(e) => { e.stopPropagation(); handleDelete(v); }}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left',
+                        padding: '8px 12px', borderRadius: 6, border: 0,
+                        background: 'transparent', color: '#ff7a7a',
+                        cursor: 'pointer', fontSize: 13, fontFamily: 'var(--body)',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,122,122,0.12)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      {s.vchip?.deleteVersion || 'Supprimer cette version'}
+                    </button>
+                  </div>
                 )}
               </div>
             );
@@ -934,57 +983,6 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
               <span>{newVersionLabel}</span>
             </button>
           )}
-        </div>,
-        document.body
-      )}
-      {open && actionFor && createPortal(
-        <div
-          ref={actionRef}
-          className="vdd-action-menu"
-          role="menu"
-          style={{
-            position: 'fixed',
-            top: actionFor.top,
-            left: actionFor.left,
-            minWidth: 200,
-            background: 'var(--surface, #1b1b1f)',
-            border: '1px solid var(--border, rgba(255,255,255,0.08))',
-            borderRadius: 8,
-            boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
-            padding: 4,
-            zIndex: 1000,
-          }}
-        >
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => handleRename(actionFor.v)}
-            style={{
-              display: 'block', width: '100%', textAlign: 'left',
-              padding: '8px 12px', borderRadius: 6, border: 0,
-              background: 'transparent', color: 'inherit',
-              cursor: 'pointer', fontSize: 13,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-          >
-            {s.vchip?.renameLabel || 'Renommer'}
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => handleDelete(actionFor.v)}
-            style={{
-              display: 'block', width: '100%', textAlign: 'left',
-              padding: '8px 12px', borderRadius: 6, border: 0,
-              background: 'transparent', color: '#ff7a7a',
-              cursor: 'pointer', fontSize: 13,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,122,122,0.12)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-          >
-            {s.vchip?.deleteVersion || 'Supprimer cette version'}
-          </button>
         </div>,
         document.body
       )}
@@ -1667,7 +1665,10 @@ export function QualitativeSection({ listening }) {
   const hasAny = impression || points.length || aTravailler.length || espace || dynamique || potentiel;
   if (!hasAny) return null;
 
-  const hasDeploy = potentiel || espace || dynamique;
+  // Section repliee par defaut : par surface on garde uniquement la citation
+  // d'impression. Le bouton "Deployer" revele points forts, a travailler,
+  // espace, dynamique et potentiel.
+  const hasDeploy = points.length || aTravailler.length || potentiel || espace || dynamique;
 
   // Desktop (v2) : UN SEUL conteneur "Écoute qualitative" (panel cerulean),
   // avec eyebrow tout en haut, citation impression en dessous, puis tous les
@@ -1687,42 +1688,44 @@ export function QualitativeSection({ listening }) {
           </div>
         )}
 
-        <div className="q-subgrid">
-          {points.length > 0 && (
-            <div className="q-sub forts">
-              <div className="q-sublabel mint">{s.fiche.blockPointsForts}</div>
-              <ul>
-                {points.map((p, i) => <li key={i}>{renderWithEmphasis(p)}</li>)}
-              </ul>
-            </div>
-          )}
-          {aTravailler.length > 0 && (
-            <div className="q-sub travail">
-              <div className="q-sublabel amber">{s.fiche.blockATravailler}</div>
-              <ul>
-                {aTravailler.map((p, i) => <li key={i}>{renderWithEmphasis(p)}</li>)}
-              </ul>
-            </div>
-          )}
-          {expanded && espace && (
-            <div className="q-sub espace">
-              <div className="q-sublabel cerulean">{s.fiche.blockEspace}</div>
-              <div className="q-subbody">{renderWithEmphasis(espace)}</div>
-            </div>
-          )}
-          {expanded && dynamique && (
-            <div className="q-sub dynamique">
-              <div className="q-sublabel cerulean">{s.fiche.blockDynamique}</div>
-              <div className="q-subbody">{renderWithEmphasis(dynamique)}</div>
-            </div>
-          )}
-          {expanded && potentiel && (
-            <div className="q-sub potentiel">
-              <div className="q-sublabel cerulean">{s.fiche.blockPotentiel}</div>
-              <div className="q-subbody">{renderWithEmphasis(potentiel)}</div>
-            </div>
-          )}
-        </div>
+        {expanded && (
+          <div className="q-subgrid">
+            {points.length > 0 && (
+              <div className="q-sub forts">
+                <div className="q-sublabel mint">{s.fiche.blockPointsForts}</div>
+                <ul>
+                  {points.map((p, i) => <li key={i}>{renderWithEmphasis(p)}</li>)}
+                </ul>
+              </div>
+            )}
+            {aTravailler.length > 0 && (
+              <div className="q-sub travail">
+                <div className="q-sublabel amber">{s.fiche.blockATravailler}</div>
+                <ul>
+                  {aTravailler.map((p, i) => <li key={i}>{renderWithEmphasis(p)}</li>)}
+                </ul>
+              </div>
+            )}
+            {espace && (
+              <div className="q-sub espace">
+                <div className="q-sublabel cerulean">{s.fiche.blockEspace}</div>
+                <div className="q-subbody">{renderWithEmphasis(espace)}</div>
+              </div>
+            )}
+            {dynamique && (
+              <div className="q-sub dynamique">
+                <div className="q-sublabel cerulean">{s.fiche.blockDynamique}</div>
+                <div className="q-subbody">{renderWithEmphasis(dynamique)}</div>
+              </div>
+            )}
+            {potentiel && (
+              <div className="q-sub potentiel">
+                <div className="q-sublabel cerulean">{s.fiche.blockPotentiel}</div>
+                <div className="q-subbody">{renderWithEmphasis(potentiel)}</div>
+              </div>
+            )}
+          </div>
+        )}
 
         {hasDeploy && (
           <button className="impression-toggle" onClick={() => setExpanded((v) => !v)}>
