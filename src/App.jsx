@@ -1988,6 +1988,29 @@ const HASH_SCREEN = {
   '#/versions': 'versions',
 };
 
+// Parse une URL hash en { screen, trackId, versionId }.
+// Reconnaît `#/fiche/{trackId}` et `#/fiche/{trackId}/{versionId}` en plus
+// des routes statiques de HASH_SCREEN.
+function parseHash(hash) {
+  const h = hash || '';
+  const m = h.match(/^#\/fiche\/([^/?#]+)(?:\/([^/?#]+))?$/);
+  if (m) {
+    return { screen: 'fiche', trackId: m[1], versionId: m[2] || null };
+  }
+  return { screen: HASH_SCREEN[h] || null, trackId: null, versionId: null };
+}
+
+// Construit l'URL hash pour un screen donné. La fiche encode le trackId
+// (et le versionId si dispo) pour permettre un reload propre.
+function buildHash(screen, cfg) {
+  if (screen === 'fiche' && cfg?.trackId) {
+    return cfg.versionId
+      ? `#/fiche/${cfg.trackId}/${cfg.versionId}`
+      : `#/fiche/${cfg.trackId}`;
+  }
+  return SCREEN_HASH[screen] || '#/';
+}
+
 /* ═══════════════════════════════════════════════════════════ */
 /* APP                                                        */
 /* ═══════════════════════════════════════════════════════════ */
@@ -2098,6 +2121,11 @@ function VersionsAppAuthed() {
   }, []);
   const [config, setConfig] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
+  // Deep-link fiche : quand on arrive sur `#/fiche/{trackId}/{versionId}`
+  // (refresh ou lien direct), on stocke les IDs ici tant que `projects` n'est
+  // pas chargé. Une fois la liste prête, l'effet plus bas appelle
+  // handleOpenFiche pour matérialiser config + analysisResult.
+  const [pendingFiche, setPendingFiche] = useState(null);
   // Contexte de l'écran intention : { jobId, perception, inheritedIntent, audioHash } ou null.
   // Posé par handleAwaitingIntent quand le backend bascule en 'awaiting_intent'.
   const [intentCtx, setIntentCtx] = useState(null);
@@ -2194,12 +2222,26 @@ function VersionsAppAuthed() {
     }
     // Cold start sans fragment ('') → dashboard pour un connecté.
     // `#/` explicite (logo, lien direct) → landing.
-    let target;
     if (rawHash === '') {
-      target = 'welcome';
-    } else {
-      target = HASH_SCREEN[rawHash] || 'welcome';
+      const targetHash = SCREEN_HASH['welcome'];
+      if (window.location.hash !== targetHash) {
+        window.history.replaceState({ screen: 'welcome' }, '', targetHash);
+      }
+      if (screen !== 'welcome') {
+        isHashSyncRef.current = true;
+        setScreen('welcome');
+      }
+      return;
     }
+    const parsed = parseHash(rawHash);
+    // Deep-link fiche : on stocke les IDs et on laisse le résolveur ci-dessous
+    // matérialiser config + analysisResult quand `projects` sera chargé.
+    if (parsed.screen === 'fiche' && parsed.trackId) {
+      setPendingFiche({ trackId: parsed.trackId, versionId: parsed.versionId || null });
+      return;
+    }
+    const target = parsed.screen || 'welcome';
+    // Fiche sans IDs / loading sans state → fallback dashboard.
     const safe = (target === 'fiche' || target === 'loading') ? 'welcome' : target;
     const targetHash = SCREEN_HASH[safe];
     if (window.location.hash !== targetHash) {
@@ -2215,6 +2257,7 @@ function VersionsAppAuthed() {
   // ── Hash routing : screen → URL ──────────────────────────
   // Chaque changement d'écran pousse une nouvelle entrée dans l'historique,
   // sauf quand c'est nous-mêmes qui venons de le setter en réaction à popstate.
+  // La fiche encode son trackId/versionId pour permettre un reload propre.
   useEffect(() => {
     if (!user) return;
     if (isHashSyncRef.current) {
@@ -2222,12 +2265,16 @@ function VersionsAppAuthed() {
       prevScreenRef.current = screen;
       return;
     }
-    const nextHash = SCREEN_HASH[screen] || '#/';
+    const nextHash = buildHash(screen, config);
     if (window.location.hash !== nextHash) {
       // loading → fiche : on remplace l'entrée "loading" par "fiche" pour que
       // "Précédent" depuis la fiche saute directement avant l'analyse au lieu
       // de repasser sur l'écran de chargement.
-      const shouldReplace = prevScreenRef.current === 'loading' && screen === 'fiche';
+      // Idem fiche → fiche (changement de version) : on garde une seule
+      // entrée "fiche" dans l'historique pour que Back ramène au dashboard.
+      const shouldReplace =
+        (prevScreenRef.current === 'loading' && screen === 'fiche') ||
+        (prevScreenRef.current === 'fiche' && screen === 'fiche');
       if (shouldReplace) {
         window.history.replaceState({ screen }, '', nextHash);
       } else {
@@ -2235,13 +2282,28 @@ function VersionsAppAuthed() {
       }
     }
     prevScreenRef.current = screen;
-  }, [screen, user]);
+  }, [screen, user, config]);
 
   // ── Hash routing : URL → screen (Précédent/Suivant) ──────
   useEffect(() => {
     const onPop = () => {
       const current = window.location.hash || '#/';
-      const target = HASH_SCREEN[current] || 'welcome';
+      const parsed = parseHash(current);
+      // Deep-link fiche via Back/Forward : si le state actuel ne correspond
+      // pas, on délègue au résolveur via setPendingFiche.
+      if (parsed.screen === 'fiche' && parsed.trackId) {
+        const matches =
+          config?.trackId === parsed.trackId &&
+          (!parsed.versionId || config?.versionId === parsed.versionId);
+        if (matches && analysisResult) {
+          isHashSyncRef.current = true;
+          setScreen('fiche');
+          return;
+        }
+        setPendingFiche({ trackId: parsed.trackId, versionId: parsed.versionId || null });
+        return;
+      }
+      const target = parsed.screen || 'welcome';
       // Si on revient sur une vue qui a besoin de state volatil et qu'on ne l'a
       // plus (recharge après précédent), on retombe proprement sur welcome.
       const safe =
@@ -2257,6 +2319,61 @@ function VersionsAppAuthed() {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, [config, analysisResult]);
+
+  // ── Deep-link fiche : résolution `pendingFiche` → fiche réelle ────────
+  // Posé par routeInit ou popstate quand l'URL est `#/fiche/{trackId}/...`.
+  // On attend `projects` pour matcher les IDs (cache localStorage hydrate
+  // déjà la liste à l'init, donc le délai est en général invisible). Si la
+  // version n'est pas précisée, on prend la dernière du titre.
+  useEffect(() => {
+    if (!pendingFiche || !user || !projectsLoaded) return;
+    let alive = true;
+    (async () => {
+      const { trackId, versionId } = pendingFiche;
+      const track = projects.flatMap(p => p.tracks || []).find(t => t.id === trackId);
+      if (!track) {
+        if (!alive) return;
+        setPendingFiche(null);
+        isHashSyncRef.current = true;
+        setScreen('welcome');
+        window.history.replaceState({ screen: 'welcome' }, '', SCREEN_HASH['welcome']);
+        return;
+      }
+      const v = versionId
+        ? track.versions?.find(ver => ver.id === versionId)
+        : track.versions?.[track.versions.length - 1];
+      if (!v) {
+        if (!alive) return;
+        setPendingFiche(null);
+        isHashSyncRef.current = true;
+        setScreen('welcome');
+        window.history.replaceState({ screen: 'welcome' }, '', SCREEN_HASH['welcome']);
+        return;
+      }
+      const saved = await getAnalysis(track.id, v.id);
+      if (!alive) return;
+      if (v.storagePath) {
+        loadPlayer(track.title, v.name, v.storagePath);
+      }
+      setConfig({
+        title: track.title,
+        version: v.name,
+        trackId: track.id,
+        versionId: v.id,
+        daw: 'Logic Pro',
+      });
+      setAnalysisResult(saved || v.analysisResult || null);
+      setPendingFiche(null);
+      isHashSyncRef.current = true;
+      setScreen('fiche');
+      // Normalise l'URL si on était arrivé sans versionId.
+      const targetHash = `#/fiche/${track.id}/${v.id}`;
+      if (window.location.hash !== targetHash) {
+        window.history.replaceState({ screen: 'fiche' }, '', targetHash);
+      }
+    })();
+    return () => { alive = false; };
+  }, [pendingFiche, projects, projectsLoaded, user]);
 
   // ── Onboarding gate : true si user connecté mais sans projet ──
   // (needsOnboarding supprimé : plus de modale bloquante au premier login.
@@ -2504,6 +2621,11 @@ function VersionsAppAuthed() {
                     if (scope === 'version' && ids.versionId) updateVersionIntent(ids.versionId, intent);
                     else if (ids.trackId) updateTrackIntent(ids.trackId, intent);
                   }
+                  // Injecte les IDs en config pour que l'URL devienne
+                  // `#/fiche/{trackId}/{versionId}` (deep-link refresh OK).
+                  if (ids?.trackId) {
+                    setConfig(c => ({ ...(c || {}), trackId: ids.trackId, versionId: ids.versionId || c?.versionId }));
+                  }
                   return refreshProjects();
                 })
                 .catch(e => console.warn("saveAnalysis failed:", e));
@@ -2558,6 +2680,11 @@ function VersionsAppAuthed() {
             if (intent && ids) {
               if (scope === 'version' && ids.versionId) updateVersionIntent(ids.versionId, intent);
               else if (ids.trackId) updateTrackIntent(ids.trackId, intent);
+            }
+            // Injecte les IDs en config pour que l'URL devienne
+            // `#/fiche/{trackId}/{versionId}` (deep-link refresh OK).
+            if (ids?.trackId) {
+              setConfig(c => ({ ...(c || {}), trackId: ids.trackId, versionId: ids.versionId || c?.versionId }));
             }
             return refreshProjects();
           })
@@ -2644,7 +2771,13 @@ function VersionsAppAuthed() {
       }
     }
     const saved = await getAnalysis(track.id, v.id);
-    setConfig({ title: track.title, version: v.name, daw: config?.daw || "Logic Pro" });
+    setConfig({
+      title: track.title,
+      version: v.name,
+      trackId: track.id,
+      versionId: v.id,
+      daw: config?.daw || "Logic Pro",
+    });
     setAnalysisResult(saved || v.analysisResult || null);
     // Si on est déjà dans la fiche (Timeline), on y reste. Sinon on ne change pas d'écran.
   };
@@ -2659,7 +2792,13 @@ function VersionsAppAuthed() {
       }
     }
     const saved = v ? await getAnalysis(track.id, v.id) : null;
-    setConfig({ title: track.title, version: v?.name, daw: config?.daw || "Logic Pro" });
+    setConfig({
+      title: track.title,
+      version: v?.name,
+      trackId: track.id,
+      versionId: v?.id,
+      daw: config?.daw || "Logic Pro",
+    });
     setAnalysisResult(saved || v?.analysisResult || null);
     setScreen("fiche");
   };
@@ -2868,6 +3007,21 @@ function VersionsAppAuthed() {
           ctaFooterLabel="Mon tableau de bord"
         />
       </LangContext.Provider>
+    );
+  }
+
+  // Deep-link fiche en cours de résolution : on affiche le même loader que
+  // l'auth gate pour éviter un flash dashboard avant que le résolveur ne
+  // matérialise config/analysisResult.
+  if (pendingFiche) {
+    return (
+      <>
+        <FontLink />
+        <GlobalStyles />
+        <div style={{minHeight:"100vh",display:"grid",placeItems:"center",background:T.black,color:T.muted,fontFamily:T.mono,fontSize:14,letterSpacing:2}}>
+          CHARGEMENT...
+        </div>
+      </>
     );
   }
 
