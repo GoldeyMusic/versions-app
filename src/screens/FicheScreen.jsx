@@ -1124,15 +1124,22 @@ function DspEditModal({ version, track, initial, onClose, onSaved }) {
   const [lufs, setLufs] = useState(initial?.lufs || '');
   const [applyAll, setApplyAll] = useState(false);
   const [saving, setSaving] = useState(false);
-  // Plusieurs versions sur le titre ? Si oui on propose la checkbox "appliquer
-  // a toutes". Sinon ca n a pas de sens (une seule version).
+  // Plusieurs versions sur le titre ? Si oui la checkbox "appliquer a toutes"
+  // est cochable, sinon on l'affiche grisee + texte explicatif (la fonction
+  // existe, juste pas applicable a un titre mono-version).
   const otherVersionsCount = Math.max(0, ((track?.versions || []).length) - 1);
+  const canApplyAll = otherVersionsCount > 0;
 
   useEffect(() => {
-    const onEsc = (e) => { if (e.key === 'Escape') onClose?.(); };
+    const onEsc = (e) => { if (e.key === 'Escape' && !saving) onClose?.(); };
     document.addEventListener('keydown', onEsc);
-    return () => document.removeEventListener('keydown', onEsc);
-  }, [onClose]);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onEsc);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose, saving]);
 
   const handleSave = async () => {
     if (saving) return;
@@ -1142,7 +1149,7 @@ function DspEditModal({ version, track, initial, onClose, onSaved }) {
         version.id,
         track?.id,
         { bpm: bpm || null, key: key || null, lufs: lufs || null },
-        applyAll && otherVersionsCount > 0,
+        applyAll && canApplyAll,
       );
       onSaved?.();
     } catch (err) {
@@ -1155,122 +1162,116 @@ function DspEditModal({ version, track, initial, onClose, onSaved }) {
 
   return createPortal(
     <div
-      onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,0.6)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 16,
-      }}
+      className="add-mini-backdrop"
+      onClick={saving ? undefined : onClose}
+      role="presentation"
     >
       <div
+        className="add-mini-card"
+        onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        style={{
-          width: 'min(420px, 100%)',
-          background: 'var(--s1)',
-          border: '1px solid rgba(255,255,255,0.14)',
-          borderRadius: 14,
-          padding: 20,
-          boxShadow: '0 30px 80px rgba(0,0,0,0.6)',
-          fontFamily: 'var(--body)',
-          color: 'var(--text)',
-        }}
+        aria-label="Mesures objectives"
       >
-        <div style={{ fontSize: 11, letterSpacing: 1.2, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 4 }}>
-          Mesures objectives
-        </div>
-        <h3 style={{ margin: '0 0 14px', fontSize: 18, fontWeight: 600 }}>
-          Corriger BPM / Tonalité / LUFS
-        </h3>
-        <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
-          Les valeurs initiales viennent de Fadr. Tu peux les corriger si la détection automatique s'est trompée.
-        </p>
+        <button
+          type="button"
+          className="add-mini-close"
+          onClick={onClose}
+          disabled={saving}
+          aria-label="Fermer"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
 
-        <div style={{ display: 'grid', gap: 12 }}>
-          <label style={{ display: 'block' }}>
-            <span style={{ display: 'block', fontSize: 12, color: 'var(--soft)', marginBottom: 4 }}>BPM</span>
-            <input
-              type="number"
-              value={bpm}
-              onChange={(e) => setBpm(e.target.value)}
-              placeholder="ex: 120"
-              style={inputStyle()}
-            />
-          </label>
-          <label style={{ display: 'block' }}>
-            <span style={{ display: 'block', fontSize: 12, color: 'var(--soft)', marginBottom: 4 }}>Tonalité</span>
-            <input
-              type="text"
-              value={key}
-              onChange={(e) => setKey(e.target.value)}
-              placeholder="ex: G maj, Am, F#m"
-              style={inputStyle()}
-            />
-          </label>
-          <label style={{ display: 'block' }}>
-            <span style={{ display: 'block', fontSize: 12, color: 'var(--soft)', marginBottom: 4 }}>LUFS intégré</span>
-            <input
-              type="text"
-              value={lufs}
-              onChange={(e) => setLufs(e.target.value)}
-              placeholder="ex: -8.4"
-              style={inputStyle()}
-            />
-          </label>
+        <div className="add-mini-title">
+          Corriger les <em>mesures</em>
+        </div>
+        <div className="add-mini-body-text">
+          Les valeurs initiales viennent de l'analyse automatique. Tu peux les corriger si nécessaire.
         </div>
 
-        {otherVersionsCount > 0 && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16, fontSize: 13, color: 'var(--soft)', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={applyAll}
-              onChange={(e) => setApplyAll(e.target.checked)}
-              style={{ accentColor: 'var(--amber, #f5b056)' }}
-            />
-            Appliquer aussi aux {otherVersionsCount} autre{otherVersionsCount > 1 ? 's' : ''} version{otherVersionsCount > 1 ? 's' : ''} de ce titre
-          </label>
-        )}
+        <div className="add-mini-field">
+          <span className="add-mini-field-label">BPM</span>
+          <input
+            type="number"
+            className="add-mini-input"
+            value={bpm}
+            onChange={(e) => setBpm(e.target.value)}
+            placeholder="ex: 120"
+            disabled={saving}
+          />
+        </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
+        <div className="add-mini-field">
+          <span className="add-mini-field-label">Tonalité</span>
+          <input
+            type="text"
+            className="add-mini-input"
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            placeholder="ex: G maj, Am, F#m"
+            disabled={saving}
+          />
+        </div>
+
+        <div className="add-mini-field">
+          <span className="add-mini-field-label">LUFS intégré</span>
+          <input
+            type="text"
+            className="add-mini-input"
+            value={lufs}
+            onChange={(e) => setLufs(e.target.value)}
+            placeholder="ex: -8.4"
+            disabled={saving}
+          />
+        </div>
+
+        <label
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            marginTop: 4, marginBottom: 14,
+            fontSize: 13, color: canApplyAll ? 'var(--soft)' : 'var(--muted)',
+            cursor: canApplyAll ? 'pointer' : 'default',
+            opacity: canApplyAll ? 1 : 0.55,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={applyAll}
+            onChange={(e) => setApplyAll(e.target.checked)}
+            disabled={!canApplyAll || saving}
+            style={{ accentColor: 'var(--amber)' }}
+          />
+          {canApplyAll
+            ? `Appliquer aussi aux ${otherVersionsCount} autre${otherVersionsCount > 1 ? 's' : ''} version${otherVersionsCount > 1 ? 's' : ''} de ce titre`
+            : 'Aucune autre version sur ce titre'}
+        </label>
+
+        <div className="add-mini-foot">
           <button
             type="button"
+            className="add-mini-btn"
             onClick={onClose}
             disabled={saving}
-            style={{
-              padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.14)',
-              background: 'transparent', color: 'var(--soft)', fontSize: 13, cursor: 'pointer',
-            }}
           >
             Annuler
           </button>
           <button
             type="button"
+            className="add-mini-btn is-primary"
             onClick={handleSave}
             disabled={saving}
-            style={{
-              padding: '8px 14px', borderRadius: 8, border: 0,
-              background: 'var(--amber, #f5b056)', color: '#1b1108', fontSize: 13, fontWeight: 600,
-              cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.6 : 1,
-            }}
           >
-            {saving ? 'Enregistrement…' : 'Enregistrer'}
+            {saving ? '…' : 'Enregistrer'}
           </button>
         </div>
       </div>
     </div>,
     document.body
   );
-}
-
-function inputStyle() {
-  return {
-    width: '100%', padding: '8px 10px', borderRadius: 6,
-    border: '1px solid rgba(255,255,255,0.12)',
-    background: 'rgba(0,0,0,0.2)',
-    color: 'var(--text)', fontFamily: 'var(--body)', fontSize: 14,
-    boxSizing: 'border-box',
-  };
 }
 
 // ── Timeline (sticky bar topbar + dropdown versions) ──────────────
