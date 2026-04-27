@@ -14,7 +14,6 @@ export default function ExportPdfModal({
   versionName,
   hasListening,
   hasDiagnostic,
-  hasPlan,
   hasNotes,
   onExport,
   onCancel,
@@ -23,7 +22,6 @@ export default function ExportPdfModal({
   const [sections, setSections] = useState({
     qualitatif: true,
     diagnostic: true,
-    plan: true,
     notes: true,
   });
   const [busy, setBusy] = useState(false);
@@ -49,7 +47,6 @@ export default function ExportPdfModal({
   const options = [
     { key: 'qualitatif', label: s.modals.exportPdfOptListeningLabel, hint: s.modals.exportPdfOptListeningHint, available: hasListening },
     { key: 'diagnostic', label: s.modals.exportPdfOptDiagnosticLabel, hint: s.modals.exportPdfOptDiagnosticHint, available: hasDiagnostic },
-    { key: 'plan', label: s.modals.exportPdfOptPlanLabel, hint: s.modals.exportPdfOptPlanHint, available: hasPlan },
     { key: 'notes', label: s.modals.exportPdfOptNotesLabel, hint: s.modals.exportPdfOptNotesHint, available: hasNotes },
   ];
 

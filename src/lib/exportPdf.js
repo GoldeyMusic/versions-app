@@ -352,58 +352,6 @@ function drawDiagnostic(doc, cursor, elements) {
   });
 }
 
-function drawPlan(doc, cursor, plan) {
-  if (!plan || !plan.length) return;
-  sectionTitle(doc, cursor, "Plan d'action");
-
-  plan.forEach((p, i) => {
-    ensureSpace(doc, cursor, 14);
-    // Badge priorité
-    const prio = (p.p || '').toLowerCase();
-    const badgeColor =
-      prio === 'haute' || prio === 'high'
-        ? COLORS.redSoft
-        : prio === 'basse' || prio === 'low'
-          ? COLORS.muted
-          : COLORS.orange;
-    setFont(doc, 'bold', 9, badgeColor);
-    const badge = (p.p || '').toUpperCase() || `#${i + 1}`;
-    safeText(doc, badge, MARGIN.left, cursor.y);
-
-    setFont(doc, 'bold', 10.5, COLORS.text);
-    const titleLines = wrap(doc, p.task || '', CONTENT_W - 18);
-    titleLines.forEach((l, idx) => {
-      if (idx > 0) ensureSpace(doc, cursor, 5);
-      doc.text(l, MARGIN.left + 18, cursor.y);
-      if (idx < titleLines.length - 1) cursor.y += 5;
-    });
-    cursor.y += 5.5;
-
-    if (p.daw) {
-      setFont(doc, 'italic', 9.5, COLORS.subtle);
-      const lines = wrap(doc, `Action DAW - ${p.daw}`, CONTENT_W - 4);
-      lines.forEach((l) => {
-        ensureSpace(doc, cursor, 4.5);
-        doc.text(l, MARGIN.left + 4, cursor.y);
-        cursor.y += 4.5;
-      });
-    }
-    if (p.metered || p.target) {
-      const parts = [];
-      if (p.metered) parts.push(`Mesure : ${p.metered}`);
-      if (p.target) parts.push(`Objectif : ${p.target}`);
-      setFont(doc, 'normal', 9.5, COLORS.subtle);
-      const lines = wrap(doc, parts.join('    '), CONTENT_W - 4);
-      lines.forEach((l) => {
-        ensureSpace(doc, cursor, 4.5);
-        doc.text(l, MARGIN.left + 4, cursor.y);
-        cursor.y += 4.5;
-      });
-    }
-    cursor.y += 2.5;
-  });
-}
-
 // Les notes perso sont rendues via un canvas plutôt que via doc.text(),
 // parce que la police helvetica embarquée dans jsPDF est WinAnsi et ne
 // peut pas dessiner d'emojis (ni la plupart des symboles non Latin-1).
@@ -515,7 +463,6 @@ export function exportFicheToPdf({ track, versionName, analysisResult, date, sec
   const S = {
     qualitatif: true,
     diagnostic: true,
-    plan: true,
     notes: true,
     ...(sections || {}),
   };
@@ -535,7 +482,6 @@ export function exportFicheToPdf({ track, versionName, analysisResult, date, sec
 
   if (S.qualitatif) drawQualitatif(doc, cursor, analysisResult?.listening);
   if (S.diagnostic) drawDiagnostic(doc, cursor, fiche?.elements || []);
-  if (S.plan) drawPlan(doc, cursor, fiche?.plan || []);
   if (S.notes) drawNotes(doc, cursor, analysisResult?.userNotes || '');
 
   drawFooter(doc);

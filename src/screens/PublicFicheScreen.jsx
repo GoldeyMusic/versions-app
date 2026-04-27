@@ -223,8 +223,8 @@ export default function PublicFicheScreen({ token }) {
             {/* Écoute qualitative */}
             {listening && <QualitativeSection listening={listening} />}
 
-            {/* Diagnostic + Plan en deux colonnes comme la fiche privée */}
-            {(elements.length > 0 || plan.length > 0) && (
+            {/* Diagnostic + Notes en deux colonnes comme la fiche privée */}
+            {(elements.length > 0 || userNotes) && (
               <div className="row-two">
                 <div className="col-diag">
                   {elements.length > 0 && (
@@ -288,77 +288,9 @@ export default function PublicFicheScreen({ token }) {
                   )}
                 </div>
 
-                <div className="col-plan">
-                  {plan.length > 0 && (
-                    <>
-                      <div className="section-head">
-                        <span className="t">{s.fiche.planTitle}</span>
-                        <span className="line" />
-                        <span className="count">
-                          {plan.length} {plan.length > 1 ? s.fiche.adjustmentPlural : s.fiche.adjustmentSingular}
-                        </span>
-                      </div>
-                      <div className="priority-list">
-                        {plan.map((p, i) => {
-                          const prio = (p.p || '').toLowerCase();
-                          const linkedItems = elements.flatMap((el) =>
-                            (el.items || [])
-                              .filter((it) => Array.isArray(p.linkedItemIds) && it.id && p.linkedItemIds.includes(it.id))
-                              .map((it) => ({ ...it, cat: el.cat }))
-                          );
-                          return (
-                            <div key={i} className="priority collapsible open read-only">
-                              <div className="priority-head">
-                                <span className={`pbadge ${prio}`}>{(p.p || '').toUpperCase()}</span>
-                                <span className="ptitle">{p.task}</span>
-                              </div>
-                              <div className="priority-body">
-                                {p.daw && (
-                                  <div className="daw-box">
-                                    <span className="daw-label">{s.fiche.focusDawLabel}</span>
-                                    {p.daw}
-                                  </div>
-                                )}
-                                {(p.metered || p.target) && (
-                                  <div className="mt-grid">
-                                    {p.metered && (
-                                      <div className="mt-box m">
-                                        <div className="mt-label">{s.fiche.focusMeasured}</div>
-                                        <div className="mt-val">{p.metered}</div>
-                                      </div>
-                                    )}
-                                    {p.target && (
-                                      <div className="mt-box t">
-                                        <div className="mt-label">{s.fiche.focusTarget}</div>
-                                        <div className="mt-val">{p.target}</div>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                                {linkedItems.length > 0 && (
-                                  <div className="linked-elements">
-                                    <div className="label">{s.fiche.focusLinkedItems}</div>
-                                    <div className="le-list">
-                                      {linkedItems.map(normalizeDiagItem).map((it) => (
-                                        <div className="le" key={it.id}>
-                                          <span className="cat">{it.cat}</span>
-                                          <span className="name">{it.title}</span>
-                                          {typeof it.score === 'number' && <ScoreRingSmall value={it.score} />}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-
-                  {/* Notes perso (lecture seule) */}
-                  {userNotes && (
+                {userNotes && (
+                  <div className="col-plan">
+                    {/* Notes perso (lecture seule) */}
                     <div className="notes-section">
                       <div className="notes-block read-only">
                         <div className="notes-head">
@@ -369,8 +301,8 @@ export default function PublicFicheScreen({ token }) {
                         </div>
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

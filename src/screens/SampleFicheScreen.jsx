@@ -210,40 +210,6 @@ const SAMPLE_DATA = {
           ],
         },
       ],
-      plan: [
-        {
-          p: 'high',
-          task: 'Libérer le refrain en dynamique',
-          daw: 'Bus master + bus drums',
-          metered: 'Crest 5.8 dB (refrain)',
-          target: 'Crest ≥ 7.5 dB (refrain), GR master ≤ 1 dB',
-          linkedItemIds: ['it-dyn-1', 'it-eq-1'],
-        },
-        {
-          p: 'high',
-          task: 'Dégager la voix dans le 2-4 kHz',
-          daw: 'Synthé lead + bus voix',
-          metered: 'Voix -6 dB sous synthé sur les refrains',
-          target: 'Voix +2 dB au-dessus du synthé sur les refrains',
-          linkedItemIds: ['it-eq-1', 'it-vo-1'],
-        },
-        {
-          p: 'med',
-          task: 'Maîtriser les sibilances vocales',
-          daw: 'Bus voix lead',
-          metered: 'Pics > -8 dBFS à 6.5 kHz',
-          target: 'Pics ≤ -14 dBFS à 6.5 kHz',
-          linkedItemIds: ['it-vo-1'],
-        },
-        {
-          p: 'med',
-          task: 'Renforcer la profondeur du fond sonore',
-          daw: 'Pads + nappes',
-          metered: 'Reverb send pads 8%',
-          target: 'Reverb send pads 18%, EQ post -3 dB sous 250 Hz',
-          linkedItemIds: ['it-sp-1'],
-        },
-      ],
     },
     listening: {
       impression: "Le morceau pose immédiatement son atmosphère : on entend la chambre, les murs, la solitude. Le contraste couplet → refrain est là mais reste timide, comme si le refrain n'avait pas encore le droit de respirer pleinement.",
@@ -415,8 +381,8 @@ export default function SampleFicheScreen({
               </div>
             )}
 
-            {/* Diagnostic + Plan en deux colonnes (parité PublicFicheScreen) */}
-            {(elements.length > 0 || plan.length > 0) && (
+            {/* Diagnostic — pleine largeur (le plan d'action a été absorbé dans les items) */}
+            {elements.length > 0 && (
               <div className="row-two">
                 <div className="col-diag">
                   {elements.length > 0 && (
@@ -494,95 +460,6 @@ export default function SampleFicheScreen({
                           </div>
                         );
                       })}
-                    </>
-                  )}
-                </div>
-
-                <div className="col-plan">
-                  {plan.length > 0 && (
-                    <>
-                      <div className="section-head">
-                        <span className="t">Plan d'action</span>
-                        <span className="line" />
-                        <span className="count">
-                          {plan.length} ajustement{plan.length > 1 ? 's' : ''}
-                        </span>
-                      </div>
-                      <div className="priority-list">
-                        {plan.map((p, i) => {
-                          const prio = (p.p || '').toLowerCase();
-                          const sectionId = `plan::${i}`;
-                          const isOpen = openSection === sectionId;
-                          const linkedItems = elements.flatMap((el) =>
-                            (el.items || [])
-                              .filter((it) => Array.isArray(p.linkedItemIds) && it.id && p.linkedItemIds.includes(it.id))
-                              .map((it) => ({ ...it, cat: el.cat }))
-                          );
-                          return (
-                            <div key={i} className={`priority collapsible sample-priority${isOpen ? ' open' : ''}`}>
-                              <div
-                                className="priority-head"
-                                onClick={() => toggleSection(sectionId)}
-                                role="button"
-                                tabIndex={0}
-                                aria-expanded={isOpen}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    toggleSection(sectionId);
-                                  }
-                                }}
-                              >
-                                <span className={`pbadge ${prio}`}>{(p.p || '').toUpperCase()}</span>
-                                <span className="ptitle">{p.task}</span>
-                                <span className="pchev" aria-hidden="true">
-                                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                                    <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                  </svg>
-                                </span>
-                              </div>
-                              <div className="priority-body">
-                                {p.daw && (
-                                  <div className="daw-box">
-                                    <span className="daw-label">DAW</span>
-                                    {p.daw}
-                                  </div>
-                                )}
-                                {(p.metered || p.target) && (
-                                  <div className="mt-grid">
-                                    {p.metered && (
-                                      <div className="mt-box m">
-                                        <div className="mt-label">Mesuré</div>
-                                        <div className="mt-val">{p.metered}</div>
-                                      </div>
-                                    )}
-                                    {p.target && (
-                                      <div className="mt-box t">
-                                        <div className="mt-label">Cible</div>
-                                        <div className="mt-val">{p.target}</div>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                                {linkedItems.length > 0 && (
-                                  <div className="linked-elements">
-                                    <div className="label">Éléments liés</div>
-                                    <div className="le-list">
-                                      {linkedItems.map(normalizeDiagItem).map((it) => (
-                                        <div className="le" key={it.id}>
-                                          <span className="cat">{it.cat}</span>
-                                          <span className="name">{it.title}</span>
-                                          {typeof it.score === 'number' && <ScoreRingSmall value={it.score} />}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
                     </>
                   )}
                 </div>

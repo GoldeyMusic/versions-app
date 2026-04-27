@@ -1224,25 +1224,14 @@ export default function MockupStyles() {
   .fiche-v2 .row-verdict .rv-left .score-eyebrow {
     margin-left: calc(-33.33% - 16px);
   }
-  /* Rangees 3-4 : col-diag a gauche, a droite Plan d'action (et optionnellement
-     Intention artistique au-dessus).
-     - Par defaut (pas d'intention) : col-plan directement en haut de la colonne
-       droite (rangee 3), col-diag tient sur une seule rangee.
-     - Si .intent-panel-fiche est present : il prend la rangee 3 a droite,
-       col-plan descend sur la rangee 4, col-diag s'etire sur 2 rangees pour
-       combler la hauteur a gauche. (:has() gere la bascule automatiquement) */
-  .fiche-v2 .page .col-diag            { grid-column: 1 / span 3; grid-row: 3; }
-  .fiche-v2 .page .col-plan            { grid-column: 4 / span 3; grid-row: 3; align-self: start; }
+  /* Rangee 3 : col-diag (le Plan d'action a ete absorbe dans les items du
+     diagnostic). Par defaut col-diag prend toute la largeur ; quand
+     .evo-intent-stack ou .intent-panel-fiche est present a droite (row 3),
+     col-diag se reduit a la moitie gauche (span 3) pour cohabiter. */
+  .fiche-v2 .page .col-diag            { grid-column: 1 / -1; grid-row: 3; }
   .fiche-v2 .page .intent-panel-fiche  { grid-column: 4 / span 3; grid-row: 3; align-self: start; }
-  /* Quand le wrapper .evo-intent-stack est présent dans la colonne droite (row 3),
-     col-plan descend en row 4 et col-diag s'étire sur 2 lignes pour garder
-     l'équilibre visuel. On cible .evo-intent-stack (toujours rendu si evolution
-     OU intent existe) plutôt que .intent-panel-fiche, qui peut être null lorsque
-     seul EvolutionBanner est affiché — sans ça, col-plan se superpose à evo. */
   .fiche-v2 .page:has(.evo-intent-stack) .col-diag,
-  .fiche-v2 .page:has(.intent-panel-fiche) .col-diag { grid-row: 3 / span 2; }
-  .fiche-v2 .page:has(.evo-intent-stack) .col-plan,
-  .fiche-v2 .page:has(.intent-panel-fiche) .col-plan { grid-row: 4; }
+  .fiche-v2 .page:has(.intent-panel-fiche) .col-diag { grid-column: 1 / span 3; }
 
   /* Wrapper qui empile EvolutionBanner + IntentPanel dans la colonne droite,
      juste au-dessus de Plan d action. On en fait un seul grid-item (col 4-6,
@@ -3416,12 +3405,17 @@ export default function MockupStyles() {
     background: var(--amber-glow);
   }
 
-  /* ── ROW 3 : Diagnostic (gauche) + Plan d'action (droite) ── */
+  /* ── ROW 3 : Diagnostic (gauche) + Notes ou plein écran ── */
   .row-two {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 32px;
     margin-bottom: 64px;
+  }
+  /* Quand seul .col-diag est présent (plus de col-plan), il reprend toute la
+     largeur de la rangée. */
+  .row-two:not(:has(.col-plan)) {
+    grid-template-columns: minmax(0, 1fr);
   }
   .row-two .col-diag,
   .row-two .col-plan {
