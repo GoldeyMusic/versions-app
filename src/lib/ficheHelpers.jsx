@@ -72,6 +72,68 @@ export function computeReleaseReadiness(fiche, completedItems = new Set()) {
   return { tier, score, blockers, totalHigh, uncompletedHigh };
 }
 
+// ────────────────────────────────────────────────────────────────────
+// detectPlateau (ticket 4.4)
+//
+// Compare la fiche courante a la fiche precedente sur N criteres
+// numeriques. Si 6+ criteres tombent dans leur seuil de tolerance, on
+// declare un plateau (la version a converge — l artiste itere "a vide",
+// candidat ideal pour etre marque comme finale).
+//
+// Criteres :
+//   - overall (globalScore)        : tolerance ±2
+//   - sub-scores (moyenne par cat) : tolerance ±3 chacun
+//
+// LUFS / crest / bandes spectrales (cf. spec ticket 4.4) ne sont pas
+// stockes en champs structures — ils n'apparaissent que dans le texte
+// libre de listening.dynamique. On ne peut pas les extraire de maniere
+// robuste, donc on les omet pour l'instant. Le seuil "6+ criteres" reste
+// atteignable avec global + 6 categories (= 7 criteres numeriques).
+//
+// Retourne null si on ne peut pas decider (pas de prev, pas de scores) ;
+// sinon { plateau: bool, total, within, criteria: [{ name, delta, threshold, within }] }.
+// ────────────────────────────────────────────────────────────────────
+export function detectPlateau(currentFiche, previousFiche) {
+  if (!currentFiche || !previousFiche) return null;
+
+  const criteria = [];
+
+  const cg = currentFiche.globalScore;
+  const pg = previousFiche.globalScore;
+  if (typeof cg === 'number' && typeof pg === 'number') {
+    const delta = Math.abs(cg - pg);
+    criteria.push({ name: 'overall', delta, threshold: 2, within: delta <= 2 });
+  }
+
+  const avgByCat = (f) => {
+    const m = new Map();
+    if (!Array.isArray(f.elements)) return m;
+    for (const el of f.elements) {
+      const items = (el.items || []).filter((it) => it && typeof it.score === 'number');
+      if (!items.length) continue;
+      const avg = items.reduce((acc, it) => acc + it.score, 0) / items.length;
+      m.set((el.cat || '').toString().toLowerCase().trim(), { avg, label: el.cat });
+    }
+    return m;
+  };
+
+  const cAvgs = avgByCat(currentFiche);
+  const pAvgs = avgByCat(previousFiche);
+
+  for (const [cat, c] of cAvgs.entries()) {
+    const p = pAvgs.get(cat);
+    if (!p) continue;
+    const delta = Math.abs(c.avg - p.avg);
+    criteria.push({ name: c.label || cat, delta, threshold: 3, within: delta <= 3 });
+  }
+
+  const total = criteria.length;
+  if (!total) return null;
+  const within = criteria.filter((c) => c.within).length;
+  const plateau = total >= 6 && within >= 6;
+  return { plateau, total, within, criteria };
+}
+
 export function renderWithEmphasis(text) {
   if (!text) return null;
   const parts = text.split(/(\*[^*]+\*)/g);

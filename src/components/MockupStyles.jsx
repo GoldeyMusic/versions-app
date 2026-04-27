@@ -3848,6 +3848,21 @@ export default function MockupStyles() {
   .diag-item .di-prio.prio-high { background: #ef6b6b; box-shadow: 0 0 0 3px rgba(239,107,107,0.18); }
   .diag-item .di-prio.prio-med  { background: #f5b056; box-shadow: 0 0 0 3px rgba(245,176,86,0.16); }
   .diag-item .di-prio.prio-low  { background: #7bd88f; box-shadow: 0 0 0 3px rgba(123,216,143,0.14); }
+  /* Ticket 4.2 — cadenas pour les items dont le score est verrouillé suite
+     à un advice coché en V_(n-1) mais encore présent en V_n. */
+  .diag-item .di-advice-lock {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px;
+    margin-left: 4px;
+    color: var(--amber, #f5b056);
+    border-radius: 4px;
+    background: rgba(245, 176, 86, 0.12);
+    flex-shrink: 0;
+    cursor: help;
+  }
+  .diag-item.advice-locked .di-name {
+    color: var(--text, #ededed);
+  }
   .diag-item .di-how {
     display: flex; align-items: flex-start; gap: 8px;
     margin: 6px 0 10px;

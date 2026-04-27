@@ -1875,6 +1875,8 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   const [exportTarget, setExportTarget] = useState(null); // { track, version } ouverts dans la modale d'export PDF
   const [shareTarget, setShareTarget] = useState(null);   // { track, version } ouverts dans la modale de partage
   const [verdictExpanded, setVerdictExpanded] = useState(false); // verdict rétracté par défaut
+  // Ticket 4.4 — état du toggle "Marquer comme finale" (plateau detector).
+  const [markFinalBusy, setMarkFinalBusy] = useState(false);
   const isMobile = useMobile();
   const isNarrow = useNarrowDesktop(1200);
   const chatAsDrawer = isMobile || isNarrow;
@@ -2186,6 +2188,73 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
 
           {/* COLONNE PRINCIPALE (col 1 en v2 desktop) : Score global + Diagnostic */}
           <div className="f2-col-main">
+          {/* Ticket 4.4 — bandeau "FINAL" si la version a été marquée finale,
+              sinon plateau detector si convergence avec V_(n-1). */}
+          {versionInDb?.isFinal ? (
+            <div
+              className="final-badge-banner"
+              aria-label="Version finale"
+              style={{
+                margin: '0 0 18px',
+                padding: '12px 16px',
+                borderRadius: 14,
+                border: '1px solid rgba(142, 224, 122, 0.30)',
+                background: 'rgba(142, 224, 122, 0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                fontFamily: "'DM Sans', sans-serif",
+                position: 'relative',
+              }}
+            >
+              <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mint, #8ee07a)', flexShrink: 0 }} />
+              <span style={{ fontFamily: 'var(--mono, JetBrains Mono, monospace)', fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', color: 'var(--mint, #8ee07a)' }}>VERSION FINALE</span>
+              <span style={{ fontSize: 13, color: 'var(--text, #ededed)', fontWeight: 300, flex: 1 }}>
+                Validée comme sortie. Aucune itération supplémentaire prévue.
+              </span>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!versionInDb?.id) return;
+                  setMarkFinalBusy(true);
+                  await setVersionFinal(versionInDb.id, false);
+                  await loadTracks().then(setTracks);
+                  setMarkFinalBusy(false);
+                }}
+                disabled={markFinalBusy}
+                style={{
+                  flexShrink: 0,
+                  padding: '6px 12px',
+                  borderRadius: 999,
+                  background: 'transparent',
+                  color: 'var(--muted, rgba(255,255,255,0.55))',
+                  border: '1px solid var(--border, rgba(255,255,255,0.10))',
+                  fontFamily: 'var(--mono, JetBrains Mono, monospace)',
+                  fontSize: 10,
+                  letterSpacing: 1.4,
+                  textTransform: 'uppercase',
+                  cursor: markFinalBusy ? 'not-allowed' : 'pointer',
+                  opacity: markFinalBusy ? 0.55 : 1,
+                }}
+              >
+                Retirer
+              </button>
+            </div>
+          ) : (
+            <PlateauBanner
+              currentFiche={rawFiche}
+              previousFiche={prevVersion?.analysisResult?.fiche || null}
+              isFinal={false}
+              busy={markFinalBusy}
+              onMarkFinal={async () => {
+                if (!versionInDb?.id) return;
+                setMarkFinalBusy(true);
+                await setVersionFinal(versionInDb.id, true);
+                await loadTracks().then(setTracks);
+                setMarkFinalBusy(false);
+              }}
+            />
+          )}
           {/* Ticket 4.3 — bandeau "Prêt à sortir / Presque / Pas encore" */}
           <ReleaseReadinessBanner fiche={rawFiche} completedItems={completedItems} />
           {/* 1 · Verdict / Score global */}
@@ -2369,7 +2438,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                             const done = completedItems.has(itemKey);
                             const canCheck = !!completionsVersionId && !(isVoice && voiceLabelOverride);
                             return (
-                              <div key={it.id || i} className={`diag-item${it.priority ? ` prio-${it.priority}` : ''}${done ? ' is-done' : ''}`}>
+                              <div key={it.id || i} className={`diag-item${it.priority ? ` prio-${it.priority}` : ''}${done ? ' is-done' : ''}${it.advice_locked ? ' advice-locked' : ''}`}>
                                 <button
                                   type="button"
                                   className={`di-check${done ? ' checked' : ''}`}
@@ -2392,6 +2461,18 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                                       <span className={`di-prio prio-${it.priority}`} aria-label={`priorité ${it.priority}`} />
                                     )}
                                     {it.title}
+                                    {it.advice_locked && (
+                                      <span
+                                        className="di-advice-lock"
+                                        title="Tu as coché cet item comme implémenté en V précédente, mais il reste audible. Le score est verrouillé pour ne pas te pénaliser."
+                                        aria-label="Conseil verrouillé"
+                                      >
+                                        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                                          <rect x="2.5" y="5.5" width="7" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" />
+                                          <path d="M4 5.5V3.5a2 2 0 014 0V5.5" stroke="currentColor" strokeWidth="1.4" />
+                                        </svg>
+                                      </span>
+                                    )}
                                   </div>
                                   {it.why && <div className="di-detail">{it.why}</div>}
                                   {it.how && (
@@ -2548,8 +2629,22 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     <EvolutionBanner
                       evolution={evolution}
                       previousVersionName={evolutionPrevName}
-                      floorApplied={displayAR?.fiche?._floor_applied || null}
-                      adviceLockApplied={displayAR?.fiche?._advice_lock_applied || null}
+                      floorApplied={rawFiche?.score_floor?.applied ? rawFiche.score_floor : null}
+                      adviceLockApplied={(() => {
+                        // Ticket 4.2 — derive le summary "categories verrouillees"
+                        // depuis advice_check.lockedCategories (array de strings).
+                        const ac = rawFiche?.advice_check;
+                        if (!ac) return null;
+                        const cats = Array.isArray(ac.lockedCategories) ? ac.lockedCategories : [];
+                        const followed = Array.isArray(ac.followed) ? ac.followed.length : 0;
+                        const unfollowed = Array.isArray(ac.unfollowed) ? ac.unfollowed.length : 0;
+                        if (followed + unfollowed === 0) return null;
+                        return {
+                          categories: cats.map((c) => ({ cat: c })),
+                          followed,
+                          unfollowed,
+                        };
+                      })()}
                     />
                   )}
                   <IntentPanel

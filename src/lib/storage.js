@@ -22,7 +22,7 @@ export async function loadTracks() {
 
   const { data: tracks, error } = await supabase
     .from('tracks')
-    .select('id, title, project_id, vocal_type, artistic_intent, created_at, versions(id, name, date, bpm, key, lufs, is_main, analysis_result, version_intent, storage_path, created_at)')
+    .select('id, title, project_id, vocal_type, artistic_intent, created_at, versions(id, name, date, bpm, key, lufs, is_main, is_final, analysis_result, version_intent, storage_path, created_at)')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -49,6 +49,7 @@ export async function loadTracks() {
         key: v.key,
         lufs: v.lufs,
         main: v.is_main,
+        isFinal: v.is_final === true,
         analysisResult: v.analysis_result,
         versionIntent: v.version_intent || null,
         storagePath: v.storage_path,
@@ -392,6 +393,23 @@ export async function saveChatHistory(versionId, messages) {
 // ── Checklist diagnostique (Ticket 2.1) ────────────────────
 // Stocke par (user_id, version_id, item_id) si la reco a été
 // implémentée par l'utilisateur dans son DAW.
+
+/**
+ * Marque (ou démarque) une version comme finale (ticket 4.4 plateau detector).
+ * Retourne true si l'update a réussi, false sinon.
+ */
+export async function setVersionFinal(versionId, isFinal) {
+  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return false;
+  const { error } = await supabase
+    .from('versions')
+    .update({ is_final: !!isFinal })
+    .eq('id', versionId);
+  if (error) {
+    console.warn('[storage] setVersionFinal error:', error.message);
+    return false;
+  }
+  return true;
+}
 
 /**
  * Charge l'ensemble des item_id complétés (completed=true) pour une version.

@@ -244,13 +244,27 @@ export default function EvolutionBanner({ evolution, previousVersionName, floorA
               }}
             >
               {floorApplied && (
-                <span>Plancher de stabilité actif — les régressions courtes sont lissées entre versions.</span>
+                <span>
+                  {typeof floorApplied === 'object' && floorApplied.highCount != null
+                    ? `Plafond actif : ${floorApplied.ceiling}/100 tant que ${floorApplied.highCount} item${floorApplied.highCount > 1 ? 's' : ''} priorité haute restent à traiter.`
+                    : 'Plancher de stabilité actif — les régressions courtes sont lissées entre versions.'}
+                </span>
               )}
               {adviceLockApplied && (
                 <span>
-                  {adviceLockApplied.categories?.length
-                    ? `Sub-score${adviceLockApplied.categories.length > 1 ? 's' : ''} verrouillé${adviceLockApplied.categories.length > 1 ? 's' : ''} sur ${adviceLockApplied.categories.map((c) => c.cat).join(' · ')} — les items cochés implémentés en V_(n-1) ne peuvent pas régresser.`
-                    : 'Sub-scores verrouillés à la baisse sur les items confirmés implémentés.'}
+                  {(() => {
+                    const f = adviceLockApplied.followed || 0;
+                    const u = adviceLockApplied.unfollowed || 0;
+                    const cats = adviceLockApplied.categories || [];
+                    const pieces = [];
+                    if (f > 0) pieces.push(`${f} conseil${f > 1 ? 's' : ''} confirmé${f > 1 ? 's' : ''}`);
+                    if (u > 0) pieces.push(`${u} encore présent${u > 1 ? 's' : ''}`);
+                    const head = pieces.length ? pieces.join(' · ') : 'Items cochés vérifiés';
+                    if (cats.length) {
+                      return `${head} — sub-score${cats.length > 1 ? 's' : ''} verrouillé${cats.length > 1 ? 's' : ''} sur ${cats.map((c) => c.cat).join(' · ')}.`;
+                    }
+                    return `${head} — les sub-scores des items cochés ne peuvent pas régresser.`;
+                  })()}
                 </span>
               )}
             </div>
