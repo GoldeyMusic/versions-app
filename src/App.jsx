@@ -24,6 +24,7 @@ import { resizeImageFile } from "./lib/image";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
+import LandingScreen from "./screens/LandingScreen";
 import PublicFicheScreen from "./screens/PublicFicheScreen";
 import ReglagesModal from "./components/ReglagesModal";
 import RenameModal from "./components/RenameModal";
@@ -2006,6 +2007,8 @@ function VersionsAppAuthed() {
   const isDesktop = !isMobile;
   // On desktop, default = "welcome" (neutral empty state); on mobile, old default = "input"
   const [screen, setScreen] = useState("welcome");
+  // Visiteurs non connectés : landing page par défaut, AuthScreen sur clic CTA.
+  const [showAuth, setShowAuth] = useState(false);
   const [homeAddOpen, setHomeAddOpen] = useState(false);
   // Contexte transmis à AddModal pour ouvrir directement dans un flow
   // précis (ex. "Nouveau titre" depuis la hero, "Ajouter version" depuis
@@ -2799,7 +2802,9 @@ function VersionsAppAuthed() {
         <FontLink />
         <GlobalStyles />
         <MockupStyles />
-        <AuthScreen />
+        {showAuth
+          ? <AuthScreen />
+          : <LandingScreen onStart={() => setShowAuth(true)} />}
       </LangContext.Provider>
     );
   }
