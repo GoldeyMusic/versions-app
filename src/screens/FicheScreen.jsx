@@ -9,7 +9,7 @@ import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
 import EvolutionBanner from '../components/EvolutionBanner';
 import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
 import PlateauBanner from '../components/PlateauBanner';
-import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal } from '../lib/storage';
+import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion } from '../lib/storage';
 import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
@@ -717,32 +717,45 @@ function VocalTypePill({ track, onRefresh }) {
 // "Nom version ▾" ouvre un menu listant toutes les versions (nom + delta + score)
 // et expose l'action "+ Nouvelle version" au pied du menu.
 
-function VersionDropdown({ track, currentVersionName, versions, onSelectVersion, onAddVersion, newVersionLabel, showAddInMenu = true }) {
+function VersionDropdown({ track, currentVersionName, versions, onSelectVersion, onAddVersion, onRefresh, onGoHome, newVersionLabel, showAddInMenu = true }) {
+  const { s } = useLang();
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 220 });
+  // actionFor : sous-menu d'actions (renommer/supprimer) pour UNE version precise.
+  // null = ferme. Sinon : { v, top, left }.
+  const [actionFor, setActionFor] = useState(null);
   const ref = useRef(null);
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
+  const actionRef = useRef(null);
   const current = versions.find((v) => v.name === currentVersionName) || versions[versions.length - 1];
 
   useEffect(() => {
     if (!open) return;
-    // Click-outside : autorise les clics dans la pill (ref) ET dans le menu portalisé (menuRef).
-    // Sans le menuRef, cliquer un item provoquait setOpen(false) avant que le onClick de l'item
-    // ne s'exécute (selon l'ordre mousedown/click), d'où la sensation que « le dropdown ne montre
-    // plus les autres versions ».
+    // Click-outside : autorise les clics dans la pill (ref), le menu portalisé (menuRef)
+    // ET le sous-menu d'actions (actionRef). Sans cette derniere autorisation, cliquer
+    // sur Renommer/Supprimer fermait le dropdown avant l'execution du handler.
     const onDown = (e) => {
       if (ref.current?.contains(e.target)) return;
       if (menuRef.current?.contains(e.target)) return;
+      if (actionRef.current?.contains(e.target)) return;
       setOpen(false);
+      setActionFor(null);
     };
-    const onEsc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    const onEsc = (e) => {
+      if (e.key !== 'Escape') return;
+      if (actionFor) setActionFor(null);
+      else setOpen(false);
+    };
     // Reposition lors du scroll/resize : le menu est en position: fixed (portal),
     // il doit suivre l'ancre. Sinon il « flotte » à l'ancien offset après scroll.
     const reposition = () => {
       if (!triggerRef.current) return;
       const r = triggerRef.current.getBoundingClientRect();
       setMenuPos({ top: r.bottom + 6, left: r.left, width: Math.max(r.width, 220) });
+      // Si un sous-menu actions est ouvert, on le ferme au scroll (sa position
+      // ne suit pas, plus simple que de la recalculer).
+      if (actionFor) setActionFor(null);
     };
     reposition();
     document.addEventListener('mousedown', onDown);
@@ -755,7 +768,64 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
       window.removeEventListener('scroll', reposition, true);
       window.removeEventListener('resize', reposition);
     };
-  }, [open]);
+  }, [open, actionFor]);
+
+  // Ouvre le sous-menu d'actions pour la version cliquee. e.stopPropagation
+  // pour ne pas declencher la selection de version sur la ligne parent.
+  const openActionMenu = (e, v) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const r = e.currentTarget.getBoundingClientRect();
+    setActionFor({ v, top: r.bottom + 4, left: Math.max(8, r.right - 200) });
+  };
+
+  const closeAll = () => { setActionFor(null); setOpen(false); };
+
+  const handleRename = async (v) => {
+    setActionFor(null);
+    const next = window.prompt(s.fiche.renamePrompt || `Nouveau nom pour "${v.name}" :`, v.name || '');
+    if (next == null) return; // annulé
+    const trimmed = next.trim();
+    if (!trimmed || trimmed === v.name) return;
+    try {
+      await renameVersion(track.id, v.id, trimmed);
+      onRefresh?.();
+    } catch (err) {
+      console.warn('[VersionDropdown] renameVersion failed', err);
+    }
+  };
+
+  const handleDelete = async (v) => {
+    setActionFor(null);
+    const ok = await confirmDialog({
+      title: s.fiche.deleteVersionTitle || 'Supprimer cette version ?',
+      message: (s.fiche.deleteVersionBody || 'La version "{name}" et son fichier audio seront définitivement supprimés.').replace('{name}', v.name || ''),
+      confirmLabel: s.fiche.deleteVersionConfirm || 'Supprimer',
+      cancelLabel: s.common?.cancel || 'Annuler',
+      danger: true,
+    });
+    if (ok !== 'confirm') return;
+    try {
+      // Cas 1 : derniere version d un titre → deleteVersion supprime AUSSI le track
+      //         (cf storage.deleteVersion). La fiche actuelle n a plus de cible
+      //         valide, on retourne home.
+      // Cas 2 : version active supprimee mais d autres existent → on retourne
+      //         home plutot que de bricoler une selection automatique (le user
+      //         re-cliquera sur le titre depuis la home, simple et previsible).
+      // Cas 3 : version non-active supprimee → on reste sur la fiche, refresh.
+      const isLast = (versions || []).length <= 1;
+      const wasActive = v.name === currentVersionName;
+      await deleteVersion(track.id, v.id);
+      closeAll();
+      onRefresh?.();
+      if ((isLast || wasActive) && onGoHome) {
+        // Petit delai pour laisser le refresh propager avant de naviguer
+        setTimeout(() => onGoHome(), 50);
+      }
+    } catch (err) {
+      console.warn('[VersionDropdown] deleteVersion failed', err);
+    }
+  };
 
   if (!current) return null;
 
@@ -791,30 +861,67 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
             const prev = idx > 0 ? versions[idx - 1]?.analysisResult?.fiche?.globalScore : null;
             const delta = (typeof score === 'number' && typeof prev === 'number') ? score - prev : null;
             const isActive = v.name === currentVersionName;
+            // Versions persistees uniquement : on ne propose pas le menu sur la
+            // ligne "pending" (id technique commence par "__pending").
+            const canEdit = onRefresh && v.id && !String(v.id).startsWith('__pending');
             return (
-              <button
+              <div
                 key={v.id}
-                type="button"
                 className={`vdd-item${isActive ? ' is-active' : ''}`}
-                onClick={() => {
-                  if (!isActive) onSelectVersion?.(track, v);
-                  setOpen(false);
-                }}
                 role="option"
                 aria-selected={isActive}
+                style={{ display: 'flex', alignItems: 'center', position: 'relative' }}
               >
-                <span className="vdd-item-name">{v.name}</span>
-                <span className="vdd-item-meta">
-                  {typeof delta === 'number' && delta !== 0 && (
-                    <span className={`vdd-item-delta${delta < 0 ? ' down' : ''}`}>
-                      {delta > 0 ? '↑' : '↓'}{Math.abs(delta)}
-                    </span>
-                  )}
-                  {typeof score === 'number' && (
-                    <span className="vdd-item-score">{Math.round(score)}</span>
-                  )}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  className="vdd-item-row"
+                  onClick={() => {
+                    if (!isActive) onSelectVersion?.(track, v);
+                    setOpen(false);
+                  }}
+                  style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    background: 'transparent', border: 0, color: 'inherit', cursor: 'pointer',
+                    padding: 'inherit', font: 'inherit', textAlign: 'left',
+                  }}
+                >
+                  <span className="vdd-item-name">{v.name}</span>
+                  <span className="vdd-item-meta">
+                    {typeof delta === 'number' && delta !== 0 && (
+                      <span className={`vdd-item-delta${delta < 0 ? ' down' : ''}`}>
+                        {delta > 0 ? '↑' : '↓'}{Math.abs(delta)}
+                      </span>
+                    )}
+                    {typeof score === 'number' && (
+                      <span className="vdd-item-score">{Math.round(score)}</span>
+                    )}
+                  </span>
+                </button>
+                {canEdit && (
+                  <button
+                    type="button"
+                    className="vdd-item-actions"
+                    onClick={(e) => openActionMenu(e, v)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    title={s.vchip?.optionsTitle || 'Options'}
+                    aria-label={s.vchip?.optionsTitle || 'Options'}
+                    style={{
+                      width: 24, height: 24, marginLeft: 8, marginRight: 4,
+                      borderRadius: 4, border: 0,
+                      background: actionFor?.v?.id === v.id ? 'rgba(245,176,86,.18)' : 'transparent',
+                      color: 'inherit', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      opacity: 0.7,
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                      <circle cx="3" cy="7" r="1.3" fill="currentColor" />
+                      <circle cx="7" cy="7" r="1.3" fill="currentColor" />
+                      <circle cx="11" cy="7" r="1.3" fill="currentColor" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             );
           })}
           {showAddInMenu && onAddVersion && (
@@ -827,6 +934,57 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
               <span>{newVersionLabel}</span>
             </button>
           )}
+        </div>,
+        document.body
+      )}
+      {open && actionFor && createPortal(
+        <div
+          ref={actionRef}
+          className="vdd-action-menu"
+          role="menu"
+          style={{
+            position: 'fixed',
+            top: actionFor.top,
+            left: actionFor.left,
+            minWidth: 200,
+            background: 'var(--surface, #1b1b1f)',
+            border: '1px solid var(--border, rgba(255,255,255,0.08))',
+            borderRadius: 8,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+            padding: 4,
+            zIndex: 1000,
+          }}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => handleRename(actionFor.v)}
+            style={{
+              display: 'block', width: '100%', textAlign: 'left',
+              padding: '8px 12px', borderRadius: 6, border: 0,
+              background: 'transparent', color: 'inherit',
+              cursor: 'pointer', fontSize: 13,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            {s.vchip?.renameLabel || 'Renommer'}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => handleDelete(actionFor.v)}
+            style={{
+              display: 'block', width: '100%', textAlign: 'left',
+              padding: '8px 12px', borderRadius: 6, border: 0,
+              background: 'transparent', color: '#ff7a7a',
+              cursor: 'pointer', fontSize: 13,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,122,122,0.12)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            {s.vchip?.deleteVersion || 'Supprimer cette version'}
+          </button>
         </div>,
         document.body
       )}
@@ -877,6 +1035,8 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
               versions={versions}
               onSelectVersion={onSelectVersion}
               onAddVersion={onAddVersion}
+              onRefresh={onTracksRefresh}
+              onGoHome={onGoHome}
               newVersionLabel={s.fiche.newVersionTitle || 'Nouvelle version'}
               showAddInMenu={false}
             />
@@ -968,6 +1128,8 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
             versions={versions}
             onSelectVersion={onSelectVersion}
             onAddVersion={onAddVersion}
+            onRefresh={onTracksRefresh}
+            onGoHome={onGoHome}
             newVersionLabel={s.fiche.newVersionTitle || 'Nouvelle version'}
           />
         )}
