@@ -1008,18 +1008,44 @@ function pickDspMetrics(version, analysisResult) {
   return { bpm: bpm || null, key: key || null, lufs: lufs || null };
 }
 
-// "G:maj" → "G maj", "Am" → "Am" (déjà court). Fadr utilise les deux notations.
+// Normalise + formate la tonalité pour affichage (chip topbar).
+// Cohérent avec normalizeKey() côté backend (decode-api/lib/fadr.js) :
+// préfère les bémols en majeur (D# → Eb, A# → Bb, G# → Ab),
+// préfère les dièses en mineur (Db → C#, Gb → F#, Ab → G#).
+// Les anciennes valeurs Fadr brutes en base ("D#:maj") sont normalisées
+// au passage pour rester cohérentes avec les nouvelles ("Eb maj").
 function formatDspKey(rawKey) {
   if (!rawKey || typeof rawKey !== 'string') return null;
   const k = rawKey.trim();
   if (!k) return null;
-  // "G:maj" / "A:min" → on enlève le ":" pour gagner de la place
+
+  let note, modeRaw;
   if (k.includes(':')) {
-    const [note, mode] = k.split(':');
-    const m = (mode || '').toLowerCase().startsWith('min') ? 'min' : 'maj';
-    return `${note} ${m}`;
+    const parts = k.split(':');
+    note = parts[0];
+    modeRaw = (parts[1] || '').toLowerCase();
+  } else {
+    // Soit "Eb maj" / "G min" (déjà normalisé), soit "Am" / "C#m" / "Eb"
+    const spaced = k.match(/^([A-G][b#]?)\s+(maj|min|major|minor)$/i);
+    if (spaced) { note = spaced[1]; modeRaw = spaced[2].toLowerCase(); }
+    else {
+      const m = k.match(/^([A-G][b#]?)(m)?$/i);
+      if (!m) return k; // valeur libre saisie par l'user → on la respecte
+      note = m[1];
+      modeRaw = m[2] ? 'min' : 'maj';
+    }
   }
-  return k; // "Am", "C#m", déjà compact
+  const isMinor = modeRaw.startsWith('min');
+  const modeStr = isMinor ? 'min' : 'maj';
+
+  const SHARP_TO_FLAT = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
+  const FLAT_TO_SHARP = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
+  const MAJOR_PREFER_FLAT = new Set(['D#', 'A#', 'G#']);
+  const MINOR_PREFER_SHARP = new Set(['Db', 'Gb', 'Ab']);
+  let normNote = note;
+  if (!isMinor && MAJOR_PREFER_FLAT.has(note)) normNote = SHARP_TO_FLAT[note];
+  else if (isMinor && MINOR_PREFER_SHARP.has(note)) normNote = FLAT_TO_SHARP[note];
+  return `${normNote} ${modeStr}`;
 }
 
 function DspBadge({ version, analysisResult, track, onRefresh }) {
