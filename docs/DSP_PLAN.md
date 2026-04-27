@@ -65,8 +65,16 @@ Le pipeline d'analyse actuel n'utilise **aucune mesure DSP** dans la fiche, alor
 
   **Conséquence pour 1.2+** : avant de reformuler le prompt Claude (1.2), il faut **brancher Fadr dans `api/analyze.js`** (appel `analyzeFile` puis `extractFadrData`, en parallèle de Gemini), puis transmettre les valeurs à `generateFiche` via un nouveau paramètre. Tâche ajoutée ci-dessous (1.1bis).
 
-- [ ] **1.1bis — Brancher Fadr dans le pipeline `analyze.js`**
+- [x] **1.1bis — Brancher Fadr dans le pipeline `analyze.js`**
   Dans `decode-api/api/analyze.js`, importer `{ analyzeFile, extractFadrData }` de `../lib/fadr`. Lancer `analyzeFile(fileBuffer, …)` **en parallèle** de `analyzeListening` (Promise.all ou pattern parallèle similaire au transcodage) après réception du fichier. À l'issue, appeler `extractFadrData(task)` et stocker le résultat dans le `ctx`/job sous une clé `fadrMetrics`. Propager `fadrMetrics` jusqu'à `generateFiche` (nouvelle signature). Gérer les erreurs Fadr en mode dégradé : si Fadr échoue ou timeout, on continue sans mesures (le pipeline ne doit pas casser).
+
+  **Implémenté (2026-04-27)** :
+  - `api/analyze.js` : import de `fadr.js`, lancement de `fadrAnalyzeFile` dès réception du fichier (en parallèle de Gemini, RAG, perception). `fadrPromise` propagé via le `ctx` jusqu'à la Phase B.
+  - `runDiagnosticPhase` : `await Promise.race([fadrPromise, timeout 90s])`. Mode dégradé `fadrMetrics=null` si Fadr KO ou timeout. Stage intermédiaire `fadr_done` (pct 75) pour info front.
+  - `fadrMetrics` exposé sur le job final (`status: 'complete'`) → consommable côté front (1.4) et persistable (1.3).
+  - `lib/claude.js` : signature `generateFiche(...)` étendue avec `fadrMetrics` en dernier paramètre **optionnel**. Pour l'instant la valeur est juste reçue et loggée (`[claude] fadr metrics available — bpm:… key:… lufs:…`). L'injection effective dans le `systemPrompt` est l'objet de **1.2**.
+  - Sanity check `node --check` OK sur les deux fichiers.
+  - ⚠️ Variable d'env `FADR_API_KEY` doit être présente dans l'environnement Vercel/Railway/host de `decode-api` (déjà utilisée par `lib/fadr.js`, à vérifier côté secrets si elle n'avait jamais servi).
 
 - [ ] **1.2 — Reformuler le prompt Claude principal**
   Dans `decode-api/lib/claude.js`, retirer la consigne *"Tu n'as AUCUNE MESURE"*. Remplacer par un bloc en tête de prompt :
