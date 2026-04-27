@@ -15,19 +15,22 @@
 ## Tier 1 — Quick wins (semaine 1)
 *Cible : tous les rapports immédiatement plus pro + autorité produit.*
 
-- [ ] **1.1 — Format des notes (decode-api)**
+- [x] **1.1 — Format des notes (decode-api)**
   Modifier le prompt pour imposer un schema strict : `{section, priority(high/med/low), title, why, how(avec valeurs Hz/dB/Q/ratio/attack/release/GR), plugin_pick}`. Référence : §6.3 et §8.1 de l'audit. Effet : chaque note devient actionnable comme chez AubioMix (ex. *"compress vocal: 2:1, 10-20ms attack, 80-120ms release, 2-4dB GR"*).
+  ✅ Livré : schema strict `{section, priority, title, score /100, why, how, plugin_pick}` dans `decode-api/lib/claude.js` + front adapté (`FicheScreen`, `PublicFicheScreen`, `exportPdf`, `ficheHelpers.normalizeDiagItem` avec rétrocompat ancien schema `{label, detail, tools[], score /10}`).
 
 - [ ] **1.2 — Page `/comment-on-evalue`**
   Équivalent francophone du `/evaluation-framework` d'AubioMix. 1500-2500 mots, prose + encadrés. Décrit notre méthodologie : axes évalués, pondérations, gates, ce qu'on mesure objectivement vs ce qui relève du jugement IA. Effet : autorité, SEO, trust. **À écrire à 2 mains avec David** (ne jamais citer Gemini/Claude — cf. `feedback_no_source_citations`).
 
 ## Tier 2 — Engagement + viralité (semaine 2)
 
-- [ ] **2.1 — Checklist cochable sur les notes du rapport**
+- [x] **2.1 — Checklist cochable sur les notes du rapport**
   Front : cases cliquables sur chaque note. Backend : persister l'état dans Supabase (table `mix_note_completions` par exemple). UI : compteur "X/N completed (Y%)" en haut de la section Notes. Effet : engagement (l'utilisateur revient pour cocher) + base pour le futur *advice-followed locking* (Tier 4).
+  ✅ Livré : table `mix_note_completions` (migration 008, RLS owner-only), checkbox amber par item diag dans `FicheScreen`, persistance optimiste via `loadNoteCompletions` / `setNoteCompletion`, compteur "X/N complétés (Y%)" + barre de progression dans le `diag-eyebrow`, items barrés/grisés quand cochés.
 
-- [ ] **2.2 — Score Card image téléchargeable**
+- [x] **2.2 — Score Card image téléchargeable**
   Canvas → PNG. Format carré 1080×1080 partageable Insta/X. Doit contenir : titre, score global, tier (avec couleur), 3 sub-scores principaux, watermark Versions. Bouton "Télécharger ma Score Card" sur la fiche.
+  ✅ Livré : `lib/exportScoreCard.js` Canvas 2D pur 1080×1080 (fond `#0c0c0d`, halos seedés, anneau de score coloré par seuil, verdict italique Fraunces, top-3 sub-scores en cartes, watermark `versions-app.vercel.app`) + bouton Score Card dans la topbar desktop ET les actions mobile.
 
 ## Tier 3 — Vitrine (semaines 3-4)
 
@@ -80,3 +83,4 @@ Ces axes restent notre territoire unique vs AubioMix. À garder dans toute déci
 *À remplir au fur et à mesure quand une décision modifie le plan.*
 
 - **2026-04-26** — Plan initial agréé après audit complet. Séquence 4 tiers. Audit livré dans `docs/audit_aubiomix.md`.
+- **2026-04-27** — Tickets 1.1, 2.1 et 2.2 livrés sur `main`. Tier 1 reste sur 1.2 (page `/comment-on-evalue`) ; Tier 2 entièrement clos.
