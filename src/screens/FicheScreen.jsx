@@ -990,9 +990,74 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
   );
 }
 
+// ── DSP badge (BPM · tonalité · LUFS) ──────────────────────────
+// DSP 1.4 — chip mono pour la topbar.
+// Source de vérité, par ordre :
+//   1. analysisResult.fadrMetrics (frais, juste après une analyse)
+//   2. version.bpm/key/lufs (DB, peuplé en 1.3 au save)
+// Comme ça le chip apparaît dès la fin de l'analyse, et reste cohérent
+// après recharge.
+function pickDspMetrics(version, analysisResult) {
+  const fm = analysisResult?.fadrMetrics || {};
+  const bpm = (fm.bpm != null && fm.bpm !== '') ? String(fm.bpm) : (version?.bpm || null);
+  const key = (typeof fm.key === 'string' && fm.key.trim()) ? fm.key.trim() : (version?.key || null);
+  let lufs = null;
+  if (typeof fm.lufs === 'number' && Number.isFinite(fm.lufs)) lufs = fm.lufs.toFixed(1);
+  else if (typeof fm.lufs === 'string' && fm.lufs.trim()) lufs = fm.lufs.trim();
+  else if (version?.lufs) lufs = version.lufs;
+  return { bpm: bpm || null, key: key || null, lufs: lufs || null };
+}
+
+// "G:maj" → "G maj", "Am" → "Am" (déjà court). Fadr utilise les deux notations.
+function formatDspKey(rawKey) {
+  if (!rawKey || typeof rawKey !== 'string') return null;
+  const k = rawKey.trim();
+  if (!k) return null;
+  // "G:maj" / "A:min" → on enlève le ":" pour gagner de la place
+  if (k.includes(':')) {
+    const [note, mode] = k.split(':');
+    const m = (mode || '').toLowerCase().startsWith('min') ? 'min' : 'maj';
+    return `${note} ${m}`;
+  }
+  return k; // "Am", "C#m", déjà compact
+}
+
+function DspBadge({ version, analysisResult }) {
+  const { bpm, key, lufs } = pickDspMetrics(version, analysisResult);
+  if (!bpm && !key && !lufs) return null;
+  const parts = [];
+  if (bpm) parts.push(`${bpm} BPM`);
+  if (key) parts.push(formatDspKey(key));
+  if (lufs) {
+    // Si la valeur stockée n'a pas l'unité, on l'ajoute
+    const ls = String(lufs).toLowerCase().includes('lufs') ? String(lufs) : `${lufs} LUFS`;
+    parts.push(ls);
+  }
+  return (
+    <div
+      className="fiche-topbar-dsp"
+      title="Mesures objectives du fichier audio (Fadr)"
+      style={{
+        display: 'inline-flex', alignItems: 'center',
+        padding: '4px 10px',
+        borderRadius: 999,
+        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.02)',
+        fontFamily: 'var(--mono)',
+        fontSize: 11,
+        letterSpacing: 0.5,
+        color: 'var(--muted)',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {parts.join(' · ')}
+    </div>
+  );
+}
+
 // ── Timeline (sticky bar topbar + dropdown versions) ──────────────
 
-function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVersion, onShareVersion, onExportVersion, onScoreCard, onTracksRefresh, onGoHome }) {
+function Timeline({ track, currentVersionName, stage, analysisResult, onSelectVersion, onAddVersion, onShareVersion, onExportVersion, onScoreCard, onTracksRefresh, onGoHome }) {
   const { s } = useLang();
   const isMobile = useMobile();
 
@@ -1052,6 +1117,7 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
               <div className="ver-label"><b className={stageClass}>{stageLabel}</b></div>
             </div>
           )}
+          {current && <DspBadge version={current} analysisResult={analysisResult} />}
           {current && (onShareVersion || onExportVersion || onScoreCard) && (
             <div className="fiche-topbar-actions">
               {onShareVersion && (
@@ -1132,6 +1198,12 @@ function Timeline({ track, currentVersionName, stage, onSelectVersion, onAddVers
           />
         )}
       </div>
+
+      {current && (
+        <div style={{ display: 'flex', justifyContent: 'flex-start', padding: '4px 0 8px' }}>
+          <DspBadge version={current} analysisResult={analysisResult} />
+        </div>
+      )}
 
       {current && (onShareVersion || onExportVersion || onScoreCard) && (
         <div className="fiche-head-actions">
@@ -2372,6 +2444,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             track={currentTrack}
             currentVersionName={config?.version}
             stage={stage}
+            analysisResult={analysisResult}
             onSelectVersion={onSelectVersion}
             onAddVersion={onAddVersion}
             onShareVersion={handleShareVersion}

@@ -76,7 +76,7 @@ Le pipeline d'analyse actuel n'utilise **aucune mesure DSP** dans la fiche, alor
   - Sanity check `node --check` OK sur les deux fichiers.
   - ⚠️ Variable d'env `FADR_API_KEY` doit être présente dans l'environnement Vercel/Railway/host de `decode-api` (déjà utilisée par `lib/fadr.js`, à vérifier côté secrets si elle n'avait jamais servi).
 
-- [ ] **1.2 — Reformuler le prompt Claude principal**
+- [x] **1.2 — Reformuler le prompt Claude principal**
   Dans `decode-api/lib/claude.js`, retirer la consigne *"Tu n'as AUCUNE MESURE"*. Remplacer par un bloc en tête de prompt :
   ```
   MESURES OBJECTIVES (mesurées sur ce morceau, à citer si pertinent) :
@@ -86,11 +86,17 @@ Le pipeline d'analyse actuel n'utilise **aucune mesure DSP** dans la fiche, alor
   Tu peux et dois citer ces valeurs quand elles éclairent un item. Tu ne dois pas inventer d'autres mesures.
   ```
 
-- [ ] **1.3 — Persister les mesures côté Supabase**
+  **Implémenté (2026-04-27)** : `dspBlock` dynamique injecté dans le `systemPrompt` quand `fadrMetrics` non-null. La règle de fer "Tu n'as AUCUNE MESURE" est rendue conditionnelle (gardée en mode dégradé Fadr KO, remplacée sinon). Claude reçoit aussi une instruction d'exploitation : citer textuellement, calibrer le diagnostic MASTER & LOUDNESS contre la cible streaming (-10/-12 LUFS), proposer des delays calculés sur le BPM (`60000 / bpm / 2 = ms pour 1/8`). Garde-fous : interdit d'inventer d'autres mesures (crest factor, fréquences précises). Rappel concis dupliqué en queue de user prompt (recency bias).
+
+- [x] **1.3 — Persister les mesures côté Supabase**
   Ajouter une colonne `dsp_metrics jsonb` sur la table `versions` (migration `010_dsp_metrics.sql`). Y stocker `{bpm, key, lufs, source: 'fadr'}` à la fin de l'analyse pour pouvoir les afficher sans re-appeler Fadr.
 
-- [ ] **1.4 — Affichage front (topbar fiche)**
+  **Implémenté (2026-04-27) — adapté** : pas besoin de migration `010`, les colonnes `versions.bpm/key/lufs` (text) **existent déjà** depuis l'origine, simplement jamais peuplées. `src/lib/storage.js` `saveAnalysis()` extrait `analysisResult.fadrMetrics` et populate ces colonnes au save (insert + update). Si Fadr KO/timeout → on n'écrit rien (pas d'écrasement par null). Donnée disponible côté front sans parser le JSON `analysis_result`.
+
+- [x] **1.4 — Affichage front (topbar fiche)**
   Petit chip mono dans la topbar de `FicheScreen.jsx` : `124 BPM · Am · -8.4 LUFS`. Style aligné sur les autres chips de la fiche.
+
+  **Implémenté (2026-04-27)** : composant `<DspBadge />` dans `FicheScreen.jsx`, helper `pickDspMetrics()` qui lit en priorité `analysisResult.fadrMetrics` (frais post-analyse) sinon `version.bpm/key/lufs` (DB). Helper `formatDspKey()` normalise la notation Fadr (`G:maj` → `G maj`). Inséré dans la topbar desktop (entre `meta` et `actions`) et mobile (sous le titre, avant les actions). Style mono, pill, cohérent avec les autres chips.
 
 - [ ] **1.5 — Test manuel**
   Lancer 3 analyses (rock, pop, hip-hop). Vérifier que les valeurs apparaissent, sont stables, et que Claude les cite quand pertinent (sans inventer).

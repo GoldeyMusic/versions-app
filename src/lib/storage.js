@@ -140,6 +140,26 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
   const finalStoragePath = storagePath || analysisResult?.storagePath || null;
   const localeToPersist = (analysisLocale || 'fr').toString().toLowerCase().slice(0, 2);
 
+  // DSP 1.3 — extraction des mesures Fadr (peuplées par le pipeline backend en 1.1bis).
+  // Les colonnes versions.bpm/key/lufs existent depuis l'origine mais n'étaient pas
+  // remplies. On les peuple ici pour permettre :
+  //   - filtrage/tri rapide par BPM/tonalité dans le dashboard
+  //   - affichage badge topbar (1.4) sans avoir à parser analysis_result.fadrMetrics
+  //   - statistiques d'évolution inter-versions (delta LUFS, etc.)
+  // Si la mesure est absente (Fadr KO/timeout), on n'écrit rien (laisse la valeur
+  // existante intacte, plutôt qu'écraser par null).
+  const fm = analysisResult?.fadrMetrics || {};
+  const fadrBpm = (fm.bpm != null && fm.bpm !== '') ? String(fm.bpm) : null;
+  const fadrKey = (typeof fm.key === 'string' && fm.key.trim()) ? fm.key.trim() : null;
+  const fadrLufs = (typeof fm.lufs === 'number' && Number.isFinite(fm.lufs))
+    ? fm.lufs.toFixed(1)
+    : (typeof fm.lufs === 'string' && fm.lufs.trim() ? fm.lufs.trim() : null);
+  const dspPatch = {
+    ...(fadrBpm ? { bpm: fadrBpm } : {}),
+    ...(fadrKey ? { key: fadrKey } : {}),
+    ...(fadrLufs ? { lufs: fadrLufs } : {}),
+  };
+
   if (existing) {
     const updatePayload = {
       date: formatDate(),
@@ -149,6 +169,7 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
       // Nouvelle analyse = les anciennes traductions cachées sont obsolètes.
       analysis_translations: {},
       audio_hash: config?.audioHash || analysisResult?.audioHash || null,
+      ...dspPatch,
     };
     if (finalStoragePath) updatePayload.storage_path = finalStoragePath;
     const { error } = await supabase
@@ -172,6 +193,7 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
         analysis_locale: localeToPersist,
         audio_hash: config?.audioHash || analysisResult?.audioHash || null,
         storage_path: finalStoragePath,
+        ...dspPatch,
       })
       .select()
       .single();
