@@ -2865,7 +2865,7 @@ export default function MockupStyles() {
     padding: 20px 0 48px;
   }
   .score-ring {
-    width: 140px; height: 140px; position: relative; flex-shrink: 0;
+    width: 120px; height: 120px; position: relative; flex-shrink: 0;
   }
   .score-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
   .score-ring .center {
@@ -2873,12 +2873,12 @@ export default function MockupStyles() {
     align-items: center; justify-content: center;
   }
   .score-ring .big {
-    font-family: var(--serif); font-size: 58px; line-height: 1; color: var(--text);
+    font-family: var(--serif); font-size: 48px; line-height: 1; color: var(--text);
     display: inline-flex; align-items: flex-start; gap: 2px;
   }
   .score-ring .big-suffix {
-    font-family: var(--mono); font-size: 12px; color: var(--muted);
-    letter-spacing: 0.5px; font-weight: 400; margin-top: 6px;
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    letter-spacing: 0.5px; font-weight: 400; margin-top: 5px;
   }
   .score-ring .unit { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 1px; margin-top: 4px; }
   .score-ring { cursor: help; outline: none; }
@@ -8779,11 +8779,14 @@ export default function MockupStyles() {
     overflow: visible;
     animation: dsp-fade-in .15s ease-out both;
   }
-  /* Labels axes : mono caps tiny, muted par défaut, ambre au hover. */
+  /* Labels axes : mono caps tiny, muted par défaut, ambre au hover.
+     Letter-spacing réduit + size légèrement plus petite pour limiter la
+     largeur des longs labels horizontaux ('ASSISE BASSE', 'DYNAMIQUE')
+     qui débordaient sur le score ring / hors de la card à étroit. */
   .fiche-v2 .mix-radar-label {
     font-family: var(--mono, 'JetBrains Mono', monospace);
-    font-size: 8.5px;
-    letter-spacing: 1.4px;
+    font-size: 8px;
+    letter-spacing: 0.8px;
     font-weight: 500;
     transition: fill .12s ease;
     pointer-events: none;

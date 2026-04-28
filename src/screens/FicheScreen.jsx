@@ -78,74 +78,109 @@ function TrackTitleTextV2({ title }) {
 export function ScoreRingBig({ value, prevScore = null, isOpen = true }) {
   const { s } = useLang();
   const v = Math.max(0, Math.min(100, Number(value) || 0));
-  // Anim entrée : score count-up + arc qui tourne. Easing 'out' (cubique
-  // sans overshoot) → pas de fausse joie où le chiffre dépasse puis
-  // redescend. Décélération propre jusqu'à la valeur finale.
   const animV = useAnimatedValue(v, { duration: 1300, delay: 100, when: isOpen, easing: 'out' });
   const animOffset = 276 - (276 * animV) / 100;
-  // Couleur basée sur la valeur FINALE (pas anim) pour ne pas changer
-  // de teinte pendant le count-up.
   const color = v < 50 ? '#ef6b6b' : v < 75 ? '#f5b056' : '#7bd88f';
   const band = v < 50 ? s.fiche.scoreBandLow : v < 75 ? s.fiche.scoreBandMid : s.fiche.scoreBandHigh;
   const [tipOpen, setTipOpen] = useState(false);
+  const [tipPos, setTipPos] = useState(null);
+  const ringRef = useRef(null);
   const delta = typeof prevScore === 'number' ? Math.round(v - prevScore) : null;
+
+  // Tooltip rendu via React Portal directement dans <body> → escape tous
+  // les stacking contexts parents (le chat .fiche-chat-side l'écrasait
+  // malgré z-index 9999 sur .row-verdict). Position calculée au hover via
+  // getBoundingClientRect(), avec un useEffect qui suit scroll/resize.
+  const updateTipPos = () => {
+    if (ringRef.current) {
+      const rect = ringRef.current.getBoundingClientRect();
+      setTipPos({ top: rect.bottom + 10, left: rect.left, width: rect.width });
+    }
+  };
+  useEffect(() => {
+    if (!tipOpen) return;
+    const onScroll = () => updateTipPos();
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [tipOpen]);
+
   return (
-    <div
-      className={`score-ring${tipOpen ? ' tip-open' : ''}`}
-      onMouseEnter={() => setTipOpen(true)}
-      onMouseLeave={() => setTipOpen(false)}
-      onClick={() => setTipOpen((v) => !v)}
-      role="button"
-      tabIndex={0}
-      aria-label={s.fiche.scoreAriaLabel}
-    >
-      <svg viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="44" fill="none" stroke={`${color}22`} strokeWidth="5" />
-        <circle
-          cx="50" cy="50" r="44" fill="none" stroke={color} strokeWidth="5"
-          strokeDasharray="276" strokeDashoffset={animOffset} strokeLinecap="round"
-          transform="rotate(-90 50 50)"
-        />
-      </svg>
-      <div className="center">
-        <div className="big">
-          {Math.round(animV)}
-          <span className="big-suffix">/100</span>
+    <>
+      <div
+        ref={ringRef}
+        className={`score-ring${tipOpen ? ' tip-open' : ''}`}
+        onMouseEnter={() => { updateTipPos(); setTipOpen(true); }}
+        onMouseLeave={() => setTipOpen(false)}
+        onClick={() => { updateTipPos(); setTipOpen((v) => !v); }}
+        role="button"
+        tabIndex={0}
+        aria-label={s.fiche.scoreAriaLabel}
+      >
+        <svg viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="44" fill="none" stroke={`${color}22`} strokeWidth="5" />
+          <circle
+            cx="50" cy="50" r="44" fill="none" stroke={color} strokeWidth="5"
+            strokeDasharray="276" strokeDashoffset={animOffset} strokeLinecap="round"
+            transform="rotate(-90 50 50)"
+          />
+        </svg>
+        <div className="center">
+          <div className="big">
+            {Math.round(animV)}
+            <span className="big-suffix">/100</span>
+          </div>
         </div>
+        <span className="ring-help" aria-hidden="true">?</span>
       </div>
-      <span className="ring-help" aria-hidden="true">?</span>
-      <div className="ring-tooltip" role="tooltip">
-        <div className="rt-head">
-          <span className="rt-dot" style={{ background: color }} />
-          <strong>{band}</strong>
-          <span className="rt-val">{Math.round(v)}/100</span>
-        </div>
-        <div className="rt-bands">
-          <div className={`rt-band${v < 50 ? ' active' : ''}`}>
-            <span className="dot" style={{ background: '#ef6b6b' }} />
-            <span>{s.fiche.scoreBandLowRange}</span>
+      {tipOpen && tipPos && createPortal(
+        <div
+          className="score-tooltip"
+          role="tooltip"
+          style={{
+            position: 'fixed',
+            top: `${tipPos.top}px`,
+            left: `${tipPos.left}px`,
+            zIndex: 9999,
+            ['--st-accent']: color,
+          }}
+        >
+          <div className="rt-head">
+            <span className="rt-dot" style={{ background: color }} />
+            <strong>{band}</strong>
+            <span className="rt-val">{Math.round(v)}/100</span>
           </div>
-          <div className={`rt-band${v >= 50 && v < 75 ? ' active' : ''}`}>
-            <span className="dot" style={{ background: '#f5b056' }} />
-            <span>{s.fiche.scoreBandMidRange}</span>
+          <div className="rt-bands">
+            <div className={`rt-band${v < 50 ? ' active' : ''}`}>
+              <span className="dot" style={{ background: '#ef6b6b' }} />
+              <span>{s.fiche.scoreBandLowRange}</span>
+            </div>
+            <div className={`rt-band${v >= 50 && v < 75 ? ' active' : ''}`}>
+              <span className="dot" style={{ background: '#f5b056' }} />
+              <span>{s.fiche.scoreBandMidRange}</span>
+            </div>
+            <div className={`rt-band${v >= 75 ? ' active' : ''}`}>
+              <span className="dot" style={{ background: '#7bd88f' }} />
+              <span>{s.fiche.scoreBandHighRange}</span>
+            </div>
           </div>
-          <div className={`rt-band${v >= 75 ? ' active' : ''}`}>
-            <span className="dot" style={{ background: '#7bd88f' }} />
-            <span>{s.fiche.scoreBandHighRange}</span>
+          {delta != null && (
+            <div className="rt-calib">
+              {delta === 0
+                ? s.fiche.scoreCalibStable
+                : s.fiche.scoreCalibDelta.replace('{delta}', `${delta > 0 ? '+' : ''}${delta}`)}
+            </div>
+          )}
+          <div className="rt-note">
+            {s.fiche.scoreNote}
           </div>
-        </div>
-        {delta != null && (
-          <div className="rt-calib">
-            {delta === 0
-              ? s.fiche.scoreCalibStable
-              : s.fiche.scoreCalibDelta.replace('{delta}', `${delta > 0 ? '+' : ''}${delta}`)}
-          </div>
-        )}
-        <div className="rt-note">
-          {s.fiche.scoreNote}
-        </div>
-      </div>
-    </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -410,8 +445,12 @@ function MixRadar({ items }) {
   const SIZE = 220;
   const CX = SIZE / 2;
   const CY = SIZE / 2;
-  const R_OUTER = 72;
-  const R_LABEL = R_OUTER + 22;
+  const R_OUTER = 70;
+  // Labels rapprochés du centre (R_LABEL réduit) pour éviter que les
+  // longs labels horizontaux ('ASSISE BASSE', 'DYNAMIQUE') ne débordent
+  // sur le score ring à gauche ou hors de la card à droite quand
+  // l'écran est étroit.
+  const R_LABEL = R_OUTER + 16;
   const angleAt = (i) => (-Math.PI / 2) + (i * 2 * Math.PI / N);
   const polar = (i, r) => {
     const a = angleAt(i);
@@ -589,10 +628,10 @@ function MixRadar({ items }) {
           const anchor = cosA > 0.3 ? 'start' : (cosA < -0.3 ? 'end' : 'middle');
           const isH = highlightIdx === i;
           const labelText = (it.label || '').toUpperCase();
-          // Approx largeur du label : font-size 8.5px mono + letter-spacing
-          // 1.4px → ~6 px par caractère (suffisant pour positionner un score
+          // Approx largeur du label : font-size 8px mono + letter-spacing
+          // 0.8px → ~5 px par caractère (suffisant pour positionner un score
           // centré, au pixel près n'est pas critique).
-          const labelWidth = labelText.length * 6;
+          const labelWidth = labelText.length * 5;
           // Centre visuel du label selon son anchor
           let labelCenterX;
           if (anchor === 'start') labelCenterX = lp.x + labelWidth / 2;
