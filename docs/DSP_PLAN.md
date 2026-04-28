@@ -209,21 +209,29 @@ Décidé en session 2026-04-27. À enchaîner dans cet ordre. Estimation totale 
 
 Couleurs : `var(--amber)` pour cible, `var(--muted)` pour neutre, rouge subtle uniquement pour critique. **Pas** de barres mint→rouge style AubioMix. Animations fade-in 150ms, halos `0 0 12px rgba(245,176,86,0.04)` max.
 
-- [ ] **A.1 — Loudness meter (section MASTER & LOUDNESS)**
+- [x] **A.1 — Loudness meter (section MASTER & LOUDNESS)**
   Barre fine ~6px pleine largeur, 4 zones graduées :
   `< -16 LUFS` Trop sage (gris) · `-16 à -10` Streaming (ambre clair) · `-10 à -7` Compétitif (ambre fort) · `> -7` Surcomprimé (rouge subtle).
   Curseur trait vertical ambre + valeur mono au-dessus. Affiché si LUFS dispo. *~3h*
 
-- [ ] **A.2 — Mini-cards LRA + True Peak (section MASTER & LOUDNESS)**
+  **Implémenté (2026-04-28)** : composant `LoudnessMeter` + `pickDspBlockMetrics` dans `FicheScreen.jsx`, injecté en tête du `diag-cat-body` de la catégorie MASTER & LOUDNESS (test sur `el.cat` lowercase contient `master`/`loudness`). Source = `analysisResult.dspMetrics.lufs` (ffmpeg ebur128) avec fallback `fadrMetrics.lufs`. Ticks `-25/-16/-10/-7/-3` mono petits sous la barre, verdict mono caps coloré selon la zone. Curseur passe en rouge subtle uniquement zone critique (>-7), sinon ambre.
+
+- [x] **A.2 — Mini-cards LRA + True Peak (section MASTER & LOUDNESS)**
   Deux cards alignées row sous le Loudness meter. Par card : kicker mono caps ("PLAGE DYNAMIQUE" / "TRUE PEAK"), valeur grosse mono ambre, mini-barre horizontale fine 3-4 zones, verdict court ("Confortable" / "Risque clipping" / "Cible OK"). Bordure `rgba(255,255,255,0.08)`. *~2h*
 
-- [ ] **A.3 — Radar 6 catégories (en tête de fiche, à droite de la pochette)**
+  **Implémenté (2026-04-28)** : composant `DspMiniCard` générique (kicker, value mono ambre, mini-barre 4 zones, curseur ambre, verdict mono caps). LRA seuils `<4 / 4-7 / 7-12 / >12 LU` (Écrasée/Standard/Confortable/Large). TruePeak seuils `<-1 / -1→0 / >0 dBTP` (Sous cible/Risque/Clipping). Wrapper `DspMasterBlock` rend Loudness + mini-row dans un même bloc encadré, animation fade-in 150ms. Stack vertical sur mobile (`@max-width: 600px`).
+
+- [x] **A.3 — Radar 6 catégories (en tête de fiche, à droite de la pochette)**
   Hexagone constellation (pas de polygone rempli style AubioMix) : 6 axes (voix/instruments/basses/drums/spatial/master), lignes ambre 1px, points ambre sur chaque axe à la position du score moyen de la catégorie. Échelle 0-100 mono petite. Au hover : axe survolé éclairé, valeur affichée. Cohérent avec la grammaire "constellation" de la landing. *~3h*
+
+  **Implémenté (2026-04-28)** : composant `MixRadar` SVG `220x220 viewBox`, **remplace** `MixIndicators` dans `.rv-top` (mêmes data via `computeMixIndicators`, viz plus pure). 4 hexagones guides très subtils (25/50/75/100), lignes axes 1px, polygone constellation stroke-only ambre (pas de fill). Points colorés selon score (rouge<50 / ambre<75 / mint≥75) avec drop-shadow. Hover sur point : axe éclairé + carte détail HTML positionnée sous le radar (label, score/100, what, how) — préserve la valeur pédagogique des anciens tooltips MiTile. Échelle `0–100` au centre devient la valeur ambre au hover. Layout flex:1 dans `.rv-top` (stack vertical hérité <1100px via media existante). MiTile/MixIndicators conservés en code (tree-shake) pour rollback facile.
 
 ### B — Phase 3 (stems Fadr) — implémentation
 
-- [ ] **B.1 — Téléchargement des stems Fadr**
+- [x] **B.1 — Téléchargement des stems Fadr**
   Dans `decode-api/lib/fadr.js`, fonction `downloadStems(asset)` qui appelle Fadr pour récupérer les URLs signées des 5 stems et les fetch en buffers RAM. Pas de stockage côté nous (jeté après mesure). Mode dégradé si un stem échoue. *~3h*
+
+  **Implémenté (2026-04-28, en local — push avec B.2-B.6 conformément au plan)** : `downloadStems(asset, opts)` dans `decode-api/lib/fadr.js`. Téléchargement parallèle (`Promise.all`) avec timeout par stem (10s pour la signed URL, 30s pour l'audio). Helper `fetchSignedUrl(stem)` qui essaie 3 sources dans l'ordre : `stem.audioUrl`/`stem.url` (fallback rapide si Fadr embarque l'URL signée sur l'asset complet), puis `GET /assets/download/{stemId}`, puis `POST /assets/download` body `{_id}`. Mode dégradé total : un stem KO → on l'oublie, le reste continue. Helper `classifyStem(name)` mappe le nom Fadr ("vocals"/"Drums"/"bass-stem") vers nos types canoniques `vocal`/`drums`/`bass`/`other` pour B.2. Retourne `[{name, stemType, buffer, sizeBytes}, ...]` ou `null` si tous KO. Logs détaillés (taille KB + temps par stem).
 
 - [ ] **B.2 — Mesures DSP par stem**
   Étendre `decode-api/lib/dsp.js` avec `measureStem(buffer, label)` qui retourne `{ lufs, peak, energyBand_5_8kHz, energyBand_1_3kHz }` via ffmpeg ebur128 + filter `astats` ou calcul maison. *~2h*
