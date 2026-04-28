@@ -167,6 +167,16 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
     ...(lufsValue ? { lufs: lufsValue } : {}),
   };
 
+  // DSP_PLAN B.6 (Phase 3) — persistance stems + stereo dans les colonnes
+  // jsonb dsp_stems / dsp_stereo (migration 010_dsp_metrics.sql).
+  // On n'ecrit QUE si la mesure est presente, pour ne pas ecraser les valeurs
+  // existantes (cas typique : nouvelle analyse Phase 3 KO sur version qui
+  // avait deja les stems en DB).
+  const stems = analysisResult?.stemsMetrics;
+  const stereo = analysisResult?.stereoMetrics;
+  if (Array.isArray(stems) && stems.length > 0) dspPatch.dsp_stems = stems;
+  if (stereo && typeof stereo === 'object') dspPatch.dsp_stereo = stereo;
+
   if (existing) {
     const updatePayload = {
       date: formatDate(),

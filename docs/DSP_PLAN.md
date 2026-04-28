@@ -233,20 +233,47 @@ Couleurs : `var(--amber)` pour cible, `var(--muted)` pour neutre, rouge subtle u
 
   **Implémenté (2026-04-28, en local — push avec B.2-B.6 conformément au plan)** : `downloadStems(asset, opts)` dans `decode-api/lib/fadr.js`. Téléchargement parallèle (`Promise.all`) avec timeout par stem (10s pour la signed URL, 30s pour l'audio). Helper `fetchSignedUrl(stem)` qui essaie 3 sources dans l'ordre : `stem.audioUrl`/`stem.url` (fallback rapide si Fadr embarque l'URL signée sur l'asset complet), puis `GET /assets/download/{stemId}`, puis `POST /assets/download` body `{_id}`. Mode dégradé total : un stem KO → on l'oublie, le reste continue. Helper `classifyStem(name)` mappe le nom Fadr ("vocals"/"Drums"/"bass-stem") vers nos types canoniques `vocal`/`drums`/`bass`/`other` pour B.2. Retourne `[{name, stemType, buffer, sizeBytes}, ...]` ou `null` si tous KO. Logs détaillés (taille KB + temps par stem).
 
-- [ ] **B.2 — Mesures DSP par stem**
+- [x] **B.2 — Mesures DSP par stem**
   Étendre `decode-api/lib/dsp.js` avec `measureStem(buffer, label)` qui retourne `{ lufs, peak, energyBand_5_8kHz, energyBand_1_3kHz }` via ffmpeg ebur128 + filter `astats` ou calcul maison. *~2h*
 
-- [ ] **B.3 — Mesures image stéréo (sur le master, pas sur les stems)**
+  **Implémenté (2026-04-28, en local)** : `measureStem(buffer, label)` lance 3 ffmpeg en parallèle via `Promise.all` : `measureMaster` (lufs+truePeak), `measureBandEnergy(buffer, 6500, 3000)` pour les sibilantes (5-8 kHz), `measureBandEnergy(buffer, 2000, 2000)` pour la présence (1-3 kHz). Le band energy passe par `bandpass=f=...:width_type=h:w=...,volumedetect` puis parse `mean_volume` (RMS). Mode dégradé champ par champ. Renvoie `{lufs, truePeak, peak, energyBand_5_8kHz, energyBand_1_3kHz}`.
+
+- [x] **B.3 — Mesures image stéréo (sur le master, pas sur les stems)**
   `measureStereoField(buffer)` via ffmpeg `astats` qui donne corrélation L/R + Mid/Side ratio + balance L/R. Ajouter `mono_compat` calculé en re-mesurant le buffer mixed-down en mono. *~3h*
 
-- [ ] **B.4 — Pipeline analyze.js + propagation jusqu'à Claude**
+  **Implémenté (2026-04-28, en local)** : `measureStereoField(buffer, stereoLufs?)` orchestre 2 ffmpeg parallèles : `measureStereoStats` (astats `length=0` pour RMS par canal + Cross corr.) et `measureMonoLufs` (filter `pan=mono|c0=0.5*c0+0.5*c1,ebur128=peak=true`). `monoCompat = LUFS_stereo − LUFS_mono`. `midSideRatio` estimé à partir de la corrélation : `(1−corr)/2` (approximation valable quand L et R ont une énergie comparable). `balanceLR = RMS_L − RMS_R` en dB. Optimisation : si `stereoLufs` est passé en argument (déjà mesuré par dspPromise), on évite un troisième spawn ebur128.
+
+- [x] **B.4 — Pipeline analyze.js + propagation jusqu'à Claude**
   Lancer `downloadStems` + `measureStem` x5 + `measureStereoField` en parallèle de l'existant. Mode dégradé sur chaque mesure. Fusionner dans `mergedMetrics.stems` et `mergedMetrics.stereo` passés au prompt Claude. *~2h*
 
-- [ ] **B.5 — Prompt Claude (lib/claude.js)**
+  **Implémenté (2026-04-28, en local)** : ajout dans `api/analyze.js` :
+  - `stemsPromise` chaîné sur `fadrPromise` : récupère `data.stems` (depuis extractFadrData) → `fadrDownloadStems({ stems })` → `Promise.all` de `dspMeasureStem(buffer, stemType)` sur chaque stem téléchargé. Buffers jetés après mesure (juste `{name, stemType, sizeBytes, ...measure}` retourné).
+  - `stereoPromise` chaîné sur `dspPromise` : passe le LUFS stéréo déjà mesuré pour éviter un spawn ebur128 redondant.
+  - Timeouts dédiés `STEMS_TIMEOUT_MS=90s`, `STEREO_TIMEOUT_MS=60s`. Mode dégradé null-able sur chaque axe.
+  - Propagation via `ctx.stemsPromise/stereoPromise` pour Phase B.
+  - `runDiagnosticPhase` await les 4 mesures en parallèle (`fadr`/`dsp`/`stems`/`stereo`).
+  - `mergedMetrics.stemsMeasured` et `mergedMetrics.stereo` passés à `generateFiche`.
+  - Job exposé : `stemsMetrics` + `stereoMetrics` consultables côté front.
+
+- [x] **B.5 — Prompt Claude (lib/claude.js)**
   Enrichir `dspBlock` avec un sous-bloc STEMS et un sous-bloc STEREO. Ajouter des verdicts pré-calculés (voix bien posée, sibilantes objectivement présentes, mono-compat OK, etc.). Aligner les recettes "how" pour qu'elles citent les valeurs voix vs instru quand pertinent. *~2h*
 
-- [ ] **B.6 — Persistence DB**
+  **Implémenté (2026-04-28, en local)** : dans `generateFiche` :
+  - Calcul `instruLufs` = moyenne énergétique des stems non-voix (somme linéaire puis retour en dB), pour avoir un repère face au LUFS voix.
+  - `voiceVsInstruDelta = vocalLufs − instruLufs`. Verdict pré-calculé : `<−3 LU` voix en retrait + recette `"remonter de X dB"`, `>+3` voix proéminente, sinon "voix bien posée (cible −3/+3 LU)".
+  - Verdict sibilantes basé sur `vocalStem.energyBand_5_8kHz` : `>−25 dB` = "sibilantes appuyées, de-esser conseillé (Sibilance ratio 4:1, threshold −28 dB)", `>−30` = "présentes mais maitrisées", sinon "douces".
+  - Verdicts stéréo : corrélation (étroit/équilibré/large/risque phase), monoCompat (≤1 excellent, ≤2 OK avec perte sensible, >2 dangereux), balanceLR (centré/léger pencheche/désequilibre marqué).
+  - Sous-blocs `STEMS` et `STEREO` injectés dans `dspBlock` quand dispos.
+  - Instruction d'exploitation enrichie : "En VOIX, calibre tes items sur delta voix/instru et sibilantes mesurées" / "En SPATIAL, calibre sur correlation L/R et mono compat".
+  - Rappel recency-bias en fin de user-prompt étendu pour citer textuellement delta voix/instru, sibilantes, corrélation, mono compat.
+
+- [x] **B.6 — Persistence DB**
   Migration `010_dsp_metrics.sql` : ajouter colonne `versions.dsp_stems jsonb` et `versions.dsp_stereo jsonb`. Storage via `saveAnalysis` dans `storage.js`. *~1h*
+
+  **Implémenté (2026-04-28, en local — migration à appliquer manuellement dans Supabase Studio avant le push backend)** :
+  - `supabase/migrations/010_dsp_metrics.sql` : `ALTER TABLE versions ADD COLUMN IF NOT EXISTS dsp_stems jsonb, dsp_stereo jsonb` (idempotent). Pas d'index (lecture par version_id seulement, déjà couvert par PK).
+  - `LoadingScreen.jsx` : 3 callsites `onDone(...)` étendus avec `stemsMetrics: job.stemsMetrics, stereoMetrics: job.stereoMetrics` pour propager jusqu'à `analysisResult`.
+  - `lib/storage.js` `saveAnalysis()` : extrait `analysisResult.stemsMetrics`/`stereoMetrics`, les écrit dans `dsp_stems`/`dsp_stereo` UNIQUEMENT si dispo (pas d'écrasement par null pour préserver les mesures précédentes en cas de Phase 3 KO).
 
 ### C — Visuels données stems / stéréo (suite des visuels A après Phase 3)
 

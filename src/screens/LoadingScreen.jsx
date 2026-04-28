@@ -318,6 +318,10 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
               evolution: job.evolution || null,
               fadrMetrics: job.fadrMetrics || null,
               dspMetrics: job.dspMetrics || null,
+              // DSP_PLAN B.6 — mesures Phase 3 (stems + stereo) propagees
+              // jusqu a saveAnalysis pour persistance dans dsp_stems / dsp_stereo.
+              stemsMetrics: job.stemsMetrics || null,
+              stereoMetrics: job.stereoMetrics || null,
               _previousVersionName: previousVersionName,
               meta: job.meta,
               audioHash: config.audioHash,
@@ -335,6 +339,10 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
               evolution: job.evolution || null,
               fadrMetrics: job.fadrMetrics || null,
               dspMetrics: job.dspMetrics || null,
+              // DSP_PLAN B.6 — mesures Phase 3 (stems + stereo) propagees
+              // jusqu a saveAnalysis pour persistance dans dsp_stems / dsp_stereo.
+              stemsMetrics: job.stemsMetrics || null,
+              stereoMetrics: job.stereoMetrics || null,
               _previousVersionName: previousVersionName,
               meta: job.meta,
               audioHash: config.audioHash,
