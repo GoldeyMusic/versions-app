@@ -4410,22 +4410,29 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   }
                 };
 
+                // Style commun : taille uniforme, pas de uppercase ni letterspacing
+                // (la hiérarchie se fait sur l'opacity et le poids, pas sur la casse).
+                // Paddings : un peu d'air au-dessus pour séparer du badge "points" et
+                // en dessous pour respirer avant le verdict.
+                const lineBase = {
+                  fontSize: '0.85rem',
+                  marginTop: 10,
+                  marginBottom: 12,
+                  lineHeight: 1.4,
+                };
+
                 if (editingGenre) {
                   return (
                     <div
                       className="fiche-genre-line is-editing"
                       style={{
-                        fontSize: '0.78rem',
-                        letterSpacing: '0.04em',
-                        textTransform: 'uppercase',
-                        opacity: 0.85,
-                        marginBottom: 6,
+                        ...lineBase,
                         display: 'flex',
                         alignItems: 'center',
                         gap: 8,
                       }}
                     >
-                      <span style={{ flexShrink: 0 }}>{s.fiche.genreDeclared}</span>
+                      <span style={{ flexShrink: 0, opacity: 0.55 }}>{s.fiche.genreDeclared}</span>
                       <input
                         autoFocus
                         type="text"
@@ -4441,11 +4448,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                         style={{
                           flex: 1,
                           minWidth: 120,
-                          fontSize: '0.95rem',
+                          fontSize: 'inherit',
                           fontWeight: 600,
-                          textTransform: 'none',
-                          letterSpacing: 0,
-                          padding: '4px 8px',
+                          padding: '2px 6px',
                           border: '1px solid currentColor',
                           borderRadius: 4,
                           background: 'transparent',
@@ -4457,7 +4462,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   );
                 }
 
-                // Mode lecture : si pas de label, on affiche un CTA discret pour ajouter.
+                // Mode lecture : pas de label → CTA discret pour ajouter.
                 if (!currentLabel) {
                   if (!editable) return null;
                   return (
@@ -4466,11 +4471,8 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                       className="fiche-genre-line is-empty"
                       onClick={startEdit}
                       style={{
-                        fontSize: '0.78rem',
-                        letterSpacing: '0.04em',
-                        textTransform: 'uppercase',
+                        ...lineBase,
                         opacity: 0.5,
-                        marginBottom: 6,
                         background: 'transparent',
                         border: 'none',
                         padding: 0,
@@ -4485,6 +4487,8 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   );
                 }
 
+                // Mode lecture avec valeur : libellé "Genre" muté + valeur bright,
+                // et caveat "(détecté pendant l'analyse)" en suffixe discret quand inféré.
                 return (
                   <button
                     type="button"
@@ -4492,11 +4496,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     onClick={startEdit}
                     disabled={!editable || genreSaving}
                     style={{
-                      fontSize: '0.78rem',
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                      opacity: 0.55,
-                      marginBottom: 6,
+                      ...lineBase,
                       background: 'transparent',
                       border: 'none',
                       padding: 0,
@@ -4507,8 +4507,13 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     }}
                     title={editable ? s.fiche.genreEditTooltip : ''}
                   >
-                    <span style={{ marginRight: 6 }}>{note}</span>
-                    <strong style={{ fontWeight: 600, opacity: 1, textTransform: 'none', letterSpacing: 0 }}>{currentLabel}</strong>
+                    <span style={{ opacity: 0.55, marginRight: 6 }}>{s.fiche.genreDeclared}</span>
+                    <strong style={{ fontWeight: 600, opacity: 1 }}>{currentLabel}</strong>
+                    {!declared && inferredFlag && (
+                      <span style={{ opacity: 0.45, marginLeft: 8, fontStyle: 'italic' }}>
+                        ({s.fiche.genreInferredSuffix})
+                      </span>
+                    )}
                   </button>
                 );
               })()}
