@@ -1495,29 +1495,25 @@ function pickDspBlockMetrics(analysisResult) {
   };
 }
 
-// Zones LUFS — alignées sur les seuils streaming usuels et sur les
-// verdicts pré-calculés côté Claude (lib/claude.js, dspBlock).
-const LUFS_ZONES = [
-  { max: -16, label: 'Trop sage',    tone: 'soft'   }, // < -16
-  { max: -10, label: 'Streaming',    tone: 'low'    }, // -16 → -10
-  { max: -7,  label: 'Compétitif',   tone: 'target' }, // -10 → -7
-  { max: Infinity, label: 'Surcomprimé', tone: 'critical' }, // > -7
+// Zones LUFS / LRA / True Peak — factory functions qui prennent `s` (strings
+// localisées) et retournent les arrays de zones. Permet de basculer FR↔EN
+// sans recharger la fiche. Les seuils numériques restent inchangés.
+const lufsZones = (s) => [
+  { max: -16, label: s.fiche.dspViz.lufsZoneSoft,      tone: 'soft'     },
+  { max: -10, label: s.fiche.dspViz.lufsZoneStreaming, tone: 'low'      },
+  { max: -7,  label: s.fiche.dspViz.lufsZoneTarget,    tone: 'target'   },
+  { max: Infinity, label: s.fiche.dspViz.lufsZoneCritical, tone: 'critical' },
 ];
-
-// Zones LRA (Loudness Range, en LU). Cohérent avec lraVerdict côté Claude.
-const LRA_ZONES = [
-  { max: 4,  label: 'Écrasée',     tone: 'critical' },
-  { max: 7,  label: 'Standard',    tone: 'low'      },
-  { max: 12, label: 'Confortable', tone: 'target'   },
-  { max: Infinity, label: 'Large', tone: 'soft'     },
+const lraZones = (s) => [
+  { max: 4,  label: s.fiche.dspViz.lraZoneCritical, tone: 'critical' },
+  { max: 7,  label: s.fiche.dspViz.lraZoneStandard, tone: 'low'      },
+  { max: 12, label: s.fiche.dspViz.lraZoneTarget,   tone: 'target'   },
+  { max: Infinity, label: s.fiche.dspViz.lraZoneSoft, tone: 'soft'   },
 ];
-
-// Zones True Peak (dBTP). Cible streaming = -1 dBTP.
-// Note : truePeak peut être très négatif (-12+) sur un mix non masterisé.
-const TRUE_PEAK_ZONES = [
-  { max: -1, label: 'Sous cible',     tone: 'target'   }, // < -1 dBTP : safe
-  { max: 0,  label: 'Risque',         tone: 'low'      }, // -1 → 0 : risque clipping intersample
-  { max: Infinity, label: 'Clipping', tone: 'critical' }, // > 0 dBTP
+const truePeakZones = (s) => [
+  { max: -1, label: s.fiche.dspViz.truePeakZoneTarget,   tone: 'target'   },
+  { max: 0,  label: s.fiche.dspViz.truePeakZoneLow,      tone: 'low'      },
+  { max: Infinity, label: s.fiche.dspViz.truePeakZoneCritical, tone: 'critical' },
 ];
 
 function findZone(value, zones) {
@@ -1541,13 +1537,14 @@ function toneColor(tone) {
 // Barre fine 6px pleine largeur avec 4 zones, curseur ambre vertical,
 // valeur mono au-dessus. Affiché si LUFS dispo.
 function LoudnessMeter({ lufs }) {
+  const { s } = useLang();
   if (lufs == null || !Number.isFinite(lufs)) return null;
   const SCALE_MIN = -25;
   const SCALE_MAX = -3;
   const clamp = (v) => Math.max(SCALE_MIN, Math.min(SCALE_MAX, v));
   const pct = (v) => ((clamp(v) - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100;
   const cursorPct = pct(lufs);
-  const zone = findZone(lufs, LUFS_ZONES);
+  const zone = findZone(lufs, lufsZones(s));
   const cursorColor = zone?.tone === 'critical'
     ? 'var(--red, #ff5d5d)'
     : 'var(--amber, #f5a623)';
@@ -1644,6 +1641,7 @@ function DspMiniCard({ kicker, value, unit, decimals = 1, scale, zones, displayV
 // Donnée : analysisResult.stemsMetrics (Phase 3 backend). Mode dégradé :
 // retourne null si pas de mesures stems disponibles ou pas de stem voix.
 function VoiceVsInstruBlock({ analysisResult }) {
+  const { s } = useLang();
   const stemsArr = Array.isArray(analysisResult?.stemsMetrics) ? analysisResult.stemsMetrics : [];
   if (!stemsArr.length) return null;
   const findStem = (type) => stemsArr.find((st) => st && st.stemType === type) || null;
@@ -1662,9 +1660,9 @@ function VoiceVsInstruBlock({ analysisResult }) {
   const delta = +(vocalLufs - instruLufs).toFixed(1);
   // Verdict — cible -3/+3 LU = "voix bien posée".
   let verdict, verdictTone;
-  if (delta < -3) { verdict = 'À retravailler — voix en retrait'; verdictTone = 'critical'; }
-  else if (delta > 3) { verdict = 'À retravailler — voix proéminente'; verdictTone = 'low'; }
-  else { verdict = 'Voix bien posée ✓'; verdictTone = 'target'; }
+  if (delta < -3) { verdict = s.fiche.dspViz.voiceVerdictRetreat; verdictTone = 'critical'; }
+  else if (delta > 3) { verdict = s.fiche.dspViz.voiceVerdictProminent; verdictTone = 'low'; }
+  else { verdict = s.fiche.dspViz.voiceVerdictTarget; verdictTone = 'target'; }
   // Echelle alignée sur LoudnessMeter (-25 à -3 LUFS).
   const SCALE_MIN = -25;
   const SCALE_MAX = -3;
@@ -1673,7 +1671,7 @@ function VoiceVsInstruBlock({ analysisResult }) {
   return (
     <div className="dsp-master-block dsp-voice-block">
       <div className="dsp-voice-row">
-        <span className="dsp-voice-label">VOIX</span>
+        <span className="dsp-voice-label">{s.fiche.dspViz.voiceLabel}</span>
         <div className="dsp-voice-bar">
           <div className="dsp-voice-fill" style={{ width: `${pct(vocalLufs)}%` }} />
           <span className="dsp-voice-cursor" style={{ left: `${pct(vocalLufs)}%` }} />
@@ -1689,7 +1687,7 @@ function VoiceVsInstruBlock({ analysisResult }) {
         <span className="dsp-voice-delta-line" />
       </div>
       <div className="dsp-voice-row">
-        <span className="dsp-voice-label">INSTRU</span>
+        <span className="dsp-voice-label">{s.fiche.dspViz.instruLabel}</span>
         <div className="dsp-voice-bar">
           <div className="dsp-voice-fill" style={{ width: `${pct(instruLufs)}%` }} />
           <span className="dsp-voice-cursor" style={{ left: `${pct(instruLufs)}%` }} />
@@ -1712,6 +1710,7 @@ function VoiceVsInstruBlock({ analysisResult }) {
 //     CORR L/R (-1 à +1)
 // Cohérent avec LoudnessMeter (A.1) et la grammaire mini-card de A.2.
 function StereoFieldBlock({ analysisResult }) {
+  const { s } = useLang();
   const stereo = analysisResult?.stereoMetrics;
   if (!stereo || typeof stereo !== 'object') return null;
   const { correlation, midSideRatio, balanceLR, monoCompat } = stereo;
@@ -1732,9 +1731,9 @@ function StereoFieldBlock({ analysisResult }) {
   const balVerdict = (() => {
     if (balanceLR == null) return null;
     const a = Math.abs(balanceLR);
-    if (a < 0.5) return 'centré';
-    if (a < 1.5) return balanceLR > 0 ? 'légèrement à gauche' : 'légèrement à droite';
-    return balanceLR > 0 ? 'penché à gauche' : 'penché à droite';
+    if (a < 0.5) return s.fiche.dspViz.balanceCenter;
+    if (a < 1.5) return balanceLR > 0 ? s.fiche.dspViz.balanceLeftLeaning : s.fiche.dspViz.balanceRightLeaning;
+    return balanceLR > 0 ? s.fiche.dspViz.balanceLeftHeavy : s.fiche.dspViz.balanceRightHeavy;
   })();
 
   return (
@@ -1774,44 +1773,44 @@ function StereoFieldBlock({ analysisResult }) {
         <div className="dsp-mini-row dsp-stereo-mini-row">
           {midSideRatio != null && (
             <DspMiniCard
-              kicker="WIDTH"
+              kicker={s.fiche.dspViz.widthKicker}
               value={midSideRatio * 100}
               unit="%"
               scale={{ min: 0, max: 100 }}
               zones={[
-                { max: 10, label: 'Étroit',     tone: 'soft'   },
-                { max: 30, label: 'Standard',   tone: 'target' },
-                { max: 50, label: 'Large',      tone: 'low'    },
-                { max: Infinity, label: 'Très large', tone: 'soft' },
+                { max: 10, label: s.fiche.dspViz.widthZoneNarrow,    tone: 'soft'   },
+                { max: 30, label: s.fiche.dspViz.widthZoneStandard,  tone: 'target' },
+                { max: 50, label: s.fiche.dspViz.widthZoneWide,      tone: 'low'    },
+                { max: Infinity, label: s.fiche.dspViz.widthZoneVeryWide, tone: 'soft' },
               ]}
               displayValue={(v) => Math.round(v).toString()}
             />
           )}
           {monoCompat != null && (
             <DspMiniCard
-              kicker="MONO COMPAT"
+              kicker={s.fiche.dspViz.monoCompatKicker}
               value={monoCompat}
               unit="LU"
               scale={{ min: -1, max: 5 }}
               zones={[
-                { max: 1, label: 'Mono OK',        tone: 'target'   },
-                { max: 2, label: 'Mono limite',    tone: 'low'      },
-                { max: Infinity, label: 'Mono dangereux', tone: 'critical' },
+                { max: 1, label: s.fiche.dspViz.monoCompatZoneOk,       tone: 'target'   },
+                { max: 2, label: s.fiche.dspViz.monoCompatZoneLimit,    tone: 'low'      },
+                { max: Infinity, label: s.fiche.dspViz.monoCompatZoneDanger, tone: 'critical' },
               ]}
               displayValue={(v) => (v > 0 ? `+${v.toFixed(1)}` : v.toFixed(1))}
             />
           )}
           {correlation != null && (
             <DspMiniCard
-              kicker="CORR L/R"
+              kicker={s.fiche.dspViz.corrKicker}
               value={correlation}
               unit=""
               scale={{ min: -1, max: 1 }}
               zones={[
-                { max: 0,    label: 'Phase inversée', tone: 'critical' },
-                { max: 0.3,  label: 'Très large',     tone: 'low'      },
-                { max: 0.85, label: 'Équilibrée',     tone: 'target'   },
-                { max: Infinity, label: 'Étroite',    tone: 'soft'     },
+                { max: 0,    label: s.fiche.dspViz.corrZonePhaseInv, tone: 'critical' },
+                { max: 0.3,  label: s.fiche.dspViz.corrZoneVeryWide, tone: 'low'      },
+                { max: 0.85, label: s.fiche.dspViz.corrZoneTarget,   tone: 'target'   },
+                { max: Infinity, label: s.fiche.dspViz.corrZoneNarrow, tone: 'soft'   },
               ]}
               displayValue={(v) => v.toFixed(2)}
             />
@@ -1825,6 +1824,7 @@ function StereoFieldBlock({ analysisResult }) {
 // Bloc visuel complet (loudness meter + mini-cards) — inséré en tête
 // de la section MASTER & LOUDNESS du diagnostic.
 function DspMasterBlock({ analysisResult }) {
+  const { s } = useLang();
   const { lufs, lra, truePeak } = pickDspBlockMetrics(analysisResult);
   if (lufs == null && lra == null && truePeak == null) return null;
   return (
@@ -1833,18 +1833,18 @@ function DspMasterBlock({ analysisResult }) {
       {(lra != null || truePeak != null) && (
         <div className="dsp-mini-row">
           <DspMiniCard
-            kicker="PLAGE DYNAMIQUE"
+            kicker={s.fiche.dspViz.lraKicker}
             value={lra}
             unit="LU"
             scale={{ min: 0, max: 16 }}
-            zones={LRA_ZONES}
+            zones={lraZones(s)}
           />
           <DspMiniCard
-            kicker="TRUE PEAK"
+            kicker={s.fiche.dspViz.truePeakKicker}
             value={truePeak}
             unit="dBTP"
             scale={{ min: -6, max: 1 }}
-            zones={TRUE_PEAK_ZONES}
+            zones={truePeakZones(s)}
             displayValue={(v) => (v > 0 ? `+${v.toFixed(1)}` : v.toFixed(1))}
           />
         </div>

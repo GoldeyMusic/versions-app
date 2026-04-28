@@ -539,6 +539,64 @@ const STRINGS = {
       miTooltipNoSource: "Aucune catégorie correspondante — fallback sur le score global",
       miTooltipBasedOn: "Basé sur",
 
+      /* DSP visuels (LoudnessMeter, DspMiniCard, VoiceVsInstruBlock,
+         StereoFieldBlock) — kickers + zones + verdicts. FR par défaut,
+         EN dans le bloc en: ci-dessous. */
+      dspViz: {
+        // LoudnessMeter (A.1)
+        lufsZoneSoft: "Trop sage",
+        lufsZoneStreaming: "Streaming",
+        lufsZoneTarget: "Compétitif",
+        lufsZoneCritical: "Surcomprimé",
+
+        // DspMiniCard LRA (A.2)
+        lraKicker: "PLAGE DYNAMIQUE",
+        lraZoneCritical: "Écrasée",
+        lraZoneStandard: "Standard",
+        lraZoneTarget: "Confortable",
+        lraZoneSoft: "Large",
+
+        // DspMiniCard True Peak (A.2)
+        truePeakKicker: "TRUE PEAK",
+        truePeakZoneTarget: "Sous cible",
+        truePeakZoneLow: "Risque",
+        truePeakZoneCritical: "Clipping",
+
+        // VoiceVsInstruBlock (C.1)
+        voiceLabel: "VOIX",
+        instruLabel: "INSTRU",
+        voiceVerdictTarget: "Voix bien posée ✓",
+        voiceVerdictRetreat: "À retravailler — voix en retrait",
+        voiceVerdictProminent: "À retravailler — voix proéminente",
+
+        // StereoFieldBlock — Largeur (C.2)
+        widthKicker: "LARGEUR",
+        widthZoneNarrow: "Étroit",
+        widthZoneStandard: "Standard",
+        widthZoneWide: "Large",
+        widthZoneVeryWide: "Très large",
+
+        // StereoFieldBlock — Mono Compat (C.2)
+        monoCompatKicker: "MONO COMPAT",
+        monoCompatZoneOk: "Mono OK",
+        monoCompatZoneLimit: "Mono limite",
+        monoCompatZoneDanger: "Mono dangereux",
+
+        // StereoFieldBlock — Corrélation L/R (C.2)
+        corrKicker: "CORR L/R",
+        corrZonePhaseInv: "Phase inversée",
+        corrZoneVeryWide: "Très large",
+        corrZoneTarget: "Équilibrée",
+        corrZoneNarrow: "Étroite",
+
+        // StereoFieldBlock — Balance bar verdicts (C.2)
+        balanceCenter: "centré",
+        balanceLeftLeaning: "légèrement à gauche",
+        balanceRightLeaning: "légèrement à droite",
+        balanceLeftHeavy: "penché à gauche",
+        balanceRightHeavy: "penché à droite",
+      },
+
       /* Qualitative / Listening block titles + toggles */
       blockImpression: "Impression",
       blockPointsForts: "Points forts",
@@ -1686,6 +1744,54 @@ const STRINGS = {
           how:  "Derived from the Bass & Kick category items." },
       },
       /* Mix indicator tooltip (generic copy) */
+      // DSP visuels — EN translations (cf. FR section above pour le détail).
+      dspViz: {
+        lufsZoneSoft: "Too quiet",
+        lufsZoneStreaming: "Streaming",
+        lufsZoneTarget: "Competitive",
+        lufsZoneCritical: "Overcompressed",
+
+        lraKicker: "DYNAMIC RANGE",
+        lraZoneCritical: "Crushed",
+        lraZoneStandard: "Standard",
+        lraZoneTarget: "Comfortable",
+        lraZoneSoft: "Wide",
+
+        truePeakKicker: "TRUE PEAK",
+        truePeakZoneTarget: "Below target",
+        truePeakZoneLow: "At risk",
+        truePeakZoneCritical: "Clipping",
+
+        voiceLabel: "VOICE",
+        instruLabel: "INSTRU",
+        voiceVerdictTarget: "Voice well placed ✓",
+        voiceVerdictRetreat: "Needs work — voice too quiet",
+        voiceVerdictProminent: "Needs work — voice too loud",
+
+        widthKicker: "WIDTH",
+        widthZoneNarrow: "Narrow",
+        widthZoneStandard: "Standard",
+        widthZoneWide: "Wide",
+        widthZoneVeryWide: "Very wide",
+
+        monoCompatKicker: "MONO COMPAT",
+        monoCompatZoneOk: "Mono OK",
+        monoCompatZoneLimit: "Mono borderline",
+        monoCompatZoneDanger: "Mono unsafe",
+
+        corrKicker: "CORR L/R",
+        corrZonePhaseInv: "Out of phase",
+        corrZoneVeryWide: "Very wide",
+        corrZoneTarget: "Balanced",
+        corrZoneNarrow: "Narrow",
+
+        balanceCenter: "centered",
+        balanceLeftLeaning: "slightly left",
+        balanceRightLeaning: "slightly right",
+        balanceLeftHeavy: "leaning left",
+        balanceRightHeavy: "leaning right",
+      },
+
       miTooltipWhat: "What it measures",
       miTooltipHow: "How it's calculated",
       miTooltipSource: "Source",
