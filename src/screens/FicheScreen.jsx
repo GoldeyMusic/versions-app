@@ -4366,9 +4366,15 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 const note = declared
                   ? s.fiche.genreDeclared
                   : (inferredFlag ? s.fiche.genreInferred : s.fiche.genreDeclared);
-                // Pas d'id de version persistée -> pas d'édition possible (la valeur
-                // sera sauvegardée à la fin de l'analyse, on ne touche pas en attendant).
-                const editable = !!versionId;
+                // Pas d'id de version persistée -> pas d'édition possible.
+                // versionId vient de versionInDb.id (lookup par nom dans tracks)
+                // qui peut être null juste après l'analyse, le temps que tracks
+                // soit rechargé. config.versionId, lui, est injecté direct par
+                // saveAnalysis dès que la version est créée en DB — c'est un
+                // fallback fiable pour activer l'édition tout de suite.
+                const editVersionId = versionId || config?.versionId || null;
+                const editable = !!editVersionId
+                  && editVersionId !== '__pending_v__' && editVersionId !== '__pending__';
 
                 const startEdit = () => {
                   if (!editable || genreSaving) return;
@@ -4389,7 +4395,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   }
                   setGenreSaving(true);
                   try {
-                    const ok = await updateVersionGenre(versionId, next);
+                    const ok = await updateVersionGenre(editVersionId, next);
                     if (ok) {
                       setGenreOverride({
                         declared_genre: next || null,
