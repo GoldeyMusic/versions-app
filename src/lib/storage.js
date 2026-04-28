@@ -22,7 +22,7 @@ export async function loadTracks() {
 
   const { data: tracks, error } = await supabase
     .from('tracks')
-    .select('id, title, project_id, vocal_type, artistic_intent, created_at, versions(id, name, date, bpm, key, lufs, is_main, is_final, analysis_result, version_intent, storage_path, created_at)')
+    .select('id, title, project_id, vocal_type, artistic_intent, created_at, versions(id, name, date, bpm, key, lufs, is_main, is_final, analysis_result, version_intent, storage_path, declared_genre, genre_inferred_by_ai, inferred_genre, created_at)')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -53,6 +53,9 @@ export async function loadTracks() {
         analysisResult: v.analysis_result,
         versionIntent: v.version_intent || null,
         storagePath: v.storage_path,
+        declaredGenre: v.declared_genre || null,
+        genreInferredByAi: v.genre_inferred_by_ai === true,
+        inferredGenre: v.inferred_genre || null,
       })),
   }));
 }
@@ -176,6 +179,27 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
   const stereo = analysisResult?.stereoMetrics;
   if (Array.isArray(stems) && stems.length > 0) dspPatch.dsp_stems = stems;
   if (stereo && typeof stereo === 'object') dspPatch.dsp_stereo = stereo;
+
+  // Migration 011 — genre musical déclaré ou inféré.
+  // Source de vérité : la fiche Claude post-réconciliée (lib/claude.js force la
+  // cohérence : declared_genre prime sur inferred_genre, et genre_inferred_by_ai
+  // est aligné). On lit donc directement depuis fiche.* sans relire le config.
+  const fiche = analysisResult?.fiche || null;
+  if (fiche) {
+    if (typeof fiche.declared_genre === 'string' && fiche.declared_genre.trim()) {
+      dspPatch.declared_genre = fiche.declared_genre.trim();
+    } else if (fiche.declared_genre === null) {
+      dspPatch.declared_genre = null;
+    }
+    if (typeof fiche.genre_inferred_by_ai === 'boolean') {
+      dspPatch.genre_inferred_by_ai = fiche.genre_inferred_by_ai;
+    }
+    if (typeof fiche.inferred_genre === 'string' && fiche.inferred_genre.trim()) {
+      dspPatch.inferred_genre = fiche.inferred_genre.trim();
+    } else if (fiche.inferred_genre === null) {
+      dspPatch.inferred_genre = null;
+    }
+  }
 
   if (existing) {
     const updatePayload = {

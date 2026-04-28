@@ -253,6 +253,15 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           formData.append("intent", config.inlineIntent);
         }
 
+        // Genre musical (saisi à l'upload, à côté du DAW). Deux modes mutuellement
+        // exclusifs côté UI :
+        //  - declaredGenre = texte court → vérité déclarée par l'artiste, calibre Claude
+        //  - genreUnknown = true         → l'artiste a cliqué "Choisir automatiquement",
+        //                                   Claude infère depuis l'écoute Gemini déjà faite
+        //                                   et émet le résultat dans inferred_genre
+        if (config.declaredGenre) formData.append("declaredGenre", config.declaredGenre);
+        if (config.genreUnknown) formData.append("genreUnknown", "true");
+
         // Start the analysis job
         setPhase(1);
         const startRes = await fetch(`${API}/api/analyze/start`, {

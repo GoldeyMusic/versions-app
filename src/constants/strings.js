@@ -669,6 +669,8 @@ const STRINGS = {
       planDetailsHint: "Voir les détails",
       pendingVerdict: "Analyse en cours…",
       translating: "Traduction en cours…",
+      genreDeclared: "Genre",
+      genreInferred: "Genre détecté pendant l'analyse",
     },
 
     /* ─────────────── COMPARE ─────────────── */
@@ -965,6 +967,10 @@ const STRINGS = {
       uploadVocalFinal: "Définitif",
       uploadDawLabel: "Ton DAW",
       uploadDawPlaceholder: "Sélectionne ton DAW…",
+      uploadGenreLabel: "Genre musical",
+      uploadGenrePlaceholder: "Ex : indie pop, néo-soul, dub-techno…",
+      uploadGenreAutoHint: "On détectera le genre pendant l'analyse",
+      uploadGenreAutoBtn: "Choisir automatiquement",
       uploadCta: "Lancer l'analyse",
       uploadCtaIncomplete: "Complète les champs pour lancer",
     },
@@ -1872,6 +1878,8 @@ const STRINGS = {
       planDetailsHint: "View details",
       pendingVerdict: "Analysis in progress…",
       translating: "Translating…",
+      genreDeclared: "Genre",
+      genreInferred: "Genre detected during analysis",
     },
 
     /* ─────────────── COMPARE ─────────────── */
@@ -2168,6 +2176,10 @@ const STRINGS = {
       uploadVocalFinal: "Final",
       uploadDawLabel: "Your DAW",
       uploadDawPlaceholder: "Pick your DAW…",
+      uploadGenreLabel: "Musical genre",
+      uploadGenrePlaceholder: "e.g. indie pop, neo-soul, dub-techno…",
+      uploadGenreAutoHint: "We'll detect the genre during analysis",
+      uploadGenreAutoBtn: "Detect automatically",
       uploadCta: "Run analysis",
       uploadCtaIncomplete: "Fill in fields to run",
     },

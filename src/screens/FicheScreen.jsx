@@ -4333,6 +4333,36 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   })()}
                 </>
               )}
+              {/* Genre musical : déclaré par l'artiste OU détecté par l'IA pendant
+                  l'analyse (cf. migration 011 + AddModal). On l'affiche au-dessus
+                  du verdict en libellé court. Si l'IA l'a inféré, on l'indique
+                  explicitement avec un caveat — l'artiste sait que c'est une
+                  supposition (et pourra la corriger via le chat plus tard). */}
+              {(() => {
+                const declared = (rawFiche?.declared_genre || '').trim();
+                const inferred = (rawFiche?.inferred_genre || '').trim();
+                const inferredFlag = rawFiche?.genre_inferred_by_ai === true;
+                const label = declared || (inferredFlag ? inferred : '');
+                if (!label) return null;
+                const note = declared
+                  ? s.fiche.genreDeclared
+                  : s.fiche.genreInferred;
+                return (
+                  <div
+                    className="fiche-genre-line"
+                    style={{
+                      fontSize: '0.78rem',
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      opacity: 0.55,
+                      marginBottom: 6,
+                    }}
+                  >
+                    <span style={{ marginRight: 6 }}>{note}</span>
+                    <strong style={{ fontWeight: 600, opacity: 1, textTransform: 'none', letterSpacing: 0 }}>{label}</strong>
+                  </div>
+                );
+              })()}
               <div className={`verdict-text${verdictExpanded ? ' expanded' : ' collapsed'}`}>
                 {(() => {
                   // Priorité : verdict (phrase accrocheuse) pour le titre, summary pour le paragraphe.

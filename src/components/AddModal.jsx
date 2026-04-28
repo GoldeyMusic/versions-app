@@ -75,6 +75,13 @@ export default function AddModal({
   const [daw, setDaw] = useState(defaultDaw || '');
   const [vocalKind, setVocalKind] = useState('vocal');
   const [finalInstru, setFinalInstru] = useState(null);
+  // Genre musical déclaré par l'artiste à l'upload. Soit du texte libre court,
+  // soit `genreUnknown=true` quand l'utilisateur clique "Choisir automatiquement"
+  // (Claude infère depuis l'écoute Gemini déjà faite, zéro coût supplémentaire).
+  // Les deux états sont mutuellement exclusifs côté UI : cocher l'auto vide le
+  // texte ; commencer à taper du texte décoche l'auto.
+  const [declaredGenre, setDeclaredGenre] = useState('');
+  const [genreUnknown, setGenreUnknown] = useState(false);
   const [drag, setDrag] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -113,6 +120,11 @@ export default function AddModal({
       projectId: uploadCtx.projectId,
       vocalType,
       refFile: null,
+      // Genre musical : soit déclaré (texte non vide), soit "auto" (genreUnknown=true).
+      // Si rien n'est rempli ni coché, on envoie null/false : le pipeline analyse
+      // sans signal genre (mode legacy).
+      declaredGenre: declaredGenre.trim() || null,
+      genreUnknown: !!genreUnknown,
     });
     onClose();
   };
@@ -126,6 +138,8 @@ export default function AddModal({
       setDaw(defaultDaw || '');
       setVocalKind('vocal');
       setFinalInstru(null);
+      setDeclaredGenre('');
+      setGenreUnknown(false);
       setDrag(false);
     }
   }, [step, defaultDaw]);
@@ -613,6 +627,43 @@ export default function AddModal({
                   </svg>
                 </div>
               </div>
+            </div>
+
+            {/* Genre musical : texte libre OU "Choisir automatiquement".
+                Mutuellement exclusifs : cliquer "auto" vide et grise le champ ;
+                taper du texte décoche l'auto. Le genre déclaré sert de calibrage
+                pour Claude (un mix dub-techno tolère ce qu'un mix folk ne
+                tolère pas), et pour mention textuelle dans le verdict. Le mode
+                "auto" délègue la détection au pipeline (zéro coût car partagé
+                avec l'écoute Gemini déjà faite). */}
+            <div className="add-mini-field">
+              <div className="add-mini-field-label">{s.addModal.uploadGenreLabel}</div>
+              <input
+                type="text"
+                className="add-mini-input"
+                value={genreUnknown ? '' : declaredGenre}
+                placeholder={genreUnknown ? s.addModal.uploadGenreAutoHint : s.addModal.uploadGenrePlaceholder}
+                disabled={genreUnknown}
+                maxLength={60}
+                onChange={(e) => {
+                  setDeclaredGenre(e.target.value);
+                  if (genreUnknown) setGenreUnknown(false);
+                }}
+              />
+              <button
+                type="button"
+                className={`add-mini-pill${genreUnknown ? ' on' : ''}`}
+                style={{ marginTop: 8 }}
+                onClick={() => {
+                  setGenreUnknown((v) => {
+                    const next = !v;
+                    if (next) setDeclaredGenre(''); // bascule en auto -> on vide le texte
+                    return next;
+                  });
+                }}
+              >
+                {s.addModal.uploadGenreAutoBtn}
+              </button>
             </div>
 
             {/* CTA */}
