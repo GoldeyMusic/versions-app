@@ -28,6 +28,8 @@ import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
 import LandingScreen from "./screens/LandingScreen";
 import SampleFicheScreen from "./screens/SampleFicheScreen";
+import PricingScreen from "./screens/PricingScreen";
+import AdminScreen from "./screens/AdminScreen";
 import PublicFicheScreen from "./screens/PublicFicheScreen";
 import ReglagesModal from "./components/ReglagesModal";
 import RenameModal from "./components/RenameModal";
@@ -1980,6 +1982,8 @@ const SCREEN_HASH = {
   welcome: '#/dashboard',
   home: '#/',
   sample: '#/exemple',
+  pricing: '#/pricing',
+  admin: '#/admin',
   loading: '#/analyse',
   fiche: '#/fiche',
   versions: '#/versions',
@@ -1989,6 +1993,9 @@ const HASH_SCREEN = {
   '#/home': 'home',
   '#/exemple': 'sample',
   '#/sample-report': 'sample',
+  '#/pricing': 'pricing',
+  '#/tarifs': 'pricing',
+  '#/admin': 'admin',
   '#/dashboard': 'welcome',
   '#/analyse': 'loading',
   '#/fiche': 'fiche',
@@ -2087,6 +2094,8 @@ function VersionsAppAuthed() {
     const h = window.location.hash;
     if (h === '#/' || h === '#/home') return 'home';
     if (h === '#/exemple' || h === '#/sample-report') return 'sample';
+    if (h === '#/pricing' || h === '#/tarifs') return 'pricing';
+    if (h === '#/admin') return 'admin';
     return 'welcome';
   });
   // Visiteurs non connectés : landing page par défaut, AuthScreen sur clic CTA.
@@ -3098,10 +3107,18 @@ function VersionsAppAuthed() {
         window.history.pushState({ screen: 'welcome' }, '', '#/');
       }
     };
+    const goPricing = () => {
+      setShowAuth(false);
+      setScreen('pricing');
+      if (typeof window !== 'undefined') {
+        window.history.pushState({ screen: 'pricing' }, '', '#/pricing');
+      }
+    };
     let view;
     if (showAuth) view = <AuthScreen />;
     else if (screen === 'sample') view = <SampleFicheScreen onSignup={goAuth} onBackToLanding={goLanding} />;
-    else view = <LandingScreen onStart={goAuth} onViewSample={goSample} />;
+    else if (screen === 'pricing') view = <PricingScreen onStart={goAuth} onBackToLanding={goLanding} />;
+    else view = <LandingScreen onStart={goAuth} onViewSample={goSample} onViewPricing={goPricing} />;
     return (
       <LangContext.Provider value={{ lang, s, setLang, t }}>
         <FontLink />
@@ -3126,6 +3143,7 @@ function VersionsAppAuthed() {
           ctaPrimaryLabel={s.sidebar.dashboardLink}
           ctaFooterLabel={s.sidebar.dashboardLink}
           onViewSample={() => setScreen('sample')}
+          onViewPricing={() => setScreen('pricing')}
         />
       </LangContext.Provider>
     );
@@ -3145,6 +3163,37 @@ function VersionsAppAuthed() {
           topbarCtaLabel={s.sidebar.dashboardLink}
           bottomCtaLabel={s.sidebar.dashboardLink}
         />
+      </LangContext.Provider>
+    );
+  }
+
+  // Connecté + #/pricing : page tarifs plein écran, sans sidebar.
+  // CTA primaire renvoie au dashboard (pas d'AuthScreen quand on est déjà
+  // connecté), retour pointe sur la landing #/.
+  if (screen === 'pricing') {
+    return (
+      <LangContext.Provider value={{ lang, s, setLang, t }}>
+        <FontLink />
+        <GlobalStyles />
+        <MockupStyles />
+        <PricingScreen
+          onStart={() => setScreen('welcome')}
+          onBackToLanding={() => setScreen('home')}
+          ctaPrimaryLabel={s.sidebar.dashboardLink}
+        />
+      </LangContext.Provider>
+    );
+  }
+
+  // Connecté + #/admin : dashboard admin (gaté par VITE_ADMIN_EMAIL côté
+  // front + RLS côté DB). Plein écran, sans sidebar.
+  if (screen === 'admin') {
+    return (
+      <LangContext.Provider value={{ lang, s, setLang, t }}>
+        <FontLink />
+        <GlobalStyles />
+        <MockupStyles />
+        <AdminScreen onBackToDashboard={() => setScreen('welcome')} />
       </LangContext.Provider>
     );
   }
@@ -3197,6 +3246,7 @@ function VersionsAppAuthed() {
             onSignOut={signOut}
             onGoLanding={() => setScreen('home')}
             onGoDashboard={() => setScreen('welcome')}
+            onGoAdmin={() => setScreen('admin')}
             projects={projects}
             projectsLoaded={projectsLoaded}
           />

@@ -15,6 +15,7 @@ import useLang from '../hooks/useLang';
 export default function LandingScreen({
   onStart,
   onViewSample,
+  onViewPricing,
   ctaPrimaryLabel,
   ctaFooterLabel,
 }) {
@@ -49,6 +50,22 @@ export default function LandingScreen({
           </button>
         </div>
       </div>
+
+      {/* Lien "Tarifs" — épinglé en haut à droite, miroir du lang switch.
+          Même grammaire mono pill que les chips d'eyebrow. Renvoie sur
+          #/pricing. Ne s'affiche que si onViewPricing est passé en prop. */}
+      {onViewPricing && (
+        <div className="lp-topbar-actions">
+          <button
+            type="button"
+            className="lp-topbar-link"
+            onClick={onViewPricing}
+            aria-label="Voir les tarifs"
+          >
+            Tarifs
+          </button>
+        </div>
+      )}
 
       {/* HERO */}
       <header className="lp-hero">
@@ -257,6 +274,34 @@ function LandingStyles() {
       }
       @media (max-width: 640px) {
         .lp-lang-switch-wrap { top: 14px; left: 14px; }
+      }
+
+      /* Topbar actions (top-right) — miroir du lang switch.
+         Pour l'instant : lien Tarifs vers #/pricing. Géométrie pill mono
+         alignée sur les chips d'eyebrow et les CTAs secondaires de la page. */
+      .lp-topbar-actions {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 50;
+        display: flex; gap: 8px;
+      }
+      @media (max-width: 640px) {
+        .lp-topbar-actions { top: 14px; right: 14px; }
+      }
+      .lp-topbar-link {
+        font-family: ${T.mono}; font-size: 11px; font-weight: 500;
+        letter-spacing: 1.6px; text-transform: uppercase;
+        color: ${T.amber};
+        background: rgba(245,166,35,0.06);
+        border: 1px solid rgba(245,166,35,0.32);
+        padding: 9px 16px; border-radius: 999px;
+        cursor: pointer; transition: all .15s;
+      }
+      .lp-topbar-link:hover {
+        background: rgba(245,166,35,0.12);
+        border-color: rgba(245,166,35,0.55);
+        box-shadow: 0 0 0 4px rgba(245,166,35,0.06);
       }
 
       /* ── HERO ─────────────────────────────────────── */

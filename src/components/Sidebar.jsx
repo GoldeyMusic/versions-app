@@ -31,6 +31,7 @@ export default function Sidebar({
   onGoReglages,
   onGoLanding,
   onGoDashboard,
+  onGoAdmin,
   onAdd,
   onPlay,
   onToggle,
@@ -316,6 +317,34 @@ export default function Sidebar({
             <span>{s.sidebar.dashboardLink}</span>
           </button>
         )}
+
+        {/* Lien Admin — visible UNIQUEMENT si l'email du user matche
+            VITE_ADMIN_EMAIL (config côté frontend). Permet à David
+            d'accéder au dashboard de coûts (#/admin) en un clic depuis
+            n'importe où dans l'app. Style aligné sur le bouton dashboard
+            ci-dessus, accent ambre pour le distinguer. */}
+        {onGoAdmin && (() => {
+          const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
+          const isAdmin = adminEmail && user?.email?.toLowerCase() === adminEmail;
+          if (!isAdmin) return null;
+          return (
+            <button
+              type="button"
+              onClick={onGoAdmin}
+              className="sidebar-dashboard-btn sidebar-admin-btn"
+              aria-label="Admin — coûts"
+              style={{
+                color: '#f5a623',
+                marginTop: 4,
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M12 2l3 7h7l-5.5 4 2 8L12 17l-6.5 4 2-8L2 9h7z" />
+              </svg>
+              <span>Admin</span>
+            </button>
+          );
+        })()}
 
         <div className="section-label">{s.sidebar.sectionMyProjects}</div>
 
