@@ -8877,16 +8877,8 @@ export default function MockupStyles() {
     aspect-ratio: 1 / 1;
     overflow: visible;
   }
-  /* Animation draw-in : l'arc se trace de 12h en sens horaire au mount.
-     stroke-dasharray = circonférence, dashoffset animé de circ → offset cible. */
-  .dsp-master-rings .ms-ring-arc {
-    stroke-dasharray: var(--ms-ring-circ, 326);
-    stroke-dashoffset: var(--ms-ring-circ, 326);
-    animation: ms-ring-fill 1.2s cubic-bezier(.4,0,.2,1) forwards;
-  }
-  @keyframes ms-ring-fill {
-    to { stroke-dashoffset: var(--ms-ring-offset, 0); }
-  }
+  /* Anim arc en React state désormais (useAnimatedValue), plus de CSS
+     animation pour éviter les replays sur display:none → block. */
   /* Valeur centrale : grosse mono, color injecté inline */
   .dsp-master-rings .ms-ring-num {
     font-family: var(--mono);
@@ -8918,12 +8910,10 @@ export default function MockupStyles() {
     letter-spacing: 0.5px;
     color: rgba(255,255,255,0.38);
   }
-  @media (prefers-reduced-motion: reduce) {
-    .dsp-master-rings .ms-ring-arc {
-      animation: none;
-      stroke-dashoffset: var(--ms-ring-offset, 0);
-    }
-  }
+  /* prefers-reduced-motion : non requis ici, useAnimatedValue ne
+     déclenche aucune anim CSS. Pour les utilisateurs avec
+     reduced-motion on pourrait court-circuiter dans le hook lui-même
+     (TODO : checker matchMedia('(prefers-reduced-motion: reduce)')). */
 
   /* ─────────────────────────────────────────────────────────────
      LEGACY skyline montagneux — abandonné 2026-04-28 v2 mais styles
@@ -9239,10 +9229,11 @@ export default function MockupStyles() {
     text-transform: uppercase;
     margin-bottom: 18px;
   }
-  /* Jauge */
+  /* Jauge — padding-top augmenté pour que la valeur 20px + la flèche
+     tiennent au-dessus de la barre sans chevaucher. */
   .dsp-voice-block .vv-gauge {
     position: relative;
-    padding: 22px 4px 22px;
+    padding: 38px 4px 22px;
   }
   .dsp-voice-block .vv-track {
     display: flex;
@@ -9266,33 +9257,49 @@ export default function MockupStyles() {
     flex: 0 0 25%;
     background: linear-gradient(90deg, rgba(255,93,93,0.30), rgba(255,93,93,0.20));
   }
-  /* Curseur (pin + valeur au-dessus) */
-  .dsp-voice-block .vv-cursor {
-    position: absolute;
-    top: 0;
-    bottom: 18px;
-    transform: translateX(-50%);
-    pointer-events: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
+  /* Valeur nette au-dessus de la jauge — plus grosse pour rester
+     dominante comme les chiffres hero de stéréo (22px) et master (17px).
+     Mono weight 600, sans halo. */
   .dsp-voice-block .vv-cursor-value {
+    position: absolute;
+    top: 4px;
+    transform: translateX(-50%);
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: 20px;
     font-weight: 600;
-    letter-spacing: 0.4px;
+    letter-spacing: -0.2px;
     color: currentColor;
-    margin-bottom: 4px;
     white-space: nowrap;
+    pointer-events: none;
   }
-  .dsp-voice-block .vv-cursor-pin {
-    width: 3px;
-    flex: 1;
-    background: currentColor;
-    border-radius: 1.5px;
-    box-shadow: 0 0 8px currentColor;
-    opacity: 1;
+  /* Flèche ▼ qui mord légèrement sur la barre (top 33 → tip à 42,
+     soit 4px à l'intérieur de la barre qui démarre à 38). Plus
+     visible aussi : borders 7+10. */
+  .dsp-voice-block .vv-cursor-arrow {
+    position: absolute;
+    top: 33px;
+    width: 0;
+    height: 0;
+    transform: translateX(-50%);
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 10px solid currentColor;
+    pointer-events: none;
+    z-index: 2;
+  }
+  /* Graduations -6/-3/0/+3/+6 LU sous la jauge */
+  .dsp-voice-block .vv-ticks {
+    position: relative;
+    height: 14px;
+    margin-top: 8px;
+  }
+  .dsp-voice-block .vv-ticks span {
+    position: absolute;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.32);
   }
   /* Légende sous la jauge : 3 labels alignés sur les zones */
   .dsp-voice-block .vv-legend {
