@@ -1866,84 +1866,193 @@ function StereoFieldBlock({ analysisResult }) {
     return balanceLR > 0 ? s.fiche.dspViz.balanceLeftHeavy : s.fiche.dspViz.balanceRightHeavy;
   })();
 
+  // Couleur tier mono compat — détermine la teinte du blob et des chiffres
+  const monoTier = monoCompat == null ? 'target'
+    : monoCompat <= 1 ? 'target'
+    : monoCompat <= 2 ? 'low'
+    : 'critical';
+  const tierColors = {
+    target:   { rgb: '142,224,122', hex: '#8ee07a' },
+    low:      { rgb: '245,176,86',  hex: '#f5a623' },
+    critical: { rgb: '255,93,93',   hex: '#ff5d5d' },
+  };
+  const tc = tierColors[monoTier];
+
+  // Helpers pour les zones width / corr (pour récupérer un label/tone par valeur)
+  const widthPct = midSideRatio != null ? Math.round(midSideRatio * 100) : null;
+  const widthZone = widthPct == null ? null
+    : widthPct < 10 ? { tone: 'soft',   label: s.fiche.dspViz.widthZoneNarrow }
+    : widthPct < 30 ? { tone: 'target', label: s.fiche.dspViz.widthZoneStandard }
+    : widthPct < 50 ? { tone: 'low',    label: s.fiche.dspViz.widthZoneWide }
+    : { tone: 'soft', label: s.fiche.dspViz.widthZoneVeryWide };
+  const monoZone = monoCompat == null ? null
+    : monoCompat <= 1 ? { tone: 'target', label: s.fiche.dspViz.monoCompatZoneOk }
+    : monoCompat <= 2 ? { tone: 'low',    label: s.fiche.dspViz.monoCompatZoneLimit }
+    : { tone: 'critical', label: s.fiche.dspViz.monoCompatZoneDanger };
+  const corrZone = correlation == null ? null
+    : correlation < 0    ? { tone: 'critical', label: s.fiche.dspViz.corrZonePhaseInv }
+    : correlation < 0.3  ? { tone: 'low',      label: s.fiche.dspViz.corrZoneVeryWide }
+    : correlation < 0.85 ? { tone: 'target',   label: s.fiche.dspViz.corrZoneTarget }
+    : { tone: 'soft', label: s.fiche.dspViz.corrZoneNarrow };
+
   return (
     <div className="dsp-master-block dsp-stereo-block">
-      {/* Balance bar (uniquement si balanceLR dispo) */}
-      {balanceLR != null && (
-        <div className="dsp-balance">
-          <div className="dsp-balance-track" aria-hidden="true">
-            <div className="dsp-balance-zone z-soft" />
-            <div className="dsp-balance-zone z-target" />
-            <div className="dsp-balance-zone z-soft" />
-          </div>
-          {/* Curseur + valeur au-dessus */}
-          <div
-            className="dsp-balance-cursor"
-            style={{ left: `${balCursorPct}%`, color: balCursorColor }}
-          >
-            <span className="dsp-balance-value">
-              {balanceLR > 0 ? '+' : ''}{balanceLR.toFixed(1)} dB
-            </span>
-            <span className="dsp-balance-line" />
-          </div>
-          {/* Labels L / centre / R */}
-          <div className="dsp-balance-ticks" aria-hidden="true">
-            <span style={{ left: '0%' }}>L</span>
-            <span style={{ left: '50%' }}>·</span>
-            <span style={{ left: '100%' }}>R</span>
-          </div>
-          {balVerdict && (
-            <div className="dsp-balance-verdict">{balVerdict}</div>
-          )}
-        </div>
-      )}
+      {/* HERO : "stereo lavalamp" — refonte radicale 2026-04-28.
+          Plusieurs cercles SVG qui fusionnent via un filtre gooey
+          (feGaussianBlur + feColorMatrix), donnant une masse organique
+          qui morphe en continu façon lava-lamp / Apple Music. La largeur
+          du blob suit midSideRatio, sa position suit balanceLR, sa
+          couleur suit mono compat. */}
+      {(midSideRatio != null || balanceLR != null) && (() => {
+        const W = 480;
+        const H = 110; // hauteur réduite — le visuel prend moins de place vertical
+        const CYY = H / 2;
+        // Étalement horizontal du blob : 50-260px pour 0-85% midSide.
+        // Réduit par rapport à v1 (340px) pour moins dominer.
+        const blobSpan = midSideRatio != null
+          ? 50 + Math.max(0, Math.min(0.85, midSideRatio * 1.6)) * 210
+          : 140;
+        // Décalage selon balance ±15% de la largeur (clamp)
+        const balShift = balanceLR != null ? Math.max(-1, Math.min(1, balanceLR / 6)) : 0;
+        const blobCx = W / 2 + balShift * (W * 0.12);
+        // 6 orbes : tailles + alphas variés pour donner du volume interne.
+        // Le centre concentre les orbes plus opaques, les bords des plus diffus.
+        const blobs = [
+          { dx: -0.42, dy:  0.04, r: 22, alpha: 0.42, delay: 0    },
+          { dx: -0.18, dy: -0.14, r: 20, alpha: 0.62, delay: 1.2  },
+          { dx:  0.02, dy:  0.06, r: 30, alpha: 0.78, delay: 2.4  },
+          { dx:  0.20, dy: -0.10, r: 22, alpha: 0.66, delay: 0.8  },
+          { dx:  0.40, dy:  0.12, r: 18, alpha: 0.40, delay: 2.0  },
+          { dx: -0.06, dy:  0.20, r: 16, alpha: 0.50, delay: 3.2  },
+        ];
+        return (
+          <div className="dsp-stereo-stage">
+            <svg viewBox={`0 0 ${W} ${H}`} className="dsp-stereo-stage-svg" aria-hidden="true">
+              <defs>
+                {/* Filtre gooey adouci : stdDeviation 6 (moins flou) +
+                    threshold matrix 16 -7 (bords moins coupés). */}
+                <filter id="ss-gooey">
+                  <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+                  <feColorMatrix in="blur" type="matrix" values="
+                    1 0 0 0 0
+                    0 1 0 0 0
+                    0 0 1 0 0
+                    0 0 0 16 -7
+                  " result="goo" />
+                  <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+                </filter>
+                {/* Gradient radial pour chaque orbe — centre lumineux,
+                    bords transparents → donne du volume au lieu d'un aplat. */}
+                <radialGradient id="ss-orb-grad" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%"  stopColor={`rgba(${tc.rgb},1)`} />
+                  <stop offset="60%" stopColor={`rgba(${tc.rgb},0.7)`} />
+                  <stop offset="100%" stopColor={`rgba(${tc.rgb},0.2)`} />
+                </radialGradient>
+                {/* Halo d'atmosphère : énorme cercle radial très diffus
+                    derrière le blob, donne une impression de profondeur/aura
+                    sans être agressif. */}
+                <radialGradient id="ss-atmosphere" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%"  stopColor={`rgba(${tc.rgb},0.15)`} />
+                  <stop offset="50%" stopColor={`rgba(${tc.rgb},0.04)`} />
+                  <stop offset="100%" stopColor={`rgba(${tc.rgb},0)`} />
+                </radialGradient>
+                {/* Gradient horizontal de fond — warm L → cool R, suggère
+                    l'espace stéréo. Ambre côté gauche, cerulean côté droit,
+                    teinte légère au centre pour la transition. */}
+                <linearGradient id="ss-stage-bg" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%"   stopColor="rgba(245,166,35,0.14)" />
+                  <stop offset="35%"  stopColor="rgba(245,166,35,0.05)" />
+                  <stop offset="50%"  stopColor="rgba(255,255,255,0.04)" />
+                  <stop offset="65%"  stopColor="rgba(92,184,204,0.05)" />
+                  <stop offset="100%" stopColor="rgba(92,184,204,0.14)" />
+                </linearGradient>
+              </defs>
 
-      {/* 3 mini-cards alignées en row (WIDTH / MONO COMPAT / CORR L/R) */}
-      {(midSideRatio != null || monoCompat != null || correlation != null) && (
-        <div className="dsp-mini-row dsp-stereo-mini-row">
-          {midSideRatio != null && (
-            <DspMiniCard
-              kicker={s.fiche.dspViz.widthKicker}
-              value={midSideRatio * 100}
-              unit="%"
-              scale={{ min: 0, max: 100 }}
-              zones={[
-                { max: 10, label: s.fiche.dspViz.widthZoneNarrow,    tone: 'soft'   },
-                { max: 30, label: s.fiche.dspViz.widthZoneStandard,  tone: 'target' },
-                { max: 50, label: s.fiche.dspViz.widthZoneWide,      tone: 'low'    },
-                { max: Infinity, label: s.fiche.dspViz.widthZoneVeryWide, tone: 'soft' },
-              ]}
-              displayValue={(v) => Math.round(v).toString()}
-            />
+              {/* Fond ambient warm-to-cool — couvre la zone du blob et des labels */}
+              <rect x="0" y={CYY - 40} width={W} height="80" fill="url(#ss-stage-bg)" rx="8" />
+
+              {/* L / R en gros, faded, presque ambient */}
+              <text x="14" y={CYY + 6} textAnchor="start" className="ss-stage-channel">L</text>
+              <text x={W - 14} y={CYY + 6} textAnchor="end" className="ss-stage-channel">R</text>
+
+              {/* Repère central (vertical fin) */}
+              <line
+                x1={W / 2} y1={CYY - 28} x2={W / 2} y2={CYY + 28}
+                stroke="rgba(255,255,255,0.05)" strokeWidth="1" strokeDasharray="2 4"
+              />
+
+              {/* HALO d'atmosphère derrière le blob — large nuage flou
+                  qui donne du contexte sans dominer. */}
+              <ellipse
+                cx={blobCx}
+                cy={CYY}
+                rx={Math.max(blobSpan * 0.85, 80)}
+                ry="32"
+                fill="url(#ss-atmosphere)"
+                style={{
+                  transition: 'cx .8s cubic-bezier(.4,0,.2,1), rx .8s cubic-bezier(.4,0,.2,1)',
+                }}
+              />
+
+              {/* Le BLOB gooey — masse organique vivante. Chaque orbe
+                  utilise un radial gradient au lieu d'un aplat, et a son
+                  propre alpha → l'ensemble a du volume au lieu d'être plat. */}
+              <g filter="url(#ss-gooey)" style={{ transition: 'transform .8s cubic-bezier(.4,0,.2,1)' }}>
+                {blobs.map((b, idx) => (
+                  <circle
+                    key={idx}
+                    cx={blobCx + b.dx * blobSpan}
+                    cy={CYY + b.dy * 22}
+                    r={b.r}
+                    fill="url(#ss-orb-grad)"
+                    opacity={b.alpha}
+                    className="ss-blob-orb"
+                    style={{
+                      animationDelay: `${b.delay}s`,
+                      transition: 'cx .8s cubic-bezier(.4,0,.2,1)',
+                    }}
+                  />
+                ))}
+              </g>
+
+            </svg>
+            {/* Balance value sortie du SVG → en HTML en dessous,
+                plus de risque de chevauchement avec le blob. */}
+            {balanceLR != null && (
+              <div className="dsp-stereo-stage-balance">
+                {balanceLR >= 0 ? '+' : ''}{balanceLR.toFixed(1)} dB
+                {balVerdict ? `  ·  ${balVerdict}` : ''}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* HERO TYPOGRAPHIQUE — gros chiffres en row, plus de cards. */}
+      {(widthPct != null || monoCompat != null || correlation != null) && (
+        <div className="dsp-stereo-stats">
+          {widthPct != null && (
+            <div className={`ss-stat t-${widthZone.tone}`}>
+              <div className="ss-stat-num">{widthPct}<span className="ss-stat-unit">%</span></div>
+              <div className="ss-stat-kicker">{s.fiche.dspViz.widthKicker}</div>
+              <div className="ss-stat-verdict">{widthZone.label}</div>
+            </div>
           )}
           {monoCompat != null && (
-            <DspMiniCard
-              kicker={s.fiche.dspViz.monoCompatKicker}
-              value={monoCompat}
-              unit="LU"
-              scale={{ min: -1, max: 5 }}
-              zones={[
-                { max: 1, label: s.fiche.dspViz.monoCompatZoneOk,       tone: 'target'   },
-                { max: 2, label: s.fiche.dspViz.monoCompatZoneLimit,    tone: 'low'      },
-                { max: Infinity, label: s.fiche.dspViz.monoCompatZoneDanger, tone: 'critical' },
-              ]}
-              displayValue={(v) => (v > 0 ? `+${v.toFixed(1)}` : v.toFixed(1))}
-            />
+            <div className={`ss-stat t-${monoZone.tone}`}>
+              <div className="ss-stat-num">
+                {monoCompat > 0 ? '+' : ''}{monoCompat.toFixed(1)}<span className="ss-stat-unit">LU</span>
+              </div>
+              <div className="ss-stat-kicker">{s.fiche.dspViz.monoCompatKicker}</div>
+              <div className="ss-stat-verdict">{monoZone.label}</div>
+            </div>
           )}
           {correlation != null && (
-            <DspMiniCard
-              kicker={s.fiche.dspViz.corrKicker}
-              value={correlation}
-              unit=""
-              scale={{ min: -1, max: 1 }}
-              zones={[
-                { max: 0,    label: s.fiche.dspViz.corrZonePhaseInv, tone: 'critical' },
-                { max: 0.3,  label: s.fiche.dspViz.corrZoneVeryWide, tone: 'low'      },
-                { max: 0.85, label: s.fiche.dspViz.corrZoneTarget,   tone: 'target'   },
-                { max: Infinity, label: s.fiche.dspViz.corrZoneNarrow, tone: 'soft'   },
-              ]}
-              displayValue={(v) => v.toFixed(2)}
-            />
+            <div className={`ss-stat t-${corrZone.tone}`}>
+              <div className="ss-stat-num">{correlation.toFixed(2)}</div>
+              <div className="ss-stat-kicker">{s.fiche.dspViz.corrKicker}</div>
+              <div className="ss-stat-verdict">{corrZone.label}</div>
+            </div>
           )}
         </div>
       )}

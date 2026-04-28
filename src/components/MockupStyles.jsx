@@ -8737,18 +8737,54 @@ export default function MockupStyles() {
     transition: fill .12s ease;
     pointer-events: none;
   }
-  /* Échelle 0–100 au centre, mono très petit, neutre. */
+  /* Échelle 0–100 au centre — discret, mono petit. Plus contrasté qu'à
+     l'origine (0.25 → 0.45) pour rester lisible avec la vignette + halos,
+     mais sans ressortir comme un texte principal. */
   .fiche-v2 .mix-radar-scale {
     font-family: var(--mono, 'JetBrains Mono', monospace);
-    font-size: 9px;
+    font-size: 10px;
     letter-spacing: 0.8px;
-    fill: rgba(255,255,255,0.25);
+    font-weight: 500;
+    fill: rgba(255,255,255,0.45);
     pointer-events: none;
+    transition: fill .35s ease, font-size .35s ease;
   }
   .fiche-v2 .mix-radar.is-hovering .mix-radar-scale {
     fill: var(--amber, #f5a623);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
+  }
+  /* Polygone constellation : draw-in au mount, puis pulsation très
+     douce du stroke (David aime cette respiration globale). */
+  .fiche-v2 .mr-poly-anim {
+    stroke-dasharray: var(--mr-perim, 600);
+    stroke-dashoffset: var(--mr-perim, 600);
+    animation: mr-draw-in 1.4s cubic-bezier(.4,0,.2,1) .1s forwards,
+               mr-poly-glow 6s ease-in-out 1.5s infinite;
+  }
+  @keyframes mr-draw-in {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes mr-poly-glow {
+    0%, 100% { stroke-opacity: 0.55; }
+    50%      { stroke-opacity: 0.85; }
+  }
+  /* Score affiché sur l'axe en cours de highlight (auto-cycle ou hover). */
+  .fiche-v2 .mix-radar-axis-score {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    fill: var(--amber, #f5a623);
+    pointer-events: none;
+    transition: opacity .4s ease;
+  }
+  /* Respect des préférences accessibilité — désactive draw-in + pulsation. */
+  @media (prefers-reduced-motion: reduce) {
+    .fiche-v2 .mr-poly-anim {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
   }
   /* Carte détail (préserve le contenu pédagogique des MiTile). */
   .fiche-v2 .mix-radar-detail {
@@ -9099,12 +9135,148 @@ export default function MockupStyles() {
   }
 
   /* ─────────────────────────────────────────────────────────────
-     DSP_PLAN C.2 — Stereo field (refonte 2026-04-28, Option B)
-     Balance bar L↔R horizontale (curseur ambre = balanceLR)
-     + 3 mini-cards en row : WIDTH, MONO COMPAT, CORR L/R.
+     DSP_PLAN C.2 — Stereo field (refonte 2026-04-28)
+     HERO : arène stéréo SVG (nuage radial qui respire) + 3 mini-cards
+     en row dessous (WIDTH, MONO COMPAT, CORR L/R).
      Cohérent avec A.1 LoudnessMeter et A.2 mini-cards.
      ───────────────────────────────────────────────────────────── */
   .dsp-stereo-block { padding: 14px 14px 12px; }
+
+  /* HERO stage stéréo (refonte radicale 2026-04-28) — blob lava-lamp
+     gooey qui morphe en continu, avec typographie hero en dessous.
+     La card extérieure reste neutre, seul le rectangle intérieur du
+     SVG (la zone qui contient L, R et le blob) reçoit un fond
+     ambient warm→cool. */
+  .dsp-stereo-stage {
+    position: relative;
+    margin: 4px 0 8px;
+    text-align: center;
+  }
+  .dsp-stereo-stage-svg {
+    width: 100%;
+    max-width: 540px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    overflow: visible;
+  }
+  .dsp-stereo-stage .ss-stage-channel {
+    font-family: var(--mono);
+    font-size: 16px;
+    letter-spacing: 2px;
+    font-weight: 600;
+    fill: rgba(255,255,255,0.45);
+    pointer-events: none;
+  }
+  .dsp-stereo-stage .ss-stage-balance {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1.4px;
+    font-weight: 500;
+    text-transform: uppercase;
+    fill: var(--muted, #7c7c80);
+    pointer-events: none;
+  }
+  /* Balance text en HTML sous le SVG (sortie du viewBox pour éviter les
+     chevauchements avec le blob quand on réduit la hauteur). */
+  .dsp-stereo-stage-balance {
+    margin-top: 4px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--muted, #7c7c80);
+  }
+  /* Animation des cercles individuels du blob — chacun a son rythme,
+     décalé via animation-delay inline → la masse "respire" et morphe. */
+  .dsp-stereo-stage .ss-blob-orb {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: ss-orb-drift 5s ease-in-out infinite;
+  }
+  @keyframes ss-orb-drift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25%      { transform: translate(8px, -4px) scale(1.08); }
+    50%      { transform: translate(-6px, 6px) scale(0.94); }
+    75%      { transform: translate(4px, 8px) scale(1.05); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dsp-stereo-stage .ss-blob-orb { animation: none; }
+  }
+
+  /* HERO TYPOGRAPHIQUE — 3 chiffres en row, plus de cards, plus
+     d'encadrés. Juste de la grosse typo bien alignée avec un kicker
+     mono caps + un verdict. Les 3 stats partagent l'horizontal. */
+  .dsp-stereo-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    margin-top: 14px;
+    padding: 10px 0 4px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  @media (max-width: 640px) {
+    .dsp-stereo-stats { grid-template-columns: 1fr 1fr; row-gap: 16px; }
+  }
+  @media (max-width: 420px) {
+    .dsp-stereo-stats { grid-template-columns: 1fr; row-gap: 14px; }
+  }
+  .dsp-stereo-stats .ss-stat {
+    text-align: center;
+    padding: 4px 6px;
+  }
+  .dsp-stereo-stats .ss-stat-num {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.3px;
+    margin-bottom: 5px;
+    transition: color 0.4s ease, text-shadow 0.4s ease;
+  }
+  .dsp-stereo-stats .ss-stat-unit {
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.4px;
+    margin-left: 2px;
+    color: var(--muted, #7c7c80);
+  }
+  .dsp-stereo-stats .ss-stat-kicker {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted, #7c7c80);
+    margin-bottom: 3px;
+  }
+  .dsp-stereo-stats .ss-stat-verdict {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  /* Couleurs par tier (target/low/critical/soft) */
+  .dsp-stereo-stats .ss-stat.t-target .ss-stat-num,
+  .dsp-stereo-stats .ss-stat.t-target .ss-stat-verdict {
+    color: rgb(142, 224, 122);
+    text-shadow: 0 0 18px rgba(142, 224, 122, 0.25);
+  }
+  .dsp-stereo-stats .ss-stat.t-low .ss-stat-num,
+  .dsp-stereo-stats .ss-stat.t-low .ss-stat-verdict {
+    color: var(--amber, #f5a623);
+    text-shadow: 0 0 18px rgba(245, 166, 35, 0.28);
+  }
+  .dsp-stereo-stats .ss-stat.t-critical .ss-stat-num,
+  .dsp-stereo-stats .ss-stat.t-critical .ss-stat-verdict {
+    color: rgb(255, 93, 93);
+    text-shadow: 0 0 18px rgba(255, 93, 93, 0.30);
+  }
+  .dsp-stereo-stats .ss-stat.t-soft .ss-stat-num,
+  .dsp-stereo-stats .ss-stat.t-soft .ss-stat-verdict {
+    color: rgba(255, 255, 255, 0.55);
+  }
 
   /* Balance bar — réplique la grammaire du LoudnessMeter (A.1) */
   .dsp-balance {
