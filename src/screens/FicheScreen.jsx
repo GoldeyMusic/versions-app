@@ -1905,60 +1905,59 @@ function StereoFieldBlock({ analysisResult }) {
           couleur suit mono compat. */}
       {(midSideRatio != null || balanceLR != null) && (() => {
         const W = 480;
-        const H = 110; // hauteur réduite — le visuel prend moins de place vertical
+        const H = 110;
         const CYY = H / 2;
-        // Étalement horizontal du blob : 50-260px pour 0-85% midSide.
-        // Réduit par rapport à v1 (340px) pour moins dominer.
-        const blobSpan = midSideRatio != null
-          ? 50 + Math.max(0, Math.min(0.85, midSideRatio * 1.6)) * 210
-          : 140;
-        // Décalage selon balance ±15% de la largeur (clamp)
+        // Étalement horizontal du nuage proportionnel HONNÊTE à midSideRatio.
+        //   midSideRatio 0% (mono pur)   → 12px   (presque un point)
+        //   midSideRatio 9%  (étroit)    → ~50px  (ton mix actuel)
+        //   midSideRatio 50% (décorrélé) → ~268px (moitié de la largeur)
+        //   midSideRatio 85% (très large)→ ~408px (presque pleine largeur)
+        // Plus de floor 50px ni de multiplicateur 1.6 → on lit la vraie
+        // valeur visuellement.
+        const cloudSpan = midSideRatio != null
+          ? Math.max(12, midSideRatio * W * 0.95)
+          : 100;
+        // Décalage centre selon balance ±15%.
         const balShift = balanceLR != null ? Math.max(-1, Math.min(1, balanceLR / 6)) : 0;
-        const blobCx = W / 2 + balShift * (W * 0.12);
-        // 6 orbes : tailles + alphas variés pour donner du volume interne.
-        // Le centre concentre les orbes plus opaques, les bords des plus diffus.
-        const blobs = [
-          { dx: -0.42, dy:  0.04, r: 22, alpha: 0.42, delay: 0    },
-          { dx: -0.18, dy: -0.14, r: 20, alpha: 0.62, delay: 1.2  },
-          { dx:  0.02, dy:  0.06, r: 30, alpha: 0.78, delay: 2.4  },
-          { dx:  0.20, dy: -0.10, r: 22, alpha: 0.66, delay: 0.8  },
-          { dx:  0.40, dy:  0.12, r: 18, alpha: 0.40, delay: 2.0  },
-          { dx: -0.06, dy:  0.20, r: 16, alpha: 0.50, delay: 3.2  },
-        ];
+        const cloudCx = W / 2 + balShift * (W * 0.12);
+
+        // Génère un nuage de particules pseudo-aléatoires mais déterministes
+        // (seed = midSideRatio + balanceLR + monoCompat → chaque mix a sa
+        // signature visuelle). Distribution gaussienne approximée pour que
+        // les particules se concentrent au centre et se raréfient aux bords.
+        const seed = (midSideRatio || 0) * 47 + (balanceLR || 0) * 31 + (monoCompat || 0) * 23;
+        const N_PARTICLES = 56;
+        const particles = Array.from({ length: N_PARTICLES }, (_, i) => {
+          // Mélange de sin/cos avec phases différentes pour pseudo-random
+          const a = Math.sin(i * 0.97 + seed * 0.13);
+          const b = Math.cos(i * 1.71 + seed * 0.27);
+          const c = Math.sin(i * 2.43 + seed * 0.41);
+          const d = Math.cos(i * 3.19 + seed * 0.53);
+          // Position horizontale : approximation gaussienne via somme de 2 sins
+          // → distribution plus dense au centre, plus diffuse aux bords
+          const horizFactor = (a + b * 0.6) * 0.45; // -0.45..0.45
+          const vertFactor = c * 0.45;              // -0.45..0.45
+          const x = cloudCx + horizFactor * cloudSpan;
+          const y = CYY + vertFactor * 30;
+          const radius = 0.9 + Math.abs(d) * 1.6;   // 0.9..2.5px
+          const alpha = 0.35 + Math.abs(a + b) * 0.18; // 0.35..0.71
+          const delay = (i * 0.13 + Math.abs(c) * 1.3) % 6;
+          const duration = 5 + Math.abs(d) * 4;     // 5-9s
+          return { x, y, radius, alpha, delay, duration };
+        });
+
         return (
           <div className="dsp-stereo-stage">
             <svg viewBox={`0 0 ${W} ${H}`} className="dsp-stereo-stage-svg" aria-hidden="true">
               <defs>
-                {/* Filtre gooey adouci : stdDeviation 6 (moins flou) +
-                    threshold matrix 16 -7 (bords moins coupés). */}
-                <filter id="ss-gooey">
-                  <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
-                  <feColorMatrix in="blur" type="matrix" values="
-                    1 0 0 0 0
-                    0 1 0 0 0
-                    0 0 1 0 0
-                    0 0 0 16 -7
-                  " result="goo" />
-                  <feComposite in="SourceGraphic" in2="goo" operator="atop" />
-                </filter>
-                {/* Gradient radial pour chaque orbe — centre lumineux,
-                    bords transparents → donne du volume au lieu d'un aplat. */}
-                <radialGradient id="ss-orb-grad" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%"  stopColor={`rgba(${tc.rgb},1)`} />
-                  <stop offset="60%" stopColor={`rgba(${tc.rgb},0.7)`} />
-                  <stop offset="100%" stopColor={`rgba(${tc.rgb},0.2)`} />
-                </radialGradient>
-                {/* Halo d'atmosphère : énorme cercle radial très diffus
-                    derrière le blob, donne une impression de profondeur/aura
-                    sans être agressif. */}
+                {/* Halo d'atmosphère derrière le nuage (grande ellipse douce
+                    teinte par mono compat tier). */}
                 <radialGradient id="ss-atmosphere" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%"  stopColor={`rgba(${tc.rgb},0.15)`} />
-                  <stop offset="50%" stopColor={`rgba(${tc.rgb},0.04)`} />
+                  <stop offset="0%"  stopColor={`rgba(${tc.rgb},0.14)`} />
+                  <stop offset="55%" stopColor={`rgba(${tc.rgb},0.04)`} />
                   <stop offset="100%" stopColor={`rgba(${tc.rgb},0)`} />
                 </radialGradient>
-                {/* Gradient horizontal de fond — warm L → cool R, suggère
-                    l'espace stéréo. Ambre côté gauche, cerulean côté droit,
-                    teinte légère au centre pour la transition. */}
+                {/* Gradient horizontal de fond — warm L → cool R */}
                 <linearGradient id="ss-stage-bg" x1="0" y1="0" x2="1" y2="0">
                   <stop offset="0%"   stopColor="rgba(245,166,35,0.14)" />
                   <stop offset="35%"  stopColor="rgba(245,166,35,0.05)" />
@@ -1968,25 +1967,59 @@ function StereoFieldBlock({ analysisResult }) {
                 </linearGradient>
               </defs>
 
-              {/* Fond ambient warm-to-cool — couvre la zone du blob et des labels */}
+              {/* Fond warm-to-cool */}
               <rect x="0" y={CYY - 40} width={W} height="80" fill="url(#ss-stage-bg)" rx="8" />
 
-              {/* L / R en gros, faded, presque ambient */}
+              {/* L / R faded ambient */}
               <text x="14" y={CYY + 6} textAnchor="start" className="ss-stage-channel">L</text>
               <text x={W - 14} y={CYY + 6} textAnchor="end" className="ss-stage-channel">R</text>
 
-              {/* Repère central (vertical fin) */}
+              {/* Repères horizontaux : 4 tick marks ±3 dB et ±6 dB pour
+                  donner une échelle de balance lisible. Le centre (0 dB)
+                  est plus marqué (vertical fin), les autres sont des
+                  petits ticks bas avec leur valeur dB en mono. */}
+              {[
+                { dB: -6, label: '−6' },
+                { dB: -3, label: '−3' },
+                { dB:  3, label: '+3' },
+                { dB:  6, label: '+6' },
+              ].map((t) => {
+                // Map ±6 dB vers ±50% de la largeur autour du centre
+                const tx = W / 2 + (t.dB / 6) * (W * 0.42);
+                return (
+                  <g key={`tk-${t.dB}`} className="ss-stage-tick">
+                    <line
+                      x1={tx} y1={CYY + 22} x2={tx} y2={CYY + 28}
+                      stroke="rgba(255,255,255,0.18)" strokeWidth="1"
+                    />
+                    <text
+                      x={tx} y={CYY + 38}
+                      textAnchor="middle"
+                      className="ss-stage-tick-label"
+                    >
+                      {t.label}
+                    </text>
+                  </g>
+                );
+              })}
+              {/* Centre 0 dB : ligne verticale fine + label */}
               <line
                 x1={W / 2} y1={CYY - 28} x2={W / 2} y2={CYY + 28}
-                stroke="rgba(255,255,255,0.05)" strokeWidth="1" strokeDasharray="2 4"
+                stroke="rgba(255,255,255,0.10)" strokeWidth="1" strokeDasharray="2 4"
               />
+              <text
+                x={W / 2} y={CYY + 38}
+                textAnchor="middle"
+                className="ss-stage-tick-label ss-stage-tick-center"
+              >
+                0 dB
+              </text>
 
-              {/* HALO d'atmosphère derrière le blob — large nuage flou
-                  qui donne du contexte sans dominer. */}
+              {/* Halo d'atmosphère derrière le nuage de particules */}
               <ellipse
-                cx={blobCx}
+                cx={cloudCx}
                 cy={CYY}
-                rx={Math.max(blobSpan * 0.85, 80)}
+                rx={Math.max(cloudSpan * 0.85, 80)}
                 ry="32"
                 fill="url(#ss-atmosphere)"
                 style={{
@@ -1994,30 +2027,28 @@ function StereoFieldBlock({ analysisResult }) {
                 }}
               />
 
-              {/* Le BLOB gooey — masse organique vivante. Chaque orbe
-                  utilise un radial gradient au lieu d'un aplat, et a son
-                  propre alpha → l'ensemble a du volume au lieu d'être plat. */}
-              <g filter="url(#ss-gooey)" style={{ transition: 'transform .8s cubic-bezier(.4,0,.2,1)' }}>
-                {blobs.map((b, idx) => (
+              {/* NUAGE DE PARTICULES — chaque point a son drift indépendant
+                  (translate doux + opacité). Chaque particule a sa propre
+                  delay+duration → elles se mélangent et se croisent
+                  organiquement, sans synchronisation visible. */}
+              <g style={{ transition: 'transform .8s cubic-bezier(.4,0,.2,1)' }}>
+                {particles.map((p, idx) => (
                   <circle
                     key={idx}
-                    cx={blobCx + b.dx * blobSpan}
-                    cy={CYY + b.dy * 22}
-                    r={b.r}
-                    fill="url(#ss-orb-grad)"
-                    opacity={b.alpha}
-                    className="ss-blob-orb"
+                    cx={p.x}
+                    cy={p.y}
+                    r={p.radius}
+                    fill={`rgba(${tc.rgb},${p.alpha})`}
+                    className="ss-particle"
                     style={{
-                      animationDelay: `${b.delay}s`,
-                      transition: 'cx .8s cubic-bezier(.4,0,.2,1)',
+                      animationDelay: `${p.delay}s`,
+                      animationDuration: `${p.duration}s`,
                     }}
                   />
                 ))}
               </g>
 
             </svg>
-            {/* Balance value sortie du SVG → en HTML en dessous,
-                plus de risque de chevauchement avec le blob. */}
             {balanceLR != null && (
               <div className="dsp-stereo-stage-balance">
                 {balanceLR >= 0 ? '+' : ''}{balanceLR.toFixed(1)} dB
@@ -2028,7 +2059,8 @@ function StereoFieldBlock({ analysisResult }) {
         );
       })()}
 
-      {/* HERO TYPOGRAPHIQUE — gros chiffres en row, plus de cards. */}
+      {/* HERO TYPOGRAPHIQUE — gros chiffres en row, plus de cards.
+          Chaque stat a sa caption 'Cible : X..Y' pour situer la valeur. */}
       {(widthPct != null || monoCompat != null || correlation != null) && (
         <div className="dsp-stereo-stats">
           {widthPct != null && (
@@ -2036,6 +2068,7 @@ function StereoFieldBlock({ analysisResult }) {
               <div className="ss-stat-num">{widthPct}<span className="ss-stat-unit">%</span></div>
               <div className="ss-stat-kicker">{s.fiche.dspViz.widthKicker}</div>
               <div className="ss-stat-verdict">{widthZone.label}</div>
+              <div className="ss-stat-target">Cible : 15 à 35 %</div>
             </div>
           )}
           {monoCompat != null && (
@@ -2045,6 +2078,7 @@ function StereoFieldBlock({ analysisResult }) {
               </div>
               <div className="ss-stat-kicker">{s.fiche.dspViz.monoCompatKicker}</div>
               <div className="ss-stat-verdict">{monoZone.label}</div>
+              <div className="ss-stat-target">Cible : sous 1 LU</div>
             </div>
           )}
           {correlation != null && (
@@ -2052,6 +2086,7 @@ function StereoFieldBlock({ analysisResult }) {
               <div className="ss-stat-num">{correlation.toFixed(2)}</div>
               <div className="ss-stat-kicker">{s.fiche.dspViz.corrKicker}</div>
               <div className="ss-stat-verdict">{corrZone.label}</div>
+              <div className="ss-stat-target">Cible : 0,30 à 0,85</div>
             </div>
           )}
         </div>
