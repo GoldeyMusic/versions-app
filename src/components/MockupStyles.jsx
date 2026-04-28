@@ -1131,13 +1131,14 @@ export default function MockupStyles() {
   }
   /* Quand un tooltip est ouvert (score global ou tuile mix), on booste le
      z-index de toute la row pour que le tooltip puisse déborder au-dessus
-     du Plan d'action / Diagnostic qui suit dans la grille. Sans ça, le
-     z-index interne du tooltip (200) reste plafonné par la row (1). */
+     du Plan d'action / Diagnostic qui suit dans la grille ET au-dessus du
+     chat (.fiche-chat-side z-index 12). On vise 9999 pour être safe contre
+     tout autre stacking context introduit plus tard. */
   .fiche-v2 .page .row-verdict:has(.score-ring.tip-open),
   .fiche-v2 .page .row-verdict:has(.score-ring:hover),
   .fiche-v2 .page .row-verdict:has(.mi-tile.tip-open),
   .fiche-v2 .page .row-verdict:has(.mi-tile:hover) {
-    z-index: 100;
+    z-index: 9999;
   }
   /* Quand row-verdict monte à z-index 100 pour laisser le tooltip déborder,
      la pochette (z-index: 2 par défaut) passe DERRIÈRE et disparaît visuellement.
