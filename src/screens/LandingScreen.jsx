@@ -18,7 +18,7 @@ export default function LandingScreen({
   ctaPrimaryLabel,
   ctaFooterLabel,
 }) {
-  const { s } = useLang();
+  const { s, lang, setLang } = useLang();
   const lp = s.landing;
   const ctaPrimary = ctaPrimaryLabel || lp.ctaPrimary;
   const ctaFooter = ctaFooterLabel || lp.ctaFooter;
@@ -26,6 +26,29 @@ export default function LandingScreen({
   return (
     <div className="landing-screen">
       <LandingStyles />
+
+      {/* Switch FR/EN — épinglé en haut à gauche, même composant que dans la
+          sidebar de l'app et le topbar de la page exemple (.sb-lang-switch). */}
+      <div className="lp-lang-switch-wrap">
+        <div className="sb-lang-switch" role="group" aria-label="Langue / Language">
+          <button
+            type="button"
+            className={lang === 'fr' ? 'on' : ''}
+            onClick={() => setLang('fr')}
+            aria-pressed={lang === 'fr'}
+          >
+            FR
+          </button>
+          <button
+            type="button"
+            className={lang === 'en' ? 'on' : ''}
+            onClick={() => setLang('en')}
+            aria-pressed={lang === 'en'}
+          >
+            EN
+          </button>
+        </div>
+      </div>
 
       {/* HERO */}
       <header className="lp-hero">
@@ -221,6 +244,19 @@ function LandingStyles() {
         color: var(--text, ${T.text});
         font-family: var(--body, ${T.body});
         overflow-x: hidden;
+      }
+
+      /* Switch langue épinglé en haut à gauche — même grammaire visuelle
+         que .sb-lang-switch dans la sidebar (les styles viennent de
+         MockupStyles), positionnement absolu en overlay. */
+      .lp-lang-switch-wrap {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 50;
+      }
+      @media (max-width: 640px) {
+        .lp-lang-switch-wrap { top: 14px; left: 14px; }
       }
 
       /* ── HERO ─────────────────────────────────────── */
