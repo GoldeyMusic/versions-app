@@ -2,17 +2,19 @@
 
 Mise en service du dashboard admin (#/admin) qui mesure le coût réel de chaque analyse (Gemini + Claude + Fadr + infra) et l'affiche en agrégé.
 
-## 1. Appliquer la migration SQL
+## 1. Appliquer les migrations SQL
 
-Une seule fois. Dans Supabase Studio → SQL Editor → Run :
+Deux migrations à appliquer dans l'ordre, via Supabase Studio → SQL Editor → Run :
 
 ```
 versions-app/supabase/migrations/012_analysis_cost_logs.sql
+versions-app/supabase/migrations/013_admin_users_and_revenue.sql
 ```
 
-Crée la table `public.analysis_cost_logs` + RLS (admin SELECT, service_role INSERT).
+- **012** crée la table `public.analysis_cost_logs` (tracking coût par analyse) + RLS (admin SELECT, service_role INSERT).
+- **013** crée la table `public.revenue_logs` (placeholder pour les recettes Stripe) + 3 fonctions RPC SECURITY DEFINER (`admin_get_user_stats`, `admin_get_global_stats`, `admin_get_user_detail`) qui alimentent le dashboard admin avec la liste exhaustive des users + leurs stats agrégées.
 
-⚠️ La policy SELECT contient l'email admin **hardcodé** (`berdugo.david@gmail.com`). Si tu veux changer d'admin, fais une nouvelle migration `013_change_admin_email.sql` qui DROP/RECREATE la policy avec le nouvel email.
+⚠️ Les policies RLS et les fonctions RPC contiennent l'email admin **hardcodé** (`berdugo.david@gmail.com`). Si tu changes d'admin, fais une migration `014_change_admin_email.sql` qui DROP/RECREATE les policies et les fonctions avec le nouvel email.
 
 ## 2. Configurer la variable d'env frontend
 
