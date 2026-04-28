@@ -671,6 +671,9 @@ const STRINGS = {
       translating: "Traduction en cours…",
       genreDeclared: "Genre",
       genreInferred: "Genre détecté pendant l'analyse",
+      genreEditPlaceholder: "Ex : indie pop, néo-soul, dub-techno…",
+      genreEditTooltip: "Cliquer pour modifier",
+      genreAdd: "+ Ajouter un genre",
     },
 
     /* ─────────────── COMPARE ─────────────── */
@@ -1880,6 +1883,9 @@ const STRINGS = {
       translating: "Translating…",
       genreDeclared: "Genre",
       genreInferred: "Genre detected during analysis",
+      genreEditPlaceholder: "e.g. indie pop, neo-soul, dub-techno…",
+      genreEditTooltip: "Click to edit",
+      genreAdd: "+ Add a genre",
     },
 
     /* ─────────────── COMPARE ─────────────── */

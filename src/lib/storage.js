@@ -1298,6 +1298,64 @@ export async function updateVersionIntent(versionId, intent) {
 }
 
 /**
+ * Met à jour le genre musical d'une version (édition manuelle depuis la fiche).
+ * Quand l'utilisateur édite, sa valeur devient la VÉRITÉ DÉCLARÉE :
+ *   - declared_genre = nouvelle valeur (ou null si effacé)
+ *   - genre_inferred_by_ai = false (ce n'est plus une inférence)
+ *   - inferred_genre = null (on efface l'ancienne valeur IA pour éviter de la
+ *     ressortir si l'utilisateur efface ensuite son override)
+ * Met aussi à jour analysis_result.fiche pour que la fiche affichée en relise
+ * la nouvelle valeur sans avoir à relancer l'analyse.
+ */
+export async function updateVersionGenre(versionId, value) {
+  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return false;
+  const clean = typeof value === 'string' && value.trim().length > 0 ? value.trim().slice(0, 600) : null;
+
+  // 1) Update colonnes top-level pour le filtrage/queries
+  const { error: errCols } = await supabase
+    .from('versions')
+    .update({
+      declared_genre: clean,
+      genre_inferred_by_ai: false,
+      inferred_genre: null,
+    })
+    .eq('id', versionId);
+  if (errCols) {
+    console.warn('[storage] updateVersionGenre cols error:', errCols.message);
+    return false;
+  }
+
+  // 2) Update analysis_result.fiche pour cohérence d'affichage immédiat.
+  //    On lit, on patch, on réécrit (Supabase ne sait pas patcher du jsonb
+  //    en place sans extension). Si la lecture échoue, on n'écrase pas.
+  const { data: row, error: errRead } = await supabase
+    .from('versions')
+    .select('analysis_result')
+    .eq('id', versionId)
+    .single();
+  if (errRead || !row) return true; // colonnes top-level déjà à jour, on tolère
+
+  const ar = row.analysis_result || null;
+  if (ar && typeof ar === 'object' && ar.fiche && typeof ar.fiche === 'object') {
+    const patched = {
+      ...ar,
+      fiche: {
+        ...ar.fiche,
+        declared_genre: clean,
+        genre_inferred_by_ai: false,
+        inferred_genre: null,
+      },
+    };
+    const { error: errWrite } = await supabase
+      .from('versions')
+      .update({ analysis_result: patched })
+      .eq('id', versionId);
+    if (errWrite) console.warn('[storage] updateVersionGenre fiche patch error:', errWrite.message);
+  }
+  return true;
+}
+
+/**
  * Retourne l'intention héritée d'un titre (tracks.artistic_intent).
  * Utilisé par IntentionScreen en mode V2+ pour pré-remplir la textarea.
  * Lookup par (title, projectId) — case-insensitive sur le titre.

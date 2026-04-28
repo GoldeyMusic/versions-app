@@ -9,7 +9,7 @@ import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
 import EvolutionBanner from '../components/EvolutionBanner';
 import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
 import PlateauBanner from '../components/PlateauBanner';
-import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion, updateVersionDspMetrics } from '../lib/storage';
+import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion, updateVersionDspMetrics, updateVersionGenre } from '../lib/storage';
 import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
@@ -3808,6 +3808,15 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   const [verdictExpanded, setVerdictExpanded] = useState(false); // verdict rétracté par défaut
   // Ticket 4.4 — état du toggle "Marquer comme finale" (plateau detector).
   const [markFinalBusy, setMarkFinalBusy] = useState(false);
+  // Édition inline du genre depuis la fiche : click sur la ligne genre →
+  // bascule en input. Save sur Enter/blur. Échap pour annuler.
+  // `genreOverride` permet d'afficher la nouvelle valeur immédiatement après
+  // save sans attendre que `analysisResult` soit rechargé depuis le parent
+  // (loadTracks asynchrone). Format : { declared_genre, genre_inferred_by_ai, inferred_genre } | null.
+  const [editingGenre, setEditingGenre] = useState(false);
+  const [genreDraft, setGenreDraft] = useState('');
+  const [genreOverride, setGenreOverride] = useState(null);
+  const [genreSaving, setGenreSaving] = useState(false);
   const isMobile = useMobile();
   const isNarrow = useNarrowDesktop(1200);
   const chatAsDrawer = isMobile || isNarrow;
@@ -3832,6 +3841,14 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     let alive = true;
     loadTracks().then((t) => { if (alive) setTracks(t); });
   }, [config?.title, config?.version, analysisResult, refreshKey]);
+
+  // Reset l'override de genre quand on change de version/titre — sinon on
+  // afficherait une valeur éditée d'une autre fiche.
+  useEffect(() => {
+    setGenreOverride(null);
+    setEditingGenre(false);
+    setGenreDraft('');
+  }, [config?.title, config?.version]);
 
   // Préchargement ciblé des versions du morceau courant : dès que la fiche
   // est ouverte, on télécharge en arrière-plan les MP3 de toutes les versions
@@ -4334,33 +4351,159 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 </>
               )}
               {/* Genre musical : déclaré par l'artiste OU détecté par l'IA pendant
-                  l'analyse (cf. migration 011 + AddModal). On l'affiche au-dessus
-                  du verdict en libellé court. Si l'IA l'a inféré, on l'indique
-                  explicitement avec un caveat — l'artiste sait que c'est une
-                  supposition (et pourra la corriger via le chat plus tard). */}
+                  l'analyse (cf. migration 011 + AddModal). Affiché au-dessus du
+                  verdict en libellé court, ÉDITABLE inline : click sur la ligne
+                  → input, Enter/blur pour sauver, Échap pour annuler. Une fois
+                  édité, ça devient le genre déclaré (genre_inferred_by_ai bascule
+                  à false côté DB et le caveat "détecté pendant l'analyse" disparaît). */}
               {(() => {
-                const declared = (rawFiche?.declared_genre || '').trim();
-                const inferred = (rawFiche?.inferred_genre || '').trim();
-                const inferredFlag = rawFiche?.genre_inferred_by_ai === true;
-                const label = declared || (inferredFlag ? inferred : '');
-                if (!label) return null;
+                // Source : override local (édition à chaud) en priorité, sinon fiche.
+                const src = genreOverride || rawFiche || null;
+                const declared = (src?.declared_genre || '').trim();
+                const inferred = (src?.inferred_genre || '').trim();
+                const inferredFlag = src?.genre_inferred_by_ai === true;
+                const currentLabel = declared || (inferredFlag ? inferred : '');
                 const note = declared
                   ? s.fiche.genreDeclared
-                  : s.fiche.genreInferred;
+                  : (inferredFlag ? s.fiche.genreInferred : s.fiche.genreDeclared);
+                // Pas d'id de version persistée -> pas d'édition possible (la valeur
+                // sera sauvegardée à la fin de l'analyse, on ne touche pas en attendant).
+                const editable = !!versionId;
+
+                const startEdit = () => {
+                  if (!editable || genreSaving) return;
+                  setGenreDraft(currentLabel);
+                  setEditingGenre(true);
+                };
+                const cancelEdit = () => {
+                  setEditingGenre(false);
+                  setGenreDraft('');
+                };
+                const commitEdit = async () => {
+                  if (genreSaving) return;
+                  const next = (genreDraft || '').trim();
+                  // Si la valeur est inchangée, on ne déclenche pas de save.
+                  if (next === (declared || (inferredFlag ? inferred : ''))) {
+                    cancelEdit();
+                    return;
+                  }
+                  setGenreSaving(true);
+                  try {
+                    const ok = await updateVersionGenre(versionId, next);
+                    if (ok) {
+                      setGenreOverride({
+                        declared_genre: next || null,
+                        genre_inferred_by_ai: false,
+                        inferred_genre: null,
+                      });
+                    }
+                  } finally {
+                    setGenreSaving(false);
+                    setEditingGenre(false);
+                    setGenreDraft('');
+                  }
+                };
+
+                if (editingGenre) {
+                  return (
+                    <div
+                      className="fiche-genre-line is-editing"
+                      style={{
+                        fontSize: '0.78rem',
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                        opacity: 0.85,
+                        marginBottom: 6,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
+                    >
+                      <span style={{ flexShrink: 0 }}>{s.fiche.genreDeclared}</span>
+                      <input
+                        autoFocus
+                        type="text"
+                        value={genreDraft}
+                        maxLength={60}
+                        placeholder={s.fiche.genreEditPlaceholder}
+                        onChange={(e) => setGenreDraft(e.target.value)}
+                        onBlur={commitEdit}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
+                          else if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+                        }}
+                        style={{
+                          flex: 1,
+                          minWidth: 120,
+                          fontSize: '0.95rem',
+                          fontWeight: 600,
+                          textTransform: 'none',
+                          letterSpacing: 0,
+                          padding: '4px 8px',
+                          border: '1px solid currentColor',
+                          borderRadius: 4,
+                          background: 'transparent',
+                          color: 'inherit',
+                          opacity: 1,
+                        }}
+                      />
+                    </div>
+                  );
+                }
+
+                // Mode lecture : si pas de label, on affiche un CTA discret pour ajouter.
+                if (!currentLabel) {
+                  if (!editable) return null;
+                  return (
+                    <button
+                      type="button"
+                      className="fiche-genre-line is-empty"
+                      onClick={startEdit}
+                      style={{
+                        fontSize: '0.78rem',
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                        opacity: 0.5,
+                        marginBottom: 6,
+                        background: 'transparent',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        color: 'inherit',
+                        font: 'inherit',
+                      }}
+                      title={s.fiche.genreEditTooltip}
+                    >
+                      {s.fiche.genreAdd}
+                    </button>
+                  );
+                }
+
                 return (
-                  <div
+                  <button
+                    type="button"
                     className="fiche-genre-line"
+                    onClick={startEdit}
+                    disabled={!editable || genreSaving}
                     style={{
                       fontSize: '0.78rem',
                       letterSpacing: '0.04em',
                       textTransform: 'uppercase',
                       opacity: 0.55,
                       marginBottom: 6,
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      cursor: editable ? 'pointer' : 'default',
+                      color: 'inherit',
+                      font: 'inherit',
+                      textAlign: 'left',
                     }}
+                    title={editable ? s.fiche.genreEditTooltip : ''}
                   >
                     <span style={{ marginRight: 6 }}>{note}</span>
-                    <strong style={{ fontWeight: 600, opacity: 1, textTransform: 'none', letterSpacing: 0 }}>{label}</strong>
-                  </div>
+                    <strong style={{ fontWeight: 600, opacity: 1, textTransform: 'none', letterSpacing: 0 }}>{currentLabel}</strong>
+                  </button>
                 );
               })()}
               <div className={`verdict-text${verdictExpanded ? ' expanded' : ' collapsed'}`}>
