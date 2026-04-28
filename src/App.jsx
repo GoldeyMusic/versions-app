@@ -2432,14 +2432,20 @@ function VersionsAppAuthed() {
       if (v.storagePath) {
         loadPlayer(track.title, v.name, v.storagePath);
       }
+      // DAW priority : (1) DAW choisi pour CETTE analyse (meta), (2) profil
+      // user, (3) fallback Logic Pro. Avant : hardcodé 'Logic Pro' → le chat
+      // recommandait des actions Logic Pro même quand l'utilisateur avait
+      // choisi LUNA / Pro Tools / etc. dans les réglages du titre.
+      const ar = saved || v.analysisResult || null;
+      const dawForVersion = ar?.meta?.daw || userProfile?.default_daw || 'Logic Pro';
       setConfig({
         title: track.title,
         version: v.name,
         trackId: track.id,
         versionId: v.id,
-        daw: 'Logic Pro',
+        daw: dawForVersion,
       });
-      setAnalysisResult(saved || v.analysisResult || null);
+      setAnalysisResult(ar);
       setPendingFiche(null);
       isHashSyncRef.current = true;
       setScreen('fiche');
@@ -2853,14 +2859,17 @@ function VersionsAppAuthed() {
       }
     }
     const saved = await getAnalysis(track.id, v.id);
+    // Priority DAW : analyse > profil user > config courant > fallback.
+    const arSel = saved || v.analysisResult || null;
+    const dawSel = arSel?.meta?.daw || userProfile?.default_daw || config?.daw || 'Logic Pro';
     setConfig({
       title: track.title,
       version: v.name,
       trackId: track.id,
       versionId: v.id,
-      daw: config?.daw || "Logic Pro",
+      daw: dawSel,
     });
-    setAnalysisResult(saved || v.analysisResult || null);
+    setAnalysisResult(arSel);
     // Si on est déjà dans la fiche (Timeline), on y reste. Sinon on ne change pas d'écran.
   };
 
@@ -2874,14 +2883,17 @@ function VersionsAppAuthed() {
       }
     }
     const saved = v ? await getAnalysis(track.id, v.id) : null;
+    // Priority DAW : analyse > profil user > config courant > fallback.
+    const arOpen = saved || v?.analysisResult || null;
+    const dawOpen = arOpen?.meta?.daw || userProfile?.default_daw || config?.daw || 'Logic Pro';
     setConfig({
       title: track.title,
       version: v?.name,
       trackId: track.id,
       versionId: v?.id,
-      daw: config?.daw || "Logic Pro",
+      daw: dawOpen,
     });
-    setAnalysisResult(saved || v?.analysisResult || null);
+    setAnalysisResult(arOpen);
     setScreen("fiche");
   };
   const handleSidebarNewTrack = () => {
