@@ -75,10 +75,16 @@ function TrackTitleTextV2({ title }) {
 }
 
 // Anneau de score 140x140 — formule identique à la maquette : dasharray=276
-export function ScoreRingBig({ value, prevScore = null }) {
+export function ScoreRingBig({ value, prevScore = null, isOpen = true }) {
   const { s } = useLang();
   const v = Math.max(0, Math.min(100, Number(value) || 0));
-  const offset = 276 - (276 * v) / 100;
+  // Anim entrée : score count-up + arc qui tourne. Easing 'out' (cubique
+  // sans overshoot) → pas de fausse joie où le chiffre dépasse puis
+  // redescend. Décélération propre jusqu'à la valeur finale.
+  const animV = useAnimatedValue(v, { duration: 1300, delay: 100, when: isOpen, easing: 'out' });
+  const animOffset = 276 - (276 * animV) / 100;
+  // Couleur basée sur la valeur FINALE (pas anim) pour ne pas changer
+  // de teinte pendant le count-up.
   const color = v < 50 ? '#ef6b6b' : v < 75 ? '#f5b056' : '#7bd88f';
   const band = v < 50 ? s.fiche.scoreBandLow : v < 75 ? s.fiche.scoreBandMid : s.fiche.scoreBandHigh;
   const [tipOpen, setTipOpen] = useState(false);
@@ -97,13 +103,13 @@ export function ScoreRingBig({ value, prevScore = null }) {
         <circle cx="50" cy="50" r="44" fill="none" stroke={`${color}22`} strokeWidth="5" />
         <circle
           cx="50" cy="50" r="44" fill="none" stroke={color} strokeWidth="5"
-          strokeDasharray="276" strokeDashoffset={offset} strokeLinecap="round"
+          strokeDasharray="276" strokeDashoffset={animOffset} strokeLinecap="round"
           transform="rotate(-90 50 50)"
         />
       </svg>
       <div className="center">
         <div className="big">
-          {Math.round(v)}
+          {Math.round(animV)}
           <span className="big-suffix">/100</span>
         </div>
       </div>
@@ -657,11 +663,21 @@ function MixRadar({ items }) {
 // Anneau 32x32 (items diag) — dasharray=82 ; couleur par seuil.
 // Schéma /100 (ticket 1.1). Rétrocompat : si la valeur est ≤ 10
 // (ancien format /10), on la passe à l'échelle /100 pour l'affichage.
-export function ScoreRingSmall({ value }) {
-  if (typeof value !== 'number') return null;
-  const scaled = value > 10 ? value : value * 10;
+export function ScoreRingSmall({ value, isOpen = true, animDelay = 0 }) {
+  // Animations gated par isOpen (props passé depuis le parent — la cat).
+  // Quand on ouvre la cat, tous les rings se remplissent + count-up.
+  // Hooks call AVANT early return (React rules).
+  const valid = typeof value === 'number';
+  const scaled = valid ? (value > 10 ? value : value * 10) : 0;
   const v = Math.max(0, Math.min(100, scaled));
-  const offset = 82 - (82 * v) / 100;
+  const animV = useAnimatedValue(valid ? v : null, {
+    duration: 1100,
+    delay: 80 + animDelay,
+    when: isOpen,
+    easing: 'out', // pas de bounce — score qui décélère jusqu'à sa valeur
+  });
+  if (!valid) return null;
+  const animOffset = 82 - (82 * animV) / 100;
   const color = v < 50 ? '#ef6b6b' : v < 75 ? '#f5b056' : '#7bd88f';
   const stroke22 = `${color}2a`;
   return (
@@ -670,11 +686,11 @@ export function ScoreRingSmall({ value }) {
         <circle cx="16" cy="16" r="13" fill="none" stroke={stroke22} strokeWidth="3" />
         <circle
           cx="16" cy="16" r="13" fill="none" stroke={color} strokeWidth="3"
-          strokeDasharray="82" strokeDashoffset={offset} strokeLinecap="round"
+          strokeDasharray="82" strokeDashoffset={animOffset} strokeLinecap="round"
           transform="rotate(-90 16 16)"
         />
       </svg>
-      <div className="n">{Math.round(v)}</div>
+      <div className="n">{Math.round(animV)}</div>
     </div>
   );
 }
@@ -1671,28 +1687,31 @@ function toneColor(tone) {
 //
 // Permet une grammaire d'animation cohérente entre les 4 sections
 // (radar, master rings, voix, stéréo).
-function useAnimatedValue(target, { duration = 1200, delay = 80, when = true } = {}) {
-  // Initial state = target → si la section démarre fermée, on a la bonne
-  // valeur. À chaque fois que `when` passe true (ouverture de la cat),
-  // l'anim repart depuis 0 (re-play à chaque ré-ouverture).
+function useAnimatedValue(target, { duration = 1200, delay = 80, when = true, easing = 'back' } = {}) {
+  // 2 easings au choix :
+  //  - 'back' (default) : ease-out-back avec petit overshoot ~12% puis stabilise
+  //  - 'out'            : ease-out-cubic, simple décélération sans overshoot
+  // → utilisé pour les score rings qui ne doivent pas bouncer.
   const [value, setValue] = useState(target ?? 0);
   useEffect(() => {
     if (target == null || !Number.isFinite(target)) {
       setValue(target ?? 0);
       return;
     }
-    // Section fermée → valeur fixe sur la cible
     if (!when) {
       setValue(target);
       return;
     }
-    // when=true → on (re-)lance l'animation depuis 0
     setValue(0);
-    const easeOutBack = (t) => {
-      const c1 = 1.4;
-      const c3 = c1 + 1;
-      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    const easings = {
+      back: (t) => {
+        const c1 = 1.4;
+        const c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      },
+      out: (t) => 1 - Math.pow(1 - t, 3), // cubic ease-out, sans overshoot
     };
+    const easeFn = easings[easing] || easings.back;
     let cancelled = false;
     let raf = null;
     let startTime = 0;
@@ -1700,7 +1719,7 @@ function useAnimatedValue(target, { duration = 1200, delay = 80, when = true } =
       if (cancelled) return;
       const elapsed = Date.now() - startTime;
       const t = Math.min(1, elapsed / duration);
-      setValue(target * easeOutBack(t));
+      setValue(target * easeFn(t));
       if (t < 1) raf = requestAnimationFrame(tick);
     };
     const startTimer = setTimeout(() => {
@@ -1712,7 +1731,7 @@ function useAnimatedValue(target, { duration = 1200, delay = 80, when = true } =
       clearTimeout(startTimer);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [target, duration, delay, when]);
+  }, [target, duration, delay, when, easing]);
   return value;
 }
 
@@ -1911,6 +1930,18 @@ function VoiceVsInstruBlock({ analysisResult, isOpen = true }) {
       </div>
       {/* Jauge unique : delta voix vs instru */}
       <div className="vv-gauge">
+        {/* Valeur au-dessus, alignée avec la flèche */}
+        <div
+          className="vv-cursor-value"
+          style={{ left: `${cursorPct}%`, color: verdictColor }}
+        >
+          {animDelta > 0 ? '+' : ''}{animDelta.toFixed(1)} LU
+        </div>
+        {/* Petite flèche ▼ qui pointe vers la barre — repère précis et discret */}
+        <div
+          className="vv-cursor-arrow"
+          style={{ left: `${cursorPct}%`, color: verdictColor }}
+        />
         <div className="vv-track" aria-hidden="true">
           <div className="vv-zone vv-zone-bad-low" />     {/* < -3 LU : voix en retrait */}
           <div className="vv-zone vv-zone-target" />       {/* -3 à +3 : voix bien posée */}
@@ -1923,16 +1954,6 @@ function VoiceVsInstruBlock({ analysisResult, isOpen = true }) {
           <span style={{ left: '50%' }}>0</span>
           <span style={{ left: '75%' }}>+3</span>
           <span style={{ left: '100%' }}>+6</span>
-        </div>
-        {/* Curseur + valeur delta au-dessus */}
-        <div
-          className="vv-cursor"
-          style={{ left: `${cursorPct}%`, color: verdictColor }}
-        >
-          <span className="vv-cursor-value">
-            {animDelta > 0 ? '+' : ''}{animDelta.toFixed(1)} LU
-          </span>
-          <span className="vv-cursor-pin" />
         </div>
         {/* Légende sous la jauge */}
         <div className="vv-legend" aria-hidden="true">
@@ -4465,7 +4486,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                             const isCorrective = !isPureValidation;
                             return (
                               <div key={it.id || i} className={`diag-item${it.priority ? ` prio-${it.priority}` : ''}${done ? ' is-done' : ''}${it.advice_locked ? ' advice-locked' : ''}`}>
-                                <ScoreRingSmall value={it.score} />
+                                <ScoreRingSmall value={it.score} isOpen={open} animDelay={i * 60} />
                                 <div className="di-body">
                                   <div className="di-name">
                                     {it.priority && (
