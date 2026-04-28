@@ -367,7 +367,18 @@ function MixIndicators({ items }) {
 // tooltips MixIndicators que ce composant remplace dans .rv-top.
 function MixRadar({ items }) {
   const { s } = useLang();
+  // Affordance visuelle (David 2026-04-28) : on sépare 2 états.
+  //   - `hovered` : index réellement survolé (null quand le curseur n'est sur
+  //     aucun point). Pilote l'apparition de la carte détail.
+  //   - `highlightIdx` (dérivé) : index mis en surbrillance visuelle dans le
+  //     SVG. Vaut `hovered` quand on survole, sinon `defaultIdx` (= balance).
+  // Comme ça la constellation montre dès le chargement que balance peut
+  // servir d'exemple, mais l'infobulle pédagogique n'apparaît qu'au survol
+  // explicite et n'écrase plus le reste de la fiche.
+  const defaultIdx = (items || []).findIndex((it) => it && it.key === 'balance');
+  const DEFAULT_IDX = defaultIdx >= 0 ? defaultIdx : 0;
   const [hovered, setHovered] = useState(null);
+  const highlightIdx = hovered != null ? hovered : DEFAULT_IDX;
   if (!items || items.length === 0) return null;
   const N = items.length; // 6 normalement
   const SIZE = 220;
@@ -422,7 +433,7 @@ function MixRadar({ items }) {
         {/* Axes (lignes 1px) */}
         {items.map((_, i) => {
           const e = polar(i, R_OUTER);
-          const isH = hovered === i;
+          const isH = highlightIdx === i;
           return (
             <line
               key={`ax-${i}`}
@@ -443,7 +454,7 @@ function MixRadar({ items }) {
         {/* Points + zone de hover élargie */}
         {items.map((it, i) => {
           const p = pointAt(i);
-          const isH = hovered === i;
+          const isH = highlightIdx === i;
           return (
             <g key={`pt-${i}`}>
               <circle
@@ -477,7 +488,7 @@ function MixRadar({ items }) {
           const a = angleAt(i);
           const cosA = Math.cos(a);
           const anchor = cosA > 0.3 ? 'start' : (cosA < -0.3 ? 'end' : 'middle');
-          const isH = hovered === i;
+          const isH = highlightIdx === i;
           return (
             <text
               key={`lb-${i}`}
