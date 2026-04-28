@@ -277,11 +277,25 @@ Couleurs : `var(--amber)` pour cible, `var(--muted)` pour neutre, rouge subtle u
 
 ### C — Visuels données stems / stéréo (suite des visuels A après Phase 3)
 
-- [ ] **C.1 — Voix vs instru (section VOIX du diagnostic)**
+- [x] **C.1 — Voix vs instru (section VOIX du diagnostic)**
   Deux jauges horizontales empilées style "stem racks" : barre voix au-dessus, barre instru en-dessous, mêmes échelles, valeurs LUFS mono à droite. Mini-badge ambre "+2.5 LU" entre les deux pour le delta. Verdict mono : si delta dans cible (-3 à +3 LU) → "Voix bien posée ✓" mint, sinon → "À retravailler" ambre/rouge. **Important pour les chanteurs.** *~3h*
 
-- [ ] **C.2 — Stereo field map (section SPATIAL & REVERB)**
+  **Implémenté (2026-04-28)** : composant `VoiceVsInstruBlock` injecté en tête du `diag-cat-body` de la catégorie VOIX (sauf si `voiceLabelOverride` actif — pas de visuel sur un titre `instrumental_pending`). Lecture `analysisResult.stemsMetrics`, calcule `instruLufs` (moyenne énergétique linéaire des stems drums/bass/other, cohérent avec claude.js B.5), `delta = vocalLufs - instruLufs`. Echelle alignée sur LoudnessMeter (-25 à -3 LUFS). Bar fill gradient ambre + curseur 2px ambre + valeur mono à droite. Badge delta centré entre les deux jauges, couleur cible/low/critical selon zone. Verdict mono caps à droite : "Voix bien posée ✓" si dans -3/+3 LU, sinon "À retravailler — voix en retrait/proéminente". Mode dégradé : retourne null si pas de stem voix mesuré ou pas de stems instru.
+
+- [x] **C.2 — Stereo field map (section SPATIAL & REVERB)**
   Cercle dashed L/R minimal (pas de rosace AubioMix), point ambre = position W/D du mix. Width et Depth affichés en mono à côté ("Width 24% · Depth 60%"). Sobre. *~3h*
+
+  **Implémenté (2026-04-28)** : composant `StereoFieldBlock` injecté en tête du `diag-cat-body` de la catégorie SPATIAL & REVERB. SVG cercle dashed rgba(255,255,255,0.12), cross axes faible, labels L/R mono caps muted aux bords. Position du point ambre dans le cercle :
+  - X = `balanceLR` mappé sur ±3 dB (clamp ±1)
+  - Y = `(2 × midSideRatio − 1)` (top = mix très large/sideful, bottom = focused)
+  - Norme clampée à 0.95 du rayon pour garder une marge visuelle.
+
+  Trois métriques en mono à droite (1 colonne desktop, row wrap mobile) :
+  - **WIDTH** = `midSideRatio × 100 %`
+  - **MONO COMPAT** = `monoCompat` LU avec verdict coloré ("mono OK" ≤1, "mono limite" ≤2, "mono dangereux" >2)
+  - **CORR L/R** = corrélation 2 décimales
+
+  Note : la spec initiale parlait de "Depth %" mais on n'a pas de mesure objective de profondeur (réverbération wetness). On expose **Mono Compat** à la place — mesure réelle, pertinente pour les chanteurs et la lecture en mono téléphone/BT. Plus honnête que de proxy une "depth" arbitraire.
 
 ### Notes pratiques pour la session
 

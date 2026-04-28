@@ -8990,6 +8990,194 @@ export default function MockupStyles() {
     letter-spacing: 1.4px;
     text-transform: uppercase;
   }
+
+  /* ─────────────────────────────────────────────────────────────
+     DSP_PLAN C.1 — Voix vs instru (section VOIX)
+     Deux jauges horizontales empilees, badge delta entre les deux,
+     verdict mint si dans cible -3/+3 LU sinon ambre/rouge.
+     ───────────────────────────────────────────────────────────── */
+  .dsp-voice-block {
+    padding: 14px 14px 12px;
+  }
+  .dsp-voice-block .dsp-voice-row {
+    display: grid;
+    grid-template-columns: 56px 1fr 90px;
+    align-items: center;
+    gap: 10px;
+  }
+  .dsp-voice-block .dsp-voice-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted, #7c7c80);
+    font-weight: 500;
+  }
+  .dsp-voice-block .dsp-voice-bar {
+    position: relative;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.04);
+    overflow: visible;
+  }
+  .dsp-voice-block .dsp-voice-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg,
+      rgba(245,166,35,0.18) 0%,
+      rgba(245,166,35,0.42) 100%);
+    transition: width .2s ease-out;
+  }
+  .dsp-voice-block .dsp-voice-cursor {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    width: 2px;
+    transform: translateX(-50%);
+    background: var(--amber, #f5a623);
+    border-radius: 1px;
+    box-shadow: 0 0 6px var(--amber, #f5a623);
+    pointer-events: none;
+  }
+  .dsp-voice-block .dsp-voice-value {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.4px;
+    color: var(--soft, rgba(255,255,255,0.78));
+    text-align: right;
+    white-space: nowrap;
+  }
+  /* Range de delta entre les deux jauges : ligne fine + badge centre. */
+  .dsp-voice-block .dsp-voice-delta-row {
+    display: grid;
+    grid-template-columns: 56px 1fr 90px;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0;
+    position: relative;
+  }
+  .dsp-voice-block .dsp-voice-delta-row .dsp-voice-delta-line {
+    grid-column: 2;
+    grid-row: 1;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255,255,255,0.06) 50%,
+      transparent 100%);
+    align-self: center;
+  }
+  .dsp-voice-block .dsp-voice-delta-badge {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    z-index: 1;
+    padding: 2px 8px;
+    background: rgba(20,20,22,0.95);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.5px;
+    color: currentColor;
+  }
+  .dsp-voice-block .dsp-voice-verdict {
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    text-align: right;
+    font-weight: 500;
+  }
+  @media (max-width: 600px) {
+    .dsp-voice-block .dsp-voice-row,
+    .dsp-voice-block .dsp-voice-delta-row {
+      grid-template-columns: 48px 1fr 78px;
+      gap: 8px;
+    }
+    .dsp-voice-block .dsp-voice-value { font-size: 10.5px; }
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     DSP_PLAN C.2 — Stereo field map (section SPATIAL & REVERB)
+     Cercle dashed L/R minimal + point ambre + Width % / MonoCompat.
+     Sobre, pas de rosace AubioMix.
+     ───────────────────────────────────────────────────────────── */
+  .dsp-stereo-block { padding: 14px 14px 12px; }
+  .dsp-stereo-block .dsp-stereo-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 18px;
+    align-items: center;
+  }
+  .dsp-stereo-block .dsp-stereo-svg {
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    overflow: visible;
+  }
+  .dsp-stereo-block .dsp-stereo-channel-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    fill: var(--muted, #7c7c80);
+    pointer-events: none;
+  }
+  .dsp-stereo-block .dsp-stereo-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .dsp-stereo-block .dsp-stereo-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .dsp-stereo-block .dsp-stereo-kicker {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted, #7c7c80);
+  }
+  .dsp-stereo-block .dsp-stereo-value {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--amber, #f5a623);
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .dsp-stereo-block .dsp-stereo-unit {
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    color: var(--muted, #7c7c80);
+  }
+  .dsp-stereo-block .dsp-stereo-verdict {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+  @media (max-width: 600px) {
+    .dsp-stereo-block .dsp-stereo-row {
+      grid-template-columns: 1fr;
+      justify-items: center;
+      gap: 12px;
+    }
+    .dsp-stereo-block .dsp-stereo-metrics {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 18px;
+      width: 100%;
+      justify-content: center;
+    }
+  }
 `}</style>
     </>
   );

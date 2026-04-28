@@ -1638,6 +1638,165 @@ function DspMiniCard({ kicker, value, unit, decimals = 1, scale, zones, displayV
   );
 }
 
+// ── C.1 — Voix vs Instru (DSP_PLAN session 2026-04-28) ──────────────
+// Deux jauges horizontales empilées (vocal LUFS sur l'instru LUFS), badge
+// delta ambre/critique entre les deux, verdict mint si dans cible -3/+3 LU.
+// Donnée : analysisResult.stemsMetrics (Phase 3 backend). Mode dégradé :
+// retourne null si pas de mesures stems disponibles ou pas de stem voix.
+function VoiceVsInstruBlock({ analysisResult }) {
+  const stemsArr = Array.isArray(analysisResult?.stemsMetrics) ? analysisResult.stemsMetrics : [];
+  if (!stemsArr.length) return null;
+  const findStem = (type) => stemsArr.find((st) => st && st.stemType === type) || null;
+  const vocal = findStem('vocal');
+  const drums = findStem('drums');
+  const bass = findStem('bass');
+  const other = findStem('other');
+  const vocalLufs = (typeof vocal?.lufs === 'number' && Number.isFinite(vocal.lufs)) ? vocal.lufs : null;
+  // Moyenne énergétique des stems non-voix (cohérent avec le calcul côté
+  // claude.js B.5 : lin = 10^(dB/10), avg, retour en dB).
+  const others = [drums, bass, other].filter((st) => st && typeof st.lufs === 'number' && Number.isFinite(st.lufs));
+  if (!vocalLufs || others.length === 0) return null;
+  const lin = others.map((st) => Math.pow(10, st.lufs / 10));
+  const avg = lin.reduce((a, b) => a + b, 0) / lin.length;
+  const instruLufs = +(10 * Math.log10(avg)).toFixed(1);
+  const delta = +(vocalLufs - instruLufs).toFixed(1);
+  // Verdict — cible -3/+3 LU = "voix bien posée".
+  let verdict, verdictTone;
+  if (delta < -3) { verdict = 'À retravailler — voix en retrait'; verdictTone = 'critical'; }
+  else if (delta > 3) { verdict = 'À retravailler — voix proéminente'; verdictTone = 'low'; }
+  else { verdict = 'Voix bien posée ✓'; verdictTone = 'target'; }
+  // Echelle alignée sur LoudnessMeter (-25 à -3 LUFS).
+  const SCALE_MIN = -25;
+  const SCALE_MAX = -3;
+  const clamp = (v) => Math.max(SCALE_MIN, Math.min(SCALE_MAX, v));
+  const pct = (v) => ((clamp(v) - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100;
+  return (
+    <div className="dsp-master-block dsp-voice-block">
+      <div className="dsp-voice-row">
+        <span className="dsp-voice-label">VOIX</span>
+        <div className="dsp-voice-bar">
+          <div className="dsp-voice-fill" style={{ width: `${pct(vocalLufs)}%` }} />
+          <span className="dsp-voice-cursor" style={{ left: `${pct(vocalLufs)}%` }} />
+        </div>
+        <span className="dsp-voice-value">{vocalLufs.toFixed(1)} LUFS</span>
+      </div>
+      {/* Badge delta entre les deux jauges */}
+      <div className="dsp-voice-delta-row" aria-hidden="true">
+        <span className="dsp-voice-delta-line" />
+        <span className="dsp-voice-delta-badge" style={{ color: toneColor(verdictTone) }}>
+          {delta > 0 ? '+' : ''}{delta.toFixed(1)} LU
+        </span>
+        <span className="dsp-voice-delta-line" />
+      </div>
+      <div className="dsp-voice-row">
+        <span className="dsp-voice-label">INSTRU</span>
+        <div className="dsp-voice-bar">
+          <div className="dsp-voice-fill" style={{ width: `${pct(instruLufs)}%` }} />
+          <span className="dsp-voice-cursor" style={{ left: `${pct(instruLufs)}%` }} />
+        </div>
+        <span className="dsp-voice-value">{instruLufs.toFixed(1)} LUFS</span>
+      </div>
+      <div className="dsp-voice-verdict" style={{ color: toneColor(verdictTone) }}>
+        {verdict}
+      </div>
+    </div>
+  );
+}
+
+// ── C.2 — Stereo field map (DSP_PLAN session 2026-04-28) ────────────
+// Cercle dashed L/R minimal (pas de rosace AubioMix), point ambre placé
+// selon (balanceLR, midSideRatio). À côté : Width % (= midSideRatio×100)
+// et Mono Compat (LU). Verdict mono coloré.
+// Donnée : analysisResult.stereoMetrics (Phase 3 backend).
+function StereoFieldBlock({ analysisResult }) {
+  const stereo = analysisResult?.stereoMetrics;
+  if (!stereo || typeof stereo !== 'object') return null;
+  const { correlation, midSideRatio, balanceLR, monoCompat } = stereo;
+  const hasAny = correlation != null || midSideRatio != null || balanceLR != null || monoCompat != null;
+  if (!hasAny) return null;
+  // Position du point dans le cercle.
+  // X axis = balanceLR mappé sur ±3 dB. Au-delà = clip aux bords.
+  // Y axis = midSideRatio mappé sur [0,1] : top = mix très large (side fort),
+  //         bottom = mix focused/mono-y. (1-2*ms) inverse pour SVG Y.
+  const SIZE = 200;
+  const CX = SIZE / 2;
+  const CY = SIZE / 2;
+  const R = 78;
+  const xRaw = balanceLR != null ? Math.max(-1, Math.min(1, balanceLR / 3)) : 0;
+  const yRaw = midSideRatio != null ? Math.max(-1, Math.min(1, 2 * midSideRatio - 1)) : 0;
+  // Clamp dans le cercle (norme ≤ 0.95 pour garder une marge visuelle)
+  const dist = Math.hypot(xRaw, yRaw);
+  const k = dist > 0.95 ? 0.95 / dist : 1;
+  const px = CX + xRaw * R * k;
+  const py = CY - yRaw * R * k; // SVG Y inversé : haut = positif
+  const widthPct = midSideRatio != null ? Math.round(midSideRatio * 100) : null;
+  // Verdict mono compat
+  let monoVerdict = null;
+  let monoTone = 'target';
+  if (monoCompat != null) {
+    if (monoCompat <= 1) { monoVerdict = 'mono OK'; monoTone = 'target'; }
+    else if (monoCompat <= 2) { monoVerdict = 'mono limite'; monoTone = 'low'; }
+    else { monoVerdict = 'mono dangereux'; monoTone = 'critical'; }
+  }
+  return (
+    <div className="dsp-master-block dsp-stereo-block">
+      <div className="dsp-stereo-row">
+        <svg className="dsp-stereo-svg" viewBox={`0 0 ${SIZE} ${SIZE}`} aria-hidden="true">
+          {/* Cercle dashed (champ stéréo) */}
+          <circle
+            cx={CX} cy={CY} r={R}
+            fill="none"
+            stroke="rgba(255,255,255,0.12)"
+            strokeWidth="1"
+            strokeDasharray="3 4"
+          />
+          {/* Cross axes (faible) */}
+          <line x1={CX - R} y1={CY} x2={CX + R} y2={CY}
+                stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+          <line x1={CX} y1={CY - R} x2={CX} y2={CY + R}
+                stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+          {/* Labels L / R */}
+          <text x={CX - R - 8} y={CY + 4} textAnchor="end" className="dsp-stereo-channel-label">L</text>
+          <text x={CX + R + 8} y={CY + 4} textAnchor="start" className="dsp-stereo-channel-label">R</text>
+          {/* Point ambre = position W/D du mix */}
+          <circle
+            cx={px} cy={py} r={5}
+            fill="var(--amber, #f5a623)"
+            style={{ filter: 'drop-shadow(0 0 6px rgba(245,166,35,0.7))' }}
+          />
+        </svg>
+        <div className="dsp-stereo-metrics">
+          {widthPct != null && (
+            <div className="dsp-stereo-metric">
+              <div className="dsp-stereo-kicker">WIDTH</div>
+              <div className="dsp-stereo-value">{widthPct}<span className="dsp-stereo-unit">%</span></div>
+            </div>
+          )}
+          {monoCompat != null && (
+            <div className="dsp-stereo-metric">
+              <div className="dsp-stereo-kicker">MONO COMPAT</div>
+              <div className="dsp-stereo-value" style={{ color: toneColor(monoTone) }}>
+                {monoCompat > 0 ? '+' : ''}{monoCompat.toFixed(1)}<span className="dsp-stereo-unit">LU</span>
+              </div>
+              {monoVerdict && (
+                <div className="dsp-stereo-verdict" style={{ color: toneColor(monoTone) }}>
+                  {monoVerdict}
+                </div>
+              )}
+            </div>
+          )}
+          {correlation != null && (
+            <div className="dsp-stereo-metric">
+              <div className="dsp-stereo-kicker">CORR L/R</div>
+              <div className="dsp-stereo-value">{correlation.toFixed(2)}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Bloc visuel complet (loudness meter + mini-cards) — inséré en tête
 // de la section MASTER & LOUDNESS du diagnostic.
 function DspMasterBlock({ analysisResult }) {
@@ -3447,11 +3606,15 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     const catLabel = (isVoice && voiceLabelOverride) ? s.fiche.voiceComingSoon : el.cat;
                     const color = catColor(el?.cat);
                     const catId = el?.id || el?.cat || `cat${idx}`;
-                    // DSP_PLAN A.1+A.2 — visuels DSP en tête de la section
-                    // MASTER & LOUDNESS uniquement. Les autres catégories
-                    // gardent leur rendu standard.
+                    // DSP_PLAN A/C — visuels DSP en tête de certaines sections :
+                    //   - MASTER & LOUDNESS : LoudnessMeter + LRA/TruePeak (A.1+A.2)
+                    //   - VOIX : jauges voix vs instru (C.1)
+                    //   - SPATIAL & REVERB : stereo field map (C.2)
+                    // Les autres catégories gardent leur rendu standard.
                     const catKey = (el?.cat || '').toLowerCase();
                     const isMasterCat = catKey.includes('master') || catKey.includes('loudness');
+                    const isVoiceCat = isVoiceCategory(el?.cat);
+                    const isSpatialCat = catKey.includes('spatial') || catKey.includes('reverb');
                     return (
                       <div key={el.id || el.cat || idx} className={`diag-cat c-${color}${open ? ' open' : ''}${isVoice && voiceLabelOverride ? ' pending-voice' : ''}`}>
                         <div className="diag-cat-head" onClick={() => toggleCat(idx)}>
@@ -3469,6 +3632,8 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                         </div>
                         <div className="diag-cat-body">
                           {isMasterCat && <DspMasterBlock analysisResult={displayAR} />}
+                          {isVoiceCat && !voiceLabelOverride && <VoiceVsInstruBlock analysisResult={displayAR} />}
+                          {isSpatialCat && <StereoFieldBlock analysisResult={displayAR} />}
                           {items.map((it, i) => {
                             const itemKey = diagItemKey(catId, it, i);
                             const done = completedItems.has(itemKey);
