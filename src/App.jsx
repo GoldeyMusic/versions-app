@@ -2907,6 +2907,16 @@ function VersionsAppAuthed() {
     setAddModalCtx({ mode: 'new-track' });
     setHomeAddOpen(true);
   };
+  // Annulation depuis LoadingScreen : reset état + retour dashboard.
+  // Pas d'AddModal ouvert derrière (l'utilisateur a cliqué "Annuler",
+  // pas "Nouveau titre"). Sans setScreen, on restait coincé sur
+  // screen=loading + config=null → useEffect relance run() avec config
+  // null → throw à `if (config.file)` → page vide / erreur silencieuse.
+  const handleCancelAnalysis = () => {
+    setAnalysisResult(null);
+    setConfig(null);
+    setScreen("welcome");
+  };
   const handleAddVersionFromPicker = (track) => {
     // Pré-sélectionne le projet du titre pour que l'upload y atterrisse.
     // On ouvre la modale directement à l'étape upload, titre verrouillé.
@@ -2975,7 +2985,7 @@ function VersionsAppAuthed() {
             config={config}
             onDone={handleLoaded}
             onAwaitingIntent={handleAwaitingIntent}
-            onBackToInput={handleSidebarNewTrack}
+            onBackToInput={handleCancelAnalysis}
           />
         );
       case "intention": {
