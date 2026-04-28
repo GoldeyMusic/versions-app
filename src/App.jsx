@@ -3172,6 +3172,7 @@ function VersionsAppAuthed() {
             currentProjectId={currentProjectId}
             onSetCurrentProject={setCurrentProjectId}
             onSelectVersion={handleSidebarSelectVersion}
+            onOpenFiche={handleOpenFiche}
             onNewTrack={handleSidebarNewTrack}
             onGoReglages={() => setReglagesOpen(true)}
             onAskOpen={() => setAskOpen(true)}

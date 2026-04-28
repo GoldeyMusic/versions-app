@@ -23,6 +23,11 @@ export default function Sidebar({
   currentProjectId,
   onSetCurrentProject,
   onSelectVersion,
+  // onOpenFiche : ouvre directement la fiche d'analyse de la version la plus
+  // récente. Utilisé par le clic sur le titre du track. Si non fourni,
+  // fallback sur onSelectVersion (mode focus player uniquement, ancien
+  // comportement).
+  onOpenFiche,
   onGoReglages,
   onGoLanding,
   onGoDashboard,
@@ -54,9 +59,15 @@ export default function Sidebar({
   }, [projects, currentProjectId, onSetCurrentProject]);
 
   // ── Handlers tracks ──
+  // Clic sur le titre d'un track dans la sidebar → ouvre directement la fiche
+  // d'analyse de la version la plus récente. Comportement choisi par David
+  // 2026-04-28 (avant : "focus player uniquement"). Le bouton "play" reste
+  // séparé : handlePlayTrack ne change pas d'écran.
   const handleTrackClick = (track) => {
     const latest = track.versions?.[track.versions.length - 1];
-    if (latest && onSelectVersion) onSelectVersion(track, latest);
+    if (!latest) return;
+    if (onOpenFiche) onOpenFiche(track, latest);
+    else if (onSelectVersion) onSelectVersion(track, latest);
   };
 
   const handlePlayTrack = (e, track, project) => {
