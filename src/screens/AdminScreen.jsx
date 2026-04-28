@@ -66,27 +66,27 @@ export default function AdminScreen({ onBackToDashboard }) {
   const isAdmin = !!ADMIN_EMAIL && user?.email?.toLowerCase() === ADMIN_EMAIL;
 
   return (
-    <div className="ad-screen">
+    <div className="cost-screen">
       <AdminStyles />
 
       {/* TOPBAR */}
-      <header className="ad-topbar">
+      <header className="cost-topbar">
         <button
           type="button"
-          className="ad-topbar-brand"
+          className="cost-topbar-brand"
           onClick={onBackToDashboard}
           aria-label="Retour au dashboard"
         >
-          <img src="/logo-versions-2.svg" alt="" className="ad-topbar-logo" />
-          <span className="ad-topbar-wordmark">
+          <img src="/logo-versions-2.svg" alt="" className="cost-topbar-logo" />
+          <span className="cost-topbar-wordmark">
             VER<span className="accent">Si</span>ONS
           </span>
         </button>
-        <nav className="ad-topbar-nav" aria-label="Navigation">
-          <button type="button" className="ad-topbar-link" onClick={onBackToDashboard}>
+        <nav className="cost-topbar-nav" aria-label="Navigation">
+          <button type="button" className="cost-topbar-link" onClick={onBackToDashboard}>
             Dashboard
           </button>
-          <span className="ad-topbar-current" aria-current="page">Admin</span>
+          <span className="cost-topbar-current" aria-current="page">Admin</span>
         </nav>
       </header>
 
@@ -106,21 +106,21 @@ export default function AdminScreen({ onBackToDashboard }) {
       {authChecked && isAdmin && !loading && !err && (
         <>
           {/* HERO discret */}
-          <section className="ad-hero">
-            <div className="ad-hero-inner">
-              <div className="ad-eyebrow">Admin — Coûts d'analyse</div>
-              <h1 className="ad-hero-title">
+          <section className="cost-hero">
+            <div className="cost-hero-inner">
+              <div className="cost-eyebrow">Admin — Coûts d'analyse</div>
+              <h1 className="cost-hero-title">
                 Combien ça nous <em>coûte</em>, vraiment.
               </h1>
-              <p className="ad-hero-sub">
+              <p className="cost-hero-sub">
                 Données des 30 derniers jours · {logs.length} analyse{logs.length > 1 ? 's' : ''} loggée{logs.length > 1 ? 's' : ''}
               </p>
             </div>
           </section>
 
           {/* SECTION KPIs */}
-          <section className="ad-section">
-            <div className="ad-kpi-grid">
+          <section className="cost-section">
+            <div className="cost-kpi-grid">
               <KpiCard
                 label="Coût moyen"
                 value={fmtEur(stats.avg)}
@@ -149,22 +149,22 @@ export default function AdminScreen({ onBackToDashboard }) {
           </section>
 
           {/* SECTION ÉVOLUTION (bar chart SVG) */}
-          <section className="ad-section">
-            <div className="ad-section-eyebrow">Évolution sur 30 jours</div>
-            <h2 className="ad-section-title">
+          <section className="cost-section">
+            <div className="cost-section-eyebrow">Évolution sur 30 jours</div>
+            <h2 className="cost-section-title">
               Volume et coût total <em>par jour</em>.
             </h2>
             <DailyChart series={dailySeries} />
           </section>
 
           {/* SECTION TOP USERS */}
-          <section className="ad-section">
-            <div className="ad-section-eyebrow">Top consommateurs (30 jours)</div>
-            <h2 className="ad-section-title">
+          <section className="cost-section">
+            <div className="cost-section-eyebrow">Top consommateurs (30 jours)</div>
+            <h2 className="cost-section-title">
               Qui consomme <em>le plus</em>.
             </h2>
-            <div className="ad-table-wrap">
-              <table className="ad-table">
+            <div className="cost-table-wrap">
+              <table className="cost-table">
                 <thead>
                   <tr>
                     <th style={{width: '50px'}}>#</th>
@@ -176,17 +176,17 @@ export default function AdminScreen({ onBackToDashboard }) {
                 </thead>
                 <tbody>
                   {topUsers.length === 0 && (
-                    <tr><td colSpan="5" className="ad-empty">Aucune donnée sur la période.</td></tr>
+                    <tr><td colSpan="5" className="cost-empty">Aucune donnée sur la période.</td></tr>
                   )}
                   {topUsers.map((u, i) => (
                     <tr key={u.userId || i}>
-                      <td className="ad-rank">{i + 1}</td>
-                      <td className="ad-userid">
-                        {u.userId ? u.userId.slice(0, 8) + '…' : <span className="ad-anon">anonyme</span>}
+                      <td className="cost-rank">{i + 1}</td>
+                      <td className="cost-userid">
+                        {u.userId ? u.userId.slice(0, 8) + '…' : <span className="cost-anon">anonyme</span>}
                       </td>
                       <td style={{textAlign: 'right'}}>{u.count}</td>
-                      <td style={{textAlign: 'right'}} className="ad-total">{fmtEur(u.total)}</td>
-                      <td style={{textAlign: 'right'}} className="ad-muted">{fmtEur(u.total / u.count)}</td>
+                      <td style={{textAlign: 'right'}} className="cost-total">{fmtEur(u.total)}</td>
+                      <td style={{textAlign: 'right'}} className="cost-muted">{fmtEur(u.total / u.count)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -195,13 +195,13 @@ export default function AdminScreen({ onBackToDashboard }) {
           </section>
 
           {/* SECTION DERNIÈRES ANALYSES */}
-          <section className="ad-section">
-            <div className="ad-section-eyebrow">Dernières analyses</div>
-            <h2 className="ad-section-title">
+          <section className="cost-section">
+            <div className="cost-section-eyebrow">Dernières analyses</div>
+            <h2 className="cost-section-title">
               Les 20 plus <em>récentes</em>.
             </h2>
-            <div className="ad-table-wrap">
-              <table className="ad-table">
+            <div className="cost-table-wrap">
+              <table className="cost-table">
                 <thead>
                   <tr>
                     <th>Date</th>
@@ -215,17 +215,17 @@ export default function AdminScreen({ onBackToDashboard }) {
                 </thead>
                 <tbody>
                   {logs.length === 0 && (
-                    <tr><td colSpan="7" className="ad-empty">Aucune analyse loggée.</td></tr>
+                    <tr><td colSpan="7" className="cost-empty">Aucune analyse loggée.</td></tr>
                   )}
                   {logs.slice(0, 20).map((l) => (
                     <tr key={l.id}>
-                      <td className="ad-muted">{fmtDate(l.created_at)}</td>
-                      <td className="ad-userid">{l.user_id ? l.user_id.slice(0, 8) + '…' : <span className="ad-anon">—</span>}</td>
-                      <td style={{textAlign: 'right'}} className="ad-muted">{fmtDuration(l.audio_duration_sec)}</td>
-                      <td style={{textAlign: 'right'}} className="ad-muted">{fmtEur(l.gemini_eur)}</td>
-                      <td style={{textAlign: 'right'}} className="ad-muted">{fmtEur(l.claude_eur)}</td>
-                      <td style={{textAlign: 'right'}} className="ad-muted">{fmtEur(l.fadr_eur)}</td>
-                      <td style={{textAlign: 'right'}} className="ad-total">{fmtEur(l.total_eur)}</td>
+                      <td className="cost-muted">{fmtDate(l.created_at)}</td>
+                      <td className="cost-userid">{l.user_id ? l.user_id.slice(0, 8) + '…' : <span className="cost-anon">—</span>}</td>
+                      <td style={{textAlign: 'right'}} className="cost-muted">{fmtDuration(l.audio_duration_sec)}</td>
+                      <td style={{textAlign: 'right'}} className="cost-muted">{fmtEur(l.gemini_eur)}</td>
+                      <td style={{textAlign: 'right'}} className="cost-muted">{fmtEur(l.claude_eur)}</td>
+                      <td style={{textAlign: 'right'}} className="cost-muted">{fmtEur(l.fadr_eur)}</td>
+                      <td style={{textAlign: 'right'}} className="cost-total">{fmtEur(l.total_eur)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -234,11 +234,11 @@ export default function AdminScreen({ onBackToDashboard }) {
           </section>
 
           {/* FOOTER */}
-          <footer className="ad-footer">
-            <div className="ad-footer-mark">
+          <footer className="cost-footer">
+            <div className="cost-footer-mark">
               VER<span className="accent">Si</span>ONS
             </div>
-            <div className="ad-footer-line">
+            <div className="cost-footer-line">
               Tarifs unitaires définis dans <code>decode-api/lib/costTracker.js</code>.
               Modifie-les si Gemini/Claude/Fadr changent leurs prix.
             </div>
@@ -252,19 +252,19 @@ export default function AdminScreen({ onBackToDashboard }) {
 /* ── Sub-components ───────────────────────────────────── */
 function GateMsg({ label, sub }) {
   return (
-    <div className="ad-gate">
-      <div className="ad-gate-label">{label}</div>
-      {sub && <div className="ad-gate-sub">{sub}</div>}
+    <div className="cost-gate">
+      <div className="cost-gate-label">{label}</div>
+      {sub && <div className="cost-gate-sub">{sub}</div>}
     </div>
   );
 }
 
 function KpiCard({ label, value, sub, tone }) {
   return (
-    <div className={`ad-kpi ad-kpi-${tone || 'amber'}`}>
-      <div className="ad-kpi-label">{label}</div>
-      <div className="ad-kpi-value">{value}</div>
-      <div className="ad-kpi-sub">{sub}</div>
+    <div className={`cost-kpi cost-kpi-${tone || 'amber'}`}>
+      <div className="cost-kpi-label">{label}</div>
+      <div className="cost-kpi-value">{value}</div>
+      <div className="cost-kpi-sub">{sub}</div>
     </div>
   );
 }
@@ -278,8 +278,8 @@ function DailyChart({ series }) {
   const barW = (W - PAD * 2) / series.length - 2;
 
   return (
-    <div className="ad-chart">
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="ad-chart-svg">
+    <div className="cost-chart">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="cost-chart-svg">
         {/* grid horizontale légère */}
         {[0.25, 0.5, 0.75, 1].map((p) => (
           <line
@@ -403,7 +403,7 @@ function pctMarge(coutMoyen, prixUnit) {
 function AdminStyles() {
   return (
     <style>{`
-      .ad-screen {
+      .cost-screen {
         position: relative; z-index: 1;
         min-height: 100vh; min-height: 100dvh;
         background: transparent;
@@ -413,55 +413,55 @@ function AdminStyles() {
       }
 
       /* TOPBAR — calque sur PricingScreen */
-      .ad-topbar {
+      .cost-topbar {
         position: relative; z-index: 2;
         max-width: 1280px; margin: 0 auto;
         padding: 22px 28px;
         display: flex; align-items: center; justify-content: space-between;
         gap: 24px;
       }
-      .ad-topbar-brand {
+      .cost-topbar-brand {
         display: inline-flex; align-items: center; gap: 10px;
         background: transparent; border: 0; cursor: pointer;
         padding: 4px 6px; border-radius: 8px;
         transition: opacity .15s;
       }
-      .ad-topbar-brand:hover { opacity: 0.82; }
-      .ad-topbar-logo {
+      .cost-topbar-brand:hover { opacity: 0.82; }
+      .cost-topbar-logo {
         height: 26px; width: auto;
         filter: drop-shadow(0 0 16px rgba(245,166,35,0.18));
       }
-      .ad-topbar-wordmark {
+      .cost-topbar-wordmark {
         font-family: ${T.body}; font-weight: 700;
         font-size: 17px; letter-spacing: -0.4px;
         color: ${T.text}; line-height: 1;
       }
-      .ad-topbar-wordmark .accent { color: ${T.amber}; font-style: normal; }
+      .cost-topbar-wordmark .accent { color: ${T.amber}; font-style: normal; }
 
-      .ad-topbar-nav { display: inline-flex; align-items: center; gap: 8px; }
-      .ad-topbar-link, .ad-topbar-current {
+      .cost-topbar-nav { display: inline-flex; align-items: center; gap: 8px; }
+      .cost-topbar-link, .cost-topbar-current {
         font-family: ${T.mono}; font-size: 11px; font-weight: 500;
         letter-spacing: 1.6px; text-transform: uppercase;
         padding: 9px 16px; border-radius: 999px;
         transition: all .15s;
       }
-      .ad-topbar-link {
+      .cost-topbar-link {
         background: transparent; color: ${T.textSoft};
         border: 1px solid transparent; cursor: pointer;
       }
-      .ad-topbar-link:hover {
+      .cost-topbar-link:hover {
         color: ${T.text};
         background: rgba(255,255,255,0.04);
         border-color: rgba(255,255,255,0.10);
       }
-      .ad-topbar-current {
+      .cost-topbar-current {
         color: ${T.amber};
         background: rgba(245,166,35,0.06);
         border: 1px solid rgba(245,166,35,0.32);
       }
 
       /* GATE (loading / err / refused) */
-      .ad-gate {
+      .cost-gate {
         max-width: 480px; margin: 80px auto;
         text-align: center;
         padding: 48px 32px;
@@ -469,75 +469,75 @@ function AdminStyles() {
         border: 1px solid ${T.border};
         border-radius: 16px;
       }
-      .ad-gate-label {
+      .cost-gate-label {
         font-family: ${T.mono}; font-size: 12px; font-weight: 500;
         letter-spacing: 2px; text-transform: uppercase;
         color: ${T.amber};
       }
-      .ad-gate-sub {
+      .cost-gate-sub {
         margin-top: 12px;
         font-family: ${T.body}; font-size: 13.5px; font-weight: 300;
         color: ${T.textSoft};
       }
 
       /* HERO */
-      .ad-hero {
+      .cost-hero {
         padding: clamp(24px, 4vw, 48px) 24px clamp(16px, 3vw, 32px);
         display: grid; place-items: center;
       }
-      .ad-hero-inner {
+      .cost-hero-inner {
         width: 100%; max-width: 760px;
         display: flex; flex-direction: column; align-items: center;
         gap: 14px; text-align: center;
         animation: fadeup .5s ease;
       }
-      .ad-eyebrow {
+      .cost-eyebrow {
         font-family: ${T.mono}; font-size: 11px; font-weight: 500;
         letter-spacing: 2.4px; color: ${T.amber}; text-transform: uppercase;
       }
-      .ad-hero-title {
+      .cost-hero-title {
         font-family: ${T.body}; font-weight: 700;
         font-size: clamp(32px, 4.6vw, 56px);
         line-height: 1.0; letter-spacing: -1.6px;
         color: ${T.text}; margin: 0;
       }
-      .ad-hero-title em {
+      .cost-hero-title em {
         font-family: ${T.serif}; font-style: italic; font-weight: 500;
         color: ${T.amber};
       }
-      .ad-hero-sub {
+      .cost-hero-sub {
         font-family: ${T.body}; font-size: 13.5px; font-weight: 300;
         color: ${T.muted}; margin: 0;
       }
 
       /* SECTIONS */
-      .ad-section {
+      .cost-section {
         padding: clamp(28px, 4vw, 48px) 24px;
         max-width: 1280px; margin: 0 auto;
       }
-      .ad-section-eyebrow {
+      .cost-section-eyebrow {
         font-family: ${T.mono}; font-size: 10.5px; font-weight: 500;
         letter-spacing: 2.2px; color: ${T.amber}; text-transform: uppercase;
         margin-bottom: 12px;
       }
-      .ad-section-title {
+      .cost-section-title {
         font-family: ${T.body}; font-weight: 500;
         font-size: clamp(18px, 2.2vw, 24px);
         line-height: 1.3; letter-spacing: -0.4px;
         color: ${T.textSoft}; margin: 0 0 24px;
       }
-      .ad-section-title em {
+      .cost-section-title em {
         font-family: ${T.serif}; font-style: italic; font-weight: 500;
         color: ${T.amber};
       }
 
       /* KPIs */
-      .ad-kpi-grid {
+      .cost-kpi-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 16px;
       }
-      .ad-kpi {
+      .cost-kpi {
         position: relative; overflow: hidden;
         background: ${T.s1};
         border: 1px solid ${T.border};
@@ -546,7 +546,7 @@ function AdminStyles() {
         display: flex; flex-direction: column; gap: 8px;
         transition: border-color .2s;
       }
-      .ad-kpi::before {
+      .cost-kpi::before {
         content: '';
         position: absolute;
         top: -40%; right: -25%;
@@ -556,76 +556,76 @@ function AdminStyles() {
         opacity: 0.5;
         pointer-events: none;
       }
-      .ad-kpi > * { position: relative; z-index: 1; }
-      .ad-kpi:hover { border-color: rgba(255,255,255,0.16); }
+      .cost-kpi > * { position: relative; z-index: 1; }
+      .cost-kpi:hover { border-color: rgba(255,255,255,0.16); }
 
-      .ad-kpi-amber::before {
+      .cost-kpi-amber::before {
         background: radial-gradient(circle, rgba(245,166,35,0.55), transparent 70%);
       }
-      .ad-kpi-amber .ad-kpi-value { color: ${T.amber}; }
-      .ad-kpi-cerulean::before {
+      .cost-kpi-amber .cost-kpi-value { color: ${T.amber}; }
+      .cost-kpi-cerulean::before {
         background: radial-gradient(circle, rgba(92,184,204,0.45), transparent 70%);
       }
-      .ad-kpi-cerulean .ad-kpi-value { color: ${T.cerulean}; }
-      .ad-kpi-violet::before {
+      .cost-kpi-cerulean .cost-kpi-value { color: ${T.cerulean}; }
+      .cost-kpi-violet::before {
         background: radial-gradient(circle, rgba(166,126,245,0.45), transparent 70%);
       }
-      .ad-kpi-violet .ad-kpi-value { color: ${T.violet}; }
-      .ad-kpi-mint::before {
+      .cost-kpi-violet .cost-kpi-value { color: ${T.violet}; }
+      .cost-kpi-mint::before {
         background: radial-gradient(circle, rgba(142,224,122,0.42), transparent 70%);
       }
-      .ad-kpi-mint .ad-kpi-value { color: ${T.mint}; }
-      .ad-kpi-red::before {
+      .cost-kpi-mint .cost-kpi-value { color: ${T.mint}; }
+      .cost-kpi-red::before {
         background: radial-gradient(circle, rgba(255,93,93,0.42), transparent 70%);
       }
-      .ad-kpi-red .ad-kpi-value { color: ${T.red}; }
+      .cost-kpi-red .cost-kpi-value { color: ${T.red}; }
 
-      .ad-kpi-label {
+      .cost-kpi-label {
         font-family: ${T.mono}; font-size: 10.5px; font-weight: 500;
         letter-spacing: 1.6px; text-transform: uppercase;
         color: ${T.muted};
       }
-      .ad-kpi-value {
+      .cost-kpi-value {
         font-family: ${T.serif}; font-style: italic; font-weight: 500;
         font-size: 36px; line-height: 1; letter-spacing: -1px;
         color: ${T.text};
       }
-      .ad-kpi-sub {
+      .cost-kpi-sub {
         font-family: ${T.body}; font-size: 12px; font-weight: 300;
         color: ${T.muted2};
       }
 
       @media (max-width: 980px) {
-        .ad-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        .cost-kpi-grid { grid-template-columns: repeat(2, 1fr); }
       }
       @media (max-width: 520px) {
-        .ad-kpi-grid { grid-template-columns: 1fr; }
+        .cost-kpi-grid { grid-template-columns: 1fr; }
       }
 
       /* CHART */
-      .ad-chart {
+      .cost-chart {
         background: ${T.s1};
         border: 1px solid ${T.border};
         border-radius: 16px;
         padding: 18px;
       }
-      .ad-chart-svg {
+      .cost-chart-svg {
         width: 100%; height: 200px;
         display: block;
       }
 
       /* TABLES */
-      .ad-table-wrap {
+      .cost-table-wrap {
         background: ${T.s1};
         border: 1px solid ${T.border};
         border-radius: 16px;
         overflow: hidden;
       }
-      .ad-table {
+      .cost-table {
         width: 100%; border-collapse: collapse;
         font-family: ${T.body}; font-size: 13px;
       }
-      .ad-table thead th {
+      .cost-table thead th {
         font-family: ${T.mono}; font-size: 10px; font-weight: 500;
         letter-spacing: 1.4px; text-transform: uppercase;
         color: ${T.muted};
@@ -634,33 +634,33 @@ function AdminStyles() {
         border-bottom: 1px solid ${T.border};
         background: rgba(255,255,255,0.015);
       }
-      .ad-table tbody tr {
+      .cost-table tbody tr {
         border-top: 1px solid ${T.border};
         transition: background .15s;
       }
-      .ad-table tbody tr:hover { background: rgba(255,255,255,0.02); }
-      .ad-table tbody td {
+      .cost-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+      .cost-table tbody td {
         padding: 12px 16px;
         color: ${T.text};
       }
-      .ad-rank {
+      .cost-rank {
         font-family: ${T.mono}; font-weight: 500;
         color: ${T.amber};
       }
-      .ad-userid {
+      .cost-userid {
         font-family: ${T.mono}; font-size: 12px;
         color: ${T.textSoft};
       }
-      .ad-anon { color: ${T.muted2}; font-style: italic; }
-      .ad-total {
+      .cost-anon { color: ${T.muted2}; font-style: italic; }
+      .cost-total {
         font-family: ${T.serif}; font-style: italic; font-weight: 500;
         font-size: 14px; color: ${T.amber};
       }
-      .ad-muted {
+      .cost-muted {
         color: ${T.muted};
         font-family: ${T.mono}; font-size: 12px;
       }
-      .ad-empty {
+      .cost-empty {
         text-align: center;
         padding: 32px 16px !important;
         color: ${T.muted2};
@@ -668,30 +668,30 @@ function AdminStyles() {
       }
 
       @media (max-width: 720px) {
-        .ad-table thead th, .ad-table tbody td {
+        .cost-table thead th, .cost-table tbody td {
           padding: 10px 10px; font-size: 12px;
         }
       }
 
       /* FOOTER */
-      .ad-footer {
+      .cost-footer {
         padding: clamp(40px, 6vw, 72px) 24px;
         max-width: 1080px; margin: 0 auto;
         text-align: center;
         display: flex; flex-direction: column; align-items: center; gap: 14px;
       }
-      .ad-footer-mark {
+      .cost-footer-mark {
         font-family: ${T.body}; font-weight: 700;
         font-size: 22px; letter-spacing: -0.5px;
         color: ${T.text};
       }
-      .ad-footer-mark .accent { color: ${T.amber}; }
-      .ad-footer-line {
+      .cost-footer-mark .accent { color: ${T.amber}; }
+      .cost-footer-line {
         font-family: ${T.body}; font-size: 13px; font-weight: 300;
         color: ${T.muted};
         max-width: 540px;
       }
-      .ad-footer-line code {
+      .cost-footer-line code {
         font-family: ${T.mono}; font-size: 12px;
         color: ${T.amber};
         padding: 2px 6px; border-radius: 4px;
