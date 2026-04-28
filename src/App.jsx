@@ -3041,6 +3041,8 @@ function VersionsAppAuthed() {
             playerState={playerState}
           />
         );
+      case "admin":
+        return <AdminScreen />;
       default:
         // Fallback si screen invalide : on retombe sur la home
         // (plus de page /nouveau dédiée : tout passe par la modale Add).
@@ -3185,18 +3187,8 @@ function VersionsAppAuthed() {
     );
   }
 
-  // Connecté + #/admin : dashboard admin (gaté par VITE_ADMIN_EMAIL côté
-  // front + RLS côté DB). Plein écran, sans sidebar.
-  if (screen === 'admin') {
-    return (
-      <LangContext.Provider value={{ lang, s, setLang, t }}>
-        <FontLink />
-        <GlobalStyles />
-        <MockupStyles />
-        <AdminScreen onBackToDashboard={() => setScreen('welcome')} />
-      </LangContext.Provider>
-    );
-  }
+  // (Note : #/admin est rendu dans le layout normal avec la sidebar
+  // — voir le case 'admin' du switch renderContent() plus bas.)
 
   // Deep-link fiche en cours de résolution : on affiche le même loader que
   // l'auth gate pour éviter un flash dashboard avant que le résolveur ne

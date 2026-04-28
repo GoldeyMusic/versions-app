@@ -25,7 +25,7 @@ import { supabase } from '../lib/supabase';
  * RLS double : email check côté front (gating UX) + check email dans
  * les fonctions Postgres (gating sécurité réelle).
  */
-export default function AdminScreen({ onBackToDashboard }) {
+export default function AdminScreen() {
   const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -116,26 +116,9 @@ export default function AdminScreen({ onBackToDashboard }) {
     <div className="cost-screen">
       <AdminStyles />
 
-      {/* TOPBAR */}
-      <header className="cost-topbar">
-        <button
-          type="button"
-          className="cost-topbar-brand"
-          onClick={onBackToDashboard}
-          aria-label="Retour au dashboard"
-        >
-          <img src="/logo-versions-2.svg" alt="" className="cost-topbar-logo" />
-          <span className="cost-topbar-wordmark">
-            VER<span className="accent">Si</span>ONS
-          </span>
-        </button>
-        <nav className="cost-topbar-nav" aria-label="Navigation">
-          <button type="button" className="cost-topbar-link" onClick={onBackToDashboard}>
-            Dashboard
-          </button>
-          <span className="cost-topbar-current" aria-current="page">Admin</span>
-        </nav>
-      </header>
+      {/* Pas de topbar ici : on est rendu DANS le layout principal,
+          la sidebar à gauche fait office de navigation (lien Dashboard
+          + lien Admin doré déjà présents). */}
 
       {!authChecked && <GateMsg label="Vérification…" />}
       {authChecked && !isAdmin && (

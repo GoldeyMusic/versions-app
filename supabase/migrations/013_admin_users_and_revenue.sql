@@ -123,11 +123,23 @@ BEGIN
     p.langue,
     u.created_at AS signed_up_at,
     u.last_sign_in_at,
-    -- Dernière activité = dernier upload de version (proxy raisonnable)
-    (SELECT MAX(v.created_at) FROM public.versions v WHERE v.user_id = u.id) AS last_activity,
+    -- Dernière activité = dernier upload de version (proxy raisonnable).
+    -- versions n'a PAS de user_id → on joint sur tracks pour récupérer l'ownership.
+    (
+      SELECT MAX(v.created_at)
+      FROM public.versions v
+      INNER JOIN public.tracks t2 ON t2.id = v.track_id
+      WHERE t2.user_id = u.id
+    ) AS last_activity,
     COALESCE((SELECT COUNT(*) FROM public.projects pr WHERE pr.user_id = u.id), 0) AS projects_count,
     COALESCE((SELECT COUNT(*) FROM public.tracks t WHERE t.user_id = u.id), 0) AS tracks_count,
-    COALESCE((SELECT COUNT(*) FROM public.versions v WHERE v.user_id = u.id), 0) AS versions_count,
+    -- versions_count : même logique de jointure via tracks
+    COALESCE((
+      SELECT COUNT(*)
+      FROM public.versions v
+      INNER JOIN public.tracks t2 ON t2.id = v.track_id
+      WHERE t2.user_id = u.id
+    ), 0) AS versions_count,
     COALESCE((SELECT COUNT(*) FROM public.analysis_cost_logs cl WHERE cl.user_id = u.id), 0) AS analyses_count,
     COALESCE((SELECT SUM(cl.total_eur) FROM public.analysis_cost_logs cl WHERE cl.user_id = u.id), 0) AS total_cost_eur,
     COALESCE((SELECT SUM(rl.amount_eur) FROM public.revenue_logs rl WHERE rl.user_id = u.id), 0) AS total_revenue_eur,
