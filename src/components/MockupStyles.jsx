@@ -2906,35 +2906,80 @@ export default function MockupStyles() {
   }
   .score-ring:hover .ring-help,
   .score-ring.tip-open .ring-help { opacity: 0.8; }
+  /* .ring-tooltip était l'ancien tooltip enfant de .score-ring. Remplacé
+     par .score-tooltip (rendu via React Portal dans <body>) qui escape
+     les stacking contexts parents (le chat .fiche-chat-side écrasait
+     l'ancien). Styles legacy conservés au cas où un autre callsite l'utilise. */
   .score-ring .ring-tooltip {
-    position: absolute;
-    top: calc(100% + 10px);
-    /* Aligné à gauche de l'anneau → le tooltip s'étend vers la DROITE,
-       dans la zone de contenu, pour ne jamais aller derrière la sidebar
-       (qui est position:sticky et crée son propre stacking context). */
-    left: 0;
-    transform: translateY(-4px);
+    display: none; /* plus utilisé, désactivé */
+  }
+  /* Nouveau tooltip score via Portal — position fixed, distinct visuellement
+     pour bien se détacher du fond de la fiche (gradient + bordure ambre +
+     glow plus marqué). */
+  .score-tooltip {
     width: 300px;
     max-width: min(300px, calc(100vw - 40px));
-    /* Fond solide un peu plus clair que --s1 pour bien trancher sur le halo
-     ambre derrière le panel score (sinon l'explication paraît transparente). */
-    background: #1a1b24;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Fond TOTALEMENT opaque pour ne pas laisser deviner le contenu
+       sous-jacent sur petits écrans. */
+    background:
+      linear-gradient(180deg,
+        rgb(34, 30, 22) 0%,
+        rgb(22, 22, 28) 60%,
+        rgb(18, 18, 22) 100%);
+    border: 1px solid rgba(245, 166, 35, 0.30);
+    border-left: 3px solid var(--st-accent, var(--amber));
     border-radius: 10px;
     padding: 14px 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity .16s ease, transform .16s ease;
-    /* z-index élevé pour passer au-dessus du stacking context de la
-       sidebar sticky et des sections sticky de la fiche (timeline, etc.). */
-    z-index: 200;
+    box-shadow:
+      0 18px 48px rgba(0, 0, 0, 0.55),
+      0 0 32px rgba(245, 166, 35, 0.06);
+    color: var(--text, #ededed);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
   }
-  .score-ring:hover .ring-tooltip,
-  .score-ring.tip-open .ring-tooltip {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
+  .score-tooltip .rt-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .score-tooltip .rt-head .rt-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .score-tooltip .rt-head strong { font-weight: 500; }
+  .score-tooltip .rt-head .rt-val {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--soft, rgba(255,255,255,0.78));
+  }
+  .score-tooltip .rt-bands {
+    display: flex; flex-direction: column; gap: 4px;
+    margin-bottom: 10px;
+  }
+  .score-tooltip .rt-band {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    opacity: 0.6;
+  }
+  .score-tooltip .rt-band.active { opacity: 1; color: var(--text); }
+  .score-tooltip .rt-band .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .score-tooltip .rt-calib {
+    margin-bottom: 8px;
+    padding: 6px 8px;
+    background: rgba(245, 166, 35, 0.06);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--soft);
+  }
+  .score-tooltip .rt-note {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.45;
   }
   .ring-tooltip .rt-head {
     display: flex;
@@ -4426,7 +4471,9 @@ export default function MockupStyles() {
        grid de la colonne 2 (400 px) + le padding-right du parent (16 px). */
     right: 16px;
     width: 400px;
-    z-index: 12;
+    /* z-index bas pour que les tooltips portalés (.score-tooltip z 9999)
+       passent par-dessus sans aucun stacking context concurrent. */
+    z-index: 1;
     display: flex;
   }
   .chat-panel.chat-panel-anchored {
@@ -4441,6 +4488,9 @@ export default function MockupStyles() {
     transform: none !important;
     transition: none;
     box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+    /* Pas de z-index ici → évite de créer un stacking context qui
+       écraserait les tooltips portalés (score-tooltip z 9999). */
+    z-index: auto;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--s1);
@@ -8787,20 +8837,33 @@ export default function MockupStyles() {
       stroke-dashoffset: 0;
     }
   }
-  /* Carte détail (préserve le contenu pédagogique des MiTile). */
+  /* Carte détail — bg fully opaque + z-index très élevé pour ne pas
+     laisser passer le contenu en dessous (panel "Évolution depuis V1"
+     etc.). Anchored à droite pour ne pas déborder vers le chat. */
   .fiche-v2 .mix-radar-detail {
     position: absolute;
     top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
+    right: 0;
     margin-top: 6px;
-    width: min(280px, 92%);
-    padding: 10px 12px;
-    background: rgba(20, 20, 22, 0.96);
-    border: 1px solid rgba(255,255,255,0.08);
+    width: 280px;
+    max-width: calc(100vw - 60px);
+    padding: 12px 14px;
+    /* Fond TOTALEMENT opaque (alpha 1) — le 0.98 laissait deviner
+       le contenu en arrière-plan sur petits écrans. */
+    background:
+      linear-gradient(180deg,
+        rgb(34, 30, 22) 0%,
+        rgb(22, 22, 28) 60%,
+        rgb(18, 18, 22) 100%);
+    border: 1px solid rgba(245, 166, 35, 0.30);
+    border-left: 3px solid var(--amber, #f5a623);
     border-radius: 8px;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.4), 0 0 12px rgba(245,176,86,0.04);
-    z-index: 30;
+    box-shadow:
+      0 14px 40px rgba(0, 0, 0, 0.55),
+      0 0 24px rgba(245, 166, 35, 0.06);
+    /* z-index très haut pour passer au-dessus de tout panel sibling
+       (évolution, intention, etc.). */
+    z-index: 9999;
     pointer-events: none;
     animation: dsp-fade-in .12s ease-out both;
   }
