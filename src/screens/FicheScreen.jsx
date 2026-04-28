@@ -1772,60 +1772,117 @@ function DspMiniCard({ kicker, value, unit, decimals = 1, scale, zones, displayV
 // retourne null si pas de mesures stems disponibles ou pas de stem voix.
 function VoiceVsInstruBlock({ analysisResult }) {
   const { s } = useLang();
+  // Animation d'entrée : curseur slide depuis le centre vers sa position
+  // cible avec un easing back (overshoot léger + stabilise). La valeur
+  // affichée est interpolée en sync (count-up).
+  const [animDelta, setAnimDelta] = useState(0);
+
+  // Calcul des données (avant les hooks, mais sans return — les hooks
+  // doivent être appelés dans le même ordre à chaque render).
   const stemsArr = Array.isArray(analysisResult?.stemsMetrics) ? analysisResult.stemsMetrics : [];
-  if (!stemsArr.length) return null;
   const findStem = (type) => stemsArr.find((st) => st && st.stemType === type) || null;
   const vocal = findStem('vocal');
   const drums = findStem('drums');
   const bass = findStem('bass');
   const other = findStem('other');
   const vocalLufs = (typeof vocal?.lufs === 'number' && Number.isFinite(vocal.lufs)) ? vocal.lufs : null;
-  // Moyenne énergétique des stems non-voix (cohérent avec le calcul côté
-  // claude.js B.5 : lin = 10^(dB/10), avg, retour en dB).
   const others = [drums, bass, other].filter((st) => st && typeof st.lufs === 'number' && Number.isFinite(st.lufs));
-  if (!vocalLufs || others.length === 0) return null;
-  const lin = others.map((st) => Math.pow(10, st.lufs / 10));
-  const avg = lin.reduce((a, b) => a + b, 0) / lin.length;
-  const instruLufs = +(10 * Math.log10(avg)).toFixed(1);
-  const delta = +(vocalLufs - instruLufs).toFixed(1);
-  // Verdict — cible -3/+3 LU = "voix bien posée".
+  let instruLufs = null;
+  let delta = null;
+  if (vocalLufs && others.length > 0) {
+    const lin = others.map((st) => Math.pow(10, st.lufs / 10));
+    const avg = lin.reduce((a, b) => a + b, 0) / lin.length;
+    instruLufs = +(10 * Math.log10(avg)).toFixed(1);
+    delta = +(vocalLufs - instruLufs).toFixed(1);
+  }
+
+  // useEffect doit être appelé unconditionellement → guard interne sur delta
+  useEffect(() => {
+    if (delta == null) return;
+    const startTime = Date.now();
+    const duration = 1200; // ms
+    // ease-out-back : sigmoide qui dépasse légèrement (overshoot ~12%) puis
+    // revient à 1. Donne le petit "bounce" d'arrivée.
+    const easeOutBack = (t) => {
+      const c1 = 1.4;
+      const c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    };
+    let cancelled = false;
+    let raf = null;
+    const tick = () => {
+      if (cancelled) return;
+      const elapsed = Date.now() - startTime;
+      const t = Math.min(1, elapsed / duration);
+      const eased = easeOutBack(t);
+      setAnimDelta(delta * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    // Petit délai initial pour laisser le composant monter avant de partir
+    const startTimeout = setTimeout(() => {
+      raf = requestAnimationFrame(tick);
+    }, 80);
+    return () => {
+      cancelled = true;
+      clearTimeout(startTimeout);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [delta]);
+
+  // Early return APRÈS les hooks
+  if (!stemsArr.length || delta == null) return null;
+
+  // Verdict (basé sur la valeur FINALE delta — il ne flippe pas pendant l'anim)
   let verdict, verdictTone;
   if (delta < -3) { verdict = s.fiche.dspViz.voiceVerdictRetreat; verdictTone = 'critical'; }
   else if (delta > 3) { verdict = s.fiche.dspViz.voiceVerdictProminent; verdictTone = 'low'; }
   else { verdict = s.fiche.dspViz.voiceVerdictTarget; verdictTone = 'target'; }
-  // Echelle alignée sur LoudnessMeter (-25 à -3 LUFS).
-  const SCALE_MIN = -25;
-  const SCALE_MAX = -3;
-  const clamp = (v) => Math.max(SCALE_MIN, Math.min(SCALE_MAX, v));
-  const pct = (v) => ((clamp(v) - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100;
+  const verdictColor = verdictTone === 'target'
+    ? 'rgb(142,224,122)'
+    : verdictTone === 'critical'
+      ? 'rgb(255,93,93)'
+      : 'rgb(245,166,35)';
+
+  // Jauge ±6 LU. Position curseur basée sur animDelta (qui interpole de 0
+  // à delta cible avec ease-out-back → l'overshoot fait dépasser légèrement
+  // la position avant de revenir s'y stabiliser).
+  const DELTA_MIN = -6;
+  const DELTA_MAX = 6;
+  const dClamp = Math.max(DELTA_MIN, Math.min(DELTA_MAX, animDelta));
+  const cursorPct = ((dClamp - DELTA_MIN) / (DELTA_MAX - DELTA_MIN)) * 100;
   return (
     <div className="dsp-master-block dsp-voice-block">
-      <div className="dsp-voice-row">
-        <span className="dsp-voice-label">{s.fiche.dspViz.voiceLabel}</span>
-        <div className="dsp-voice-bar">
-          <div className="dsp-voice-fill" style={{ width: `${pct(vocalLufs)}%` }} />
-          <span className="dsp-voice-cursor" style={{ left: `${pct(vocalLufs)}%` }} />
-        </div>
-        <span className="dsp-voice-value">{vocalLufs.toFixed(1)} LUFS</span>
-      </div>
-      {/* Badge delta entre les deux jauges */}
-      <div className="dsp-voice-delta-row" aria-hidden="true">
-        <span className="dsp-voice-delta-line" />
-        <span className="dsp-voice-delta-badge" style={{ color: toneColor(verdictTone) }}>
-          {delta > 0 ? '+' : ''}{delta.toFixed(1)} LU
-        </span>
-        <span className="dsp-voice-delta-line" />
-      </div>
-      <div className="dsp-voice-row">
-        <span className="dsp-voice-label">{s.fiche.dspViz.instruLabel}</span>
-        <div className="dsp-voice-bar">
-          <div className="dsp-voice-fill" style={{ width: `${pct(instruLufs)}%` }} />
-          <span className="dsp-voice-cursor" style={{ left: `${pct(instruLufs)}%` }} />
-        </div>
-        <span className="dsp-voice-value">{instruLufs.toFixed(1)} LUFS</span>
-      </div>
-      <div className="dsp-voice-verdict" style={{ color: toneColor(verdictTone) }}>
+      {/* Verdict gros en haut — message principal */}
+      <div className="vv-verdict" style={{ color: verdictColor }}>
         {verdict}
+      </div>
+      {/* Jauge unique : delta voix vs instru */}
+      <div className="vv-gauge">
+        <div className="vv-track" aria-hidden="true">
+          <div className="vv-zone vv-zone-bad-low" />     {/* < -3 LU : voix en retrait */}
+          <div className="vv-zone vv-zone-target" />       {/* -3 à +3 : voix bien posée */}
+          <div className="vv-zone vv-zone-bad-high" />     {/* > +3 LU : voix en avant */}
+        </div>
+        {/* Curseur + valeur delta au-dessus */}
+        <div
+          className="vv-cursor"
+          style={{ left: `${cursorPct}%`, color: verdictColor }}
+        >
+          <span className="vv-cursor-value">
+            {animDelta > 0 ? '+' : ''}{animDelta.toFixed(1)} LU
+          </span>
+          <span className="vv-cursor-pin" />
+        </div>
+        {/* Légende sous la jauge */}
+        <div className="vv-legend" aria-hidden="true">
+          <span className="vv-legend-l">← {s.fiche.dspViz.voiceVerdictRetreat.replace('À retravailler — ', '').replace('Needs work — ', '')}</span>
+          <span className="vv-legend-c">{s.fiche.dspViz.voiceVerdictTarget.replace(' ✓', '')}</span>
+          <span className="vv-legend-r">{s.fiche.dspViz.voiceVerdictProminent.replace('À retravailler — ', '').replace('Needs work — ', '')} →</span>
+        </div>
+      </div>
+      {/* Détails techniques en petit, pour les power users */}
+      <div className="vv-details">
+        {s.fiche.dspViz.voiceLabel} {vocalLufs.toFixed(1)} LUFS · {s.fiche.dspViz.instruLabel} {instruLufs.toFixed(1)} LUFS
       </div>
     </div>
   );

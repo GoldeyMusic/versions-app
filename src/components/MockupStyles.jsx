@@ -9221,13 +9221,115 @@ export default function MockupStyles() {
   }
 
   /* ─────────────────────────────────────────────────────────────
-     DSP_PLAN C.1 — Voix vs instru (section VOIX)
-     Deux jauges horizontales empilees, badge delta entre les deux,
-     verdict mint si dans cible -3/+3 LU sinon ambre/rouge.
+     DSP_PLAN C.1 — Voix (refonte 2026-04-28 — jauge delta unique)
+     Une seule jauge horizontale ±6 LU avec zone cible verte centrale
+     (−3/+3 LU). Curseur avec la valeur du delta. Verdict gros en haut.
+     Message instantané : "ma voix est-elle bien placée ?"
      ───────────────────────────────────────────────────────────── */
   .dsp-voice-block {
-    padding: 14px 14px 12px;
+    padding: 16px 16px 14px;
   }
+  /* Verdict — message principal, plus contenu qu'avant */
+  .dsp-voice-block .vv-verdict {
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  /* Jauge */
+  .dsp-voice-block .vv-gauge {
+    position: relative;
+    padding: 22px 4px 22px;
+  }
+  .dsp-voice-block .vv-track {
+    display: flex;
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.04);
+  }
+  /* 3 zones colorées : 25% rouge / 50% mint / 25% rouge */
+  .dsp-voice-block .vv-zone-bad-low {
+    flex: 0 0 25%;
+    background: linear-gradient(90deg, rgba(255,93,93,0.20), rgba(255,93,93,0.30));
+  }
+  .dsp-voice-block .vv-zone-target {
+    flex: 0 0 50%;
+    background: rgba(142,224,122,0.42);
+    border-left: 1px solid rgba(0,0,0,0.4);
+    border-right: 1px solid rgba(0,0,0,0.4);
+  }
+  .dsp-voice-block .vv-zone-bad-high {
+    flex: 0 0 25%;
+    background: linear-gradient(90deg, rgba(255,93,93,0.30), rgba(255,93,93,0.20));
+  }
+  /* Curseur (pin + valeur au-dessus) */
+  .dsp-voice-block .vv-cursor {
+    position: absolute;
+    top: 0;
+    bottom: 18px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .dsp-voice-block .vv-cursor-value {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    color: currentColor;
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+  .dsp-voice-block .vv-cursor-pin {
+    width: 3px;
+    flex: 1;
+    background: currentColor;
+    border-radius: 1.5px;
+    box-shadow: 0 0 8px currentColor;
+    opacity: 1;
+  }
+  /* Légende sous la jauge : 3 labels alignés sur les zones */
+  .dsp-voice-block .vv-legend {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+  }
+  .dsp-voice-block .vv-legend-l {
+    text-align: left;
+    color: rgba(255,93,93,0.7);
+  }
+  .dsp-voice-block .vv-legend-c {
+    text-align: center;
+    color: rgba(142,224,122,0.85);
+    font-weight: 500;
+  }
+  .dsp-voice-block .vv-legend-r {
+    text-align: right;
+    color: rgba(255,93,93,0.7);
+  }
+  /* Détails techniques en bas (LUFS exacts) — pour les power users */
+  .dsp-voice-block .vv-details {
+    margin-top: 8px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.32);
+  }
+  /* ─────────────────────────────────────────────────────────────
+     LEGACY voice block (avant refonte — 2 jauges stackées). Conservé
+     au cas où on revient en arrière.
   .dsp-voice-block .dsp-voice-row {
     display: grid;
     grid-template-columns: 56px 1fr 90px;
@@ -9381,21 +9483,37 @@ export default function MockupStyles() {
     text-transform: uppercase;
     color: var(--muted, #7c7c80);
   }
-  /* Animation des cercles individuels du blob — chacun a son rythme,
-     décalé via animation-delay inline → la masse "respire" et morphe. */
-  .dsp-stereo-stage .ss-blob-orb {
+  /* Drift par particule — chaque point translate dans un petit
+     pattern et oscille en opacité. Delay/duration injectés inline
+     depuis le JSX → chaque particule bouge à son rythme, le nuage
+     se mélange organiquement (effet "matière vivante"). */
+  .dsp-stereo-stage .ss-particle {
     transform-origin: center;
     transform-box: fill-box;
-    animation: ss-orb-drift 5s ease-in-out infinite;
+    animation-name: ss-particle-drift;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
   }
-  @keyframes ss-orb-drift {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    25%      { transform: translate(8px, -4px) scale(1.08); }
-    50%      { transform: translate(-6px, 6px) scale(0.94); }
-    75%      { transform: translate(4px, 8px) scale(1.05); }
+  @keyframes ss-particle-drift {
+    0%, 100% { transform: translate(0, 0);    opacity: 0.85; }
+    25%      { transform: translate(3px, -2.5px);  opacity: 1;    }
+    50%      { transform: translate(-2.5px, -2px); opacity: 0.75; }
+    75%      { transform: translate(-2px, 2.5px);  opacity: 0.92; }
+  }
+  /* Ticks de balance (-6, -3, +3, +6 dB) sous le nuage */
+  .dsp-stereo-stage .ss-stage-tick-label {
+    font-family: var(--mono);
+    font-size: 8.5px;
+    letter-spacing: 0.5px;
+    fill: rgba(255,255,255,0.32);
+    pointer-events: none;
+  }
+  .dsp-stereo-stage .ss-stage-tick-center {
+    fill: rgba(255,255,255,0.45);
+    font-weight: 500;
   }
   @media (prefers-reduced-motion: reduce) {
-    .dsp-stereo-stage .ss-blob-orb { animation: none; }
+    .dsp-stereo-stage .ss-particle { animation: none; }
   }
 
   /* HERO TYPOGRAPHIQUE — 3 chiffres en row, plus de cards, plus
@@ -9449,6 +9567,14 @@ export default function MockupStyles() {
     letter-spacing: 1.3px;
     text-transform: uppercase;
     font-weight: 500;
+  }
+  /* Caption "Cible : X..Y" sous chaque stat — neutre, mono petit. */
+  .dsp-stereo-stats .ss-stat-target {
+    margin-top: 6px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.38);
   }
   /* Couleurs par tier (target/low/critical/soft) */
   .dsp-stereo-stats .ss-stat.t-target .ss-stat-num,
