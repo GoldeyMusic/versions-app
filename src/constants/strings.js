@@ -1139,7 +1139,7 @@ const STRINGS = {
       // CTAs (par défaut visiteur — App.jsx peut surcharger pour utilisateur connecté)
       ctaPrimary: "Analyser mon premier titre",
       ctaSample: "Voir un exemple",
-      ctaFooter: "Commencer gratuitement",
+      ctaFooter: "Analyser mon premier titre",
 
       // Mockup carte 1 — Score global
       mockScoreEyebrow: "SCORE GLOBAL",
@@ -2344,7 +2344,7 @@ const STRINGS = {
     landing: {
       ctaPrimary: "Analyze my first track",
       ctaSample: "See an example",
-      ctaFooter: "Get started for free",
+      ctaFooter: "Analyze my first track",
 
       mockScoreEyebrow: "OVERALL SCORE",
       mockScoreTag: "Solid mix",
