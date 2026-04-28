@@ -1662,16 +1662,16 @@ export default function MockupStyles() {
   .fiche-v2 .row-verdict .rv-left .score-ring .big {
     font-family: var(--body, 'DM Sans', sans-serif);
     font-weight: 700;
-    font-size: 56px;
-    letter-spacing: -2px;
+    font-size: 46px;
+    letter-spacing: -1.5px;
     line-height: 1;
   }
   .fiche-v2 .row-verdict .rv-left .score-ring .big-suffix {
     font-family: var(--mono, 'JetBrains Mono', monospace);
-    font-size: 10px;
+    font-size: 9px;
     letter-spacing: 1.2px;
     text-transform: uppercase;
-    margin-top: 8px;
+    margin-top: 7px;
     margin-left: 2px;
     font-weight: 400;
   }
