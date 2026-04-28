@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import useLang from '../hooks/useLang';
 
 /**
  * EvolutionBanner — panneau d'évolution version-à-version, charté comme
@@ -15,6 +16,7 @@ import { useState } from 'react';
  * renvoie null.
  */
 export default function EvolutionBanner({ evolution, previousVersionName, floorApplied = null, adviceLockApplied = null }) {
+  const { s } = useLang();
   const [open, setOpen] = useState(false);
 
   if (!evolution) return null;
@@ -39,9 +41,10 @@ export default function EvolutionBanner({ evolution, previousVersionName, floorA
 
   // Le titre du panneau : on s'aligne avec "INTENTION ARTISTIQUE" / "PLAN
   // D'ACTION" — texte court, mono uppercase, dot ambré en préfixe.
+  // i18n via strings.js — bascule auto FR/EN.
   const titleText = previousVersionName
-    ? `Évolution depuis ${previousVersionName}`
-    : 'Évolution depuis la dernière';
+    ? (s.fiche?.evolutionSince || 'Évolution depuis {prev}').replace('{prev}', previousVersionName)
+    : (s.fiche?.evolutionSinceLast || 'Évolution depuis la dernière');
 
   // Compteurs compacts à droite — affichés uniquement si la liste a du contenu.
   const chips = [];
@@ -64,7 +67,7 @@ export default function EvolutionBanner({ evolution, previousVersionName, floorA
         width: '100%',
         boxSizing: 'border-box',
       }}
-      aria-label="Évolution depuis la version précédente"
+      aria-label={s.fiche?.evolutionAriaLabel || 'Évolution depuis la version précédente'}
     >
       {/* Halo coloré bottom-right (couleur = dominante de l'évolution) */}
       <div
@@ -223,10 +226,10 @@ export default function EvolutionBanner({ evolution, previousVersionName, floorA
             gap: 10,
           }}
         >
-          <EvolutionList label="Progrès" items={progres} color="var(--mint, #8ee07a)" />
-          <EvolutionList label="Régressions" items={regressions} color="var(--red, #ff5d5d)" />
-          <EvolutionList label="Persistants" items={persistants} color="var(--muted, rgba(255,255,255,0.5))" />
-          <EvolutionList label="Nouveaux" items={nouveaux} color="var(--amber, #f5a623)" />
+          <EvolutionList label={s.fiche?.evolutionProgres || 'Progrès'} items={progres} color="var(--mint, #8ee07a)" />
+          <EvolutionList label={s.fiche?.evolutionRegressions || 'Régressions'} items={regressions} color="var(--red, #ff5d5d)" />
+          <EvolutionList label={s.fiche?.evolutionPersistants || 'Persistants'} items={persistants} color="var(--muted, rgba(255,255,255,0.5))" />
+          <EvolutionList label={s.fiche?.evolutionNouveaux || 'Nouveaux'} items={nouveaux} color="var(--amber, #f5a623)" />
           {(floorApplied || adviceLockApplied) && (
             <div
               style={{

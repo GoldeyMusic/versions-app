@@ -675,6 +675,25 @@ const STRINGS = {
       genreEditPlaceholder: "Ex : indie pop, néo-soul, dub-techno…",
       genreEditTooltip: "Cliquer pour modifier",
       genreAdd: "+ Ajouter un genre",
+      // Release readiness banner — eyebrow + tier labels + subtitles
+      releaseEyebrow: "VERDICT DE SORTIE",
+      releaseAriaLabel: "État de sortie",
+      releaseReady: "Prêt à sortir",
+      releaseAlmost: "Presque prêt",
+      releaseNotYet: "Pas encore",
+      releaseReadySub: "Tu peux la sortir — aucun bloquant détecté.",
+      releaseAlmostSubAction: "{count} action{plural} prioritaire{plural} avant de sortir.",
+      releaseAlmostSubScore: "Score à consolider avant la sortie.",
+      releaseNotYetSubAction: "{count} action{plural} prioritaire{plural} en attente.",
+      releaseNotYetSubScore: "Score sous le seuil — encore du chemin avant la sortie.",
+      // Evolution banner — title + section labels
+      evolutionSince: "Évolution depuis {prev}",
+      evolutionSinceLast: "Évolution depuis la dernière",
+      evolutionAriaLabel: "Évolution depuis la version précédente",
+      evolutionProgres: "Progrès",
+      evolutionRegressions: "Régressions",
+      evolutionPersistants: "Persistants",
+      evolutionNouveaux: "Nouveaux",
     },
 
     /* ─────────────── COMPARE ─────────────── */
@@ -1888,6 +1907,25 @@ const STRINGS = {
       genreEditPlaceholder: "e.g. indie pop, neo-soul, dub-techno…",
       genreEditTooltip: "Click to edit",
       genreAdd: "+ Add a genre",
+      // Release readiness banner
+      releaseEyebrow: "RELEASE READINESS",
+      releaseAriaLabel: "Release status",
+      releaseReady: "Ready to release",
+      releaseAlmost: "Almost ready",
+      releaseNotYet: "Not yet",
+      releaseReadySub: "You can release it — no blocker detected.",
+      releaseAlmostSubAction: "{count} priority action{plural} before releasing.",
+      releaseAlmostSubScore: "Score to consolidate before release.",
+      releaseNotYetSubAction: "{count} priority action{plural} pending.",
+      releaseNotYetSubScore: "Score below threshold — more work before release.",
+      // Evolution banner
+      evolutionSince: "Evolution since {prev}",
+      evolutionSinceLast: "Evolution since last",
+      evolutionAriaLabel: "Evolution since previous version",
+      evolutionProgres: "Progress",
+      evolutionRegressions: "Regressions",
+      evolutionPersistants: "Persistent",
+      evolutionNouveaux: "New",
     },
 
     /* ─────────────── COMPARE ─────────────── */

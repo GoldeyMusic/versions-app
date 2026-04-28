@@ -222,7 +222,7 @@ function tierColor(score) {
   return 'mint';
 }
 
-function computeMixIndicators(rawFiche, elements, globalScore, s) {
+export function computeMixIndicators(rawFiche, elements, globalScore, s) {
   const tiers = s?.fiche?.mixIndicators || {};
   const mp = rawFiche?.mix_profile || null;
 
@@ -406,7 +406,7 @@ function MixIndicators({ items }) {
 // MixIndicators). Au hover d'un axe : axe éclairé + carte détail (label,
 // score, what, how, sources) — préserve la valeur pédagogique des
 // tooltips MixIndicators que ce composant remplace dans .rv-top.
-function MixRadar({ items }) {
+export function MixRadar({ items }) {
   const { s } = useLang();
   // Refonte glossy 2026-04-28 : on garde la grammaire constellation
   // (hexagone, points sur axes, infobulle pédagogique au hover) mais on
@@ -1881,7 +1881,7 @@ function DspMiniCard({ kicker, value, unit, decimals = 1, scale, zones, displayV
 // delta ambre/critique entre les deux, verdict mint si dans cible -3/+3 LU.
 // Donnée : analysisResult.stemsMetrics (Phase 3 backend). Mode dégradé :
 // retourne null si pas de mesures stems disponibles ou pas de stem voix.
-function VoiceVsInstruBlock({ analysisResult, isOpen = true }) {
+export function VoiceVsInstruBlock({ analysisResult, isOpen = true }) {
   const { s } = useLang();
   // Animation re-jouée à chaque ouverture de la cat (when=isOpen).
   const [animDelta, setAnimDelta] = useState(0);
@@ -2017,7 +2017,7 @@ function VoiceVsInstruBlock({ analysisResult, isOpen = true }) {
 //   - 3 DspMiniCard en row : WIDTH (midSideRatio %), MONO COMPAT (LU),
 //     CORR L/R (-1 à +1)
 // Cohérent avec LoudnessMeter (A.1) et la grammaire mini-card de A.2.
-function StereoFieldBlock({ analysisResult, isOpen = true }) {
+export function StereoFieldBlock({ analysisResult, isOpen = true }) {
   const { s } = useLang();
   const stereo = analysisResult?.stereoMetrics;
   // On extrait les données AVANT les early returns pour pouvoir appeler
@@ -2387,7 +2387,7 @@ function MasterRing({ label, value, formatValue, fillRatio, tone, verdict, targe
 // Chaque anneau a une couleur dépendant de son tier (cerulean=trop sage,
 // ambre=streaming/competitif, mint=target sain, rouge=critique).
 // Le fill de l'arc montre la valeur normalisée sur son échelle.
-function DspMasterBlock({ analysisResult, isOpen = true }) {
+export function DspMasterBlock({ analysisResult, isOpen = true }) {
   const { s } = useLang();
   const { lufs, lra, truePeak } = pickDspBlockMetrics(analysisResult);
   if (lufs == null && lra == null && truePeak == null) return null;

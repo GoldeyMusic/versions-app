@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { computeReleaseReadiness } from '../lib/ficheHelpers.jsx';
+import useLang from '../hooks/useLang';
 
 /**
  * ReleaseReadinessBanner (ticket 4.3) — bandeau "Prêt à sortir / Presque
@@ -14,7 +15,30 @@ import { computeReleaseReadiness } from '../lib/ficheHelpers.jsx';
  * rendu (on ne veut pas bruiter une analyse encore en cours de stream).
  */
 export default function ReleaseReadinessBanner({ fiche, completedItems, open: openProp, onToggle }) {
+  const { s } = useLang();
   const r = computeReleaseReadiness(fiche, completedItems);
+  // Libellés de tier (label + subtitle) tirés de i18n strings.js. Les
+  // subtitles utilisent {count}/{plural} pour gérer le pluriel selon la
+  // langue courante.
+  const tierLabel = (
+    r.tier === 'ready' ? s.fiche?.releaseReady
+      : r.tier === 'almost' ? s.fiche?.releaseAlmost
+      : s.fiche?.releaseNotYet
+  ) || (r.tier === 'ready' ? 'Prêt à sortir' : r.tier === 'almost' ? 'Presque prêt' : 'Pas encore');
+  const fmt = (tpl, count) => (tpl || '')
+    .replace('{count}', String(count))
+    .replace(/\{plural\}/g, count > 1 ? 's' : '');
+  const subText = (() => {
+    if (r.tier === 'ready') return s.fiche?.releaseReadySub || 'Tu peux la sortir — aucun bloquant détecté.';
+    if (r.tier === 'almost') {
+      return r.uncompletedHigh > 0
+        ? fmt(s.fiche?.releaseAlmostSubAction, r.uncompletedHigh)
+        : (s.fiche?.releaseAlmostSubScore || 'Score à consolider avant la sortie.');
+    }
+    return r.uncompletedHigh > 0
+      ? fmt(s.fiche?.releaseNotYetSubAction, r.uncompletedHigh)
+      : (s.fiche?.releaseNotYetSubScore || 'Score sous le seuil — encore du chemin avant la sortie.');
+  })();
   // Mode contrôlé optionnel : si `open`/`onToggle` sont fournis (cf.
   // SampleFicheScreen / accordéon strict), on s'aligne dessus. Sinon, état
   // interne classique (vraie fiche : fermé par défaut, l'utilisateur déplie
@@ -35,7 +59,7 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
   };
 
   return (
-    <section className={`release-readiness rr-${r.tier}`} aria-label="État de sortie">
+    <section className={`release-readiness rr-${r.tier}`} aria-label={s.fiche?.releaseAriaLabel || 'État de sortie'}>
       <div
         className="rr-head"
         role={showToggle ? 'button' : undefined}
@@ -53,21 +77,9 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
           <Icon kind={cfg.icon} />
         </span>
         <span className="rr-text">
-          <span className="rr-eyebrow">VERDICT DE SORTIE</span>
-          <span className="rr-label">{cfg.label}</span>
-          <span className="rr-sub">
-            {r.tier === 'ready' && 'Tu peux la sortir — aucun bloquant détecté.'}
-            {r.tier === 'almost' && (
-              r.uncompletedHigh > 0
-                ? `${r.uncompletedHigh} action${r.uncompletedHigh > 1 ? 's' : ''} prioritaire${r.uncompletedHigh > 1 ? 's' : ''} avant de sortir.`
-                : 'Score à consolider avant la sortie.'
-            )}
-            {r.tier === 'not-yet' && (
-              r.uncompletedHigh > 0
-                ? `${r.uncompletedHigh} action${r.uncompletedHigh > 1 ? 's' : ''} prioritaire${r.uncompletedHigh > 1 ? 's' : ''} en attente.`
-                : 'Score sous le seuil — encore du chemin avant la sortie.'
-            )}
-          </span>
+          <span className="rr-eyebrow">{s.fiche?.releaseEyebrow || 'VERDICT DE SORTIE'}</span>
+          <span className="rr-label">{tierLabel}</span>
+          <span className="rr-sub">{subText}</span>
         </span>
         {showToggle && (
           <span className={`rr-chev${open ? ' open' : ''}`} aria-hidden="true">
