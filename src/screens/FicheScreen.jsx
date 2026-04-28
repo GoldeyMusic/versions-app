@@ -1703,96 +1703,121 @@ function VoiceVsInstruBlock({ analysisResult }) {
   );
 }
 
-// ── C.2 — Stereo field map (DSP_PLAN session 2026-04-28) ────────────
-// Cercle dashed L/R minimal (pas de rosace AubioMix), point ambre placé
-// selon (balanceLR, midSideRatio). À côté : Width % (= midSideRatio×100)
-// et Mono Compat (LU). Verdict mono coloré.
-// Donnée : analysisResult.stereoMetrics (Phase 3 backend).
+// ── C.2 — Stereo field (DSP_PLAN session 2026-04-28, refonte Option B) ─
+// Refonte 2026-04-28 : on abandonne le cercle 2D (la dimension Y =
+// midSideRatio est presque toujours faible donc le point reste collé au
+// centre-bas, perte de lisibilité). À la place :
+//   - Balance bar horizontale L↔R avec curseur ambre = balanceLR
+//   - 3 DspMiniCard en row : WIDTH (midSideRatio %), MONO COMPAT (LU),
+//     CORR L/R (-1 à +1)
+// Cohérent avec LoudnessMeter (A.1) et la grammaire mini-card de A.2.
 function StereoFieldBlock({ analysisResult }) {
   const stereo = analysisResult?.stereoMetrics;
   if (!stereo || typeof stereo !== 'object') return null;
   const { correlation, midSideRatio, balanceLR, monoCompat } = stereo;
   const hasAny = correlation != null || midSideRatio != null || balanceLR != null || monoCompat != null;
   if (!hasAny) return null;
-  // Position du point dans le cercle.
-  // X axis = balanceLR mappé sur ±3 dB. Au-delà = clip aux bords.
-  // Y axis = midSideRatio mappé sur [0,1] : top = mix très large (side fort),
-  //         bottom = mix focused/mono-y. (1-2*ms) inverse pour SVG Y.
-  const SIZE = 200;
-  const CX = SIZE / 2;
-  const CY = SIZE / 2;
-  const R = 78;
-  const xRaw = balanceLR != null ? Math.max(-1, Math.min(1, balanceLR / 3)) : 0;
-  const yRaw = midSideRatio != null ? Math.max(-1, Math.min(1, 2 * midSideRatio - 1)) : 0;
-  // Clamp dans le cercle (norme ≤ 0.95 pour garder une marge visuelle)
-  const dist = Math.hypot(xRaw, yRaw);
-  const k = dist > 0.95 ? 0.95 / dist : 1;
-  const px = CX + xRaw * R * k;
-  const py = CY - yRaw * R * k; // SVG Y inversé : haut = positif
-  const widthPct = midSideRatio != null ? Math.round(midSideRatio * 100) : null;
-  // Verdict mono compat
-  let monoVerdict = null;
-  let monoTone = 'target';
-  if (monoCompat != null) {
-    if (monoCompat <= 1) { monoVerdict = 'mono OK'; monoTone = 'target'; }
-    else if (monoCompat <= 2) { monoVerdict = 'mono limite'; monoTone = 'low'; }
-    else { monoVerdict = 'mono dangereux'; monoTone = 'critical'; }
-  }
+
+  // ── Balance bar : barre horizontale ±6 dB avec curseur ambre ─────
+  const BAL_MIN = -6;
+  const BAL_MAX = 6;
+  const balClamp = (v) => Math.max(BAL_MIN, Math.min(BAL_MAX, v));
+  const balPct = (v) => ((balClamp(v) - BAL_MIN) / (BAL_MAX - BAL_MIN)) * 100;
+  const balCursorPct = balanceLR != null ? balPct(balanceLR) : null;
+  // Couleur du curseur : rouge si > 1.5 dB de désaxe (probable défaut),
+  // ambre sinon. La balance dans ±0.5 dB est centrée et OK.
+  const balCursorColor = (balanceLR != null && Math.abs(balanceLR) > 1.5)
+    ? 'rgba(255,93,93,0.9)'
+    : 'var(--amber, #f5a623)';
+  const balVerdict = (() => {
+    if (balanceLR == null) return null;
+    const a = Math.abs(balanceLR);
+    if (a < 0.5) return 'centré';
+    if (a < 1.5) return balanceLR > 0 ? 'légèrement à gauche' : 'légèrement à droite';
+    return balanceLR > 0 ? 'penché à gauche' : 'penché à droite';
+  })();
+
   return (
     <div className="dsp-master-block dsp-stereo-block">
-      <div className="dsp-stereo-row">
-        <svg className="dsp-stereo-svg" viewBox={`0 0 ${SIZE} ${SIZE}`} aria-hidden="true">
-          {/* Cercle dashed (champ stéréo) */}
-          <circle
-            cx={CX} cy={CY} r={R}
-            fill="none"
-            stroke="rgba(255,255,255,0.12)"
-            strokeWidth="1"
-            strokeDasharray="3 4"
-          />
-          {/* Cross axes (faible) */}
-          <line x1={CX - R} y1={CY} x2={CX + R} y2={CY}
-                stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-          <line x1={CX} y1={CY - R} x2={CX} y2={CY + R}
-                stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-          {/* Labels L / R */}
-          <text x={CX - R - 8} y={CY + 4} textAnchor="end" className="dsp-stereo-channel-label">L</text>
-          <text x={CX + R + 8} y={CY + 4} textAnchor="start" className="dsp-stereo-channel-label">R</text>
-          {/* Point ambre = position W/D du mix */}
-          <circle
-            cx={px} cy={py} r={5}
-            fill="var(--amber, #f5a623)"
-            style={{ filter: 'drop-shadow(0 0 6px rgba(245,166,35,0.7))' }}
-          />
-        </svg>
-        <div className="dsp-stereo-metrics">
-          {widthPct != null && (
-            <div className="dsp-stereo-metric">
-              <div className="dsp-stereo-kicker">WIDTH</div>
-              <div className="dsp-stereo-value">{widthPct}<span className="dsp-stereo-unit">%</span></div>
-            </div>
-          )}
-          {monoCompat != null && (
-            <div className="dsp-stereo-metric">
-              <div className="dsp-stereo-kicker">MONO COMPAT</div>
-              <div className="dsp-stereo-value" style={{ color: toneColor(monoTone) }}>
-                {monoCompat > 0 ? '+' : ''}{monoCompat.toFixed(1)}<span className="dsp-stereo-unit">LU</span>
-              </div>
-              {monoVerdict && (
-                <div className="dsp-stereo-verdict" style={{ color: toneColor(monoTone) }}>
-                  {monoVerdict}
-                </div>
-              )}
-            </div>
-          )}
-          {correlation != null && (
-            <div className="dsp-stereo-metric">
-              <div className="dsp-stereo-kicker">CORR L/R</div>
-              <div className="dsp-stereo-value">{correlation.toFixed(2)}</div>
-            </div>
+      {/* Balance bar (uniquement si balanceLR dispo) */}
+      {balanceLR != null && (
+        <div className="dsp-balance">
+          <div className="dsp-balance-track" aria-hidden="true">
+            <div className="dsp-balance-zone z-soft" />
+            <div className="dsp-balance-zone z-target" />
+            <div className="dsp-balance-zone z-soft" />
+          </div>
+          {/* Curseur + valeur au-dessus */}
+          <div
+            className="dsp-balance-cursor"
+            style={{ left: `${balCursorPct}%`, color: balCursorColor }}
+          >
+            <span className="dsp-balance-value">
+              {balanceLR > 0 ? '+' : ''}{balanceLR.toFixed(1)} dB
+            </span>
+            <span className="dsp-balance-line" />
+          </div>
+          {/* Labels L / centre / R */}
+          <div className="dsp-balance-ticks" aria-hidden="true">
+            <span style={{ left: '0%' }}>L</span>
+            <span style={{ left: '50%' }}>·</span>
+            <span style={{ left: '100%' }}>R</span>
+          </div>
+          {balVerdict && (
+            <div className="dsp-balance-verdict">{balVerdict}</div>
           )}
         </div>
-      </div>
+      )}
+
+      {/* 3 mini-cards alignées en row (WIDTH / MONO COMPAT / CORR L/R) */}
+      {(midSideRatio != null || monoCompat != null || correlation != null) && (
+        <div className="dsp-mini-row dsp-stereo-mini-row">
+          {midSideRatio != null && (
+            <DspMiniCard
+              kicker="WIDTH"
+              value={midSideRatio * 100}
+              unit="%"
+              scale={{ min: 0, max: 100 }}
+              zones={[
+                { max: 10, label: 'Étroit',     tone: 'soft'   },
+                { max: 30, label: 'Standard',   tone: 'target' },
+                { max: 50, label: 'Large',      tone: 'low'    },
+                { max: Infinity, label: 'Très large', tone: 'soft' },
+              ]}
+              displayValue={(v) => Math.round(v).toString()}
+            />
+          )}
+          {monoCompat != null && (
+            <DspMiniCard
+              kicker="MONO COMPAT"
+              value={monoCompat}
+              unit="LU"
+              scale={{ min: -1, max: 5 }}
+              zones={[
+                { max: 1, label: 'Mono OK',        tone: 'target'   },
+                { max: 2, label: 'Mono limite',    tone: 'low'      },
+                { max: Infinity, label: 'Mono dangereux', tone: 'critical' },
+              ]}
+              displayValue={(v) => (v > 0 ? `+${v.toFixed(1)}` : v.toFixed(1))}
+            />
+          )}
+          {correlation != null && (
+            <DspMiniCard
+              kicker="CORR L/R"
+              value={correlation}
+              unit=""
+              scale={{ min: -1, max: 1 }}
+              zones={[
+                { max: 0,    label: 'Phase inversée', tone: 'critical' },
+                { max: 0.3,  label: 'Très large',     tone: 'low'      },
+                { max: 0.85, label: 'Équilibrée',     tone: 'target'   },
+                { max: Infinity, label: 'Étroite',    tone: 'soft'     },
+              ]}
+              displayValue={(v) => v.toFixed(2)}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

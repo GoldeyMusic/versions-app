@@ -9099,83 +9099,108 @@ export default function MockupStyles() {
   }
 
   /* ─────────────────────────────────────────────────────────────
-     DSP_PLAN C.2 — Stereo field map (section SPATIAL & REVERB)
-     Cercle dashed L/R minimal + point ambre + Width % / MonoCompat.
-     Sobre, pas de rosace AubioMix.
+     DSP_PLAN C.2 — Stereo field (refonte 2026-04-28, Option B)
+     Balance bar L↔R horizontale (curseur ambre = balanceLR)
+     + 3 mini-cards en row : WIDTH, MONO COMPAT, CORR L/R.
+     Cohérent avec A.1 LoudnessMeter et A.2 mini-cards.
      ───────────────────────────────────────────────────────────── */
   .dsp-stereo-block { padding: 14px 14px 12px; }
-  .dsp-stereo-block .dsp-stereo-row {
-    display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 18px;
+
+  /* Balance bar — réplique la grammaire du LoudnessMeter (A.1) */
+  .dsp-balance {
+    position: relative;
+    padding: 22px 4px 30px;
+    margin-bottom: 4px;
+  }
+  .dsp-balance-track {
+    display: flex;
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.04);
+  }
+  .dsp-balance-track .dsp-balance-zone {
+    height: 100%;
+  }
+  /* Échelle ±6 dB → zone centrale ±0.5 dB = 8.3% chacun → 16.6% total */
+  .dsp-balance-track .z-soft {
+    flex: 1 1 auto;
+    background: rgba(255,255,255,0.06);
+  }
+  .dsp-balance-track .z-target {
+    flex: 0 0 8.3%;
+    background: rgba(245,166,35,0.42);
+    border-left: 1px solid rgba(0,0,0,0.4);
+    border-right: 1px solid rgba(0,0,0,0.4);
+  }
+  .dsp-balance-cursor {
+    position: absolute;
+    top: 0;
+    bottom: 18px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
     align-items: center;
+    color: var(--amber, #f5a623);
   }
-  .dsp-stereo-block .dsp-stereo-svg {
-    width: 100%;
-    max-width: 200px;
-    height: auto;
-    aspect-ratio: 1 / 1;
-    overflow: visible;
-  }
-  .dsp-stereo-block .dsp-stereo-channel-label {
+  .dsp-balance-cursor .dsp-balance-value {
     font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 1.4px;
-    fill: var(--muted, #7c7c80);
+    font-size: 11px;
+    letter-spacing: 0.4px;
+    color: currentColor;
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+  .dsp-balance-cursor .dsp-balance-line {
+    width: 2px;
+    flex: 1;
+    background: currentColor;
+    border-radius: 1px;
+    box-shadow: 0 0 6px currentColor;
+    opacity: 0.95;
+  }
+  /* Ticks L · R en bas de la barre */
+  .dsp-balance-ticks {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    bottom: 10px;
+    height: 12px;
     pointer-events: none;
   }
-  .dsp-stereo-block .dsp-stereo-metrics {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .dsp-stereo-block .dsp-stereo-metric {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .dsp-stereo-block .dsp-stereo-kicker {
+  .dsp-balance-ticks span {
+    position: absolute;
+    transform: translateX(-50%);
     font-family: var(--mono);
-    font-size: 9.5px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 1.4px;
     color: var(--muted, #7c7c80);
+    opacity: 0.75;
   }
-  .dsp-stereo-block .dsp-stereo-value {
-    font-family: var(--mono);
-    font-size: 20px;
-    font-weight: 500;
-    line-height: 1.1;
-    color: var(--amber, #f5a623);
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-  }
-  .dsp-stereo-block .dsp-stereo-unit {
-    font-size: 11px;
-    font-weight: 400;
-    letter-spacing: 0.5px;
-    color: var(--muted, #7c7c80);
-  }
-  .dsp-stereo-block .dsp-stereo-verdict {
+  /* Verdict centré (ex: "centré", "légèrement à gauche") */
+  .dsp-balance-verdict {
+    margin-top: 4px;
     font-family: var(--mono);
     font-size: 10px;
     letter-spacing: 1.4px;
     text-transform: uppercase;
-    margin-top: 1px;
+    text-align: center;
+    color: var(--muted, #7c7c80);
   }
-  @media (max-width: 600px) {
-    .dsp-stereo-block .dsp-stereo-row {
-      grid-template-columns: 1fr;
-      justify-items: center;
-      gap: 12px;
+
+  /* 3 mini-cards en row (override du grid 2-col par défaut de .dsp-mini-row) */
+  .dsp-stereo-block .dsp-stereo-mini-row {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  @media (max-width: 700px) {
+    .dsp-stereo-block .dsp-stereo-mini-row {
+      grid-template-columns: 1fr 1fr;
     }
-    .dsp-stereo-block .dsp-stereo-metrics {
-      flex-direction: row;
-      flex-wrap: wrap;
-      gap: 18px;
-      width: 100%;
-      justify-content: center;
+  }
+  @media (max-width: 480px) {
+    .dsp-stereo-block .dsp-stereo-mini-row {
+      grid-template-columns: 1fr;
     }
   }
 `}</style>
