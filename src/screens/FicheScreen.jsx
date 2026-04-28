@@ -1663,6 +1663,59 @@ function toneColor(tone) {
   }
 }
 
+// ── Hook commun : useAnimatedValue ─────────────────────────────────
+// Anime une valeur numérique de 0 à `target` avec un ease-out-back
+// (overshoot ~12% puis stabilise). Utilisé partout dans les visuels DSP
+// pour les entrées : count-up des chiffres, slide du curseur voix,
+// expansion du nuage stéréo, etc.
+//
+// Permet une grammaire d'animation cohérente entre les 4 sections
+// (radar, master rings, voix, stéréo).
+function useAnimatedValue(target, { duration = 1200, delay = 80, when = true } = {}) {
+  // Initial state = target → si la section démarre fermée, on a la bonne
+  // valeur. À chaque fois que `when` passe true (ouverture de la cat),
+  // l'anim repart depuis 0 (re-play à chaque ré-ouverture).
+  const [value, setValue] = useState(target ?? 0);
+  useEffect(() => {
+    if (target == null || !Number.isFinite(target)) {
+      setValue(target ?? 0);
+      return;
+    }
+    // Section fermée → valeur fixe sur la cible
+    if (!when) {
+      setValue(target);
+      return;
+    }
+    // when=true → on (re-)lance l'animation depuis 0
+    setValue(0);
+    const easeOutBack = (t) => {
+      const c1 = 1.4;
+      const c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    };
+    let cancelled = false;
+    let raf = null;
+    let startTime = 0;
+    const tick = () => {
+      if (cancelled) return;
+      const elapsed = Date.now() - startTime;
+      const t = Math.min(1, elapsed / duration);
+      setValue(target * easeOutBack(t));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    const startTimer = setTimeout(() => {
+      startTime = Date.now();
+      raf = requestAnimationFrame(tick);
+    }, delay);
+    return () => {
+      cancelled = true;
+      clearTimeout(startTimer);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [target, duration, delay, when]);
+  return value;
+}
+
 // ── A.1 — Loudness meter ──────────────────────────────────────────
 // Barre fine 6px pleine largeur avec 4 zones, curseur ambre vertical,
 // valeur mono au-dessus. Affiché si LUFS dispo.
@@ -1770,11 +1823,9 @@ function DspMiniCard({ kicker, value, unit, decimals = 1, scale, zones, displayV
 // delta ambre/critique entre les deux, verdict mint si dans cible -3/+3 LU.
 // Donnée : analysisResult.stemsMetrics (Phase 3 backend). Mode dégradé :
 // retourne null si pas de mesures stems disponibles ou pas de stem voix.
-function VoiceVsInstruBlock({ analysisResult }) {
+function VoiceVsInstruBlock({ analysisResult, isOpen = true }) {
   const { s } = useLang();
-  // Animation d'entrée : curseur slide depuis le centre vers sa position
-  // cible avec un easing back (overshoot léger + stabilise). La valeur
-  // affichée est interpolée en sync (count-up).
+  // Animation re-jouée à chaque ouverture de la cat (when=isOpen).
   const [animDelta, setAnimDelta] = useState(0);
 
   // Calcul des données (avant les hooks, mais sans return — les hooks
@@ -1796,13 +1847,15 @@ function VoiceVsInstruBlock({ analysisResult }) {
     delta = +(vocalLufs - instruLufs).toFixed(1);
   }
 
-  // useEffect doit être appelé unconditionellement → guard interne sur delta
   useEffect(() => {
     if (delta == null) return;
-    const startTime = Date.now();
-    const duration = 1200; // ms
-    // ease-out-back : sigmoide qui dépasse légèrement (overshoot ~12%) puis
-    // revient à 1. Donne le petit "bounce" d'arrivée.
+    // Cat fermée → valeur fixe direct, pas d'anim
+    if (!isOpen) {
+      setAnimDelta(delta);
+      return;
+    }
+    // Cat ouverte → (re-)lance l'animation depuis 0
+    setAnimDelta(0);
     const easeOutBack = (t) => {
       const c1 = 1.4;
       const c3 = c1 + 1;
@@ -1810,16 +1863,16 @@ function VoiceVsInstruBlock({ analysisResult }) {
     };
     let cancelled = false;
     let raf = null;
+    let startTime = 0;
     const tick = () => {
       if (cancelled) return;
       const elapsed = Date.now() - startTime;
-      const t = Math.min(1, elapsed / duration);
-      const eased = easeOutBack(t);
-      setAnimDelta(delta * eased);
+      const t = Math.min(1, elapsed / 1200);
+      setAnimDelta(delta * easeOutBack(t));
       if (t < 1) raf = requestAnimationFrame(tick);
     };
-    // Petit délai initial pour laisser le composant monter avant de partir
     const startTimeout = setTimeout(() => {
+      startTime = Date.now();
       raf = requestAnimationFrame(tick);
     }, 80);
     return () => {
@@ -1827,7 +1880,7 @@ function VoiceVsInstruBlock({ analysisResult }) {
       clearTimeout(startTimeout);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [delta]);
+  }, [delta, isOpen]);
 
   // Early return APRÈS les hooks
   if (!stemsArr.length || delta == null) return null;
@@ -1863,6 +1916,14 @@ function VoiceVsInstruBlock({ analysisResult }) {
           <div className="vv-zone vv-zone-target" />       {/* -3 à +3 : voix bien posée */}
           <div className="vv-zone vv-zone-bad-high" />     {/* > +3 LU : voix en avant */}
         </div>
+        {/* Graduations sous la jauge : −6, −3, 0, +3, +6 LU */}
+        <div className="vv-ticks" aria-hidden="true">
+          <span style={{ left: '0%' }}>−6</span>
+          <span style={{ left: '25%' }}>−3</span>
+          <span style={{ left: '50%' }}>0</span>
+          <span style={{ left: '75%' }}>+3</span>
+          <span style={{ left: '100%' }}>+6</span>
+        </div>
         {/* Curseur + valeur delta au-dessus */}
         <div
           className="vv-cursor"
@@ -1896,25 +1957,37 @@ function VoiceVsInstruBlock({ analysisResult }) {
 //   - 3 DspMiniCard en row : WIDTH (midSideRatio %), MONO COMPAT (LU),
 //     CORR L/R (-1 à +1)
 // Cohérent avec LoudnessMeter (A.1) et la grammaire mini-card de A.2.
-function StereoFieldBlock({ analysisResult }) {
+function StereoFieldBlock({ analysisResult, isOpen = true }) {
   const { s } = useLang();
   const stereo = analysisResult?.stereoMetrics;
+  // On extrait les données AVANT les early returns pour pouvoir appeler
+  // les hooks d'animation unconditionellement (rules of hooks).
+  const correlation = stereo?.correlation ?? null;
+  const midSideRatio = stereo?.midSideRatio ?? null;
+  const balanceLR = stereo?.balanceLR ?? null;
+  const monoCompat = stereo?.monoCompat ?? null;
+
+  // Cibles d'animation pour le nuage et les stats (null si data absente)
+  const W = 480;
+  const balShiftTarget = balanceLR != null ? Math.max(-1, Math.min(1, balanceLR / 6)) : null;
+  const cloudSpanTarget = midSideRatio != null ? Math.max(12, midSideRatio * W * 0.95) : null;
+  const widthPctTarget = midSideRatio != null ? midSideRatio * 100 : null;
+
+  // Hooks d'animation : appelés à chaque render dans le même ordre.
+  // Tous démarrent à 0 et interpolent vers leur cible avec ease-out-back.
+  // Stagger des delays pour une entrée séquentielle (cloud → stats).
+  const animBalShift = useAnimatedValue(balShiftTarget, { duration: 1200, delay: 100, when: isOpen });
+  const animCloudSpan = useAnimatedValue(cloudSpanTarget, { duration: 1200, delay: 100, when: isOpen });
+  const animWidthPct = useAnimatedValue(widthPctTarget, { duration: 1200, delay: 250, when: isOpen });
+  const animMonoCompat = useAnimatedValue(monoCompat, { duration: 1200, delay: 350, when: isOpen });
+  const animCorrelation = useAnimatedValue(correlation, { duration: 1200, delay: 450, when: isOpen });
+
+  // Early returns APRÈS les hooks
   if (!stereo || typeof stereo !== 'object') return null;
-  const { correlation, midSideRatio, balanceLR, monoCompat } = stereo;
   const hasAny = correlation != null || midSideRatio != null || balanceLR != null || monoCompat != null;
   if (!hasAny) return null;
 
-  // ── Balance bar : barre horizontale ±6 dB avec curseur ambre ─────
-  const BAL_MIN = -6;
-  const BAL_MAX = 6;
-  const balClamp = (v) => Math.max(BAL_MIN, Math.min(BAL_MAX, v));
-  const balPct = (v) => ((balClamp(v) - BAL_MIN) / (BAL_MAX - BAL_MIN)) * 100;
-  const balCursorPct = balanceLR != null ? balPct(balanceLR) : null;
-  // Couleur du curseur : rouge si > 1.5 dB de désaxe (probable défaut),
-  // ambre sinon. La balance dans ±0.5 dB est centrée et OK.
-  const balCursorColor = (balanceLR != null && Math.abs(balanceLR) > 1.5)
-    ? 'rgba(255,93,93,0.9)'
-    : 'var(--amber, #f5a623)';
+  // Verdict balance (basé sur valeur finale, pas anim)
   const balVerdict = (() => {
     if (balanceLR == null) return null;
     const a = Math.abs(balanceLR);
@@ -1961,21 +2034,15 @@ function StereoFieldBlock({ analysisResult }) {
           du blob suit midSideRatio, sa position suit balanceLR, sa
           couleur suit mono compat. */}
       {(midSideRatio != null || balanceLR != null) && (() => {
-        const W = 480;
         const H = 110;
         const CYY = H / 2;
-        // Étalement horizontal du nuage proportionnel HONNÊTE à midSideRatio.
-        //   midSideRatio 0% (mono pur)   → 12px   (presque un point)
-        //   midSideRatio 9%  (étroit)    → ~50px  (ton mix actuel)
-        //   midSideRatio 50% (décorrélé) → ~268px (moitié de la largeur)
-        //   midSideRatio 85% (très large)→ ~408px (presque pleine largeur)
-        // Plus de floor 50px ni de multiplicateur 1.6 → on lit la vraie
-        // valeur visuellement.
-        const cloudSpan = midSideRatio != null
-          ? Math.max(12, midSideRatio * W * 0.95)
+        // On utilise les valeurs animées (animCloudSpan, animBalShift)
+        // → le nuage entre en bloomant depuis le centre et se positionne
+        // sur sa balance avec ease-out-back (overshoot léger puis stabilise).
+        const cloudSpan = animCloudSpan != null && Number.isFinite(animCloudSpan)
+          ? Math.max(12, animCloudSpan)
           : 100;
-        // Décalage centre selon balance ±15%.
-        const balShift = balanceLR != null ? Math.max(-1, Math.min(1, balanceLR / 6)) : 0;
+        const balShift = Number.isFinite(animBalShift) ? animBalShift : 0;
         const cloudCx = W / 2 + balShift * (W * 0.12);
 
         // Génère un nuage de particules pseudo-aléatoires mais déterministes
@@ -2122,7 +2189,7 @@ function StereoFieldBlock({ analysisResult }) {
         <div className="dsp-stereo-stats">
           {widthPct != null && (
             <div className={`ss-stat t-${widthZone.tone}`}>
-              <div className="ss-stat-num">{widthPct}<span className="ss-stat-unit">%</span></div>
+              <div className="ss-stat-num">{Math.round(animWidthPct)}<span className="ss-stat-unit">%</span></div>
               <div className="ss-stat-kicker">{s.fiche.dspViz.widthKicker}</div>
               <div className="ss-stat-verdict">{widthZone.label}</div>
               <div className="ss-stat-target">Cible : 15 à 35 %</div>
@@ -2131,7 +2198,7 @@ function StereoFieldBlock({ analysisResult }) {
           {monoCompat != null && (
             <div className={`ss-stat t-${monoZone.tone}`}>
               <div className="ss-stat-num">
-                {monoCompat > 0 ? '+' : ''}{monoCompat.toFixed(1)}<span className="ss-stat-unit">LU</span>
+                {animMonoCompat > 0 ? '+' : ''}{animMonoCompat.toFixed(1)}<span className="ss-stat-unit">LU</span>
               </div>
               <div className="ss-stat-kicker">{s.fiche.dspViz.monoCompatKicker}</div>
               <div className="ss-stat-verdict">{monoZone.label}</div>
@@ -2140,7 +2207,7 @@ function StereoFieldBlock({ analysisResult }) {
           )}
           {correlation != null && (
             <div className={`ss-stat t-${corrZone.tone}`}>
-              <div className="ss-stat-num">{correlation.toFixed(2)}</div>
+              <div className="ss-stat-num">{animCorrelation.toFixed(2)}</div>
               <div className="ss-stat-kicker">{s.fiche.dspViz.corrKicker}</div>
               <div className="ss-stat-verdict">{corrZone.label}</div>
               <div className="ss-stat-target">Cible : 0,30 à 0,85</div>
@@ -2159,14 +2226,20 @@ function StereoFieldBlock({ analysisResult }) {
 //   - arc coloré épais qui fill selon la valeur
 //   - valeur centrale dans la couleur du tier
 //   - label + verdict + caption "cible: X..Y" en dessous
-function MasterRing({ label, displayValue, fillRatio, tone, verdict, targetStart, targetEnd, targetCaption, animDelay = 0 }) {
+function MasterRing({ label, value, formatValue, fillRatio, tone, verdict, targetStart, targetEnd, targetCaption, animDelay = 0, isOpen = true }) {
+  // Animation gated par isOpen → ne démarre que quand la section s'ouvre.
+  // Une fois jouée, ne re-joue jamais (cf. useAnimatedValue).
+  const animValue = useAnimatedValue(value, { duration: 1200, delay: 80 + animDelay * 1000, when: isOpen });
+  const animFill = useAnimatedValue(fillRatio, { duration: 1200, delay: 80 + animDelay * 1000, when: isOpen });
+  const displayValue = formatValue ? formatValue(animValue) : animValue.toFixed(1);
+
   const SIZE = 104;
   const CX = SIZE / 2;
   const CY = SIZE / 2;
   const R = 40;
   const STROKE = 9;
   const CIRC = 2 * Math.PI * R;
-  const fillClamped = Math.max(0, Math.min(1, fillRatio || 0));
+  const fillClamped = Math.max(0, Math.min(1, animFill || 0));
   const offset = CIRC * (1 - fillClamped);
 
   // Zone cible : on dessine un arc mint subtle entre targetStart et targetEnd
@@ -2221,7 +2294,8 @@ function MasterRing({ label, displayValue, fillRatio, tone, verdict, targetStart
             style={{ pointerEvents: 'none' }}
           />
         )}
-        {/* Arc rempli (la valeur réelle) */}
+        {/* Arc rempli — dashoffset piloté par React state, pas de CSS
+            animation one-shot qui replierait sur display:none → block. */}
         <circle
           cx={CX} cy={CY} r={R} fill="none"
           stroke={`url(#ms-ring-grad-${safeId})`}
@@ -2230,12 +2304,8 @@ function MasterRing({ label, displayValue, fillRatio, tone, verdict, targetStart
           strokeDashoffset={offset}
           strokeLinecap="round"
           transform={`rotate(-90 ${CX} ${CY})`}
-          className="ms-ring-arc"
           style={{
             filter: `drop-shadow(0 0 8px rgba(${colorRgb},0.5))`,
-            animationDelay: `${animDelay}s`,
-            ['--ms-ring-circ']: `${CIRC}`,
-            ['--ms-ring-offset']: `${offset}`,
           }}
         />
         {/* Valeur centrale */}
@@ -2257,7 +2327,7 @@ function MasterRing({ label, displayValue, fillRatio, tone, verdict, targetStart
 // Chaque anneau a une couleur dépendant de son tier (cerulean=trop sage,
 // ambre=streaming/competitif, mint=target sain, rouge=critique).
 // Le fill de l'arc montre la valeur normalisée sur son échelle.
-function DspMasterBlock({ analysisResult }) {
+function DspMasterBlock({ analysisResult, isOpen = true }) {
   const { s } = useLang();
   const { lufs, lra, truePeak } = pickDspBlockMetrics(analysisResult);
   if (lufs == null && lra == null && truePeak == null) return null;
@@ -2316,7 +2386,8 @@ function DspMasterBlock({ analysisResult }) {
       {lufs != null && (
         <MasterRing
           label={`LUFS`}
-          displayValue={lufs.toFixed(1)}
+          value={lufs}
+          formatValue={(v) => v.toFixed(1)}
           fillRatio={lufsFill}
           tone={lufsTone}
           verdict={lufsVerdict}
@@ -2324,12 +2395,14 @@ function DspMasterBlock({ analysisResult }) {
           targetEnd={lufsTargetEnd}
           targetCaption="Cible : −10 à −7 LUFS"
           animDelay={0}
+          isOpen={isOpen}
         />
       )}
       {lra != null && (
         <MasterRing
           label={s.fiche.dspViz.lraKicker}
-          displayValue={`${lra.toFixed(1)} LU`}
+          value={lra}
+          formatValue={(v) => `${v.toFixed(1)} LU`}
           fillRatio={lraFill}
           tone={lraTone}
           verdict={lraVerdict}
@@ -2337,12 +2410,14 @@ function DspMasterBlock({ analysisResult }) {
           targetEnd={lraTargetEnd}
           targetCaption="Cible : 7 à 12 LU"
           animDelay={0.15}
+          isOpen={isOpen}
         />
       )}
       {truePeak != null && (
         <MasterRing
           label={s.fiche.dspViz.truePeakKicker}
-          displayValue={`${truePeak >= 0 ? '+' : ''}${truePeak.toFixed(1)}`}
+          value={truePeak}
+          formatValue={(v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}`}
           fillRatio={tpFill}
           tone={tpTone}
           verdict={tpVerdict}
@@ -2350,6 +2425,7 @@ function DspMasterBlock({ analysisResult }) {
           targetEnd={tpTargetEnd}
           targetCaption="Cible : sous −1 dBTP"
           animDelay={0.30}
+          isOpen={isOpen}
         />
       )}
     </div>
@@ -4370,9 +4446,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                           </span>
                         </div>
                         <div className="diag-cat-body">
-                          {isMasterCat && <DspMasterBlock analysisResult={displayAR} />}
-                          {isVoiceCat && !voiceLabelOverride && <VoiceVsInstruBlock analysisResult={displayAR} />}
-                          {isSpatialCat && <StereoFieldBlock analysisResult={displayAR} />}
+                          {isMasterCat && <DspMasterBlock analysisResult={displayAR} isOpen={open} />}
+                          {isVoiceCat && !voiceLabelOverride && <VoiceVsInstruBlock analysisResult={displayAR} isOpen={open} />}
+                          {isSpatialCat && <StereoFieldBlock analysisResult={displayAR} isOpen={open} />}
                           {items.map((it, i) => {
                             const itemKey = diagItemKey(catId, it, i);
                             const done = completedItems.has(itemKey);
