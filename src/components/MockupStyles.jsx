@@ -8703,6 +8703,183 @@ export default function MockupStyles() {
     color: var(--text);
     font-style: italic;
   }
+
+  /* ─────────────────────────────────────────────────────────────
+     DSP_PLAN A.1 + A.2 — Visuels MASTER & LOUDNESS
+     LoudnessMeter (barre 6px, 4 zones, curseur ambre + valeur mono)
+     + DspMiniCard (LRA / True Peak, kicker mono caps + grosse valeur)
+     Couleurs : amber pour cible, muted pour neutre, rouge subtle
+     pour critique seulement. Pas de barres mint→rouge AubioMix.
+     ───────────────────────────────────────────────────────────── */
+
+  .dsp-master-block {
+    margin: 4px 0 18px;
+    padding: 14px 14px 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.02);
+    box-shadow: 0 0 12px rgba(245,176,86,0.04);
+    animation: dsp-fade-in .15s ease-out both;
+  }
+  @keyframes dsp-fade-in {
+    from { opacity: 0; transform: translateY(2px); }
+    to   { opacity: 1; transform: translateY(0);   }
+  }
+
+  /* ── Loudness meter ─────────────────────────────────────────── */
+  .dsp-loudness {
+    position: relative;
+    padding: 22px 4px 26px;
+  }
+  .dsp-loudness-track {
+    display: flex;
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.04);
+  }
+  .dsp-loudness-track .dsp-zone {
+    height: 100%;
+    border-right: 1px solid rgba(0,0,0,0.4);
+  }
+  .dsp-loudness-track .dsp-zone:last-child { border-right: none; }
+  .dsp-loudness-track .z-soft      { background: rgba(255,255,255,0.06); }
+  .dsp-loudness-track .z-streaming { background: rgba(245,166,35,0.18); }
+  .dsp-loudness-track .z-target    { background: rgba(245,166,35,0.42); }
+  .dsp-loudness-track .z-critical  { background: rgba(255,93,93,0.22); }
+
+  .dsp-loudness-cursor {
+    position: absolute;
+    top: 0;
+    bottom: 14px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--amber, #f5a623);
+  }
+  .dsp-loudness-cursor .dsp-loudness-value {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.4px;
+    color: currentColor;
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+  .dsp-loudness-cursor .dsp-loudness-line {
+    width: 2px;
+    flex: 1;
+    background: currentColor;
+    border-radius: 1px;
+    box-shadow: 0 0 6px currentColor;
+    opacity: 0.95;
+  }
+
+  .dsp-loudness-ticks {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    bottom: 6px;
+    height: 12px;
+    pointer-events: none;
+  }
+  .dsp-loudness-ticks span {
+    position: absolute;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.5px;
+    color: var(--muted, #7c7c80);
+    opacity: 0.65;
+  }
+
+  .dsp-loudness-verdict {
+    margin-top: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    text-align: right;
+  }
+
+  /* ── Mini-cards row (LRA + TruePeak) ───────────────────────── */
+  .dsp-mini-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 6px;
+  }
+  @media (max-width: 600px) {
+    .dsp-mini-row { grid-template-columns: 1fr; }
+  }
+
+  .dsp-mini-card {
+    padding: 10px 12px 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    background: rgba(255,255,255,0.015);
+  }
+  .dsp-mini-card .dsp-mini-kicker {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted, #7c7c80);
+    margin-bottom: 6px;
+  }
+  .dsp-mini-card .dsp-mini-value {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--amber, #f5a623);
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .dsp-mini-card .dsp-mini-unit {
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    color: var(--muted, #7c7c80);
+  }
+  .dsp-mini-card .dsp-mini-track {
+    position: relative;
+    display: flex;
+    height: 4px;
+    border-radius: 2px;
+    overflow: visible;
+    background: rgba(255,255,255,0.04);
+    margin-bottom: 6px;
+  }
+  .dsp-mini-card .dsp-mini-zone {
+    height: 4px;
+    border-right: 1px solid rgba(0,0,0,0.4);
+  }
+  .dsp-mini-card .dsp-mini-zone:last-child { border-right: none; }
+  .dsp-mini-card .dsp-mini-zone.t-target   { background: rgba(245,166,35,0.42); }
+  .dsp-mini-card .dsp-mini-zone.t-low      { background: rgba(245,166,35,0.18); }
+  .dsp-mini-card .dsp-mini-zone.t-soft     { background: rgba(255,255,255,0.06); }
+  .dsp-mini-card .dsp-mini-zone.t-critical { background: rgba(255,93,93,0.22); }
+  .dsp-mini-card .dsp-mini-cursor {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    width: 2px;
+    transform: translateX(-50%);
+    background: currentColor;
+    border-radius: 1px;
+    box-shadow: 0 0 6px currentColor;
+    pointer-events: none;
+  }
+  .dsp-mini-card .dsp-mini-verdict {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+  }
 `}</style>
     </>
   );

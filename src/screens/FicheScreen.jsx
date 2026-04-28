@@ -1299,6 +1299,207 @@ function DspEditModal({ version, track, initial, onClose, onSaved }) {
   );
 }
 
+// ── DSP visuels MASTER & LOUDNESS (A.1 + A.2 du DSP_PLAN) ─────────
+// Petits composants purs : prennent un nombre, rendent un visuel sobre,
+// retournent null si la valeur est absente. Pas d'appels réseau.
+//
+// Grammaire visuelle :
+//   - Couleurs : --amber pour cible, --muted pour neutre, rouge subtle
+//     pour critique uniquement. Pas de barres mint→rouge AubioMix.
+//   - Bordure carte : rgba(255,255,255,0.08).
+//   - Halo max : 0 0 12px rgba(245,176,86,0.04).
+//   - Animations fade-in 150ms (gérées en CSS .dsp-master-block).
+
+function pickDspBlockMetrics(analysisResult) {
+  const dm = analysisResult?.dspMetrics || {};
+  const fm = analysisResult?.fadrMetrics || {};
+  const num = (v) => (typeof v === 'number' && Number.isFinite(v)) ? v : null;
+  // LUFS : on accepte aussi version.lufs (chaîne "-8.4") pour les fiches
+  // déjà persistées avant qu'on enrichisse le JSON. C'est le DspBadge qui
+  // s'occupe de la priorité DB > dspMetrics > fadrMetrics ; ici on lit
+  // uniquement le JSON post-analyse parce que LRA/truePeak ne sont pas
+  // (encore) en colonnes DB séparées.
+  return {
+    lufs: num(dm.lufs) ?? num(fm.lufs),
+    lra: num(dm.lra),
+    truePeak: num(dm.truePeak),
+  };
+}
+
+// Zones LUFS — alignées sur les seuils streaming usuels et sur les
+// verdicts pré-calculés côté Claude (lib/claude.js, dspBlock).
+const LUFS_ZONES = [
+  { max: -16, label: 'Trop sage',    tone: 'soft'   }, // < -16
+  { max: -10, label: 'Streaming',    tone: 'low'    }, // -16 → -10
+  { max: -7,  label: 'Compétitif',   tone: 'target' }, // -10 → -7
+  { max: Infinity, label: 'Surcomprimé', tone: 'critical' }, // > -7
+];
+
+// Zones LRA (Loudness Range, en LU). Cohérent avec lraVerdict côté Claude.
+const LRA_ZONES = [
+  { max: 4,  label: 'Écrasée',     tone: 'critical' },
+  { max: 7,  label: 'Standard',    tone: 'low'      },
+  { max: 12, label: 'Confortable', tone: 'target'   },
+  { max: Infinity, label: 'Large', tone: 'soft'     },
+];
+
+// Zones True Peak (dBTP). Cible streaming = -1 dBTP.
+// Note : truePeak peut être très négatif (-12+) sur un mix non masterisé.
+const TRUE_PEAK_ZONES = [
+  { max: -1, label: 'Sous cible',     tone: 'target'   }, // < -1 dBTP : safe
+  { max: 0,  label: 'Risque',         tone: 'low'      }, // -1 → 0 : risque clipping intersample
+  { max: Infinity, label: 'Clipping', tone: 'critical' }, // > 0 dBTP
+];
+
+function findZone(value, zones) {
+  if (value == null) return null;
+  return zones.find((z) => value < z.max) || zones[zones.length - 1];
+}
+
+function toneColor(tone) {
+  // Amber affirmé pour cible, ambre clair pour streaming OK,
+  // muted pour soft/standard, rouge subtle uniquement pour critique.
+  switch (tone) {
+    case 'target':   return 'var(--amber, #f5a623)';
+    case 'low':      return 'rgba(245,166,35,0.55)';
+    case 'soft':     return 'var(--muted, #7c7c80)';
+    case 'critical': return 'rgba(255,93,93,0.85)';
+    default:         return 'var(--muted, #7c7c80)';
+  }
+}
+
+// ── A.1 — Loudness meter ──────────────────────────────────────────
+// Barre fine 6px pleine largeur avec 4 zones, curseur ambre vertical,
+// valeur mono au-dessus. Affiché si LUFS dispo.
+function LoudnessMeter({ lufs }) {
+  if (lufs == null || !Number.isFinite(lufs)) return null;
+  const SCALE_MIN = -25;
+  const SCALE_MAX = -3;
+  const clamp = (v) => Math.max(SCALE_MIN, Math.min(SCALE_MAX, v));
+  const pct = (v) => ((clamp(v) - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100;
+  const cursorPct = pct(lufs);
+  const zone = findZone(lufs, LUFS_ZONES);
+  const cursorColor = zone?.tone === 'critical'
+    ? 'var(--red, #ff5d5d)'
+    : 'var(--amber, #f5a623)';
+  return (
+    <div className="dsp-loudness">
+      <div className="dsp-loudness-track" aria-hidden="true">
+        {/* 4 zones graduées — largeurs proportionnelles à l'échelle */}
+        <div className="dsp-zone z-soft"     style={{ flexBasis: `${pct(-16) - pct(-25)}%` }} />
+        <div className="dsp-zone z-streaming"style={{ flexBasis: `${pct(-10) - pct(-16)}%` }} />
+        <div className="dsp-zone z-target"   style={{ flexBasis: `${pct(-7)  - pct(-10)}%` }} />
+        <div className="dsp-zone z-critical" style={{ flexBasis: `${pct(-3)  - pct(-7)}%`  }} />
+      </div>
+      {/* Curseur (trait vertical + valeur au-dessus) */}
+      <div
+        className="dsp-loudness-cursor"
+        style={{ left: `${cursorPct}%`, color: cursorColor }}
+      >
+        <span className="dsp-loudness-value">{lufs.toFixed(1)} LUFS</span>
+        <span className="dsp-loudness-line" />
+      </div>
+      {/* Ticks (échelle dB) */}
+      <div className="dsp-loudness-ticks" aria-hidden="true">
+        <span style={{ left: `${pct(-25)}%` }}>-25</span>
+        <span style={{ left: `${pct(-16)}%` }}>-16</span>
+        <span style={{ left: `${pct(-10)}%` }}>-10</span>
+        <span style={{ left: `${pct(-7)}%`  }}>-7</span>
+        <span style={{ left: `${pct(-3)}%`  }}>-3</span>
+      </div>
+      {/* Verdict mono caps dans la couleur de la zone */}
+      {zone && (
+        <div className="dsp-loudness-verdict" style={{ color: toneColor(zone.tone) }}>
+          {zone.label}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── A.2 — Mini-card mesure DSP (LRA, True Peak, …) ────────────────
+// Card compacte : kicker mono caps, valeur grosse mono ambre,
+// mini-barre horizontale 3-4 zones avec curseur, verdict court.
+function DspMiniCard({ kicker, value, unit, decimals = 1, scale, zones, displayValue }) {
+  if (value == null || !Number.isFinite(value)) return null;
+  const { min, max } = scale;
+  const clamp = (v) => Math.max(min, Math.min(max, v));
+  const pct = (v) => ((clamp(v) - min) / (max - min)) * 100;
+  const zone = findZone(value, zones) || zones[zones.length - 1];
+  const cursorColor = zone?.tone === 'critical'
+    ? 'var(--red, #ff5d5d)'
+    : 'var(--amber, #f5a623)';
+  const cursorPct = pct(value);
+  // Calcule la largeur de chaque zone (utilise zones.max, sauf le dernier
+  // qui s'étend jusqu'à scale.max).
+  const widths = zones.map((z, i) => {
+    const start = i === 0 ? min : zones[i - 1].max;
+    const end = (z.max === Infinity || z.max > max) ? max : z.max;
+    return Math.max(0, pct(end) - pct(start));
+  });
+  const display = typeof displayValue === 'function'
+    ? displayValue(value)
+    : value.toFixed(decimals);
+  return (
+    <div className="dsp-mini-card">
+      <div className="dsp-mini-kicker">{kicker}</div>
+      <div className="dsp-mini-value">
+        {display}
+        <span className="dsp-mini-unit">{unit}</span>
+      </div>
+      <div className="dsp-mini-track" aria-hidden="true">
+        {zones.map((z, i) => (
+          <div
+            key={i}
+            className={`dsp-mini-zone t-${z.tone}`}
+            style={{ flexBasis: `${widths[i]}%` }}
+          />
+        ))}
+        <div
+          className="dsp-mini-cursor"
+          style={{ left: `${cursorPct}%`, color: cursorColor }}
+        />
+      </div>
+      {zone && (
+        <div className="dsp-mini-verdict" style={{ color: toneColor(zone.tone) }}>
+          {zone.label}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Bloc visuel complet (loudness meter + mini-cards) — inséré en tête
+// de la section MASTER & LOUDNESS du diagnostic.
+function DspMasterBlock({ analysisResult }) {
+  const { lufs, lra, truePeak } = pickDspBlockMetrics(analysisResult);
+  if (lufs == null && lra == null && truePeak == null) return null;
+  return (
+    <div className="dsp-master-block">
+      {lufs != null && <LoudnessMeter lufs={lufs} />}
+      {(lra != null || truePeak != null) && (
+        <div className="dsp-mini-row">
+          <DspMiniCard
+            kicker="PLAGE DYNAMIQUE"
+            value={lra}
+            unit="LU"
+            scale={{ min: 0, max: 16 }}
+            zones={LRA_ZONES}
+          />
+          <DspMiniCard
+            kicker="TRUE PEAK"
+            value={truePeak}
+            unit="dBTP"
+            scale={{ min: -6, max: 1 }}
+            zones={TRUE_PEAK_ZONES}
+            displayValue={(v) => (v > 0 ? `+${v.toFixed(1)}` : v.toFixed(1))}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Timeline (sticky bar topbar + dropdown versions) ──────────────
 
 function Timeline({ track, currentVersionName, stage, analysisResult, onSelectVersion, onAddVersion, onShareVersion, onExportVersion, onScoreCard, onTracksRefresh, onGoHome }) {
@@ -3073,6 +3274,11 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     const catLabel = (isVoice && voiceLabelOverride) ? s.fiche.voiceComingSoon : el.cat;
                     const color = catColor(el?.cat);
                     const catId = el?.id || el?.cat || `cat${idx}`;
+                    // DSP_PLAN A.1+A.2 — visuels DSP en tête de la section
+                    // MASTER & LOUDNESS uniquement. Les autres catégories
+                    // gardent leur rendu standard.
+                    const catKey = (el?.cat || '').toLowerCase();
+                    const isMasterCat = catKey.includes('master') || catKey.includes('loudness');
                     return (
                       <div key={el.id || el.cat || idx} className={`diag-cat c-${color}${open ? ' open' : ''}${isVoice && voiceLabelOverride ? ' pending-voice' : ''}`}>
                         <div className="diag-cat-head" onClick={() => toggleCat(idx)}>
@@ -3089,6 +3295,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                           </span>
                         </div>
                         <div className="diag-cat-body">
+                          {isMasterCat && <DspMasterBlock analysisResult={displayAR} />}
                           {items.map((it, i) => {
                             const itemKey = diagItemKey(catId, it, i);
                             const done = completedItems.has(itemKey);
