@@ -355,6 +355,175 @@ function MixIndicators({ items }) {
   );
 }
 
+// ── A.3 — Radar 6 catégories (constellation) ──────────────────────
+// Hexagone non rempli (juste lignes 1px ambre + points sur chaque axe à
+// la position du score moyen), à droite de la pochette dans la topbar
+// fiche. Cohérent avec la grammaire "constellation" de la landing —
+// pas de polygone rempli style AubioMix.
+//
+// Les `items` sont ceux retournés par `computeMixIndicators` (mêmes que
+// MixIndicators). Au hover d'un axe : axe éclairé + carte détail (label,
+// score, what, how, sources) — préserve la valeur pédagogique des
+// tooltips MixIndicators que ce composant remplace dans .rv-top.
+function MixRadar({ items }) {
+  const { s } = useLang();
+  const [hovered, setHovered] = useState(null);
+  if (!items || items.length === 0) return null;
+  const N = items.length; // 6 normalement
+  const SIZE = 220;
+  const CX = SIZE / 2;
+  const CY = SIZE / 2;
+  const R_OUTER = 72;
+  const R_LABEL = R_OUTER + 22;
+  // Angle : on commence à -90° (axe 1 en haut), sens horaire.
+  const angleAt = (i) => (-Math.PI / 2) + (i * 2 * Math.PI / N);
+  const polar = (i, r) => {
+    const a = angleAt(i);
+    return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
+  };
+  const scoreNum = (it) => Math.max(0, Math.min(100, Number(it?.score) || 0));
+  const pointAt = (i) => polar(i, (scoreNum(items[i]) / 100) * R_OUTER);
+  // Couleur du point selon le score (cohérent avec MiniRing : <50 rouge,
+  // <75 ambre, ≥75 mint).
+  const pointColor = (score) => (
+    score < 50 ? 'rgba(255,93,93,0.95)'
+    : score < 75 ? 'rgba(245,176,86,0.95)'
+    : 'rgba(142,224,122,0.95)'
+  );
+  // Polygone constellation (stroke seulement, pas de fill).
+  const polyPoints = items.map((_, i) => {
+    const p = pointAt(i);
+    return `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
+  }).join(' ');
+  // Hexagones guides à 25/50/75/100 — très subtils.
+  const guideHex = (frac) => Array.from({ length: N }, (_, i) => {
+    const p = polar(i, frac * R_OUTER);
+    return `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
+  }).join(' ');
+  const hov = (hovered != null && items[hovered]) ? items[hovered] : null;
+  return (
+    <div className={`mix-radar${hov ? ' is-hovering' : ''}`}>
+      <svg
+        className="mix-radar-svg"
+        viewBox={`0 0 ${SIZE} ${SIZE}`}
+        role="img"
+        aria-label="Radar des 6 catégories"
+      >
+        {/* Hexagones guides (4 paliers) */}
+        {[0.25, 0.5, 0.75, 1].map((f) => (
+          <polygon
+            key={`g-${f}`}
+            points={guideHex(f)}
+            fill="none"
+            stroke="rgba(255,255,255,0.05)"
+            strokeWidth="1"
+          />
+        ))}
+        {/* Axes (lignes 1px) */}
+        {items.map((_, i) => {
+          const e = polar(i, R_OUTER);
+          const isH = hovered === i;
+          return (
+            <line
+              key={`ax-${i}`}
+              x1={CX} y1={CY} x2={e.x} y2={e.y}
+              stroke={isH ? 'rgba(245,166,35,0.65)' : 'rgba(255,255,255,0.07)'}
+              strokeWidth="1"
+            />
+          );
+        })}
+        {/* Polygone constellation (stroke ambre 1px, pas de fill) */}
+        <polygon
+          points={polyPoints}
+          fill="none"
+          stroke="rgba(245,166,35,0.55)"
+          strokeWidth="1"
+          strokeLinejoin="round"
+        />
+        {/* Points + zone de hover élargie */}
+        {items.map((it, i) => {
+          const p = pointAt(i);
+          const isH = hovered === i;
+          return (
+            <g key={`pt-${i}`}>
+              <circle
+                cx={p.x} cy={p.y}
+                r={isH ? 4.5 : 3}
+                fill={pointColor(scoreNum(it))}
+                style={{ filter: isH
+                  ? 'drop-shadow(0 0 5px rgba(245,166,35,0.8))'
+                  : 'drop-shadow(0 0 2px rgba(245,166,35,0.35))',
+                  transition: 'r .12s ease, filter .12s ease' }}
+              />
+              {/* Hit area transparente pour faciliter le hover */}
+              <circle
+                cx={p.x} cy={p.y}
+                r={14}
+                fill="transparent"
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+                onFocus={() => setHovered(i)}
+                onBlur={() => setHovered(null)}
+                tabIndex={0}
+                style={{ cursor: 'pointer', outline: 'none' }}
+                aria-label={`${it.label} : ${scoreNum(it)} sur 100`}
+              />
+            </g>
+          );
+        })}
+        {/* Labels axes (mono caps petits) */}
+        {items.map((it, i) => {
+          const lp = polar(i, R_LABEL);
+          const a = angleAt(i);
+          const cosA = Math.cos(a);
+          const anchor = cosA > 0.3 ? 'start' : (cosA < -0.3 ? 'end' : 'middle');
+          const isH = hovered === i;
+          return (
+            <text
+              key={`lb-${i}`}
+              x={lp.x} y={lp.y + 3}
+              textAnchor={anchor}
+              className="mix-radar-label"
+              style={{ fill: isH ? 'var(--amber, #f5a623)' : 'var(--muted, #7c7c80)' }}
+            >
+              {(it.label || '').toUpperCase()}
+            </text>
+          );
+        })}
+        {/* Score central : valeur en mono petit, indicatif d'échelle */}
+        <text
+          x={CX} y={CY + 3}
+          textAnchor="middle"
+          className="mix-radar-scale"
+        >
+          {hov ? `${scoreNum(hov)}` : '0–100'}
+        </text>
+      </svg>
+      {/* Détail hover (préserve la valeur pédagogique des MiTile tooltips). */}
+      {hov && (
+        <div className="mix-radar-detail" role="tooltip">
+          <div className="mr-detail-head">
+            <span className="mr-detail-label">{hov.label}</span>
+            <span className="mr-detail-val">{scoreNum(hov)}/100</span>
+          </div>
+          {hov.what && (
+            <div className="mr-detail-section">
+              <div className="mr-detail-h">{s.fiche.miTooltipWhat}</div>
+              <div className="mr-detail-p">{hov.what}</div>
+            </div>
+          )}
+          {hov.how && (
+            <div className="mr-detail-section">
+              <div className="mr-detail-h">{s.fiche.miTooltipHow}</div>
+              <div className="mr-detail-p">{hov.how}</div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Anneau 32x32 (items diag) — dasharray=82 ; couleur par seuil.
 // Schéma /100 (ticket 1.1). Rétrocompat : si la valeur est ≤ 10
 // (ancien format /10), on la passe à l'échelle /100 pour l'affichage.
@@ -3077,7 +3246,11 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               {score != null && (
                 <div className="rv-top">
                   <ScoreRingBig value={score} prevScore={prevScore} />
-                  <MixIndicators
+                  {/* DSP_PLAN A.3 — Radar constellation 6 catégories.
+                      Remplace les anciennes mi-tiles dans .rv-top. Les
+                      tooltips pédagogiques (what/how) sont préservés via
+                      la carte détail qui s'affiche au hover d'un point. */}
+                  <MixRadar
                     items={computeMixIndicators(rawFiche, elements, score, s)}
                   />
                 </div>

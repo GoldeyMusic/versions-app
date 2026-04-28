@@ -8705,6 +8705,116 @@ export default function MockupStyles() {
   }
 
   /* ─────────────────────────────────────────────────────────────
+     DSP_PLAN A.3 — Radar constellation 6 catégories
+     Hexagone non rempli, lignes ambre 1px + points ambre par axe à
+     la position du score moyen. Cohérent grammaire "constellation"
+     de la landing. Hover = axe éclairé + carte détail.
+     Remplace .mix-indicators dans .rv-top (même data, viz plus pure).
+     ───────────────────────────────────────────────────────────── */
+  .fiche-v2 .row-verdict .rv-left .rv-top .mix-radar {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 0;
+  }
+  .fiche-v2 .mix-radar-svg {
+    width: 100%;
+    max-width: 240px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    overflow: visible;
+    animation: dsp-fade-in .15s ease-out both;
+  }
+  /* Labels axes : mono caps tiny, muted par défaut, ambre au hover. */
+  .fiche-v2 .mix-radar-label {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 8.5px;
+    letter-spacing: 1.4px;
+    font-weight: 500;
+    transition: fill .12s ease;
+    pointer-events: none;
+  }
+  /* Échelle 0–100 au centre, mono très petit, neutre. */
+  .fiche-v2 .mix-radar-scale {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 9px;
+    letter-spacing: 0.8px;
+    fill: rgba(255,255,255,0.25);
+    pointer-events: none;
+  }
+  .fiche-v2 .mix-radar.is-hovering .mix-radar-scale {
+    fill: var(--amber, #f5a623);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  /* Carte détail (préserve le contenu pédagogique des MiTile). */
+  .fiche-v2 .mix-radar-detail {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 6px;
+    width: min(280px, 92%);
+    padding: 10px 12px;
+    background: rgba(20, 20, 22, 0.96);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4), 0 0 12px rgba(245,176,86,0.04);
+    z-index: 30;
+    pointer-events: none;
+    animation: dsp-fade-in .12s ease-out both;
+  }
+  .fiche-v2 .mix-radar-detail .mr-detail-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .fiche-v2 .mix-radar-detail .mr-detail-label {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 10.5px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--amber, #f5a623);
+    font-weight: 500;
+  }
+  .fiche-v2 .mix-radar-detail .mr-detail-val {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 12px;
+    color: var(--soft, rgba(255,255,255,0.78));
+  }
+  .fiche-v2 .mix-radar-detail .mr-detail-section + .mr-detail-section {
+    margin-top: 6px;
+  }
+  .fiche-v2 .mix-radar-detail .mr-detail-h {
+    font-family: var(--mono, 'JetBrains Mono', monospace);
+    font-size: 9px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--muted, rgba(255,255,255,0.5));
+    margin-bottom: 2px;
+  }
+  .fiche-v2 .mix-radar-detail .mr-detail-p {
+    font-family: var(--body, 'DM Sans', sans-serif);
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--soft, rgba(255,255,255,0.78));
+  }
+  /* Layout étroit : ring sur le dessus, radar en dessous (déjà géré
+     par .rv-top flex-direction:column dans la media @1100px existante). */
+  @media (max-width: 1100px) {
+    .fiche-v2 .row-verdict .rv-left .rv-top .mix-radar {
+      width: 100%;
+      justify-content: center;
+    }
+    .fiche-v2 .mix-radar-svg { max-width: 220px; }
+  }
+
+  /* ─────────────────────────────────────────────────────────────
      DSP_PLAN A.1 + A.2 — Visuels MASTER & LOUDNESS
      LoudnessMeter (barre 6px, 4 zones, curseur ambre + valeur mono)
      + DspMiniCard (LRA / True Peak, kicker mono caps + grosse valeur)
