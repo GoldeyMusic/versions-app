@@ -367,26 +367,45 @@ function MixIndicators({ items }) {
 // tooltips MixIndicators que ce composant remplace dans .rv-top.
 function MixRadar({ items }) {
   const { s } = useLang();
-  // Affordance visuelle (David 2026-04-28) : on sépare 2 états.
-  //   - `hovered` : index réellement survolé (null quand le curseur n'est sur
-  //     aucun point). Pilote l'apparition de la carte détail.
-  //   - `highlightIdx` (dérivé) : index mis en surbrillance visuelle dans le
-  //     SVG. Vaut `hovered` quand on survole, sinon `defaultIdx` (= balance).
-  // Comme ça la constellation montre dès le chargement que balance peut
-  // servir d'exemple, mais l'infobulle pédagogique n'apparaît qu'au survol
-  // explicite et n'écrase plus le reste de la fiche.
+  // Refonte glossy 2026-04-28 : on garde la grammaire constellation
+  // (hexagone, points sur axes, infobulle pédagogique au hover) mais on
+  // ajoute des effets pour donner de la vie :
+  //   - Auto-cycle des highlights quand pas de hover (3.5s) → l'utilisateur
+  //     voit que les axes sont vivants et explorables.
+  //   - Halo radial animé derrière chaque point (dégradé), avec un pulse
+  //     plus marqué sur l'axe en surbrillance.
+  //   - Polygone : fill en gradient radial subtil (ambre center fade),
+  //     pas de fill plat AubioMix-style.
+  //   - Animation d'entrée : le polygone se trace via stroke-dasharray.
+  //   - Couleur des points par score (rouge/ambre/mint) avec drop-shadow
+  //     plus généreux et halo coloré assorti.
   const defaultIdx = (items || []).findIndex((it) => it && it.key === 'balance');
   const DEFAULT_IDX = defaultIdx >= 0 ? defaultIdx : 0;
   const [hovered, setHovered] = useState(null);
-  const highlightIdx = hovered != null ? hovered : DEFAULT_IDX;
+  const [autoIdx, setAutoIdx] = useState(DEFAULT_IDX);
+
+  // Auto-cycle quand pas de hover. Pause dès qu'on survole un point.
+  // Cadence ralentie (5s) pour ne pas distraire. C'est juste un cue
+  // d'affordance, pas une animation principale.
+  useEffect(() => {
+    if (hovered != null) return;
+    const N = (items || []).length;
+    if (!N || N < 2) return;
+    const id = setInterval(() => {
+      setAutoIdx((i) => (i + 1) % N);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [hovered, items]);
+
   if (!items || items.length === 0) return null;
-  const N = items.length; // 6 normalement
+  const N = items.length;
+  const highlightIdx = hovered != null ? hovered : autoIdx;
+
   const SIZE = 220;
   const CX = SIZE / 2;
   const CY = SIZE / 2;
   const R_OUTER = 72;
   const R_LABEL = R_OUTER + 22;
-  // Angle : on commence à -90° (axe 1 en haut), sens horaire.
   const angleAt = (i) => (-Math.PI / 2) + (i * 2 * Math.PI / N);
   const polar = (i, r) => {
     const a = angleAt(i);
@@ -394,23 +413,32 @@ function MixRadar({ items }) {
   };
   const scoreNum = (it) => Math.max(0, Math.min(100, Number(it?.score) || 0));
   const pointAt = (i) => polar(i, (scoreNum(items[i]) / 100) * R_OUTER);
-  // Couleur du point selon le score (cohérent avec MiniRing : <50 rouge,
-  // <75 ambre, ≥75 mint).
+  // Couleur point selon score
   const pointColor = (score) => (
-    score < 50 ? 'rgba(255,93,93,0.95)'
-    : score < 75 ? 'rgba(245,176,86,0.95)'
-    : 'rgba(142,224,122,0.95)'
+    score < 50 ? '#ff5d5d'
+    : score < 75 ? '#f5a623'
+    : '#8ee07a'
   );
-  // Polygone constellation (stroke seulement, pas de fill).
+  // Halo coloré assorti au point (rgba avec alpha pour la radial gradient)
+  const haloColor = (score, alpha) => (
+    score < 50 ? `rgba(255,93,93,${alpha})`
+    : score < 75 ? `rgba(245,176,86,${alpha})`
+    : `rgba(142,224,122,${alpha})`
+  );
   const polyPoints = items.map((_, i) => {
     const p = pointAt(i);
     return `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
   }).join(' ');
-  // Hexagones guides à 25/50/75/100 — très subtils.
   const guideHex = (frac) => Array.from({ length: N }, (_, i) => {
     const p = polar(i, frac * R_OUTER);
     return `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
   }).join(' ');
+  // Périmètre approx du polygone constellation pour anim stroke-dasharray.
+  const polyPerimeter = items.reduce((acc, _, i) => {
+    const p = pointAt(i);
+    const q = pointAt((i + 1) % N);
+    return acc + Math.hypot(q.x - p.x, q.y - p.y);
+  }, 0);
   const hov = (hovered != null && items[hovered]) ? items[hovered] : null;
   return (
     <div className={`mix-radar${hov ? ' is-hovering' : ''}`}>
@@ -420,6 +448,37 @@ function MixRadar({ items }) {
         role="img"
         aria-label="Radar des 6 catégories"
       >
+        <defs>
+          {/* Fill très subtil du polygone (radial center → transparent) */}
+          <radialGradient id="mr-poly-fill" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"  stopColor="rgba(245,166,35,0.12)" />
+            <stop offset="60%" stopColor="rgba(245,166,35,0.04)" />
+            <stop offset="100%" stopColor="rgba(245,166,35,0)" />
+          </radialGradient>
+          {/* Vignette douce pour donner de la profondeur au cercle */}
+          <radialGradient id="mr-bg-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"  stopColor="rgba(245,166,35,0.04)" />
+            <stop offset="80%" stopColor="rgba(245,166,35,0)" />
+          </radialGradient>
+          {/* Halos par couleur de point — un par tier (rouge/ambre/mint),
+              gradient adouci pour rester un cue subtil et pas dominer */}
+          {['red','amber','mint'].map((tier) => {
+            const c = tier === 'red' ? '255,93,93'
+                    : tier === 'amber' ? '245,176,86'
+                    : '142,224,122';
+            return (
+              <radialGradient key={tier} id={`mr-halo-${tier}`}>
+                <stop offset="0%"  stopColor={`rgba(${c},0.32)`} />
+                <stop offset="55%" stopColor={`rgba(${c},0.08)`} />
+                <stop offset="100%" stopColor={`rgba(${c},0)`} />
+              </radialGradient>
+            );
+          })}
+        </defs>
+
+        {/* Vignette de fond pour donner du volume */}
+        <circle cx={CX} cy={CY} r={R_OUTER} fill="url(#mr-bg-glow)" />
+
         {/* Hexagones guides (4 paliers) */}
         {[0.25, 0.5, 0.75, 1].map((f) => (
           <polygon
@@ -430,7 +489,7 @@ function MixRadar({ items }) {
             strokeWidth="1"
           />
         ))}
-        {/* Axes (lignes 1px) */}
+        {/* Axes (lignes 1px), highlight transition smooth */}
         {items.map((_, i) => {
           const e = polar(i, R_OUTER);
           const isH = highlightIdx === i;
@@ -438,35 +497,63 @@ function MixRadar({ items }) {
             <line
               key={`ax-${i}`}
               x1={CX} y1={CY} x2={e.x} y2={e.y}
-              stroke={isH ? 'rgba(245,166,35,0.65)' : 'rgba(255,255,255,0.07)'}
+              stroke={isH ? 'rgba(245,166,35,0.7)' : 'rgba(255,255,255,0.07)'}
               strokeWidth="1"
+              style={{ transition: 'stroke 0.4s ease' }}
             />
           );
         })}
-        {/* Polygone constellation (stroke ambre 1px, pas de fill) */}
+        {/* Polygone constellation : fill gradient subtil + stroke ambre,
+            stroke-dasharray animé pour le draw-in à l'entrée */}
         <polygon
           points={polyPoints}
-          fill="none"
-          stroke="rgba(245,166,35,0.55)"
-          strokeWidth="1"
+          fill="url(#mr-poly-fill)"
+          stroke="rgba(245,166,35,0.6)"
+          strokeWidth="1.2"
           strokeLinejoin="round"
+          className="mr-poly-anim"
+          style={{ ['--mr-perim']: `${Math.round(polyPerimeter)}` }}
         />
-        {/* Points + zone de hover élargie */}
+        {/* Halos colorés discrets derrière chaque point. Plus de pulse
+            continue : c'est juste un disque qui grossit/diminue en
+            transition smooth quand le highlight change. */}
         {items.map((it, i) => {
           const p = pointAt(i);
           const isH = highlightIdx === i;
+          const sc = scoreNum(it);
+          const tier = sc < 50 ? 'red' : sc < 75 ? 'amber' : 'mint';
+          return (
+            <circle
+              key={`halo-${i}`}
+              cx={p.x} cy={p.y}
+              r={isH ? 13 : 7}
+              fill={`url(#mr-halo-${tier})`}
+              style={{
+                transition: 'r .5s cubic-bezier(.4,0,.2,1), opacity .5s ease',
+                opacity: isH ? 0.85 : 0.45,
+                pointerEvents: 'none',
+              }}
+            />
+          );
+        })}
+        {/* Points — taille animée + drop-shadow coloré (intensité adoucie) */}
+        {items.map((it, i) => {
+          const p = pointAt(i);
+          const isH = highlightIdx === i;
+          const sc = scoreNum(it);
+          const c = pointColor(sc);
           return (
             <g key={`pt-${i}`}>
               <circle
                 cx={p.x} cy={p.y}
                 r={isH ? 4.5 : 3}
-                fill={pointColor(scoreNum(it))}
-                style={{ filter: isH
-                  ? 'drop-shadow(0 0 5px rgba(245,166,35,0.8))'
-                  : 'drop-shadow(0 0 2px rgba(245,166,35,0.35))',
-                  transition: 'r .12s ease, filter .12s ease' }}
+                fill={c}
+                style={{
+                  filter: `drop-shadow(0 0 ${isH ? 5 : 3}px ${haloColor(sc, isH ? 0.6 : 0.35)})`,
+                  transition: 'r 0.4s cubic-bezier(.4,0,.2,1), filter 0.4s ease',
+                }}
               />
-              {/* Hit area transparente pour faciliter le hover */}
+              {/* Hit area transparente */}
               <circle
                 cx={p.x} cy={p.y}
                 r={14}
@@ -477,31 +564,63 @@ function MixRadar({ items }) {
                 onBlur={() => setHovered(null)}
                 tabIndex={0}
                 style={{ cursor: 'pointer', outline: 'none' }}
-                aria-label={`${it.label} : ${scoreNum(it)} sur 100`}
+                aria-label={`${it.label} : ${sc} sur 100`}
               />
             </g>
           );
         })}
-        {/* Labels axes (mono caps petits) */}
+        {/* Labels axes — couleur smooth + score CENTRÉ sous le nom
+            (auto-cycle ou hover).
+            Le label utilise un anchor start/end/middle selon l'angle pour
+            ne pas chevaucher le radar (label aligné côté radar). Mais le
+            score doit être visuellement centré sous le nom, donc on
+            calcule le centre visuel du label depuis sa largeur estimée
+            puis on place le score à ce x avec anchor=middle. */}
         {items.map((it, i) => {
           const lp = polar(i, R_LABEL);
           const a = angleAt(i);
           const cosA = Math.cos(a);
           const anchor = cosA > 0.3 ? 'start' : (cosA < -0.3 ? 'end' : 'middle');
           const isH = highlightIdx === i;
+          const labelText = (it.label || '').toUpperCase();
+          // Approx largeur du label : font-size 8.5px mono + letter-spacing
+          // 1.4px → ~6 px par caractère (suffisant pour positionner un score
+          // centré, au pixel près n'est pas critique).
+          const labelWidth = labelText.length * 6;
+          // Centre visuel du label selon son anchor
+          let labelCenterX;
+          if (anchor === 'start') labelCenterX = lp.x + labelWidth / 2;
+          else if (anchor === 'end') labelCenterX = lp.x - labelWidth / 2;
+          else labelCenterX = lp.x;
           return (
-            <text
-              key={`lb-${i}`}
-              x={lp.x} y={lp.y + 3}
-              textAnchor={anchor}
-              className="mix-radar-label"
-              style={{ fill: isH ? 'var(--amber, #f5a623)' : 'var(--muted, #7c7c80)' }}
-            >
-              {(it.label || '').toUpperCase()}
-            </text>
+            <g key={`lb-${i}`}>
+              <text
+                x={lp.x} y={lp.y + 3}
+                textAnchor={anchor}
+                className="mix-radar-label"
+                style={{
+                  fill: isH ? 'var(--amber, #f5a623)' : 'var(--muted, #7c7c80)',
+                  transition: 'fill 0.4s ease',
+                }}
+              >
+                {labelText}
+              </text>
+              {/* Score visible UNIQUEMENT pour l'axe en surbrillance.
+                  Centré horizontalement sous le label via labelCenterX +
+                  anchor=middle. Offset +20 vertical pour dégager les
+                  descenders/ascenders. */}
+              <text
+                x={labelCenterX} y={lp.y + 20}
+                textAnchor="middle"
+                className="mix-radar-axis-score"
+                style={{ opacity: isH ? 1 : 0 }}
+              >
+                {scoreNum(it)}
+              </text>
+            </g>
           );
         })}
-        {/* Score central : valeur en mono petit, indicatif d'échelle */}
+        {/* Score central */}
         <text
           x={CX} y={CY + 3}
           textAnchor="middle"
