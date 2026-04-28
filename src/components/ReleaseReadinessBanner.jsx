@@ -17,8 +17,9 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
   const r = computeReleaseReadiness(fiche, completedItems);
   // Mode contrôlé optionnel : si `open`/`onToggle` sont fournis (cf.
   // SampleFicheScreen / accordéon strict), on s'aligne dessus. Sinon, état
-  // interne classique (vraie fiche : ouvert par défaut).
-  const [openInternal, setOpenInternal] = useState(true);
+  // interne classique (vraie fiche : fermé par défaut, l'utilisateur déplie
+  // s'il veut voir les bloquants détaillés).
+  const [openInternal, setOpenInternal] = useState(false);
   const isControlled = typeof openProp === 'boolean';
   const open = isControlled ? openProp : openInternal;
   // null safety : si la fiche n'a pas de score (stream partiel), on attend.
