@@ -638,16 +638,22 @@ export default function AddModal({
                 avec l'écoute Gemini déjà faite). */}
             <div className="add-mini-field">
               <div className="add-mini-field-label">{s.addModal.uploadGenreLabel}</div>
+              {/* En mode auto, on affiche le message comme VALEUR (italic, opacité
+                  pleine) plutôt que placeholder dans un input disabled : sinon
+                  le texte est trop estompé. readOnly empêche l'édition mais ne
+                  casse pas le contraste. Pour quitter le mode auto, l'utilisateur
+                  re-clique sur le bouton "Choisir automatiquement" en dessous. */}
               <input
                 type="text"
-                className="add-mini-input"
-                value={genreUnknown ? '' : declaredGenre}
-                placeholder={genreUnknown ? s.addModal.uploadGenreAutoHint : s.addModal.uploadGenrePlaceholder}
-                disabled={genreUnknown}
+                className={`add-mini-input${genreUnknown ? ' is-auto' : ''}`}
+                value={genreUnknown ? s.addModal.uploadGenreAutoHint : declaredGenre}
+                placeholder={s.addModal.uploadGenrePlaceholder}
+                readOnly={genreUnknown}
                 maxLength={60}
+                style={genreUnknown ? { fontStyle: 'italic' } : undefined}
                 onChange={(e) => {
+                  if (genreUnknown) return;
                   setDeclaredGenre(e.target.value);
-                  if (genreUnknown) setGenreUnknown(false);
                 }}
               />
               <button
