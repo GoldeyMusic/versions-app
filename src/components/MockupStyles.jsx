@@ -8851,7 +8851,200 @@ export default function MockupStyles() {
   }
 
   /* ─────────────────────────────────────────────────────────────
-     DSP_PLAN A.1 + A.2 — Visuels MASTER & LOUDNESS
+     MASTER & LOUDNESS — refonte 2026-04-28 v2 (Apple Watch style) :
+     3 anneaux concentriques colorés, un par mesure (LUFS / LRA / TP).
+     Couleur selon tier de la valeur, fill selon position sur l'échelle.
+     ───────────────────────────────────────────────────────────── */
+  .dsp-master-rings {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    align-items: start;
+    justify-items: center;
+    padding: 10px 6px 6px;
+  }
+  @media (max-width: 580px) {
+    .dsp-master-rings { gap: 8px; }
+  }
+  .dsp-master-rings .ms-ring {
+    text-align: center;
+    width: 100%;
+  }
+  .dsp-master-rings .ms-ring-svg {
+    width: 100%;
+    max-width: 104px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    overflow: visible;
+  }
+  /* Animation draw-in : l'arc se trace de 12h en sens horaire au mount.
+     stroke-dasharray = circonférence, dashoffset animé de circ → offset cible. */
+  .dsp-master-rings .ms-ring-arc {
+    stroke-dasharray: var(--ms-ring-circ, 326);
+    stroke-dashoffset: var(--ms-ring-circ, 326);
+    animation: ms-ring-fill 1.2s cubic-bezier(.4,0,.2,1) forwards;
+  }
+  @keyframes ms-ring-fill {
+    to { stroke-dashoffset: var(--ms-ring-offset, 0); }
+  }
+  /* Valeur centrale : grosse mono, color injecté inline */
+  .dsp-master-rings .ms-ring-num {
+    font-family: var(--mono);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  .dsp-master-rings .ms-ring-label {
+    margin-top: 4px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted, #7c7c80);
+  }
+  .dsp-master-rings .ms-ring-verdict {
+    margin-top: 2px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  /* Caption "Cible : X..Y" — toute petite, mono italique légère, neutre */
+  .dsp-master-rings .ms-ring-target {
+    margin-top: 4px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.38);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dsp-master-rings .ms-ring-arc {
+      animation: none;
+      stroke-dashoffset: var(--ms-ring-offset, 0);
+    }
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     LEGACY skyline montagneux — abandonné 2026-04-28 v2 mais styles
+     conservés pour le composant archivé _DspMasterBlockSkyline.
+  .dsp-master-scape .ms-stage {
+    position: relative;
+    margin: -2px 0 4px;
+  }
+  .dsp-master-scape .ms-stage-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+  /* Hero LUFS : gros chiffre dans le ciel */
+  .dsp-master-scape .ms-lufs {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    fill: rgba(255,255,255,0.95);
+  }
+  .dsp-master-scape .ms-lufs.t-soft     { fill: rgba(195,225,235,0.95); }
+  .dsp-master-scape .ms-lufs.t-low      { fill: rgba(245,176,86,0.95); }
+  .dsp-master-scape .ms-lufs.t-target   { fill: rgba(245,166,35,1); }
+  .dsp-master-scape .ms-lufs.t-critical { fill: rgba(255,140,140,1); }
+  .dsp-master-scape .ms-lufs-unit {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    fill: var(--muted, #7c7c80);
+  }
+  /* LRA à droite */
+  .dsp-master-scape .ms-lra {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    fill: rgba(255,255,255,0.85);
+  }
+  .dsp-master-scape .ms-lra-unit {
+    font-size: 11px;
+    fill: var(--muted, #7c7c80);
+    font-weight: 400;
+    letter-spacing: 0.4px;
+  }
+  .dsp-master-scape .ms-lra-sub {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    fill: var(--muted, #7c7c80);
+  }
+  /* True Peak label (au-dessus du ceiling) */
+  .dsp-master-scape .ms-tp-label {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 1.4px;
+    fill: var(--muted, #7c7c80);
+  }
+  .dsp-master-scape .ms-tp-label.t-low      { fill: rgba(245,166,35,0.9); }
+  .dsp-master-scape .ms-tp-label.t-critical { fill: rgba(255,93,93,1); }
+  /* Aurora — pulse subtile */
+  .dsp-master-scape .ms-aurora-pulse {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: ms-aurora-breath 6s ease-in-out infinite;
+  }
+  @keyframes ms-aurora-breath {
+    0%, 100% { opacity: 0.85; transform: scale(1);    }
+    50%      { opacity: 1;    transform: scale(1.06); }
+  }
+  /* Étoiles : twinkle léger */
+  .dsp-master-scape .ms-star {
+    animation: ms-star-twinkle 4s ease-in-out infinite;
+  }
+  @keyframes ms-star-twinkle {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 0.85; }
+  }
+  /* Mountains : parallax horizontal très lent */
+  .dsp-master-scape .ms-mtn-near {
+    animation: ms-parallax-near 38s linear infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+  .dsp-master-scape .ms-mtn-far {
+    animation: ms-parallax-far 65s linear infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+  @keyframes ms-parallax-near {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-3%); }
+  }
+  @keyframes ms-parallax-far {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-1.5%); }
+  }
+  /* True Peak ligne critique : pulse rouge si > 0 dBTP */
+  .dsp-master-scape .ms-tp-line.ms-tp-critical {
+    animation: ms-tp-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes ms-tp-pulse {
+    0%, 100% { stroke-opacity: 0.55; stroke-width: 1; }
+    50%      { stroke-opacity: 1;    stroke-width: 1.4; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dsp-master-scape .ms-aurora-pulse,
+    .dsp-master-scape .ms-star,
+    .dsp-master-scape .ms-mtn-near,
+    .dsp-master-scape .ms-mtn-far,
+    .dsp-master-scape .ms-tp-line {
+      animation: none;
+    }
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     DSP_PLAN A.1 + A.2 — Visuels MASTER & LOUDNESS (LEGACY,
+     conservés pour rollback ou si on revient à l'ancien design)
      LoudnessMeter (barre 6px, 4 zones, curseur ambre + valeur mono)
      + DspMiniCard (LRA / True Peak, kicker mono caps + grosse valeur)
      Couleurs : amber pour cible, muted pour neutre, rouge subtle

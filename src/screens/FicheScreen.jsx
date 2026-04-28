@@ -2060,34 +2060,417 @@ function StereoFieldBlock({ analysisResult }) {
   );
 }
 
-// Bloc visuel complet (loudness meter + mini-cards) — inséré en tête
-// de la section MASTER & LOUDNESS du diagnostic.
+// ── MasterRing — anneau de progression coloré (Apple Watch-like) ───
+// Composant générique : 1 cercle SVG avec :
+//   - track muted dim (limite extérieure de l'échelle)
+//   - arc mint subtle matérialisant la ZONE CIBLE (où il faut être)
+//   - arc coloré épais qui fill selon la valeur
+//   - valeur centrale dans la couleur du tier
+//   - label + verdict + caption "cible: X..Y" en dessous
+function MasterRing({ label, displayValue, fillRatio, tone, verdict, targetStart, targetEnd, targetCaption, animDelay = 0 }) {
+  const SIZE = 104;
+  const CX = SIZE / 2;
+  const CY = SIZE / 2;
+  const R = 40;
+  const STROKE = 9;
+  const CIRC = 2 * Math.PI * R;
+  const fillClamped = Math.max(0, Math.min(1, fillRatio || 0));
+  const offset = CIRC * (1 - fillClamped);
+
+  // Zone cible : on dessine un arc mint subtle entre targetStart et targetEnd
+  // (fractions 0..1). C'est notre "cadre" — l'utilisateur voit où sa valeur
+  // devrait tomber. Si fillRatio est dans [targetStart..targetEnd], l'arc plein
+  // se superpose à la zone cible → message visuel direct "tu es dans la cible".
+  const hasTarget = typeof targetStart === 'number' && typeof targetEnd === 'number'
+    && targetEnd > targetStart && targetEnd > 0 && targetStart < 1;
+  const targetLen = hasTarget ? CIRC * (targetEnd - targetStart) : 0;
+  // Pour positionner l'arc cible sur le cercle, on utilise stroke-dasharray + offset.
+  // dasharray pattern : `${gap_avant} ${arc_target} ${gap_après}` …
+  // Plus simple : on rend un circle complet avec stroke-dasharray pattern de 2 segments
+  // (visible + invisible) et un offset négatif pour décaler le départ.
+  const targetGapBefore = hasTarget ? CIRC * targetStart : 0;
+  const targetGapAfter = hasTarget ? CIRC * (1 - targetEnd) : CIRC;
+
+  const tierColors = {
+    soft:     '#5cb8cc',
+    low:      '#f5b056',
+    target:   '#f5a623',
+    critical: '#ff5d5d',
+    mint:     '#8ee07a',
+  };
+  const color = tierColors[tone] || tierColors.target;
+  const colorRgb = tone === 'soft'     ? '92,184,204'
+                 : tone === 'low'      ? '245,176,86'
+                 : tone === 'critical' ? '255,93,93'
+                 : tone === 'mint'     ? '142,224,122'
+                 : '245,166,35';
+  const safeId = label.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return (
+    <div className="ms-ring">
+      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="ms-ring-svg">
+        <defs>
+          <linearGradient id={`ms-ring-grad-${safeId}`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%"   stopColor={color} stopOpacity="1" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.55" />
+          </linearGradient>
+        </defs>
+        {/* Track muted (échelle complète) */}
+        <circle cx={CX} cy={CY} r={R} fill="none"
+                stroke="rgba(255,255,255,0.05)" strokeWidth={STROKE} />
+        {/* Zone cible — arc mint subtle, matérialise "où il faut être" */}
+        {hasTarget && (
+          <circle
+            cx={CX} cy={CY} r={R} fill="none"
+            stroke="rgba(142,224,122,0.30)"
+            strokeWidth={STROKE}
+            strokeDasharray={`${targetLen} ${CIRC - targetLen}`}
+            strokeDashoffset={-targetGapBefore}
+            transform={`rotate(-90 ${CX} ${CY})`}
+            style={{ pointerEvents: 'none' }}
+          />
+        )}
+        {/* Arc rempli (la valeur réelle) */}
+        <circle
+          cx={CX} cy={CY} r={R} fill="none"
+          stroke={`url(#ms-ring-grad-${safeId})`}
+          strokeWidth={STROKE}
+          strokeDasharray={CIRC}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${CX} ${CY})`}
+          className="ms-ring-arc"
+          style={{
+            filter: `drop-shadow(0 0 8px rgba(${colorRgb},0.5))`,
+            animationDelay: `${animDelay}s`,
+            ['--ms-ring-circ']: `${CIRC}`,
+            ['--ms-ring-offset']: `${offset}`,
+          }}
+        />
+        {/* Valeur centrale */}
+        <text x={CX} y={CY + 2} textAnchor="middle" className="ms-ring-num" style={{ fill: color }}>
+          {displayValue}
+        </text>
+      </svg>
+      <div className="ms-ring-label">{label}</div>
+      <div className="ms-ring-verdict" style={{ color }}>{verdict}</div>
+      {targetCaption && (
+        <div className="ms-ring-target">{targetCaption}</div>
+      )}
+    </div>
+  );
+}
+
+// ── DspMasterBlock — refonte 2026-04-28 (Apple Watch style) ─────────
+// 3 anneaux concentriques façon "vitals du master" : LUFS, LRA, True Peak.
+// Chaque anneau a une couleur dépendant de son tier (cerulean=trop sage,
+// ambre=streaming/competitif, mint=target sain, rouge=critique).
+// Le fill de l'arc montre la valeur normalisée sur son échelle.
 function DspMasterBlock({ analysisResult }) {
   const { s } = useLang();
   const { lufs, lra, truePeak } = pickDspBlockMetrics(analysisResult);
   if (lufs == null && lra == null && truePeak == null) return null;
+
+  // LUFS : map [-25..-3] sur [0..1] pour le fill, tier classique
+  const lufsFill = lufs != null ? (lufs + 25) / 22 : 0;
+  const lufsTone = lufs == null ? null
+    : lufs < -16 ? 'soft'
+    : lufs < -10 ? 'low'
+    : lufs < -7  ? 'target'
+    : 'critical';
+  const lufsVerdict = lufs == null ? '—'
+    : lufs < -16 ? s.fiche.dspViz.lufsZoneSoft
+    : lufs < -10 ? s.fiche.dspViz.lufsZoneStreaming
+    : lufs < -7  ? s.fiche.dspViz.lufsZoneTarget
+    : s.fiche.dspViz.lufsZoneCritical;
+
+  // LRA : map [0..14] sur [0..1], tier 4/7/12
+  const lraFill = lra != null ? lra / 14 : 0;
+  const lraTone = lra == null ? null
+    : lra < 4   ? 'critical'
+    : lra < 7   ? 'low'
+    : lra < 12  ? 'mint'
+    : 'soft';
+  const lraVerdict = lra == null ? '—'
+    : lra < 4   ? s.fiche.dspViz.lraZoneCritical
+    : lra < 7   ? s.fiche.dspViz.lraZoneStandard
+    : lra < 12  ? s.fiche.dspViz.lraZoneTarget
+    : s.fiche.dspViz.lraZoneSoft;
+
+  // TP : map [-10..+1] sur [0..1], plus l'arc est plein, plus on est proche du clipping
+  const tpFill = truePeak != null ? Math.max(0, Math.min(1, (truePeak + 10) / 11)) : 0;
+  const tpTone = truePeak == null ? null
+    : truePeak < -1 ? 'mint'
+    : truePeak < 0  ? 'low'
+    : 'critical';
+  const tpVerdict = truePeak == null ? '—'
+    : truePeak < -1 ? s.fiche.dspViz.truePeakZoneTarget
+    : truePeak < 0  ? s.fiche.dspViz.truePeakZoneLow
+    : s.fiche.dspViz.truePeakZoneCritical;
+
+  // Calcul des zones cibles (en fractions 0..1 sur l'échelle de chaque anneau)
+  // LUFS scale [-25..-3] (range 22), cible streaming-compétitif -10..-7
+  const lufsTargetStart = (-10 + 25) / 22; // 0.682
+  const lufsTargetEnd   = (-7  + 25) / 22; // 0.818
+  // LRA scale [0..14], cible confortable 7..12 LU
+  const lraTargetStart = 7 / 14;   // 0.500
+  const lraTargetEnd   = 12 / 14;  // 0.857
+  // TP scale [-10..+1] (range 11), zone safe = tout ce qui est < -1 dBTP
+  // → de fraction 0 à (-1+10)/11 = 0.818
+  const tpTargetStart = 0;
+  const tpTargetEnd   = ( -1 + 10) / 11; // 0.818
+
   return (
-    <div className="dsp-master-block">
-      {lufs != null && <LoudnessMeter lufs={lufs} />}
-      {(lra != null || truePeak != null) && (
-        <div className="dsp-mini-row">
-          <DspMiniCard
-            kicker={s.fiche.dspViz.lraKicker}
-            value={lra}
-            unit="LU"
-            scale={{ min: 0, max: 16 }}
-            zones={lraZones(s)}
-          />
-          <DspMiniCard
-            kicker={s.fiche.dspViz.truePeakKicker}
-            value={truePeak}
-            unit="dBTP"
-            scale={{ min: -6, max: 1 }}
-            zones={truePeakZones(s)}
-            displayValue={(v) => (v > 0 ? `+${v.toFixed(1)}` : v.toFixed(1))}
-          />
-        </div>
+    <div className="dsp-master-block dsp-master-rings">
+      {lufs != null && (
+        <MasterRing
+          label={`LUFS`}
+          displayValue={lufs.toFixed(1)}
+          fillRatio={lufsFill}
+          tone={lufsTone}
+          verdict={lufsVerdict}
+          targetStart={lufsTargetStart}
+          targetEnd={lufsTargetEnd}
+          targetCaption="Cible : −10 à −7 LUFS"
+          animDelay={0}
+        />
       )}
+      {lra != null && (
+        <MasterRing
+          label={s.fiche.dspViz.lraKicker}
+          displayValue={`${lra.toFixed(1)} LU`}
+          fillRatio={lraFill}
+          tone={lraTone}
+          verdict={lraVerdict}
+          targetStart={lraTargetStart}
+          targetEnd={lraTargetEnd}
+          targetCaption="Cible : 7 à 12 LU"
+          animDelay={0.15}
+        />
+      )}
+      {truePeak != null && (
+        <MasterRing
+          label={s.fiche.dspViz.truePeakKicker}
+          displayValue={`${truePeak >= 0 ? '+' : ''}${truePeak.toFixed(1)}`}
+          fillRatio={tpFill}
+          tone={tpTone}
+          verdict={tpVerdict}
+          targetStart={tpTargetStart}
+          targetEnd={tpTargetEnd}
+          targetCaption="Cible : sous −1 dBTP"
+          animDelay={0.30}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── ARCHIVED — ancien skyline montagneux (refonte abandonnée 2026-04-28) ──
+function _DspMasterBlockSkyline({ analysisResult }) {
+  const { s } = useLang();
+  const { lufs, lra, truePeak } = pickDspBlockMetrics(analysisResult);
+  if (lufs == null && lra == null && truePeak == null) return null;
+
+  const W = 600;
+  const H = 180;
+  const HORIZON = H - 18; // ligne de sol
+  const TP_CEILING_Y = 28; // hauteur de la ligne True Peak
+
+  // Map LUFS [-25..-3] vers altitude moyenne des pics [10..150]
+  const lufsClamped = lufs != null ? Math.max(-25, Math.min(-3, lufs)) : -16;
+  const lufsRatio = (lufsClamped + 25) / 22;
+  const baseHeight = 10 + lufsRatio * (HORIZON - TP_CEILING_Y - 28);
+
+  // LRA [0..14] contrôle la variance des pics
+  const lraClamped = lra != null ? Math.max(0, Math.min(14, lra)) : 6;
+  const variance = (lraClamped / 14) * 38;
+
+  // Tier LUFS pour la couleur dominante
+  const lufsTier = lufs == null ? 'low'
+    : lufs < -16 ? 'soft'      // trop sage, cool blue
+    : lufs < -10 ? 'low'       // streaming OK, ambre clair
+    : lufs < -7  ? 'target'    // compétitif, ambre fort
+    : 'critical';              // surcomprimé, rouge
+
+  const tierPalette = {
+    soft:     { rgb: '92,184,204', hex: '#5cb8cc',  label: s.fiche.dspViz.lufsZoneSoft },
+    low:      { rgb: '245,176,86', hex: '#f5b056',  label: s.fiche.dspViz.lufsZoneStreaming },
+    target:   { rgb: '245,166,35', hex: '#f5a623',  label: s.fiche.dspViz.lufsZoneTarget },
+    critical: { rgb: '255,93,93',  hex: '#ff5d5d',  label: s.fiche.dspViz.lufsZoneCritical },
+  };
+  const tp = tierPalette[lufsTier];
+
+  // True Peak : verdict + état du plafond
+  const tpZone = truePeak == null ? null
+    : truePeak < -1 ? 'target'    // safe, plafond gardé blanc
+    : truePeak < 0  ? 'low'       // risque, plafond ambre
+    : 'critical';                 // clipping, plafond rouge pulsant
+  const tpVerdict = truePeak == null ? null
+    : truePeak < -1 ? s.fiche.dspViz.truePeakZoneTarget
+    : truePeak < 0  ? s.fiche.dspViz.truePeakZoneLow
+    : s.fiche.dspViz.truePeakZoneCritical;
+
+  // LRA verdict (utilise les zones de claude.js pour le label)
+  const lraVerdict = lra == null ? null
+    : lra < 4   ? s.fiche.dspViz.lraZoneCritical
+    : lra < 7   ? s.fiche.dspViz.lraZoneStandard
+    : lra < 12  ? s.fiche.dspViz.lraZoneTarget
+    : s.fiche.dspViz.lraZoneSoft;
+
+  // Génère un skyline déterministe à partir des mesures.
+  // Combinaison de sinus à plusieurs fréquences → forme organique.
+  // Seed = lufs+lra+tp pour que chaque master ait son skyline unique.
+  const seed = (lufsClamped * 7 + lraClamped * 11 + (truePeak ?? 0) * 13);
+  const noise = (i) => {
+    return (
+      Math.sin(i * 0.93 + seed * 0.17) * 0.55 +
+      Math.sin(i * 1.71 + seed * 0.31) * 0.30 +
+      Math.sin(i * 3.27 + seed * 0.47) * 0.15
+    );
+  };
+  // 2 layers de montagnes : far (claire, plus aplatie) et near (foncée, plus dramatique)
+  const buildLayer = (count, scaleH, phaseOffset, vScale) => {
+    const points = [];
+    for (let i = 0; i <= count; i++) {
+      const x = (i / count) * W;
+      const peakH = baseHeight * scaleH + noise(i + phaseOffset) * variance * vScale;
+      points.push({ x, y: HORIZON - Math.max(4, peakH) });
+    }
+    let path = `M 0 ${HORIZON} L ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const cpx = (prev.x + curr.x) / 2;
+      path += ` Q ${cpx} ${prev.y}, ${cpx} ${(prev.y + curr.y) / 2} T ${curr.x} ${curr.y}`;
+    }
+    path += ` L ${W} ${HORIZON} Z`;
+    return path;
+  };
+  const farPath = buildLayer(10, 0.65, 7, 0.6);
+  const nearPath = buildLayer(14, 1.0, 0, 1.0);
+
+  // Stars (petites étoiles fixes seed-based pour la profondeur du ciel)
+  const stars = Array.from({ length: 14 }, (_, i) => {
+    const sx = ((i * 53 + Math.abs(seed) * 17) % W);
+    const sy = 12 + ((i * 31 + Math.abs(seed) * 7) % (TP_CEILING_Y + 60));
+    const sr = 0.6 + ((i * 17) % 10) / 10 * 0.7;
+    return { x: sx, y: sy, r: sr, delay: (i * 0.7) % 5 };
+  });
+
+  return (
+    <div className="dsp-master-block dsp-master-scape">
+      <div className="ms-stage">
+        <svg viewBox={`0 0 ${W} ${H}`} className="ms-stage-svg" aria-hidden="true">
+          <defs>
+            {/* Sky : gradient nuit → teinte du tier près du sol */}
+            <linearGradient id="ms-sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"  stopColor="rgba(14,16,22,0.95)" />
+              <stop offset="60%" stopColor="rgba(20,22,30,0.7)" />
+              <stop offset="100%" stopColor={`rgba(${tp.rgb},0.18)`} />
+            </linearGradient>
+            {/* Aurora : large ellipse colorée près de l'horizon */}
+            <radialGradient id="ms-aurora" cx="50%" cy="100%" r="50%">
+              <stop offset="0%"  stopColor={`rgba(${tp.rgb},0.42)`} />
+              <stop offset="60%" stopColor={`rgba(${tp.rgb},0.10)`} />
+              <stop offset="100%" stopColor={`rgba(${tp.rgb},0)`} />
+            </radialGradient>
+            {/* Far mountains : aplaties, peu saturées */}
+            <linearGradient id="ms-mtn-far" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"  stopColor={`rgba(${tp.rgb},0.45)`} />
+              <stop offset="100%" stopColor="rgba(15,17,22,0.85)" />
+            </linearGradient>
+            {/* Near mountains : profondes, contrastées */}
+            <linearGradient id="ms-mtn-near" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"  stopColor={`rgba(${tp.rgb},0.85)`} />
+              <stop offset="50%" stopColor={`rgba(${tp.rgb},0.35)`} />
+              <stop offset="100%" stopColor="rgba(8,10,14,0.95)" />
+            </linearGradient>
+          </defs>
+
+          {/* Sky bg */}
+          <rect x="0" y="0" width={W} height={HORIZON} fill="url(#ms-sky)" />
+
+          {/* Aurora large près de l'horizon, couleur tier */}
+          <ellipse
+            cx={W / 2}
+            cy={HORIZON}
+            rx={W * 0.55}
+            ry="70"
+            fill="url(#ms-aurora)"
+            className="ms-aurora-pulse"
+          />
+
+          {/* Étoiles ambient — fixes mais twinkle subtil */}
+          {stars.map((st, i) => (
+            <circle
+              key={`st-${i}`}
+              cx={st.x} cy={st.y} r={st.r}
+              fill="rgba(255,255,255,0.55)"
+              className="ms-star"
+              style={{ animationDelay: `${st.delay}s` }}
+            />
+          ))}
+
+          {/* True Peak ceiling line — couleur selon tier TP */}
+          {truePeak != null && (
+            <>
+              <line
+                x1="0" y1={TP_CEILING_Y} x2={W} y2={TP_CEILING_Y}
+                stroke={
+                  tpZone === 'critical' ? 'rgba(255,93,93,0.85)'
+                  : tpZone === 'low'    ? 'rgba(245,166,35,0.55)'
+                  : 'rgba(255,255,255,0.18)'
+                }
+                strokeWidth="1"
+                strokeDasharray="3 5"
+                className={tpZone === 'critical' ? 'ms-tp-line ms-tp-critical' : 'ms-tp-line'}
+              />
+              <text
+                x={W - 16} y={TP_CEILING_Y - 6}
+                textAnchor="end"
+                className={`ms-tp-label t-${tpZone || 'soft'}`}
+              >
+                {truePeak >= 0 ? '+' : ''}{truePeak.toFixed(1)} dBTP {tpVerdict ? `· ${tpVerdict.toUpperCase()}` : ''}
+              </text>
+            </>
+          )}
+
+          {/* Far mountains layer */}
+          <path d={farPath} fill="url(#ms-mtn-far)" className="ms-mtn ms-mtn-far" />
+
+          {/* Near mountains layer (foreground) */}
+          <path d={nearPath} fill="url(#ms-mtn-near)" className="ms-mtn ms-mtn-near" />
+
+          {/* Bottom horizon line */}
+          <line
+            x1="0" y1={HORIZON} x2={W} y2={HORIZON}
+            stroke="rgba(255,255,255,0.06)" strokeWidth="1"
+          />
+
+          {/* Hero LUFS (gros chiffre dans le ciel à gauche) */}
+          {lufs != null && (
+            <g className="ms-lufs-group">
+              <text x="20" y="58" textAnchor="start" className={`ms-lufs t-${lufsTier}`}>
+                {lufs.toFixed(1)}
+              </text>
+              <text x="20" y="76" textAnchor="start" className="ms-lufs-unit">
+                LUFS · {tp.label.toUpperCase()}
+              </text>
+            </g>
+          )}
+
+          {/* LRA (à droite, indique l'amplitude des pics) */}
+          {lra != null && (
+            <g>
+              <text x={W - 20} y="58" textAnchor="end" className="ms-lra">
+                {lra.toFixed(1)} <tspan className="ms-lra-unit">LU</tspan>
+              </text>
+              <text x={W - 20} y="76" textAnchor="end" className="ms-lra-sub">
+                {s.fiche.dspViz.lraKicker} {lraVerdict ? `· ${lraVerdict.toUpperCase()}` : ''}
+              </text>
+            </g>
+          )}
+        </svg>
+      </div>
     </div>
   );
 }
