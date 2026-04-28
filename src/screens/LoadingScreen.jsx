@@ -112,6 +112,14 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
                 evolution: job.evolution || null,
                 fadrMetrics: job.fadrMetrics || null,
                 dspMetrics: job.dspMetrics || null,
+                // DSP_PLAN B.6 — Phase 3 (stems + stereo). Bugfix 2026-04-28 :
+                // ce callsite avait été oublié par le replace_all initial à
+                // cause d'un indent différent → la nouvelle analyse persistait
+                // bien dspMetrics mais pas stemsMetrics/stereoMetrics, donc les
+                // visuels C.1/C.2 ne se rendaient pas malgré une donnée Phase 3
+                // valide côté backend.
+                stemsMetrics: job.stemsMetrics || null,
+                stereoMetrics: job.stereoMetrics || null,
                 _previousVersionName: previousVersionName,
                 meta: job.meta,
                 audioHash: config.audioHash,
