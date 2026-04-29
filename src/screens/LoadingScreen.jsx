@@ -278,6 +278,13 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
             const recvLabel = recv > 0 ? ` (${Math.floor(recv / 60)} min ${String(recv % 60).padStart(2, '0')} s)` : '';
             throw new Error(`Audio trop long${recvLabel}. Versions analyse les morceaux jusqu'à 12 minutes.`);
           }
+          // 402 = solde de crédits insuffisant. On redirige l'utilisateur
+          // vers /pricing pour qu'il achète un pack ou un abo.
+          if (startRes.status === 402) {
+            // Petit délai pour laisser voir le message avant la redirection
+            setTimeout(() => { window.location.hash = '#/pricing'; }, 1500);
+            throw new Error('Aucun crédit disponible. Redirection vers les tarifs…');
+          }
           throw new Error(s.loading.errorStart.replace('{status}', String(startRes.status)));
         }
         const { jobId } = await startRes.json();

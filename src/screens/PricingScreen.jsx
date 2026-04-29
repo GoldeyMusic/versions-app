@@ -1,21 +1,43 @@
+import { useEffect, useState } from 'react';
 import T from '../constants/theme';
+import API from '../constants/api';
 import useLang from '../hooks/useLang';
+import { supabase } from '../lib/supabase';
+import { PACKS, SUBSCRIPTIONS, SCHOOL_CONTACT_EMAIL, getPriceIdForPlan } from '../constants/plans';
 
 /**
  * PricingScreen — page tarifs publique (#/pricing).
  *
- * Modèle : pay-per-use avec packs régressifs + abonnements pour usage
- * intensif. Pas de plan gratuit.
+ * Source de vérité : src/constants/plans.js (5 packs + 2 abos + École).
+ * Les Price IDs Stripe arrivent par variables d'env Vite (cf. plans.js) ;
+ * sans elles, le bouton est désactivé avec mention "configuration en cours".
  *
- * Layout volontairement différent des concurrents (pas de "3 cartes
- * abos côte à côte" qui occupent toute la page) : deux sections
- * distinctes, l'À la carte en cartes compactes verticales (4 packs)
- * pour mettre en valeur la dégressivité, les Abonnements en lignes
- * éditoriales horizontales pour donner du poids au récurrent.
+ * Flow d'achat :
+ *   - Visiteur non connecté → clic CTA appelle `onStart` (redirect AuthScreen).
+ *   - User connecté → POST /api/billing/checkout, redirige vers Stripe Checkout.
  *
- * Tous les prix en placeholders (XX) — David remplira au fil des
- * décisions produit.
+ * Le screen est rendu PUBLIC (sans sidebar) ET CONNECTÉ (sans sidebar) :
+ *   - Public : on voit la page tarifs avant de signer
+ *   - Connecté : on revient acheter d'autres crédits sans bruit
+ *
+ * Couleurs des cartes (réutilisation tokens thème) : cerulean / mint / violet
+ * / amber / rose. Le pack featured est ambré (CTA principal). Les abos ont
+ * Indie en cerulean et Pro en ambré featured.
  */
+
+// Mapping clé plan → variant CSS de carte (cycle d'accent visuel).
+const PACK_ACCENT = {
+  pack_1: 'cerulean',
+  pack_5: 'mint',
+  pack_10: 'amber',     // featured (Le plus choisi)
+  pack_25: 'violet',
+  pack_50: 'rose',
+};
+const SUB_ACCENT = {
+  sub_indie: 'cerulean',
+  sub_pro: 'amber',     // featured
+};
+
 export default function PricingScreen({
   onStart,
   onBackToLanding,
@@ -23,6 +45,69 @@ export default function PricingScreen({
 }) {
   const { s } = useLang();
   const ctaLabel = ctaPrimaryLabel || s?.landing?.ctaPrimary || 'COMMENCER';
+
+  const [user, setUser] = useState(null);
+  const [pendingKey, setPendingKey] = useState(null);
+  const [errMsg, setErrMsg] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (!cancelled) setUser(data?.user || null);
+      } catch { /* anonyme = ok */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Lance Stripe Checkout pour un plan donné. Si l'utilisateur n'est pas
+  // connecté, on bascule sur le flow signup (onStart), Stripe attendra.
+  async function goToCheckout(plan) {
+    setErrMsg(null);
+    if (!user) {
+      // Stocke le plan visé pour reprendre le flow après login (cf. App.jsx).
+      try {
+        sessionStorage.setItem('pendingCheckoutPlan', plan.key);
+      } catch {}
+      onStart?.();
+      return;
+    }
+    const priceId = getPriceIdForPlan(plan);
+    if (!priceId) {
+      setErrMsg('Cette offre n\'est pas encore configurée. Réessaie dans un instant.');
+      return;
+    }
+    setPendingKey(plan.key);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess?.session?.access_token || '';
+      const res = await fetch(`${API}/api/billing/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          planKey: plan.key,
+          priceId,
+          mode: plan.priceIdEnv?.startsWith('VITE_STRIPE_PRICE_SUB_') ? 'subscription' : 'payment',
+        }),
+      });
+      if (!res.ok) {
+        let msg = `HTTP ${res.status}`;
+        try { const err = await res.json(); msg = err?.message || err?.error || msg; } catch {}
+        throw new Error(msg);
+      }
+      const { url } = await res.json();
+      if (!url) throw new Error('checkout_url_missing');
+      window.location.href = url;
+    } catch (e) {
+      console.error('[pricing] checkout failed:', e);
+      setErrMsg('Erreur de paiement : ' + (e?.message || 'inconnue'));
+      setPendingKey(null);
+    }
+  }
 
   return (
     <div className="pr-screen">
@@ -63,7 +148,12 @@ export default function PricingScreen({
         </div>
       </section>
 
-      {/* ── À LA CARTE — 4 packs en cartes verticales compactes ─────── */}
+      {/* Bandeau erreur si l'init checkout a planté */}
+      {errMsg && (
+        <div className="pr-errbar" role="alert">{errMsg}</div>
+      )}
+
+      {/* ── À LA CARTE — 5 packs en cartes verticales compactes ─────── */}
       <section className="pr-section pr-section-tight">
         <div className="pr-section-eyebrow">À la carte</div>
         <h2 className="pr-section-title">
@@ -71,82 +161,41 @@ export default function PricingScreen({
         </h2>
 
         <div className="pr-packs-grid">
-          {/* Pack 1 analyse — entrée */}
-          <article className="pr-pack pr-pack-cerulean">
-            <div className="pr-pack-qty">
-              <span className="pr-pack-num">1</span>
-              <span className="pr-pack-unit">Analyse</span>
-            </div>
-            <div className="pr-pack-price">
-              <span className="pr-price-amount">4,90</span>
-              <span className="pr-price-currency">€</span>
-            </div>
-            <div className="pr-pack-meta">
-              <div className="pr-pack-unit-line">4,90 €/analyse</div>
-              <div className="pr-pack-validity">Valable 12 mois</div>
-            </div>
-            <button type="button" className="pr-cta-secondary" onClick={onStart}>
-              Acheter
-            </button>
-          </article>
-
-          {/* Pack 3 */}
-          <article className="pr-pack pr-pack-mint">
-            <div className="pr-pack-qty">
-              <span className="pr-pack-num">3</span>
-              <span className="pr-pack-unit">Analyses</span>
-            </div>
-            <div className="pr-pack-price">
-              <span className="pr-price-amount">12,90</span>
-              <span className="pr-price-currency">€</span>
-            </div>
-            <div className="pr-pack-meta">
-              <div className="pr-pack-unit-line">4,30 €/analyse</div>
-              <div className="pr-saving-chip">−12 %</div>
-            </div>
-            <button type="button" className="pr-cta-secondary" onClick={onStart}>
-              Acheter
-            </button>
-          </article>
-
-          {/* Pack 5 */}
-          <article className="pr-pack pr-pack-violet">
-            <div className="pr-pack-qty">
-              <span className="pr-pack-num">5</span>
-              <span className="pr-pack-unit">Analyses</span>
-            </div>
-            <div className="pr-pack-price">
-              <span className="pr-price-amount">19,90</span>
-              <span className="pr-price-currency">€</span>
-            </div>
-            <div className="pr-pack-meta">
-              <div className="pr-pack-unit-line">3,98 €/analyse</div>
-              <div className="pr-saving-chip">−19 %</div>
-            </div>
-            <button type="button" className="pr-cta-secondary" onClick={onStart}>
-              Acheter
-            </button>
-          </article>
-
-          {/* Pack 10 — Featured */}
-          <article className="pr-pack pr-pack-amber pr-pack-featured">
-            <div className="pr-pack-ribbon">Le plus pris</div>
-            <div className="pr-pack-qty">
-              <span className="pr-pack-num">10</span>
-              <span className="pr-pack-unit">Analyses</span>
-            </div>
-            <div className="pr-pack-price">
-              <span className="pr-price-amount">34,90</span>
-              <span className="pr-price-currency">€</span>
-            </div>
-            <div className="pr-pack-meta">
-              <div className="pr-pack-unit-line">3,49 €/analyse</div>
-              <div className="pr-saving-chip pr-saving-chip-amber">−29 %</div>
-            </div>
-            <button type="button" className="pr-cta-primary" onClick={onStart}>
-              Acheter
-            </button>
-          </article>
+          {PACKS.map((p) => {
+            const accent = PACK_ACCENT[p.key] || 'cerulean';
+            const isFeatured = p.highlight === 'Le plus choisi';
+            const isPending = pendingKey === p.key;
+            const ribbon = p.highlight || null;
+            return (
+              <article
+                key={p.key}
+                className={`pr-pack pr-pack-${accent}${isFeatured ? ' pr-pack-featured' : ''}`}
+              >
+                {ribbon && <div className="pr-pack-ribbon">{ribbon}</div>}
+                <div className="pr-pack-qty">
+                  <span className="pr-pack-num">{p.credits}</span>
+                  <span className="pr-pack-unit">
+                    {p.credits > 1 ? 'Analyses' : 'Analyse'}
+                  </span>
+                </div>
+                <div className="pr-pack-price">
+                  <span className="pr-price-amount">{formatPrice(p.price_eur)}</span>
+                  <span className="pr-price-currency">€</span>
+                </div>
+                <div className="pr-pack-meta">
+                  <div className="pr-pack-unit-line">{formatPrice(p.perUnit)} €/analyse</div>
+                </div>
+                <button
+                  type="button"
+                  className={isFeatured ? 'pr-cta-primary' : 'pr-cta-secondary'}
+                  onClick={() => goToCheckout(p)}
+                  disabled={isPending}
+                >
+                  {isPending ? 'Redirection…' : 'Acheter'}
+                </button>
+              </article>
+            );
+          })}
         </div>
 
         {/* Bandeau "tout est inclus" sous les packs */}
@@ -172,46 +221,63 @@ export default function PricingScreen({
         </p>
 
         <div className="pr-subs-stack">
-          {/* Abo Indé */}
-          <article className="pr-sub pr-sub-cerulean">
-            <div className="pr-sub-meta">
-              <div className="pr-sub-name">Indé</div>
-              <div className="pr-sub-tag">Pour l'artiste qui sort en continu</div>
-            </div>
-            <div className="pr-sub-allowance">
-              <span className="pr-sub-num">8</span>
-              <span className="pr-sub-unit">analyses<br />par mois</span>
-            </div>
-            <div className="pr-sub-price">
-              <span className="pr-price-amount">24,90</span>
-              <span className="pr-price-suffix">€<span>/mois</span></span>
-              <span className="pr-sub-unit-line">soit 3,11 €/analyse</span>
-            </div>
-            <button type="button" className="pr-cta-secondary" onClick={onStart}>
-              Choisir
-            </button>
-          </article>
+          {SUBSCRIPTIONS.map((sub) => {
+            const accent = SUB_ACCENT[sub.key] || 'cerulean';
+            const isFeatured = sub.key === 'sub_pro';
+            const isPending = pendingKey === sub.key;
+            return (
+              <article
+                key={sub.key}
+                className={`pr-sub pr-sub-${accent}${isFeatured ? ' pr-sub-featured' : ''}`}
+              >
+                {isFeatured && <div className="pr-sub-ribbon">Recommandé</div>}
+                <div className="pr-sub-meta">
+                  <div className="pr-sub-name">{sub.label}</div>
+                  <div className="pr-sub-tag">{sub.description}</div>
+                </div>
+                <div className="pr-sub-allowance">
+                  <span className="pr-sub-num">{sub.credits}</span>
+                  <span className="pr-sub-unit">analyses<br />par mois</span>
+                </div>
+                <div className="pr-sub-price">
+                  <span className="pr-price-amount">{formatPrice(sub.price_eur)}</span>
+                  <span className="pr-price-suffix">€<span>/mois</span></span>
+                  <span className="pr-sub-unit-line">soit {formatPrice(sub.perUnit)} €/analyse</span>
+                </div>
+                <button
+                  type="button"
+                  className={isFeatured ? 'pr-cta-primary' : 'pr-cta-secondary'}
+                  onClick={() => goToCheckout(sub)}
+                  disabled={isPending}
+                >
+                  {isPending ? 'Redirection…' : (isFeatured ? ctaLabel : 'Choisir')}
+                </button>
+              </article>
+            );
+          })}
+        </div>
+      </section>
 
-          {/* Abo Pro — Featured */}
-          <article className="pr-sub pr-sub-amber pr-sub-featured">
-            <div className="pr-sub-ribbon">Recommandé</div>
-            <div className="pr-sub-meta">
-              <div className="pr-sub-name">Pro</div>
-              <div className="pr-sub-tag">Pour la production intensive</div>
-            </div>
-            <div className="pr-sub-allowance">
-              <span className="pr-sub-num">25</span>
-              <span className="pr-sub-unit">analyses<br />par mois</span>
-            </div>
-            <div className="pr-sub-price">
-              <span className="pr-price-amount">74,90</span>
-              <span className="pr-price-suffix">€<span>/mois</span></span>
-              <span className="pr-sub-unit-line">soit 3,00 €/analyse</span>
-            </div>
-            <button type="button" className="pr-cta-primary" onClick={onStart}>
-              {ctaLabel}
-            </button>
-          </article>
+      {/* ── ÉCOLES — bloc partenariat sur devis ────────────────────── */}
+      <section className="pr-section pr-section-tight">
+        <div className="pr-school">
+          <div className="pr-school-text">
+            <div className="pr-school-eyebrow">Écoles &amp; centres de formation</div>
+            <h3 className="pr-school-title">
+              Pour les <em>structures</em>, on ajuste sur devis.
+            </h3>
+            <p className="pr-school-lede">
+              Comptes équipe, volume ajusté, accompagnement pédagogique :
+              parlons du besoin réel et on construit l'offre adaptée.
+              Tarifs préférentiels selon le nombre de comptes et d'analyses mensuelles.
+            </p>
+          </div>
+          <a
+            href={`mailto:${SCHOOL_CONTACT_EMAIL}?subject=${encodeURIComponent('Versions — partenariat école / centre de formation')}`}
+            className="pr-school-cta"
+          >
+            Nous contacter
+          </a>
         </div>
       </section>
 
@@ -224,20 +290,20 @@ export default function PricingScreen({
 
         <div className="pr-faq">
           <PrFaq
-            q="Mes analyses expirent-elles ?"
-            a="Les analyses des packs sont valables 12 mois à compter de l'achat. Les analyses incluses dans un abonnement se rechargent chaque mois et ne sont pas reportables — mais tes fiches déjà générées, elles, restent à vie dans ton dashboard."
+            q="Mes crédits expirent-ils ?"
+            a="Les crédits achetés via un pack n'expirent jamais — ils restent disponibles tant que ton compte existe. Les crédits inclus dans un abonnement, eux, se rechargent chaque mois et ne sont pas reportables : ce qui n'est pas utilisé sur le mois disparaît au renouvellement. Tes fiches déjà générées, elles, restent à vie dans ton dashboard."
           />
           <PrFaq
             q="Puis-je cumuler un pack et un abonnement ?"
-            a="Oui. Les analyses d'un pack restent disponibles en plus de ton enveloppe mensuelle. On consomme d'abord l'enveloppe abo, puis les analyses du pack — tu ne perds rien."
+            a="Oui. Les crédits d'un pack restent disponibles en plus de ton enveloppe mensuelle. On consomme d'abord l'enveloppe abo, puis les crédits du pack — tu ne perds rien."
           />
           <PrFaq
             q="Puis-je résilier mon abonnement à tout moment ?"
             a="Oui, sans frais. La résiliation prend effet à la fin du mois en cours. Tes fiches déjà générées restent accessibles à vie dans ton dashboard, même après résiliation."
           />
           <PrFaq
-            q="Que se passe-t-il si j'épuise mon enveloppe mensuelle ?"
-            a="On te propose d'acheter un pack d'appoint ou de passer au palier supérieur — pas de coupure brutale, et jamais d'analyse facturée à ton insu."
+            q="Que se passe-t-il si une analyse échoue ?"
+            a="Aucun crédit n'est débité quand une analyse n'aboutit pas. Si on a déjà commencé à débiter et qu'une étape plante, le crédit est restauré automatiquement et tu peux relancer."
           />
           <PrFaq
             q="Y a-t-il une limite de durée par fichier audio ?"
@@ -257,11 +323,23 @@ export default function PricingScreen({
         </div>
         <div className="pr-footer-line">
           Une question avant de te lancer ?{' '}
-          <a href="mailto:hello@versions.studio">hello@versions.studio</a>
+          <a href={`mailto:${SCHOOL_CONTACT_EMAIL}`}>{SCHOOL_CONTACT_EMAIL}</a>
         </div>
       </footer>
     </div>
   );
+}
+
+/* ── Helpers ──────────────────────────────────────────── */
+function formatPrice(n) {
+  // Force la virgule française et 2 décimales pour les centimes (sauf nombres entiers).
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '—';
+  // 4.99 → "4,99" ; 4 → "4" ; 4.5 → "4,50".
+  return v.toLocaleString('fr-FR', {
+    minimumFractionDigits: Number.isInteger(v) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 /* ── Item FAQ ──────────────────────────────────────────── */
@@ -290,7 +368,7 @@ function PricingStyles() {
         overflow-x: hidden;
       }
 
-      /* ── TOPBAR ───────────────────────────────────── */
+      /* TOPBAR */
       .pr-topbar {
         position: relative; z-index: 2;
         max-width: 1180px; margin: 0 auto;
@@ -305,514 +383,278 @@ function PricingStyles() {
         transition: opacity .15s;
       }
       .pr-topbar-brand:hover { opacity: 0.82; }
-      .pr-topbar-logo {
-        height: 26px; width: auto;
-        filter: drop-shadow(0 0 16px rgba(245,166,35,0.18));
-      }
-      .pr-topbar-wordmark {
-        font-family: ${T.body}; font-weight: 700;
-        font-size: 17px; letter-spacing: -0.4px;
-        color: ${T.text}; line-height: 1;
-      }
+      .pr-topbar-logo { height: 26px; width: auto; filter: drop-shadow(0 0 16px rgba(245,166,35,0.18)); }
+      .pr-topbar-wordmark { font-family: ${T.body}; font-weight: 700; font-size: 17px; letter-spacing: -0.4px; color: ${T.text}; line-height: 1; }
       .pr-topbar-wordmark .accent { color: ${T.amber}; font-style: normal; }
-
-      .pr-topbar-nav {
-        display: inline-flex; align-items: center; gap: 8px;
-      }
+      .pr-topbar-nav { display: inline-flex; align-items: center; gap: 8px; }
       .pr-topbar-link, .pr-topbar-current {
         font-family: ${T.mono}; font-size: 11px; font-weight: 500;
         letter-spacing: 1.6px; text-transform: uppercase;
         padding: 9px 16px; border-radius: 999px;
         transition: all .15s;
       }
-      .pr-topbar-link {
-        background: transparent; color: ${T.textSoft};
-        border: 1px solid transparent; cursor: pointer;
-      }
-      .pr-topbar-link:hover {
+      .pr-topbar-link { background: transparent; color: ${T.textSoft}; border: 1px solid transparent; cursor: pointer; }
+      .pr-topbar-link:hover { color: ${T.text}; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.10); }
+      .pr-topbar-current { color: ${T.amber}; background: rgba(245,166,35,0.06); border: 1px solid rgba(245,166,35,0.32); }
+
+      /* HERO */
+      .pr-hero { padding: clamp(24px, 4vw, 48px) 24px clamp(16px, 3vw, 32px); display: grid; place-items: center; }
+      .pr-hero-inner { width: 100%; max-width: 760px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; animation: prfadeup .5s ease; }
+      .pr-eyebrow { font-family: ${T.mono}; font-size: 11px; font-weight: 500; letter-spacing: 2.4px; color: ${T.amber}; text-transform: uppercase; }
+      .pr-hero-title { font-family: ${T.body}; font-weight: 700; font-size: clamp(36px, 5vw, 64px); line-height: 1.0; letter-spacing: -1.6px; color: ${T.text}; margin: 0; }
+      .pr-hero-title em { font-family: ${T.serif}; font-style: italic; font-weight: 500; color: ${T.amber}; }
+      .pr-hero-sub { font-family: ${T.body}; font-size: 14px; font-weight: 300; color: ${T.muted}; margin: 0; max-width: 580px; }
+
+      /* ERROR BAR */
+      .pr-errbar {
+        max-width: 1180px; margin: 0 auto 16px;
+        padding: 10px 16px;
+        background: rgba(255,93,93,0.06);
+        border: 1px solid rgba(255,93,93,0.22);
+        border-radius: 8px;
         color: ${T.text};
-        background: rgba(255,255,255,0.04);
-        border-color: rgba(255,255,255,0.10);
-      }
-      .pr-topbar-current {
-        color: ${T.amber};
-        background: rgba(245,166,35,0.06);
-        border: 1px solid rgba(245,166,35,0.32);
+        font-family: ${T.body}; font-size: 13px; font-weight: 300;
+        text-align: center;
       }
 
-      /* ── HERO ─────────────────────────────────────── */
-      .pr-hero {
-        padding: clamp(48px, 8vw, 96px) 24px clamp(24px, 4vw, 56px);
-        display: grid; place-items: center;
-      }
-      .pr-hero-inner {
-        width: 100%; max-width: 760px;
-        display: flex; flex-direction: column; align-items: center;
-        gap: 22px; text-align: center;
-        animation: fadeup .5s ease;
-      }
-      .pr-eyebrow {
-        font-family: ${T.mono}; font-size: 11px; font-weight: 500;
-        letter-spacing: 2.4px; color: ${T.amber}; text-transform: uppercase;
-      }
-      .pr-hero-title {
-        font-family: ${T.body}; font-weight: 700;
-        font-size: clamp(40px, 6.4vw, 72px);
-        line-height: 1.0; letter-spacing: -2px;
-        color: ${T.text}; margin: 0;
-      }
-      .pr-hero-title em {
-        font-family: ${T.serif}; font-style: italic; font-weight: 500;
-        color: ${T.amber}; letter-spacing: -1.8px;
-      }
-      .pr-hero-sub {
-        font-family: ${T.body}; font-size: 15px; font-weight: 300;
-        line-height: 1.7; color: ${T.textSoft};
-        max-width: 560px; margin: 0;
-      }
-
-      /* ── SECTIONS génériques ───────────────────────── */
-      .pr-section {
-        padding: clamp(56px, 8vw, 96px) 24px;
-        max-width: 1180px; margin: 0 auto;
-      }
+      /* SECTIONS */
+      .pr-section { padding: clamp(56px, 7vw, 96px) 24px; max-width: 1180px; margin: 0 auto; }
       .pr-section-tight { padding: clamp(40px, 6vw, 72px) 24px; }
-      .pr-section-eyebrow {
-        font-family: ${T.mono}; font-size: 11px; font-weight: 500;
-        letter-spacing: 2.4px; color: ${T.amber}; text-transform: uppercase;
-        text-align: center; margin-bottom: 18px;
-      }
-      .pr-section-title {
-        font-family: ${T.body}; font-weight: 500;
-        font-size: clamp(22px, 2.6vw, 30px);
-        line-height: 1.25; letter-spacing: -0.4px;
-        color: ${T.textSoft}; text-align: center;
-        max-width: 760px; margin: 0 auto;
-      }
-      .pr-section-title em {
-        font-family: ${T.serif}; font-style: italic; font-weight: 500;
-        color: ${T.amber};
-      }
-      .pr-section-lede {
-        font-family: ${T.body}; font-size: 15px; font-weight: 300;
-        line-height: 1.7; color: ${T.textSoft};
-        text-align: center; max-width: 560px;
-        margin: 18px auto 0;
-      }
+      .pr-section-eyebrow { font-family: ${T.mono}; font-size: 10.5px; font-weight: 500; letter-spacing: 2.2px; color: ${T.amber}; text-transform: uppercase; margin-bottom: 12px; }
+      .pr-section-title { font-family: ${T.body}; font-weight: 600; font-size: clamp(24px, 3vw, 36px); line-height: 1.2; letter-spacing: -0.6px; color: ${T.text}; margin: 0 0 16px; }
+      .pr-section-title em { font-family: ${T.serif}; font-style: italic; font-weight: 500; color: ${T.amber}; }
+      .pr-section-lede { font-family: ${T.body}; font-size: 14px; font-weight: 300; color: ${T.muted}; margin: 0; max-width: 680px; }
 
-      /* ── À LA CARTE — Grid 4 packs ─────────────────────────── */
+      /* PACKS GRID — 5 colonnes desktop, 3 en grand tablet, 2 en tablet, 1 en mobile */
       .pr-packs-grid {
         margin-top: clamp(40px, 5vw, 56px);
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
       }
+      @media (max-width: 1080px) { .pr-packs-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+      @media (max-width: 760px)  { .pr-packs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
+      @media (max-width: 480px)  { .pr-packs-grid { grid-template-columns: 1fr; } }
+
       .pr-pack {
         position: relative; overflow: hidden;
         background: ${T.s1};
         border: 1px solid ${T.border};
         border-radius: 16px;
-        padding: 28px 22px 24px;
-        display: flex; flex-direction: column; align-items: center;
-        gap: 18px;
-        text-align: center;
+        padding: 24px 18px 20px;
+        display: flex; flex-direction: column; gap: 14px;
         transition: border-color .2s, transform .2s;
       }
+      .pr-pack:hover { border-color: rgba(255,255,255,0.16); transform: translateY(-2px); }
       .pr-pack::before {
         content: '';
         position: absolute;
+        top: -40%; right: -25%;
+        width: 220px; height: 220px;
         border-radius: 50%;
         filter: blur(48px);
-        opacity: 0.5;
+        opacity: 0.45;
         pointer-events: none;
-        z-index: 0;
       }
       .pr-pack > * { position: relative; z-index: 1; }
-      .pr-pack:hover {
-        border-color: rgba(255,255,255,0.16);
-        transform: translateY(-2px);
-      }
 
-      /* Variantes de halo par pack — chacun son coin pour casser
-         la symétrie (jamais centré, jamais pile en coin) */
-      .pr-pack-cerulean::before {
-        top: -40%; right: -25%; width: 220px; height: 220px;
-        background: radial-gradient(circle, rgba(92,184,204,0.45), transparent 70%);
-      }
-      .pr-pack-mint::before {
-        bottom: -42%; left: -22%; width: 230px; height: 230px;
-        background: radial-gradient(circle, rgba(142,224,122,0.42), transparent 70%);
-      }
-      .pr-pack-amber::before {
-        top: -38%; right: -22%; width: 260px; height: 260px;
-        background: radial-gradient(circle, rgba(245,166,35,0.55), transparent 70%);
-        opacity: 0.6;
-      }
-      .pr-pack-violet::before {
-        bottom: -40%; right: -22%; width: 240px; height: 240px;
-        background: radial-gradient(circle, rgba(166,126,245,0.45), transparent 70%);
-      }
+      .pr-pack-cerulean::before { background: radial-gradient(circle, rgba(92,184,204,0.55), transparent 70%); }
+      .pr-pack-mint::before     { background: radial-gradient(circle, rgba(142,224,122,0.55), transparent 70%); }
+      .pr-pack-amber::before    { background: radial-gradient(circle, rgba(245,166,35,0.65), transparent 70%); }
+      .pr-pack-violet::before   { background: radial-gradient(circle, rgba(166,126,245,0.55), transparent 70%); }
+      .pr-pack-rose::before     { background: radial-gradient(circle, rgba(245,123,166,0.55), transparent 70%); }
 
-      /* Featured pack 10 — bordure ambre + glow box-shadow */
-      .pr-pack-amber {
-        border-color: rgba(245,166,35,0.40);
-        background: linear-gradient(180deg, rgba(245,166,35,0.04), transparent 60%), ${T.s1};
-      }
-      .pr-pack-featured {
-        box-shadow:
-          0 0 0 1px rgba(245,166,35,0.22),
-          0 24px 60px -30px rgba(245,166,35,0.45);
-      }
+      .pr-pack-featured { border-color: rgba(245,166,35,0.34); }
       .pr-pack-ribbon {
-        position: absolute;
-        top: -1px; left: 50%; transform: translateX(-50%);
-        padding: 5px 14px;
-        font-family: ${T.mono}; font-size: 9.5px; font-weight: 500;
-        letter-spacing: 1.5px; text-transform: uppercase;
-        background: ${T.amber}; color: #1a1206;
-        border-radius: 0 0 8px 8px;
-        z-index: 2;
+        position: absolute; top: 12px; right: 12px; z-index: 2;
+        font-family: ${T.mono}; font-size: 9.5px; font-weight: 600;
+        letter-spacing: 1.4px; text-transform: uppercase;
+        color: ${T.amber};
+        background: rgba(245,166,35,0.10);
+        border: 1px solid rgba(245,166,35,0.32);
+        padding: 4px 8px; border-radius: 999px;
       }
 
-      /* Quantité (gros chiffre + label) */
-      .pr-pack-qty {
-        display: flex; flex-direction: column; align-items: center; gap: 2px;
-        margin-top: 4px;
-      }
+      .pr-pack-qty { display: flex; flex-direction: column; gap: 2px; }
       .pr-pack-num {
         font-family: ${T.serif}; font-style: italic; font-weight: 500;
-        font-size: 56px; line-height: 1; letter-spacing: -2px;
+        font-size: 38px; line-height: 1; letter-spacing: -1px;
         color: ${T.text};
       }
-      .pr-pack-amber .pr-pack-num { color: ${T.amber}; }
       .pr-pack-unit {
-        font-family: ${T.mono}; font-size: 10px; font-weight: 500;
-        letter-spacing: 1.6px; text-transform: uppercase;
-        color: ${T.muted};
+        font-family: ${T.mono}; font-size: 10.5px; font-weight: 500;
+        letter-spacing: 1.6px; text-transform: uppercase; color: ${T.muted};
       }
+      .pr-pack-price { display: flex; align-items: baseline; gap: 4px; }
+      .pr-price-amount { font-family: ${T.body}; font-weight: 700; font-size: 32px; letter-spacing: -1px; color: ${T.text}; }
+      .pr-price-currency { font-family: ${T.body}; font-size: 18px; color: ${T.muted}; }
+      .pr-pack-meta { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+      .pr-pack-unit-line { font-family: ${T.mono}; font-size: 10.5px; letter-spacing: 1.4px; color: ${T.muted2}; text-transform: uppercase; }
 
-      /* Prix total */
-      .pr-pack-price {
-        display: flex; align-items: baseline; gap: 4px;
-        font-family: ${T.body};
+      /* CTA */
+      .pr-cta-primary, .pr-cta-secondary {
+        font-family: ${T.mono}; font-size: 11px; font-weight: 600;
+        letter-spacing: 1.8px; text-transform: uppercase;
+        padding: 12px 16px; border-radius: 999px;
+        cursor: pointer; transition: all .15s;
+        border: 1px solid;
+        width: 100%; text-align: center;
       }
-      .pr-pack-price .pr-price-amount {
-        font-size: 36px; font-weight: 600;
-        letter-spacing: -1px; line-height: 1;
-        color: ${T.text};
+      .pr-cta-primary {
+        background: ${T.amber};
+        border-color: ${T.amber};
+        color: ${T.bg};
       }
-      .pr-pack-amber .pr-pack-price .pr-price-amount { color: ${T.amber}; }
-      .pr-price-currency {
-        font-family: ${T.body}; font-weight: 500;
-        font-size: 18px; color: ${T.textSoft};
-      }
-
-      /* Meta : prix unitaire + chip économie */
-      .pr-pack-meta {
-        display: flex; flex-direction: column; align-items: center; gap: 8px;
-        min-height: 48px;
-      }
-      .pr-pack-unit-line {
-        font-family: ${T.mono}; font-size: 11px; font-weight: 500;
-        letter-spacing: 1.2px; text-transform: uppercase;
+      .pr-cta-primary:hover { filter: brightness(1.06); transform: translateY(-1px); }
+      .pr-cta-secondary {
+        background: transparent;
+        border-color: rgba(255,255,255,0.14);
         color: ${T.textSoft};
       }
-      .pr-pack-validity {
-        font-family: ${T.body}; font-size: 11.5px; font-weight: 300;
-        color: ${T.muted2}; font-style: italic;
-      }
-      .pr-saving-chip {
-        font-family: ${T.mono}; font-size: 10px; font-weight: 500;
-        letter-spacing: 1.4px; text-transform: uppercase;
-        padding: 4px 10px; border-radius: 999px;
-        background: rgba(142,224,122,0.10);
-        color: ${T.mint};
-        border: 1px solid rgba(142,224,122,0.35);
-      }
-      .pr-saving-chip-amber {
-        background: rgba(245,166,35,0.10);
-        color: ${T.amber};
-        border-color: rgba(245,166,35,0.40);
-      }
+      .pr-cta-secondary:hover { color: ${T.text}; border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.04); }
+      .pr-cta-primary:disabled, .pr-cta-secondary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-      /* CTA dans un pack — pleine largeur */
-      .pr-pack .pr-cta-primary,
-      .pr-pack .pr-cta-secondary {
-        width: 100%;
-        margin-top: auto;
-      }
-
-      /* Reflow mobile pour les packs */
-      @media (max-width: 980px) {
-        .pr-packs-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-      @media (max-width: 520px) {
-        .pr-packs-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      /* ── Bandeau "tout est inclus" ──────────────── */
+      /* INCLUDED STRIP */
       .pr-included-strip {
-        margin-top: clamp(28px, 4vw, 40px);
-        padding: 18px 24px;
+        margin-top: 28px;
+        padding: 14px 20px;
         background: rgba(255,255,255,0.02);
         border: 1px solid ${T.border};
-        border-radius: 999px;
-        display: flex; align-items: center; justify-content: center;
-        flex-wrap: wrap; gap: 6px 18px;
-        font-family: ${T.body}; font-size: 13px; font-weight: 400;
+        border-radius: 12px;
+        display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px;
       }
-      .pr-included-label {
-        font-family: ${T.mono}; font-size: 10.5px; font-weight: 500;
-        letter-spacing: 1.6px; text-transform: uppercase;
-        color: ${T.amber};
-        margin-right: 4px;
-      }
-      .pr-included-bullet {
-        position: relative; padding-left: 14px;
-        color: ${T.textSoft};
-      }
-      .pr-included-bullet::before {
-        content: '';
-        position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-        width: 4px; height: 4px; border-radius: 50%;
-        background: ${T.amber}; opacity: 0.7;
-      }
-      @media (max-width: 720px) {
-        .pr-included-strip { border-radius: 16px; padding: 16px 18px; }
-        .pr-included-label { width: 100%; text-align: center; margin-bottom: 4px; }
-      }
+      .pr-included-label { font-family: ${T.mono}; font-size: 10px; font-weight: 600; letter-spacing: 1.6px; color: ${T.amber}; text-transform: uppercase; }
+      .pr-included-bullet { font-family: ${T.body}; font-size: 12.5px; color: ${T.textSoft}; position: relative; padding-left: 14px; }
+      .pr-included-bullet::before { content: '✓'; position: absolute; left: 0; color: ${T.mint || '#8ee07a'}; font-weight: 700; }
 
-      /* ── ABONNEMENTS — lignes éditoriales ─────────── */
+      /* SUBS */
       .pr-subs-stack {
-        margin-top: clamp(40px, 5vw, 56px);
-        display: flex; flex-direction: column; gap: 18px;
-        max-width: 980px; margin-left: auto; margin-right: auto;
+        margin-top: clamp(32px, 4vw, 48px);
+        display: flex; flex-direction: column; gap: 14px;
       }
       .pr-sub {
         position: relative; overflow: hidden;
         background: ${T.s1};
         border: 1px solid ${T.border};
         border-radius: 18px;
-        padding: 28px 28px;
+        padding: 24px 28px;
         display: grid;
-        grid-template-columns: 1.2fr 1fr 1.1fr 0.9fr;
+        grid-template-columns: 2fr 1fr 1.4fr auto;
+        gap: 20px;
         align-items: center;
-        gap: 28px;
         transition: border-color .2s;
       }
+      .pr-sub:hover { border-color: rgba(255,255,255,0.16); }
       .pr-sub::before {
         content: '';
         position: absolute;
+        top: -50%; right: -10%;
+        width: 320px; height: 320px;
         border-radius: 50%;
-        filter: blur(56px);
-        opacity: 0.5;
+        filter: blur(70px);
+        opacity: 0.4;
         pointer-events: none;
-        z-index: 0;
       }
       .pr-sub > * { position: relative; z-index: 1; }
-      .pr-sub:hover { border-color: rgba(255,255,255,0.16); }
-
-      .pr-sub-cerulean::before {
-        bottom: -55%; left: -10%;
-        width: 380px; height: 380px;
-        background: radial-gradient(circle, rgba(92,184,204,0.42), transparent 70%);
-      }
-      .pr-sub-violet::before {
-        top: -55%; right: -8%;
-        width: 380px; height: 380px;
-        background: radial-gradient(circle, rgba(166,126,245,0.42), transparent 70%);
-      }
-      .pr-sub-amber {
-        border-color: rgba(245,166,35,0.40);
-        background: linear-gradient(180deg, rgba(245,166,35,0.04), transparent 60%), ${T.s1};
-      }
-      .pr-sub-amber::before {
-        top: -50%; right: -8%;
-        width: 420px; height: 420px;
-        background: radial-gradient(circle, rgba(245,166,35,0.50), transparent 70%);
-        opacity: 0.55;
-      }
-      .pr-sub-featured {
-        box-shadow:
-          0 0 0 1px rgba(245,166,35,0.22),
-          0 24px 60px -30px rgba(245,166,35,0.45);
-      }
+      .pr-sub-cerulean::before { background: radial-gradient(circle, rgba(92,184,204,0.5), transparent 70%); }
+      .pr-sub-amber::before    { background: radial-gradient(circle, rgba(245,166,35,0.6), transparent 70%); }
+      .pr-sub-featured { border-color: rgba(245,166,35,0.34); }
       .pr-sub-ribbon {
-        position: absolute;
-        top: -1px; right: 28px;
-        padding: 6px 14px;
-        font-family: ${T.mono}; font-size: 10px; font-weight: 500;
-        letter-spacing: 1.6px; text-transform: uppercase;
-        background: ${T.amber}; color: #1a1206;
-        border-radius: 0 0 8px 8px;
-        z-index: 2;
-      }
-
-      .pr-sub-meta { display: flex; flex-direction: column; gap: 6px; }
-      .pr-sub-name {
-        font-family: ${T.serif}; font-style: italic; font-weight: 500;
-        font-size: 32px; line-height: 1; letter-spacing: -0.6px;
-        color: ${T.text};
-      }
-      .pr-sub-amber .pr-sub-name { color: ${T.amber}; }
-      .pr-sub-tag {
-        font-family: ${T.mono}; font-size: 10.5px; font-weight: 500;
-        letter-spacing: 1.5px; text-transform: uppercase;
-        color: ${T.muted};
-      }
-
-      /* Allowance "XX analyses par mois" */
-      .pr-sub-allowance {
-        display: flex; align-items: baseline; gap: 10px;
-      }
-      .pr-sub-num {
-        font-family: ${T.serif}; font-style: italic; font-weight: 500;
-        font-size: 48px; line-height: 1; letter-spacing: -1.5px;
-        color: ${T.text};
-      }
-      .pr-sub-amber .pr-sub-num { color: ${T.amber}; }
-      .pr-sub-unit {
-        font-family: ${T.mono}; font-size: 10.5px; font-weight: 500;
+        position: absolute; top: 14px; right: 18px;
+        font-family: ${T.mono}; font-size: 9.5px; font-weight: 600;
         letter-spacing: 1.4px; text-transform: uppercase;
-        color: ${T.muted}; line-height: 1.3;
+        color: ${T.amber};
+        background: rgba(245,166,35,0.10);
+        border: 1px solid rgba(245,166,35,0.32);
+        padding: 4px 10px; border-radius: 999px;
       }
-
-      /* Prix mensuel + suffixe */
-      .pr-sub-price {
-        display: flex; flex-direction: column; align-items: flex-start;
-        gap: 4px;
-      }
-      .pr-sub-price .pr-price-amount {
-        font-family: ${T.serif};
-        font-size: 44px; font-weight: 500;
-        letter-spacing: -1.5px; line-height: 1;
-        color: ${T.text};
-      }
-      .pr-sub-amber .pr-sub-price .pr-price-amount { color: ${T.amber}; }
-      .pr-price-suffix {
-        font-family: ${T.body}; font-weight: 500;
-        font-size: 16px; color: ${T.textSoft};
-        display: inline-flex; align-items: baseline; gap: 4px;
-      }
-      .pr-price-suffix span {
-        font-size: 11px; font-family: ${T.mono};
-        letter-spacing: 1.4px; text-transform: uppercase;
-        color: ${T.muted};
-      }
-      .pr-sub-unit-line {
-        font-family: ${T.mono}; font-size: 10.5px; font-weight: 500;
-        letter-spacing: 1.3px; text-transform: uppercase;
-        color: ${T.muted2};
-      }
-
-      .pr-sub .pr-cta-primary,
-      .pr-sub .pr-cta-secondary {
-        justify-self: end;
-      }
-
-      /* Reflow mobile abonnements */
-      @media (max-width: 880px) {
+      .pr-sub-meta { display: flex; flex-direction: column; gap: 4px; }
+      .pr-sub-name { font-family: ${T.serif}; font-style: italic; font-weight: 500; font-size: 26px; color: ${T.text}; letter-spacing: -0.4px; }
+      .pr-sub-tag { font-family: ${T.body}; font-size: 12.5px; color: ${T.muted}; }
+      .pr-sub-allowance { display: flex; align-items: baseline; gap: 8px; }
+      .pr-sub-num { font-family: ${T.body}; font-weight: 700; font-size: 36px; letter-spacing: -1px; color: ${T.text}; line-height: 1; }
+      .pr-sub-unit { font-family: ${T.mono}; font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; color: ${T.muted}; line-height: 1.2; }
+      .pr-sub-price { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+      .pr-sub-price .pr-price-amount { font-size: 28px; }
+      .pr-sub-price .pr-price-suffix { font-family: ${T.body}; font-size: 14px; color: ${T.muted}; }
+      .pr-sub-price .pr-price-suffix span { font-size: 11px; }
+      .pr-sub-unit-line { font-family: ${T.mono}; font-size: 10px; letter-spacing: 1.4px; color: ${T.muted2}; text-transform: uppercase; }
+      @media (max-width: 760px) {
         .pr-sub {
           grid-template-columns: 1fr;
-          gap: 18px; padding: 26px 22px;
-          text-align: left;
+          gap: 14px;
         }
-        .pr-sub .pr-cta-primary,
-        .pr-sub .pr-cta-secondary { justify-self: stretch; width: 100%; text-align: center; }
-        .pr-sub-ribbon { right: 16px; }
+        .pr-sub-price { align-items: flex-start; }
       }
 
-      /* ── CTA pills (partagés packs + abos) ──────────── */
-      .pr-cta-primary, .pr-cta-secondary {
-        font-family: ${T.mono}; font-size: 11px; font-weight: 500;
-        letter-spacing: 1.6px; text-transform: uppercase;
-        padding: 13px 22px; border-radius: 999px;
-        cursor: pointer; transition: all .15s;
+      /* SCHOOL */
+      .pr-school {
+        margin-top: 16px;
+        padding: clamp(24px, 4vw, 40px);
+        background: linear-gradient(180deg, rgba(166,126,245,0.06), rgba(255,255,255,0.015));
+        border: 1px solid rgba(166,126,245,0.22);
+        border-radius: 18px;
+        display: grid; grid-template-columns: 1fr auto;
+        gap: 28px; align-items: center;
+      }
+      @media (max-width: 760px) {
+        .pr-school { grid-template-columns: 1fr; }
+      }
+      .pr-school-eyebrow { font-family: ${T.mono}; font-size: 10.5px; font-weight: 500; letter-spacing: 2.2px; color: ${T.violet || '#a67ef5'}; text-transform: uppercase; margin-bottom: 10px; }
+      .pr-school-title { font-family: ${T.body}; font-weight: 600; font-size: clamp(22px, 2.6vw, 28px); line-height: 1.2; letter-spacing: -0.4px; color: ${T.text}; margin: 0 0 10px; }
+      .pr-school-title em { font-family: ${T.serif}; font-style: italic; font-weight: 500; color: ${T.violet || '#a67ef5'}; }
+      .pr-school-lede { font-family: ${T.body}; font-size: 13.5px; font-weight: 300; color: ${T.textSoft}; margin: 0; line-height: 1.65; max-width: 600px; }
+      .pr-school-cta {
+        font-family: ${T.mono}; font-size: 11px; font-weight: 600;
+        letter-spacing: 1.8px; text-transform: uppercase;
+        padding: 14px 24px; border-radius: 999px;
+        background: rgba(166,126,245,0.12);
+        border: 1px solid rgba(166,126,245,0.4);
+        color: ${T.violet || '#a67ef5'};
+        text-decoration: none;
         white-space: nowrap;
-        display: inline-flex; align-items: center; justify-content: center;
+        transition: all .15s;
       }
-      .pr-cta-primary {
-        background: ${T.amber}; color: #1a1206;
-        border: 1px solid ${T.amber};
-      }
-      .pr-cta-primary:hover {
-        background: rgba(245,166,35,0.92);
-        box-shadow: 0 0 0 6px rgba(245,166,35,0.10);
-      }
-      .pr-cta-secondary {
-        background: transparent; color: ${T.text};
-        border: 1px solid var(--btn-border, rgba(255,255,255,0.28));
-      }
-      .pr-cta-secondary:hover {
-        border-color: var(--btn-border-hover, rgba(255,255,255,0.45));
-        background: rgba(255,255,255,0.04);
-      }
+      .pr-school-cta:hover { background: rgba(166,126,245,0.20); border-color: rgba(166,126,245,0.65); }
 
-      /* ── FAQ ───────────────────────────────────────── */
-      .pr-faq {
-        margin-top: clamp(36px, 5vw, 56px);
-        max-width: 720px; margin-left: auto; margin-right: auto;
-        display: flex; flex-direction: column; gap: 10px;
-      }
+      /* FAQ */
+      .pr-faq { margin-top: clamp(24px, 3vw, 36px); display: flex; flex-direction: column; gap: 8px; }
       .pr-faq-item {
         background: ${T.s1};
         border: 1px solid ${T.border};
-        border-radius: 14px;
+        border-radius: 12px;
         overflow: hidden;
+        transition: border-color .2s;
       }
+      .pr-faq-item:hover { border-color: rgba(255,255,255,0.14); }
       .pr-faq-item summary {
         list-style: none;
-        padding: 18px 22px;
         cursor: pointer;
+        padding: 16px 20px;
+        font-family: ${T.body}; font-size: 14.5px; font-weight: 500;
+        color: ${T.text};
         display: flex; align-items: center; justify-content: space-between;
         gap: 16px;
-        font-family: ${T.body}; font-weight: 500; font-size: 15px;
-        color: ${T.text};
-        transition: background .15s;
       }
       .pr-faq-item summary::-webkit-details-marker { display: none; }
-      .pr-faq-item summary:hover { background: rgba(255,255,255,0.025); }
-      .pr-faq-chev {
-        font-family: ${T.mono}; font-size: 18px; font-weight: 400;
-        color: ${T.amber};
-        transition: transform .2s;
-      }
+      .pr-faq-chev { font-family: ${T.mono}; font-size: 18px; color: ${T.muted}; transition: transform .2s; }
       .pr-faq-item[open] .pr-faq-chev { transform: rotate(45deg); }
-      .pr-faq-item p {
-        margin: 0;
-        padding: 0 22px 20px;
-        font-family: ${T.body}; font-size: 14px; font-weight: 300;
-        line-height: 1.7; color: ${T.textSoft};
-      }
+      .pr-faq-item p { margin: 0 20px 16px; font-family: ${T.body}; font-size: 13.5px; font-weight: 300; color: ${T.textSoft}; line-height: 1.7; }
 
-      /* ── FOOTER ───────────────────────────────────── */
+      /* FOOTER */
       .pr-footer {
-        padding: clamp(48px, 7vw, 88px) 24px clamp(56px, 8vw, 96px);
+        padding: clamp(40px, 6vw, 72px) 24px;
         max-width: 1080px; margin: 0 auto;
         text-align: center;
         display: flex; flex-direction: column; align-items: center; gap: 14px;
       }
-      .pr-footer-mark {
-        font-family: ${T.body}; font-weight: 700;
-        font-size: 24px; letter-spacing: -0.5px;
-        color: ${T.text};
-      }
+      .pr-footer-mark { font-family: ${T.body}; font-weight: 700; font-size: 22px; letter-spacing: -0.5px; color: ${T.text}; }
       .pr-footer-mark .accent { color: ${T.amber}; }
-      .pr-footer-line {
-        font-family: ${T.body}; font-size: 13.5px; font-weight: 300;
-        color: ${T.muted};
-      }
-      .pr-footer-line a {
-        color: ${T.amber}; text-decoration: none;
-        border-bottom: 1px dashed rgba(245,166,35,0.4);
-      }
-      .pr-footer-line a:hover { border-bottom-color: ${T.amber}; }
+      .pr-footer-line { font-family: ${T.body}; font-size: 13px; font-weight: 300; color: ${T.muted}; }
+      .pr-footer-line a { color: ${T.amber}; text-decoration: none; }
+      .pr-footer-line a:hover { text-decoration: underline; }
 
-      @keyframes fadeup {
+      @keyframes prfadeup {
         from { opacity: 0; transform: translateY(12px); }
         to { opacity: 1; transform: translateY(0); }
       }
