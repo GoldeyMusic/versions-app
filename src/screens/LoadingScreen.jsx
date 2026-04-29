@@ -269,21 +269,30 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           body: formData,
         });
         if (!startRes.ok) {
-          // 413 = cap audio dépassé (fichier > 12 min). Message dédié pour
-          // que l'utilisateur comprenne (au lieu d'une erreur générique).
+          // 413 a deux origines très différentes :
+          //  - notre backend renvoie 413 + JSON { receivedSeconds } quand
+          //    l'audio dépasse le cap de 12 min (cf. decode-api/lib/audioCap).
+          //  - la plateforme Vercel renvoie 413 SANS payload utile quand le
+          //    body de la requête multipart dépasse ~4,5 MB (limite serverless).
+          // → on distingue via la présence d'un `receivedSeconds > 0`.
           if (startRes.status === 413) {
             let payload = {};
             try { payload = await startRes.json(); } catch {}
             const recv = Math.round(Number(payload?.receivedSeconds || 0));
-            const recvLabel = recv > 0 ? ` (${Math.floor(recv / 60)} min ${String(recv % 60).padStart(2, '0')} s)` : '';
-            throw new Error(`Audio trop long${recvLabel}. Versions analyse les morceaux jusqu'à 12 minutes.`);
+            if (recv > 0) {
+              const recvLabel = ` (${Math.floor(recv / 60)} min ${String(recv % 60).padStart(2, '0')} s)`;
+              throw new Error(s.loading.errorTooLongAudio.replace('{recv}', recvLabel));
+            }
+            // Pas de durée dans la réponse → c'est la limite plateforme
+            // (body trop gros). Message orienté "exporte en MP3/AAC".
+            throw new Error(s.loading.errorFileTooLarge);
           }
           // 402 = solde de crédits insuffisant. On redirige l'utilisateur
           // vers /pricing pour qu'il achète un pack ou un abo.
           if (startRes.status === 402) {
             // Petit délai pour laisser voir le message avant la redirection
             setTimeout(() => { window.location.hash = '#/pricing'; }, 1500);
-            throw new Error('Aucun crédit disponible. Redirection vers les tarifs…');
+            throw new Error(s.loading.errorNoCredits);
           }
           throw new Error(s.loading.errorStart.replace('{status}', String(startRes.status)));
         }
@@ -405,7 +414,38 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
     run();
   }, [config]);
 
-  // Error state — habillage v2 (pill mono + carte soft red)
+  // ⚠️ TOUS les hooks doivent être déclarés AVANT l'early-return du bloc
+  // d'erreur. Sinon le nombre de hooks change entre 2 renders (path normal
+  // vs path erreur) → React jette l'erreur #300 (page blanche). Même
+  // classe de bug que le mode resume vu en avril 2026.
+
+  // Ramp progressif pendant la phase 2 (writing / Claude) : sans ça, l'anneau
+  // restait bloqué à 68 % pendant 30-60 s, donnant l'impression que le
+  // processus était figé. Courbe asymptotique 1-e^(-t/20) qui monte vite
+  // au début puis ralentit, capée à 0.95 pour ne jamais dépasser 90 % avant
+  // le vrai all_done (qui bascule phase=3 → 94 %).
+  const [writingRamp, setWritingRamp] = useState(0);
+  const writingStartRef = useRef(null);
+  useEffect(() => {
+    if (phase !== 2) {
+      writingStartRef.current = null;
+      setWritingRamp(0);
+      return;
+    }
+    writingStartRef.current = Date.now();
+    const tick = () => {
+      if (writingStartRef.current == null) return;
+      const elapsed = (Date.now() - writingStartRef.current) / 1000;
+      const ramp = Math.min(0.95, 1 - Math.exp(-elapsed / 20));
+      setWritingRamp(ramp);
+    };
+    tick();
+    const id = setInterval(tick, 250);
+    return () => clearInterval(id);
+  }, [phase]);
+
+  // Error state — habillage v2 (pill mono + carte soft red).
+  // Ce return doit IMPÉRATIVEMENT venir après tous les hooks ci-dessus.
   if (error) {
     return (
       <div className="ap-scaffold">
@@ -440,31 +480,6 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   // que `onDone` n'a pas été appelé (sinon l'utilisateur croit que c'est
   // fini mais on attend encore Claude).
   const pctByPhase = [8, 38, 68, 94];
-
-  // Ramp progressif pendant la phase 2 (writing / Claude) : sans ça, l'anneau
-  // restait bloqué à 68 % pendant 30-60 s, donnant l'impression que le
-  // processus était figé. Courbe asymptotique 1-e^(-t/20) qui monte vite
-  // au début puis ralentit, capée à 0.95 pour ne jamais dépasser 90 % avant
-  // le vrai all_done (qui bascule phase=3 → 94 %).
-  const [writingRamp, setWritingRamp] = useState(0);
-  const writingStartRef = useRef(null);
-  useEffect(() => {
-    if (phase !== 2) {
-      writingStartRef.current = null;
-      setWritingRamp(0);
-      return;
-    }
-    writingStartRef.current = Date.now();
-    const tick = () => {
-      if (writingStartRef.current == null) return;
-      const elapsed = (Date.now() - writingStartRef.current) / 1000;
-      const ramp = Math.min(0.95, 1 - Math.exp(-elapsed / 20));
-      setWritingRamp(ramp);
-    };
-    tick();
-    const id = setInterval(tick, 250);
-    return () => clearInterval(id);
-  }, [phase]);
 
   const basePct = pctByPhase[Math.max(0, Math.min(phase, 3))];
   const pct = phase === 2

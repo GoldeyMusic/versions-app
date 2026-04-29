@@ -327,6 +327,14 @@ const STRINGS = {
       errorFailed: "Analyse échouée",
       errorTimeout: "Timeout — analyse trop longue",
       errorCancelled: "Upload annulé",
+      // 413 backend (audio > 12 min) — `{recv}` est rempli côté front avec
+      // la durée reçue formatée (ex : " (14 min 32 s)"), vide sinon.
+      errorTooLongAudio: "Audio trop long{recv}. Versions analyse les morceaux jusqu'à 12 minutes.",
+      // 413 plateforme Vercel (body trop gros, ~4,5 MB max) — fichier trop
+      // lourd, indépendamment de la durée. Encourage WAV → MP3/AAC.
+      errorFileTooLarge: "Fichier trop lourd. Limite ~4,5 Mo par envoi : exporte ton mix en MP3 ou AAC (320 kbps suffit largement) plutôt qu'en WAV.",
+      // 402 backend = solde de crédits à zéro.
+      errorNoCredits: "Aucun crédit disponible. Redirection vers les tarifs…",
       dupCheckTitle: "Est-ce bien une version du même titre ?",
       dupCheckMessage: "Cette version dure {thisDur} alors que la version précédente dure {prevDur} (écart {pct}%).",
       dupCheckContinue: "Continuer l'analyse",
@@ -1675,6 +1683,14 @@ const STRINGS = {
       errorFailed: "Analysis failed",
       errorTimeout: "Timeout — analysis took too long",
       errorCancelled: "Upload cancelled",
+      // 413 backend (audio > 12 min) — `{recv}` is filled in by the front
+      // with the formatted received duration (e.g. " (14 min 32 s)"), empty otherwise.
+      errorTooLongAudio: "Audio too long{recv}. Versions analyzes tracks up to 12 minutes.",
+      // 413 platform (body too big, ~4.5 MB max on Vercel) — file too heavy,
+      // regardless of duration. Suggests WAV → MP3/AAC.
+      errorFileTooLarge: "File too large. ~4.5 MB limit per upload: export your mix to MP3 or AAC (320 kbps is plenty) rather than WAV.",
+      // 402 backend = empty credit balance.
+      errorNoCredits: "No credits available. Redirecting to pricing…",
       dupCheckTitle: "Is this really a version of the same track?",
       dupCheckMessage: "This version lasts {thisDur} while the previous version lasts {prevDur} (difference {pct}%).",
       dupCheckContinue: "Continue analysis",
