@@ -42,16 +42,6 @@ export default function LandingScreen({
         </div>
         <nav className="lp-topbar-nav" aria-label="Navigation">
           <span className="lp-topbar-current" aria-current="page">Accueil</span>
-          {onViewDashboard && (
-            <button
-              type="button"
-              className="lp-topbar-link"
-              onClick={onViewDashboard}
-              aria-label={s.sidebar.dashboardLink}
-            >
-              {s.sidebar.dashboardLink}
-            </button>
-          )}
           {onViewPricing && (
             <button
               type="button"
@@ -60,6 +50,16 @@ export default function LandingScreen({
               aria-label="Voir les tarifs"
             >
               Tarifs
+            </button>
+          )}
+          {onViewDashboard && (
+            <button
+              type="button"
+              className="lp-topbar-link"
+              onClick={onViewDashboard}
+              aria-label={s.sidebar.dashboardLink}
+            >
+              {s.sidebar.dashboardLink}
             </button>
           )}
           {/* Switch FR/EN — même classe (.sb-lang-switch) que la sidebar du

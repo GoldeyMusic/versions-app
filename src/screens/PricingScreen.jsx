@@ -135,6 +135,7 @@ export default function PricingScreen({
           <button type="button" className="pr-topbar-link" onClick={onBackToLanding}>
             {t.topbarHome}
           </button>
+          <span className="pr-topbar-current" aria-current="page">{t.topbarCurrent}</span>
           {onViewDashboard && (
             <button
               type="button"
@@ -145,7 +146,6 @@ export default function PricingScreen({
               {s.sidebar.dashboardLink}
             </button>
           )}
-          <span className="pr-topbar-current" aria-current="page">{t.topbarCurrent}</span>
           {/* Switch FR/EN — même classe (.sb-lang-switch) que la sidebar du
               dashboard pour garder une UI parfaitement uniforme entre les
               deux écrans. */}
