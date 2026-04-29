@@ -553,7 +553,7 @@ function PricingStyles() {
       .pr-hero { padding: clamp(24px, 4vw, 48px) 24px clamp(16px, 3vw, 32px); display: grid; place-items: center; }
       .pr-hero-inner { width: 100%; max-width: 760px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; animation: prfadeup .5s ease; }
       .pr-eyebrow { font-family: ${T.mono}; font-size: 11px; font-weight: 500; letter-spacing: 2.4px; color: ${T.amber}; text-transform: uppercase; }
-      .pr-hero-title { font-family: ${T.body}; font-weight: 700; font-size: clamp(36px, 5vw, 64px); line-height: 1.0; letter-spacing: -1.6px; color: ${T.text}; margin: 0; }
+      .pr-hero-title { font-family: ${T.body}; font-weight: 700; font-size: clamp(48px, 8.4vw, 96px); line-height: 0.96; letter-spacing: -3px; color: ${T.text}; margin: 0; max-width: 760px; }
       .pr-hero-title em { font-family: inherit; font-style: normal; font-weight: inherit; color: ${T.amber}; }
       .pr-hero-sub { font-family: ${T.body}; font-size: 14px; font-weight: 300; color: ${T.muted}; margin: 0; max-width: 580px; }
 

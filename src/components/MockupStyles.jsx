@@ -150,8 +150,42 @@ export default function MockupStyles() {
      reste au-dessus du halo. */
   #root { position: relative; z-index: 1; }
 
+  /* ── Animations d'entrée au scroll (système global) ─────────────
+     Classe ajoutée par un IntersectionObserver côté JS quand
+     l'élément entre dans le viewport. Fade-up doux, stagger via
+     la CSS var --anim-d (ms). Utilisée sur le dashboard, et
+     potentiellement à terme sur landing+pricing pour unifier
+     (extraction prévue dans une passe future).
+     prefers-reduced-motion : transitions désactivées. */
+  .wh-anim {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity .55s cubic-bezier(.2,.7,.3,1),
+      transform .55s cubic-bezier(.2,.7,.3,1);
+    transition-delay: var(--anim-d, 0ms);
+    will-change: opacity, transform;
+  }
+  .wh-anim.wh-anim-in {
+    opacity: 1;
+    transform: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wh-anim {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+    }
+  }
+
   /* ── Layout ──────────────────────────────────── */
   .app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+  /* .dapp = wrapper utilisé quand pas de sidebar (mobile + welcome
+     desktop). On crée un stacking context (position relative + z-index
+     1) pour soulever le contenu au-dessus de .ambient-halo, comme le
+     font .lp-screen et .pr-screen. Sans ça, l'ambient-halo peint par-
+     dessus le contenu, qui assombrit visuellement la page. */
+  .dapp { position: relative; z-index: 1; min-height: 100vh; }
 
   /* Sidebar — très discrète */
   .sidebar {
@@ -4781,29 +4815,35 @@ export default function MockupStyles() {
     display: flex; flex-direction: column; gap: 16px;
     max-width: 1400px;
   }
-  /* Grille alignée sur les 4 colonnes des stats en dessous : slogan occupe
-     les 2 premières colonnes, tagline les 2 dernières — elle se retrouve
-     ainsi centrée à cheval sur "Score moyen" et "Progression". */
+  /* Refonte 2026-04-29 — slogan centré et tagline dessous (comme la
+     landing / pricing). Plus de grille 4 colonnes, on lit en colonne
+     centrée. La tagline italique se cale juste sous le slogan. */
   .wh-desktop .wh-intro-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
+    display: flex; flex-direction: column;
     align-items: center;
+    gap: 18px;
     width: 100%;
-    /* Respiration verticale pour détacher "Écoute, compare, décide." */
     padding: 28px 0 32px;
+    text-align: center;
   }
   .wh-desktop .wh-intro-row .wh-slogan {
-    grid-column: 1 / 3;
-    align-self: end;
     overflow: visible;
     min-width: 0;
+    text-align: center;
   }
-  /* Garantie absolue : "Écoute, compare," tient sur une seule ligne,
-     même si la cellule de grille est plus étroite. Le <br/> force
-     ensuite le passage à la ligne pour "décide.". */
+  /* Garantie absolue : "Écoute, compare," tient sur une seule ligne. */
   .wh-desktop .wh-slogan .wh-slogan-line {
     white-space: nowrap;
+  }
+  /* L'eyebrow d'accueil "Bonjour {name} — N titres…" est rendu juste
+     avant les 4 cards stats (positionné dans WelcomeHome, hors de
+     .wh-intro depuis la refonte 2026-04-29). Il reste affiché sur tous
+     les viewports : desktop ET mobile.
+     La variante "floating" gère son propre espacement quand l'eyebrow
+     n'est plus enveloppé par .wh-intro. */
+  .wh-eyebrow-floating {
+    margin: 8px 0 18px;
+    justify-content: center;
   }
   .wh-eyebrow {
     font-family: var(--mono); font-size: 11px; letter-spacing: 2.5px;
@@ -4825,62 +4865,18 @@ export default function MockupStyles() {
     font-family: inherit; font-style: normal; font-weight: inherit;
     letter-spacing: inherit; color: var(--amber);
   }
+  /* Tagline directement sous le slogan, centrée. Italique conservé
+     (exception déjà actée pour les tagline / verdicts). Pas de grand
+     guillemet décoratif : on l'a retiré avec le passage en colonne
+     centrée car il ne servait qu'à équilibrer la grille horizontale. */
   .wh-desktop .wh-intro .wh-tagline-text {
     position: relative;
-    grid-column: 3 / 5;
-    justify-self: center;
-    align-self: center;
     font-family: var(--serif); font-style: italic;
-    font-size: 20px; font-weight: 400;
+    font-size: 22px; font-weight: 400;
     line-height: 1.45; color: var(--soft);
-    max-width: 520px;
+    max-width: 720px;
     margin: 0;
-    padding-left: 42px;
-  }
-  .wh-desktop .wh-intro .wh-tagline-text::before {
-    content: '“';
-    position: absolute;
-    left: 4px; top: 50%;
-    transform: translateY(-38%);
-    font-family: var(--serif);
-    font-style: normal; font-weight: 400;
-    font-size: 86px; line-height: 1;
-    color: var(--text); opacity: 0.14;
-    pointer-events: none;
-  }
-  /* Breakpoint intermédiaire : entre 1300 et 1500 px de viewport, on donne
-     plus de place au slogan (3/4 colonnes au lieu de 2/4) et on laisse la
-     tagline wrap sur plusieurs lignes dans la dernière colonne, SANS
-     réduire sa taille — elle garde sa typo 20 px serif italic d'origine. */
-  @media (max-width: 1500px) {
-    .wh-desktop .wh-intro-row .wh-slogan {
-      grid-column: 1 / 4;
-    }
-    .wh-desktop .wh-intro .wh-tagline-text {
-      grid-column: 4 / 5;
-      max-width: none;
-      justify-self: stretch;
-    }
-  }
-  /* Sous 1300 px de viewport, on bascule en layout colonne : slogan en
-     pleine largeur, tagline en dessous. Évite tout chevauchement. */
-  @media (max-width: 1300px) {
-    .wh-desktop .wh-intro-row {
-      display: flex; flex-direction: column;
-      align-items: flex-start; gap: 8px;
-    }
-    .wh-desktop .wh-intro-row .wh-slogan,
-    .wh-desktop .wh-intro .wh-tagline-text {
-      grid-column: auto;
-      justify-self: auto; align-self: auto;
-    }
-    .wh-desktop .wh-intro .wh-tagline-text {
-      padding-left: 0;
-      max-width: 720px; margin-top: 8px;
-      font-size: 20px;
-      line-height: 1.45;
-    }
-    .wh-desktop .wh-intro .wh-tagline-text::before { display: none; }
+    text-align: center;
   }
   /* wh-tagline-hero n'est plus utilisée (la tagline vit dans wh-intro).
      Cette règle reste par sécurité si un template externe le réintroduit. */
@@ -5166,37 +5162,69 @@ export default function MockupStyles() {
   }
   .wh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  /* ── Stats row — halos diffus varié par carte (identité v2) ── */
+  /* ── Stats row — halos diffus variés par carte + sticker rotation
+     ──────────────────────────────────────────────────────────────
+     Refonte 2026-04-29 : 4 cards-stickers indépendantes (rotation
+     subtile par card via --card-rot) avec halo color, hover qui
+     lift + intensifie le halo. Chaque card a sa teinte alignée sur
+     les hint colors (cerulean / amber / mint / violet). */
   .wh-stats {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
   }
   .wh-stat {
     background: var(--card); border: 1px solid var(--border); border-radius: 14px;
     padding: 20px 22px; min-height: 120px;
     display: flex; flex-direction: column;
     position: relative; overflow: hidden;
+    transform: rotate(var(--card-rot, 0deg));
+    transition: border-color .25s, transform .25s, box-shadow .25s;
+  }
+  /* Rotations subtiles par card — moins marquées que les diff cards
+     de la landing parce que les stats portent du chiffre et ont
+     besoin de rester très lisibles. */
+  .wh-stats > .wh-stat:nth-child(1) { --card-rot: -0.6deg; }
+  .wh-stats > .wh-stat:nth-child(2) { --card-rot:  0.6deg; }
+  .wh-stats > .wh-stat:nth-child(3) { --card-rot: -0.8deg; }
+  .wh-stats > .wh-stat:nth-child(4) { --card-rot:  0.8deg; }
+  /* Override du système .wh-anim pour préserver la rotation pendant
+     l'animation d'entrée (sinon transform: none écraserait la rotation). */
+  .wh-anim.wh-stat {
+    transform: translateY(14px) rotate(var(--card-rot, 0deg));
+  }
+  .wh-anim.wh-stat.wh-anim-in {
+    transform: rotate(var(--card-rot, 0deg));
+  }
+  /* Hover : lift + halo intensifié + bordure plus visible */
+  .wh-stat:hover {
+    border-color: rgba(255,255,255,0.18);
+    transform: rotate(var(--card-rot, 0deg)) translateY(-3px);
+  }
+  .wh-stat:hover::before {
+    opacity: 0.55 !important;
+    filter: blur(48px) !important;
   }
   /* Halo propre à chaque stat — position / couleur / taille / blur variés */
   .wh-stat::before {
     content: ''; position: absolute; pointer-events: none;
     border-radius: 50%; z-index: 0;
+    transition: opacity .25s, filter .25s;
   }
   .wh-stat > * { position: relative; z-index: 1; }
   .wh-stat:nth-child(1)::before {
     top: -30px; right: -30px; width: 140px; height: 140px;
-    background: var(--cerulean); filter: blur(50px); opacity: .28;
+    background: var(--cerulean); filter: blur(50px); opacity: .35;
   }
   .wh-stat:nth-child(2)::before {
     bottom: -50px; left: -40px; width: 180px; height: 180px;
-    background: var(--amber); filter: blur(65px); opacity: .22;
+    background: var(--amber); filter: blur(65px); opacity: .30;
   }
   .wh-stat:nth-child(3)::before {
     top: -20px; left: 40%; width: 160px; height: 160px;
-    background: var(--mint); filter: blur(70px); opacity: .20;
+    background: var(--mint); filter: blur(70px); opacity: .26;
   }
   .wh-stat:nth-child(4)::before {
     bottom: -40px; right: -30px; width: 150px; height: 150px;
-    background: var(--violet); filter: blur(58px); opacity: .26;
+    background: var(--violet); filter: blur(58px); opacity: .32;
   }
   .wh-stat-label {
     font-family: var(--mono); font-size: 10.5px; letter-spacing: 2px;
@@ -5249,24 +5277,33 @@ export default function MockupStyles() {
     padding: 16px;
     overflow: hidden;
     display: flex; flex-direction: column; gap: 12px;
+    transition: border-color .25s, transform .25s;
   }
-  /* Halo discret sur chaque panneau (amber pour "Toi", violet pour "Le saviez-vous"). */
+  /* Halo discret sur chaque panneau (amber pour "Toi", violet pour "Le saviez-vous").
+     Bumpé pour être plus présent (0.06/0.07 → 0.10/0.12) et intensifié au hover. */
   .wh-rcol-section::after {
     content: '';
     position: absolute;
     right: 0; bottom: 0;
-    width: 200px; height: 160px;
+    width: 240px; height: 200px;
     background: radial-gradient(ellipse at bottom right,
-      rgba(245,166,35,0.06), transparent 70%);
+      rgba(245,166,35,0.10), transparent 70%);
     border-bottom-right-radius: inherit;
     pointer-events: none;
     z-index: 0;
+    transition: opacity .25s, filter .25s;
   }
   .wh-rcol-section:nth-of-type(2)::after {
     background: radial-gradient(ellipse at bottom right,
-      rgba(166,126,245,0.07), transparent 70%);
+      rgba(166,126,245,0.12), transparent 70%);
   }
   .wh-rcol-section > * { position: relative; z-index: 1; }
+  /* Hover : lift discret + halo qui prend de l'ampleur */
+  .wh-rcol-section:hover {
+    border-color: rgba(255,255,255,0.16);
+    transform: translateY(-2px);
+  }
+  .wh-rcol-section:hover::after { opacity: 1.5; filter: brightness(1.2); }
 
   /* Titre de section (eyebrow mono) + pastille colorée. */
   .wh-rcol-title {
@@ -5790,20 +5827,32 @@ export default function MockupStyles() {
     border-radius: 14px;
     padding: 0;
     position: relative;
+    transition: border-color .25s, transform .25s;
+  }
+  /* Hover discret — léger lift, bordure plus visible. Pas de transform
+     trop marqué parce que le panneau est haut et ses items ont leurs
+     propres hover states. */
+  .wh-projects:hover {
+    border-color: rgba(255,255,255,0.16);
+    transform: translateY(-2px);
   }
   /* Halo ambre en bas-droite — taille fixe, accroché aux coins. Tient dans
-     la boîte donc pas besoin de overflow:hidden (les dropdowns restent OK). */
+     la boîte donc pas besoin de overflow:hidden (les dropdowns restent OK).
+     Bumpé (0.09 → 0.13) pour s'aligner sur la nouvelle intensité des
+     panneaux droits, et légèrement intensifié au hover. */
   .wh-projects::before {
     content: '';
     position: absolute;
     right: 0; bottom: 0;
-    width: 260px; height: 180px;
+    width: 280px; height: 200px;
     background: radial-gradient(ellipse at bottom right,
-      rgba(245,166,35,0.09), transparent 70%);
+      rgba(245,166,35,0.13), transparent 70%);
     border-bottom-right-radius: inherit;
     pointer-events: none;
     z-index: 0;
+    transition: opacity .25s, filter .25s;
   }
+  .wh-projects:hover::before { filter: brightness(1.2); }
   /* Halo cerulean en haut-gauche — plus doux, accroché au coin. */
   .wh-projects::after {
     content: '';

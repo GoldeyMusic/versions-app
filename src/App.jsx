@@ -594,6 +594,220 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0, onFinish }) {
   );
 }
 
+/**
+ * DashboardTopbar — topbar desktop pour les écrans authentifiés sans
+ * sidebar (à ce jour : welcome). Calé sur le topbar de la landing /
+ * pricing pour garder une identité visuelle homogène d'un écran à
+ * l'autre. Logo + wordmark à gauche (clic → landing publique), nav à
+ * droite avec liens principaux, accès Réglages, déconnexion, FR/EN.
+ *
+ * CSS inline pour rester encapsulé. Si on déploie ce topbar sur d'autres
+ * écrans (admin, versions...), ça vaudra le coup d'extraire le CSS dans
+ * MockupStyles ou un fichier shared.
+ */
+function DashboardTopbar({ onGoLanding, onGoDashboard, onGoPricing, onGoReglages, onSignOut, lang, setLang }) {
+  const { s } = useLang();
+  return (
+    <>
+      {/* Couche d'orbes colorées en fond — identique à .pr-screen::before
+          (pricing) et .landing-screen::before (landing) pour donner la
+          même densité chromatique aux écrans authentifiés en layout
+          topbar. S'empile au-dessus de .ambient-halo global. */}
+      <div className="db-bg-orbs" aria-hidden="true" />
+
+      <header className="db-topbar">
+        <button
+          type="button"
+          className="db-topbar-brand"
+          onClick={onGoLanding}
+          aria-label={s.sidebar?.aboutLink || 'Accueil'}
+        >
+          <img src="/logo-versions-2.svg" alt="" className="db-topbar-logo" />
+          <span className="db-topbar-wordmark">
+            VER<span className="accent">Si</span>ONS
+          </span>
+        </button>
+        <nav className="db-topbar-nav" aria-label="Navigation">
+          <button type="button" className="db-topbar-link" onClick={onGoLanding}>
+            {s.pricing?.topbarHome || 'Accueil'}
+          </button>
+          <button type="button" className="db-topbar-link" onClick={onGoPricing}>
+            {s.pricing?.topbarCurrent || 'Tarifs'}
+          </button>
+          <span className="db-topbar-current" aria-current="page">
+            {s.sidebar?.dashboardLink || 'Tableau de bord'}
+          </span>
+          <div className="sb-lang-switch" role="group" aria-label="Langue / Language">
+            <button
+              type="button"
+              className={lang === 'fr' ? 'on' : ''}
+              onClick={() => setLang('fr')}
+              aria-pressed={lang === 'fr'}
+            >FR</button>
+            <button
+              type="button"
+              className={lang === 'en' ? 'on' : ''}
+              onClick={() => setLang('en')}
+              aria-pressed={lang === 'en'}
+            >EN</button>
+          </div>
+        </nav>
+      </header>
+
+      {/* Rail utilitaire bas-gauche — Réglages + Déconnexion en pictos.
+          Positionné en fixed pour rester au même endroit quel que soit
+          le scroll, aligné avec le logo (même left padding) et calé
+          au-dessus du player (qui occupe les ~76px du bas). */}
+      <div className="db-utility-rail" aria-label="Outils du compte">
+        <button
+          type="button"
+          className="db-utility-btn"
+          onClick={onGoReglages}
+          aria-label={s.sidebar?.reglages || 'Réglages'}
+          title={s.sidebar?.reglages || 'Réglages'}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="db-utility-btn"
+          onClick={onSignOut}
+          aria-label={s.sidebar?.signOut || 'Se déconnecter'}
+          title={s.sidebar?.signOut || 'Se déconnecter'}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+
+      <style>{`
+        /* DASHBOARD BACKGROUND ORBES — superposition à l'ambient-halo
+           global. Identique à .landing-screen::before / .pr-screen::before.
+           position: fixed, drift 28s, opacité raisonnable. */
+        .db-bg-orbs {
+          position: fixed; inset: 0;
+          pointer-events: none;
+          z-index: 0;
+          /* Opacités majorées vs landing/pricing (.10/.11/.09 → .15/.17/.14)
+             pour compenser le fait que les cards du dashboard couvrent
+             les zones où les orbes shineraient sur les pages plus
+             aérées. */
+          background:
+            radial-gradient(ellipse 50% 38% at 18% 22%, rgba(92,184,204,0.15), transparent 70%),
+            radial-gradient(ellipse 42% 50% at 82% 48%, rgba(245,166,35,0.17), transparent 70%),
+            radial-gradient(ellipse 50% 40% at 30% 82%, rgba(166,126,245,0.14), transparent 70%);
+          animation: db-bg-drift 28s ease-in-out infinite alternate;
+        }
+        @keyframes db-bg-drift {
+          0%   { transform: translate3d(0, 0, 0); }
+          100% { transform: translate3d(-2.5%, 1.5%, 0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .db-bg-orbs { animation: none; }
+        }
+
+        /* DASHBOARD TOPBAR — calé sur .lp-topbar / .pr-topbar (logo 38,
+           wordmark 27, padding 22/18, nav pill mono). Ajout d'un lien
+           "soft" pour la déconnexion (typo plus discrète, distance des
+           liens nav). */
+        .db-topbar {
+          position: relative; z-index: 2;
+          padding: 22px 18px;
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 24px;
+        }
+        .db-topbar-brand {
+          display: inline-flex; align-items: center; gap: 8px;
+          background: transparent; border: 0; cursor: pointer;
+          padding: 0; border-radius: 8px;
+          transition: opacity .15s;
+          flex-shrink: 0;
+        }
+        .db-topbar-brand:hover { opacity: 0.82; }
+        .db-topbar-logo { height: 38px; width: auto; filter: drop-shadow(0 0 16px rgba(245,166,35,0.18)); }
+        .db-topbar-wordmark { font-family: var(--body); font-weight: 700; font-size: 27px; letter-spacing: -0.5px; color: var(--text); line-height: 1; }
+        .db-topbar-wordmark .accent { color: var(--amber); font-style: normal; }
+        .db-topbar-nav { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+        .db-topbar-link, .db-topbar-current {
+          font-family: var(--mono); font-size: 11px; font-weight: 500;
+          letter-spacing: 1.6px; text-transform: uppercase;
+          padding: 9px 16px; border-radius: 999px;
+          transition: all .15s;
+        }
+        .db-topbar-link {
+          background: transparent; color: var(--text-soft, var(--muted));
+          border: 1px solid transparent; cursor: pointer;
+        }
+        .db-topbar-link:hover {
+          color: var(--text); background: rgba(255,255,255,0.04);
+          border-color: rgba(255,255,255,0.10);
+        }
+        .db-topbar-current {
+          color: var(--amber);
+          background: rgba(245,166,35,0.06);
+          border: 1px solid rgba(245,166,35,0.32);
+        }
+
+        /* RAIL UTILITAIRE BAS-GAUCHE — picto Réglages + Déconnexion.
+           Position fixed pour rester aligné avec le logo (même left
+           padding 18px) quel que soit le scroll. Calé au-dessus du
+           player (76px de hauteur + 16px d'air = ~92px du bas). */
+        .db-utility-rail {
+          position: fixed;
+          left: 18px;
+          bottom: 92px;
+          z-index: 10;
+          display: inline-flex; align-items: center; gap: 8px;
+        }
+        .db-utility-btn {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 36px; height: 36px;
+          background: rgba(20, 20, 22, 0.6);
+          border: 1px solid var(--border);
+          border-radius: 999px;
+          color: var(--muted);
+          cursor: pointer;
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          transition: color .15s, border-color .15s, background .15s, transform .15s;
+        }
+        .db-utility-btn:hover {
+          color: var(--text);
+          border-color: rgba(255, 255, 255, 0.20);
+          background: rgba(255, 255, 255, 0.04);
+          transform: translateY(-1px);
+        }
+        .db-utility-btn:focus-visible {
+          outline: 2px solid var(--amber);
+          outline-offset: 2px;
+        }
+        /* Mobile : on cache le rail (le MobileMenu gère déjà ces actions) */
+        @media (max-width: 768px), (max-height: 500px) {
+          .db-utility-rail { display: none; }
+        }
+        /* Mobile/responsive — la topbar mobile est gérée par MobileMenu,
+           mais si jamais ce topbar s'affiche sur tablette intermédiaire,
+           on raccourcit. */
+        @media (max-width: 720px) {
+          .db-topbar { padding: 16px 14px; gap: 12px; }
+          .db-topbar-wordmark { font-size: 22px; }
+          .db-topbar-logo { height: 28px; }
+          .db-topbar-link, .db-topbar-current {
+            font-size: 10px; letter-spacing: 1.2px;
+            padding: 7px 12px;
+          }
+        }
+      `}</style>
+    </>
+  );
+}
+
 function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onAnalyze, onSelectVersion, onOpenFiche, onPlay, onToggle, onNext, playerState, projects = [], projectsLoaded = false, onMutate, addModalOpen, setAddModalOpen, addModalCtx = null, setAddModalCtx }) {
   const { lang, s } = useLang();
   const pool = (fr, en) => (lang === 'en' ? en : fr);
@@ -636,6 +850,29 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       document.removeEventListener('keydown', onEsc);
     };
   }, [openProjectMenuId]);
+
+  // ── Animations d'entrée au scroll ─────────────────────────────────
+  // Mécanique identique à pricing/landing : un IntersectionObserver
+  // ajoute la classe .wh-anim-in aux .wh-anim quand ils entrent dans le
+  // viewport (15% de profondeur), animate-once via unobserve.
+  // Re-attache l'observer quand projectsLoaded passe à true (parce que
+  // la home rend des listes de projets/tracks après ce flag, et leurs
+  // cards .wh-anim apparaissent à ce moment-là).
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return;
+    const els = document.querySelectorAll('.wh-anim:not(.wh-anim-in)');
+    if (!els.length) return;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('wh-anim-in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0, rootMargin: '0px 0px -15% 0px' });
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [projectsLoaded, projects]);
 
   // Liste à plat de tous les titres (pour le picker "À quel titre ?")
   const allTracks = projects.flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectName: p.name, projectId: p.id })));
@@ -1397,17 +1634,17 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   const desktopStats = (
     <div className="wh-stats">
-      <div className="wh-stat">
+      <div className="wh-stat wh-anim" style={{ '--anim-d': '0ms' }}>
         <div className="wh-stat-label">{s.home.statsTracks}</div>
         <div className="wh-stat-value">{nTitres}</div>
         <div className="wh-stat-hint">{totalProjects} {totalProjects > 1 ? s.home.projectPlural : s.home.projectSingular}</div>
       </div>
-      <div className="wh-stat">
+      <div className="wh-stat wh-anim" style={{ '--anim-d': '80ms' }}>
         <div className="wh-stat-label">{s.home.statsVersions}</div>
         <div className="wh-stat-value">{nVersions}</div>
         <div className="wh-stat-hint">{formatRelative(lastActivityMs)}</div>
       </div>
-      <div className="wh-stat">
+      <div className="wh-stat wh-anim" style={{ '--anim-d': '160ms' }}>
         <div className="wh-stat-label">{s.home.statsAvgScore}</div>
         <div className="wh-stat-value">{avgScore != null ? avgScore : s.home.relativeDash}</div>
         <div className="wh-stat-hint">
@@ -1416,7 +1653,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
             : s.home.statsNoAnalysis}
         </div>
       </div>
-      <div className="wh-stat">
+      <div className="wh-stat wh-anim" style={{ '--anim-d': '240ms' }}>
         <div className="wh-stat-label">{s.home.statsProgress}</div>
         <div className="wh-stat-spark">
           {sparkPath ? (
@@ -1599,11 +1836,6 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         hasContent ? (
           <>
             <div className="wh-intro">
-              <div className="wh-eyebrow">
-                {nTitres === 1
-                  ? s.home.heroEyebrowActiveSingle.replace('{name}', displayName || '')
-                  : s.home.heroEyebrowActive.replace('{name}', displayName || '').replace('{n}', String(nTitres))}
-              </div>
               <div className="wh-intro-row">
                 <h1 className="wh-slogan">
                   <span className="wh-slogan-line">{s.home.sloganStart}<em>{s.home.sloganEm}</em>,</span><br />{s.home.sloganEnd.replace(/^,\s*/, '')}
@@ -1611,10 +1843,17 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 <div className="wh-tagline-text">{renderTagline(homeTagline)}</div>
               </div>
             </div>
+            {/* Eyebrow d'accueil — sorti de .wh-intro et placé juste
+                avant les 4 cards stats (refonte 2026-04-29). */}
+            <div className="wh-eyebrow wh-eyebrow-floating wh-anim">
+              {nTitres === 1
+                ? s.home.heroEyebrowActiveSingle.replace('{name}', displayName || '')
+                : s.home.heroEyebrowActive.replace('{name}', displayName || '').replace('{n}', String(nTitres))}
+            </div>
             {desktopStats}
             <div className="wh-cols">
-              <div className="wh-col-left">{projectsAccordion}</div>
-              <div className="wh-col-right">
+              <div className="wh-col-left wh-anim" style={{ '--anim-d': '320ms' }}>{projectsAccordion}</div>
+              <div className="wh-col-right wh-anim" style={{ '--anim-d': '420ms' }}>
                 {userBlock}
                 {knowBlock}
               </div>
@@ -1627,15 +1866,18 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 Home "compte neuf" et la Home habituelle, et évite la duplication
                 du knowBlock qui existait dans l'ancienne branche. */}
             <div className="wh-intro">
-              <div className="wh-eyebrow">
-                {(s.home.heroEyebrowWelcome || '').replace('{name}', displayName || '').trim()}
-              </div>
               <div className="wh-intro-row">
                 <h1 className="wh-slogan">
                   <span className="wh-slogan-line">{s.home.sloganStart}<em>{s.home.sloganEm}</em>,</span><br />{s.home.sloganEnd.replace(/^,\s*/, '')}
                 </h1>
                 <div className="wh-tagline-text">{renderTagline(homeTagline)}</div>
               </div>
+            </div>
+            {/* Eyebrow "Bienvenue {name}…" — sorti de .wh-intro pour être
+                cohérent avec la version "hasContent" : juste avant le bloc
+                onboarding qui suit. */}
+            <div className="wh-eyebrow wh-eyebrow-floating wh-anim">
+              {(s.home.heroEyebrowWelcome || '').replace('{name}', displayName || '').trim()}
             </div>
             {desktopOnboarding}
             {totalProjects === 0 ? (
@@ -1646,13 +1888,13 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 className="wh-cols"
                 style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}
               >
-                <div className="wh-col-left">{userBlock}</div>
-                <div className="wh-col-right">{knowBlock}</div>
+                <div className="wh-col-left wh-anim" style={{ '--anim-d': '160ms' }}>{userBlock}</div>
+                <div className="wh-col-right wh-anim" style={{ '--anim-d': '240ms' }}>{knowBlock}</div>
               </div>
             ) : (
               <div className="wh-cols">
-                <div className="wh-col-left">{projectsAccordion}</div>
-                <div className="wh-col-right">
+                <div className="wh-col-left wh-anim" style={{ '--anim-d': '160ms' }}>{projectsAccordion}</div>
+                <div className="wh-col-right wh-anim" style={{ '--anim-d': '240ms' }}>
                   {userBlock}
                   {knowBlock}
                 </div>
@@ -2117,13 +2359,16 @@ function VersionsAppAuthed() {
   const prevScreenRef = useRef(null);
   const scrollContentRef = useRef(null);
 
-  // À chaque changement d'écran, on remonte tout en haut du container de contenu
-  // (sinon on garde la position de scroll de l'écran précédent — gênant quand on
-  // revient sur la home alors qu'on avait scrollé dans une fiche).
+  // À chaque changement d'écran, on remonte tout en haut. Selon le layout :
+  //   - Layout sidebar (fiche, admin…) : c'est scrollContentRef qui scrolle
+  //   - Layout topbar (welcome) : c'est window qui scrolle (page nat. fluide)
+  // On reset les deux pour couvrir les 2 cas sans avoir à connaître ici
+  // quel layout est en cours.
   useEffect(() => {
     if (scrollContentRef.current) {
       scrollContentRef.current.scrollTop = 0;
     }
+    try { window.scrollTo({ top: 0, left: 0, behavior: 'auto' }); } catch {}
   }, [screen]);
 
   // Le BottomPlayer est maintenant toujours rendu (sticky bas de page),
@@ -2204,6 +2449,24 @@ function VersionsAppAuthed() {
   // Projet courant — synchronise l'accordéon Sidebar ↔ Home, et sert de scope
   // à la playlist du player. null = aucun projet explicitement ouvert.
   const [currentProjectId, setCurrentProjectId] = useState(null);
+
+  // Au 1ᵉʳ chargement complet des projets, on ouvre automatiquement le premier
+  // pour éviter le déséquilibre visuel avec la colonne de recommandations qui
+  // est plus haute. Si l'utilisateur ferme manuellement ensuite, on respecte
+  // son choix (un ref bloque les ré-ouvertures auto après le 1ᵉʳ run).
+  const initialProjectOpenedRef = useRef(false);
+  useEffect(() => {
+    if (initialProjectOpenedRef.current) return;
+    if (projectsLoaded && projects.length > 0) {
+      // Auto-open seulement si rien n'est déjà ouvert (sinon on respecte
+      // l'état hérité, ex: deep-link vers une fiche). Le ref se ferme
+      // dans tous les cas pour ne plus jamais rouvrir auto après ça.
+      if (currentProjectId === null) {
+        setCurrentProjectId(projects[0].id);
+      }
+      initialProjectOpenedRef.current = true;
+    }
+  }, [projectsLoaded, projects, currentProjectId]);
 
   // ── User profile (avatar, prénom…) ──
   const [userProfile, setUserProfile] = useState(null);
@@ -3207,16 +3470,37 @@ function VersionsAppAuthed() {
     );
   }
 
-  // On desktop, the sidebar shows the tracks list so we don't need the "versions" screen
-  const showSidebar = isDesktop;
+  // On desktop, the sidebar shows the tracks list so we don't need the "versions" screen.
+  // Exception (test 2026-04-29) : sur le DASHBOARD ('welcome'), on bascule en
+  // layout topbar comme la landing / pricing — pas de sidebar. Les autres
+  // écrans authentifiés (fiche, versions, admin) gardent la sidebar pour
+  // l'instant. La sidebar pourrait à terme être réservée aux fiches
+  // d'analyse uniquement.
+  const showSidebar = isDesktop && screen !== 'welcome';
   const contentMarginLeft = showSidebar ? SIDEBAR_WIDTH : 0;
+  // Topbar desktop pour les écrans sans sidebar (welcome) — affichage
+  // gated sur isDesktop pour ne pas doublonner avec MobileMenu.
+  const showDesktopTopbar = isDesktop && !showSidebar && !!user;
 
   return (
     <LangContext.Provider value={{ lang, s, setLang, t }}>
       <FontLink />
       <GlobalStyles />
       <MockupStyles />
-<div className={showSidebar ? "app" : "dapp"}>
+<div
+        className={showSidebar ? "app" : "dapp"}
+        style={
+          /* En mode topbar (welcome desktop), on override les règles
+             .dapp de GlobalStyles qui forcent height: 100vh + overflow:
+             hidden — sinon la page entière ne peut pas scroller (le
+             topbar resterait visuellement "sticky" parce que le scroll
+             est piégé en interne). En layout sidebar/mobile, on laisse
+             le comportement par défaut. */
+          showDesktopTopbar
+            ? { height: 'auto', minHeight: '100vh', overflow: 'visible' }
+            : undefined
+        }
+      >
         {/* Desktop Sidebar */}
         {showSidebar && (
           <Sidebar
@@ -3261,6 +3545,23 @@ function VersionsAppAuthed() {
               user={user}
               userProfile={userProfile}
               onAdd={() => setHomeAddOpen(true)}
+            />
+          )}
+
+          {/* Desktop topbar pour les écrans sans sidebar (welcome).
+              Calé sur le topbar de la landing / pricing : logo + wordmark à
+              gauche, nav (Accueil / Tableau de bord current / Tarifs /
+              Réglages / Déconnexion / FR/EN) à droite. */}
+          {showDesktopTopbar && (
+            <DashboardTopbar
+              currentScreen={screen}
+              onGoLanding={() => setScreen('home')}
+              onGoDashboard={() => setScreen('welcome')}
+              onGoPricing={() => setScreen('pricing')}
+              onGoReglages={() => setReglagesOpen(true)}
+              onSignOut={signOut}
+              lang={lang}
+              setLang={setLang}
             />
           )}
 
@@ -3317,9 +3618,31 @@ function VersionsAppAuthed() {
             />
           )}
 
-          {/* Content */}
-          <div ref={scrollContentRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: 80 }}>
-            {renderContent()}
+          {/* Content
+              Deux modes de scroll selon le layout :
+                - Layout sidebar (fiche, admin…) : le scrollContentRef
+                  scrolle (overflowY auto, flex 1, minHeight 0). La
+                  sidebar reste sticky.
+                - Layout topbar (welcome) : le scroll est délégué à la
+                  page entière (window). Le topbar défile naturellement
+                  avec le contenu, plus de "topbar fixe en haut" qui
+                  dérangeait. Le contenu est borné à 1180px centré
+                  (cf. .lp-section / .pr-section). */}
+          <div
+            ref={scrollContentRef}
+            style={
+              showDesktopTopbar
+                ? { display: "flex", flexDirection: "column", width: "100%", paddingBottom: 80 }
+                : { flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: 80 }
+            }
+          >
+            {showDesktopTopbar ? (
+              <div style={{ width: "100%", maxWidth: 1180, margin: "0 auto", padding: "0 24px", display: "flex", flexDirection: "column" }}>
+                {renderContent()}
+              </div>
+            ) : (
+              renderContent()
+            )}
           </div>
 
           {/* Bottom Player — toujours présent (sticky), y compris sur la home.
