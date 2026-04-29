@@ -104,6 +104,7 @@ export default function AdminScreen() {
   const dailySeries = useMemo(() => computeDailySeries(logs, 30), [logs]);
   const topUsers = useMemo(() => computeTopUsers(logs, 10, userStats), [logs, userStats]);
   const fadrMonth = useMemo(() => computeFadrMonth(logs), [logs]);
+  const stripeStats = useMemo(() => computeStripeStats(revenue, 30), [revenue]);
 
   const isAdmin = !!ADMIN_EMAIL && user?.email?.toLowerCase() === ADMIN_EMAIL;
 
@@ -185,24 +186,24 @@ export default function AdminScreen() {
             <div className="cost-kpi-grid">
               {isLiveBusiness && (
                 <KpiCard
-                  label="Recettes 30j"
-                  value={fmtEur(globalStats?.total_revenue_30d || 0)}
-                  sub={`Total all-time : ${fmtEur(globalStats?.total_revenue_all_time || 0)}`}
+                  label="Recettes nettes 30j"
+                  value={fmtEur(stripeStats.net_30d)}
+                  sub={`Brut TTC : ${fmtEur(stripeStats.brut_30d)} · frais Stripe : ${fmtEur(stripeStats.fees_30d)}`}
                   tone="mint"
                 />
               )}
               <KpiCard
-                label="Coûts 30j"
+                label="Coûts API 30j"
                 value={fmtEur(globalStats?.total_cost_30d || 0)}
                 sub={`Total all-time : ${fmtEur(globalStats?.total_cost_all_time || 0)}`}
                 tone="amber"
               />
               {isLiveBusiness && (
                 <KpiCard
-                  label="Balance 30j"
-                  value={fmtEur(globalStats?.balance_30d || 0)}
-                  sub={(globalStats?.balance_30d || 0) >= 0 ? 'Rentable ✓' : 'Déficit en cours'}
-                  tone={(globalStats?.balance_30d || 0) >= 0 ? 'mint' : 'red'}
+                  label="Balance nette 30j"
+                  value={fmtEur(stripeStats.net_30d - (globalStats?.total_cost_30d || 0))}
+                  sub={(stripeStats.net_30d - (globalStats?.total_cost_30d || 0)) >= 0 ? 'Rentable ✓ (frais déduits)' : 'Déficit en cours'}
+                  tone={(stripeStats.net_30d - (globalStats?.total_cost_30d || 0)) >= 0 ? 'mint' : 'red'}
                 />
               )}
               {!isLiveBusiness && (
@@ -685,6 +686,29 @@ function computeTopUsers(logs, limit, userStats = []) {
     .map((u) => ({ ...u, email: emailByUid.get(u.userId) || null }))
     .sort((a, b) => b.total - a.total)
     .slice(0, limit);
+}
+
+// computeStripeStats — agrège les recettes sur N jours :
+// brut TTC encaissé, frais Stripe (= brut - net), recettes nettes.
+// La col `net_eur` est calculée par le webhook backend avec une approximation
+// 1,5% + 0,25 € (cartes EEE). Pour les cartes UK (2,5% + 0,25 €) le chiffre
+// peut être un peu surévalué. Pour la précision réelle, on récupèrera les
+// `balance_transaction.fee` Stripe quand on en aura besoin.
+function computeStripeStats(revenue, days = 30) {
+  const cutoff = Date.now() - days * 86400 * 1000;
+  let brut_30d = 0;
+  let net_30d = 0;
+  let count_30d = 0;
+  for (const r of revenue || []) {
+    const t = new Date(r.created_at).getTime();
+    if (Number.isFinite(t) && t >= cutoff) {
+      brut_30d += Number(r.amount_eur || 0);
+      net_30d += Number(r.net_eur != null ? r.net_eur : r.amount_eur || 0);
+      count_30d += 1;
+    }
+  }
+  const fees_30d = brut_30d - net_30d;
+  return { brut_30d, net_30d, fees_30d, count_30d };
 }
 
 // computeFadrMonth — agrège la conso Fadr du mois en cours :
