@@ -4,7 +4,7 @@
 -- Décisions cadrées avec David (2026-04-29) :
 --   1. Free tier : 1 crédit offert au signup (en monétisation). Pendant la
 --      phase test (avant branchement Stripe), tous les users démarrent à
---      999 crédits — c'est purement visuel, le pipeline ne décrémente pas.
+--      99 crédits — c'est purement visuel, le pipeline ne décrémente pas.
 --   2. Crédits issus de packs : pas d'expiration. Disparaissent uniquement
 --      à la suppression du compte (ON DELETE CASCADE).
 --   3. Crédits issus d'abonnements : reset chaque mois (pas de cumul). À
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS public.credit_events (
     'subscription_grant',     -- crédits mensuels d'un abo
     'subscription_reset',     -- expiration des crédits abo (delta négatif)
     'manual_admin',           -- ajustement manuel via admin
-    'seed_test_phase'         -- backfill phase test (999 crédits)
+    'seed_test_phase'         -- backfill phase test (99 crédits)
   )),
   job_id TEXT,                          -- ref vers analysis_cost_logs.job_id
   stripe_event_id TEXT UNIQUE,          -- pour idempotence webhooks Stripe
@@ -109,7 +109,7 @@ CREATE POLICY credit_events_select_self ON public.credit_events
 -- RPC get_or_create_user_credits
 -- Lue par le front à chaque login pour s'assurer qu'une ligne
 -- existe et récupérer le balance courant. Crée la ligne avec
--- 999 crédits seed pendant la phase test.
+-- 99 crédits seed pendant la phase test.
 -- ─────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.get_or_create_user_credits()
 RETURNS TABLE (
@@ -119,9 +119,9 @@ RETURNS TABLE (
 ) AS $$
 DECLARE
   uid UUID := auth.uid();
-  -- Pendant la phase test : 999 crédits initiaux pour tout le monde.
+  -- Pendant la phase test : 99 crédits initiaux pour tout le monde.
   -- À ajuster (1 crédit) le jour où on switch en monétisation.
-  seed_amount INTEGER := 999;
+  seed_amount INTEGER := 99;
 BEGIN
   IF uid IS NULL THEN
     RAISE EXCEPTION 'not authenticated';
@@ -149,17 +149,17 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 GRANT EXECUTE ON FUNCTION public.get_or_create_user_credits() TO authenticated;
 
 -- ─────────────────────────────────────────────────────────────
--- Backfill : seed 999 crédits pour tous les utilisateurs existants
+-- Backfill : seed 99 crédits pour tous les utilisateurs existants
 -- (uniquement ceux qui n'ont pas encore de ligne user_credits).
 -- ─────────────────────────────────────────────────────────────
 INSERT INTO public.user_credits (user_id, balance_remaining)
-SELECT u.id, 999
+SELECT u.id, 99
 FROM auth.users u
 LEFT JOIN public.user_credits uc ON uc.user_id = u.id
 WHERE uc.id IS NULL;
 
 INSERT INTO public.credit_events (user_id, delta, reason, notes)
-SELECT u.id, 999, 'seed_test_phase',
+SELECT u.id, 99, 'seed_test_phase',
        'Backfill migration 016 : phase test, seed initial avant Stripe.'
 FROM auth.users u
 LEFT JOIN public.credit_events ce
