@@ -831,6 +831,12 @@ const STRINGS = {
       settingsLink: "Réglages",
       signOut: "Se déconnecter",
       premiumBadge: "Premium",
+      // Affichage du solde sous le nom d'utilisateur. Phase test : tous
+      // les comptes démarrent à 999 crédits, la logique de débit/refund
+      // n'est pas branchée tant que Stripe n'est pas live.
+      creditsLoading: "—",
+      creditsSingular: "1 crédit",
+      creditsPlural: "{count} crédits",
     },
 
     /* ─────────────── PLAYER ─────────────── */
@@ -2069,6 +2075,12 @@ const STRINGS = {
       settingsLink: "Settings",
       signOut: "Sign out",
       premiumBadge: "Premium",
+      // Credit balance shown under the user name. Test phase: every
+      // account starts at 999, debit/refund pipeline is not wired
+      // until Stripe is live.
+      creditsLoading: "—",
+      creditsSingular: "1 credit",
+      creditsPlural: "{count} credits",
     },
 
     /* ─────────────── PLAYER ─────────────── */
