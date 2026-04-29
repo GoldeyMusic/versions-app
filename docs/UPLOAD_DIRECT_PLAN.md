@@ -47,15 +47,23 @@ Reprendre dans cet ordre :
 
 Le plan détaillé original (endpoint sign-upload, RLS SQL, refactor LoadingScreen) reste valide et exécutable en ~30 min puisque le backend est déjà prêt.
 
-## Architecture cible long-terme
+## Architecture cible court-terme : migration Vercel-only
 
-À mesure que l'app grandit, l'upload direct redeviendra pertinent :
+David envisage de migrer sur Vercel-only à court terme pour économiser le coût Railway Hobby (~$10/mois) et avoir une stack serverless homogène. Le déclencheur est principalement économique : Railway Hobby = $5 base + $5-10 d'usage = $10-15/mois en plus de Supabase Pro.
 
-- Si un utilisateur uploade un mix qui pousse Railway en OOM (Railway a 512 Mo RAM par défaut sur Hobby).
-- Si le pricing Vercel serverless devient économiquement plus intéressant.
-- Si on veut éliminer Railway de l'archi pour ne dépendre que de Supabase + Vercel.
+**Pré-requis avant de basculer :**
 
-À ce moment-là, on suit le plan ci-dessus + on déplace le job state en table Supabase (au lieu d'un `Map` en RAM Railway) pour rendre Vercel/Railway interchangeables.
+1. **Pousser la Global file size limit Supabase à ≥ 100 Mo** (Settings → Storage, désormais éditable sur Pro).
+2. **Réactiver le code frontend upload direct** : récupérer le code dans l'historique git autour de `e2343a0` (commit "loading: utiliser supabase.storage.uploadToSignedUrl") et le restaurer dans `src/screens/LoadingScreen.jsx`.
+3. **Repointer `src/constants/api.js`** sur `https://decode-kappa.vercel.app`.
+4. **Repointer le webhook Stripe** vers cette URL Vercel dans le Dashboard Stripe (uniquement si on flippe MONETIZATION_ENABLED=true en même temps).
+5. **Vérifier que les env vars Stripe** sont bien sur Vercel (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, APP_BASE_URL, MONETIZATION_ENABLED).
+6. **Tester avec un gros WAV** sur l'env preview Vercel avant de basculer en prod.
+7. **Couper Railway** une fois Vercel validé en prod (économie immédiate).
+
+**Trade-off à valider** : l'upload direct double l'egress Supabase pour les sources audio (entrée du WAV puis sortie vers le backend pour traitement). Sur Pro, 250 Go inclus = très large pour le stade actuel — ~3700 uploads de 67 Mo/mois avant de payer le débordement à $0,09/Go.
+
+**Précaution scaling** : à mesure que le trafic monte, on déplacera probablement le job state (le `jobs Map` en RAM dans `_analyze.js`) en table Supabase. Ça permettra d'avoir plusieurs invocations Vercel concurrentes sans perdre les jobs en cours.
 
 ## Historique des commits liés
 - `10bda82` (matin du 2026-04-29) : migration API URL Railway → Vercel. Casse les uploads > 4,5 Mo, non détecté en review.
