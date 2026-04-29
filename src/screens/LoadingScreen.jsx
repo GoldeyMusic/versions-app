@@ -215,59 +215,108 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           }
         }
 
-        // Récupère l'utilisateur courant pour l'upload Supabase Storage côté backend
+        // Récupère l'utilisateur courant pour décider du flow d'upload.
+        // Si userId présent : upload direct navigateur → Supabase Storage
+        // (bypass complet de la limite ~4,5 Mo body Vercel serverless).
+        // Sinon : fallback multipart historique (cas rares, ex. anonymous).
         const { data: { session } } = await supabase.auth.getSession();
         const userId = session?.user?.id || null;
         console.log('[analyze] userId:', userId);
 
-        // Build FormData
-        const formData = new FormData();
-        if (config.file) formData.append("file", config.file);
-        if (config.refFile) formData.append("refFile", config.refFile);
-        formData.append("daw", config.daw || "Logic Pro");
-        formData.append("title", config.title || "Titre inconnu");
-        formData.append("version", config.version || "v1");
-        // Type vocal du titre — permet au backend (Railway) d'adapter les prompts
-        // IA (ton bienveillant pour 'pending', section voix ignorée pour 'final').
-        // Défaut 'vocal' pour compat avec les titres existants.
-        formData.append("vocalType", config.vocalType || "vocal");
-        // Langue cible pour les textes de la fiche (labels, verdict, summary…).
-        formData.append("locale", lang || 'fr');
-        if (userId) formData.append("userId", userId);
-        if (previousFiche) formData.append("previousFiche", JSON.stringify(previousFiche));
-        if (previousAnalysisResult) {
-          formData.append("previousAnalysisResult", JSON.stringify(previousAnalysisResult));
-        }
-        if (previousCompletions && previousCompletions.length) {
-          formData.append("previousCompletions", JSON.stringify(previousCompletions));
-        }
-        if (durationSeconds) formData.append("durationSeconds", String(durationSeconds));
-
-        // ── Gestion du feature flag intention ──
-        // - Flag OFF               → skipIntent=true (backend enchaîne direct, comme avant)
-        // - Flag ON + inlineIntent → intent=<texte> (backend enchaîne avec intention)
-        // - Flag ON sans inline    → pas de skipIntent, le backend passera par awaiting_intent
-        if (!INTENT_ENABLED) {
-          formData.append("skipIntent", "true");
-        } else if (config.inlineIntent) {
-          formData.append("intent", config.inlineIntent);
-        }
-
-        // Genre musical (saisi à l'upload, à côté du DAW). Deux modes mutuellement
-        // exclusifs côté UI :
-        //  - declaredGenre = texte court → vérité déclarée par l'artiste, calibre Claude
-        //  - genreUnknown = true         → l'artiste a cliqué "Choisir automatiquement",
-        //                                   Claude infère depuis l'écoute Gemini déjà faite
-        //                                   et émet le résultat dans inferred_genre
-        if (config.declaredGenre) formData.append("declaredGenre", config.declaredGenre);
-        if (config.genreUnknown) formData.append("genreUnknown", "true");
-
-        // Start the analysis job
         setPhase(1);
-        const startRes = await fetch(`${API}/api/analyze/start`, {
-          method: "POST",
-          body: formData,
-        });
+        let startRes;
+
+        if (userId && config.file) {
+          // ─── UPLOAD DIRECT NAVIGATEUR → SUPABASE ─────────────────────
+          // 1. Demander une URL signée d'upload au backend
+          const fileExt = (config.file.name?.split('.').pop() || 'wav').toLowerCase();
+          const signRes = await fetch(`${API}/api/storage/sign-upload`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, ext: fileExt }),
+          });
+          if (!signRes.ok) {
+            throw new Error(s.loading.errorStart.replace('{status}', `sign-upload ${signRes.status}`));
+          }
+          const { storagePath, uploadUrl } = await signRes.json();
+          console.log('[analyze] direct upload to', storagePath);
+
+          // 2. PUT direct vers Supabase Storage — c'est ICI que le gros
+          //    fichier voyage, sans repasser par Vercel ou Railway.
+          const putRes = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': config.file.type || 'application/octet-stream' },
+            body: config.file,
+          });
+          if (!putRes.ok) {
+            throw new Error(`Supabase upload failed (HTTP ${putRes.status})`);
+          }
+
+          // 3. Démarrer le job avec un body JSON minuscule (quelques centaines
+          //    d'octets max), donc plus aucune chance de cogner la limite
+          //    body Vercel. Les champs structurés (previousFiche, etc.) sont
+          //    stringifiés pour rester compatibles avec le backend qui fait
+          //    `JSON.parse(req.body.previousFiche)` côté FormData historique.
+          const startBody = {
+            storagePath,
+            daw: config.daw || 'Logic Pro',
+            title: config.title || 'Titre inconnu',
+            version: config.version || 'v1',
+            vocalType: config.vocalType || 'vocal',
+            locale: lang || 'fr',
+            userId,
+          };
+          if (durationSeconds) startBody.durationSeconds = durationSeconds;
+          if (previousFiche) startBody.previousFiche = JSON.stringify(previousFiche);
+          if (previousAnalysisResult) startBody.previousAnalysisResult = JSON.stringify(previousAnalysisResult);
+          if (previousCompletions && previousCompletions.length) {
+            startBody.previousCompletions = JSON.stringify(previousCompletions);
+          }
+          if (!INTENT_ENABLED) startBody.skipIntent = 'true';
+          else if (config.inlineIntent) startBody.intent = config.inlineIntent;
+          if (config.declaredGenre) startBody.declaredGenre = config.declaredGenre;
+          if (config.genreUnknown) startBody.genreUnknown = 'true';
+
+          startRes = await fetch(`${API}/api/analyze/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(startBody),
+          });
+        } else {
+          // ─── FALLBACK MULTIPART HISTORIQUE ─────────────────────────────
+          // Utilisé si pas de userId (cas edge anonymes) ou si pas de
+          // fichier (cas resume gérés ailleurs). Reste sujet à la limite
+          // body Vercel ~4,5 Mo — mais ces cas n'envoient pas de gros WAV.
+          const formData = new FormData();
+          if (config.file) formData.append("file", config.file);
+          if (config.refFile) formData.append("refFile", config.refFile);
+          formData.append("daw", config.daw || "Logic Pro");
+          formData.append("title", config.title || "Titre inconnu");
+          formData.append("version", config.version || "v1");
+          formData.append("vocalType", config.vocalType || "vocal");
+          formData.append("locale", lang || 'fr');
+          if (userId) formData.append("userId", userId);
+          if (previousFiche) formData.append("previousFiche", JSON.stringify(previousFiche));
+          if (previousAnalysisResult) {
+            formData.append("previousAnalysisResult", JSON.stringify(previousAnalysisResult));
+          }
+          if (previousCompletions && previousCompletions.length) {
+            formData.append("previousCompletions", JSON.stringify(previousCompletions));
+          }
+          if (durationSeconds) formData.append("durationSeconds", String(durationSeconds));
+          if (!INTENT_ENABLED) {
+            formData.append("skipIntent", "true");
+          } else if (config.inlineIntent) {
+            formData.append("intent", config.inlineIntent);
+          }
+          if (config.declaredGenre) formData.append("declaredGenre", config.declaredGenre);
+          if (config.genreUnknown) formData.append("genreUnknown", "true");
+
+          startRes = await fetch(`${API}/api/analyze/start`, {
+            method: "POST",
+            body: formData,
+          });
+        }
         if (!startRes.ok) {
           // 413 a deux origines très différentes :
           //  - notre backend renvoie 413 + JSON { receivedSeconds } quand
