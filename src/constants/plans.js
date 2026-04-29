@@ -42,7 +42,11 @@ export const PACKS = [
     credits: 10,
     perUnit: 3.49,
     priceIdEnv: 'VITE_STRIPE_PRICE_PACK_10',
-    highlight: 'Le plus choisi',
+    // highlightKey : clé i18n résolue en runtime (s.pricing.ribbons[key]).
+    // 'mostChosen' = "Le plus choisi" / "Most chosen". Pilote aussi le
+    // styling featured (cf. PricingScreen).
+    highlightKey: 'mostChosen',
+    highlight: null,
   },
   {
     key: 'pack_25',
@@ -60,7 +64,8 @@ export const PACKS = [
     credits: 50,
     perUnit: 2.79,
     priceIdEnv: 'VITE_STRIPE_PRICE_PACK_50',
-    highlight: 'Le moins cher /unité',
+    highlightKey: 'cheapestPerUnit',
+    highlight: null,
   },
 ];
 

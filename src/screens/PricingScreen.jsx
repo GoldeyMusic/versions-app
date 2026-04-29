@@ -45,6 +45,10 @@ export default function PricingScreen({
 }) {
   const { s, lang, setLang } = useLang();
   const ctaLabel = ctaPrimaryLabel || s?.landing?.ctaPrimary || 'COMMENCER';
+  // Raccourci vers le namespace pricing — la page est traduite intégralement
+  // FR/EN via useLang. Tout texte en dur ici doit avoir une clé sous
+  // s.pricing dans constants/strings.js.
+  const t = s.pricing;
 
   const [user, setUser] = useState(null);
   const [pendingKey, setPendingKey] = useState(null);
@@ -75,7 +79,7 @@ export default function PricingScreen({
     }
     const priceId = getPriceIdForPlan(plan);
     if (!priceId) {
-      setErrMsg('Cette offre n\'est pas encore configurée. Réessaie dans un instant.');
+      setErrMsg(t.errCheckoutNotConfigured);
       return;
     }
     setPendingKey(plan.key);
@@ -104,7 +108,7 @@ export default function PricingScreen({
       window.location.href = url;
     } catch (e) {
       console.error('[pricing] checkout failed:', e);
-      setErrMsg('Erreur de paiement : ' + (e?.message || 'inconnue'));
+      setErrMsg(t.errCheckoutPrefix + (e?.message || t.errUnknown));
       setPendingKey(null);
     }
   }
@@ -119,7 +123,7 @@ export default function PricingScreen({
           type="button"
           className="pr-topbar-brand"
           onClick={onBackToLanding}
-          aria-label="Retour à l'accueil"
+          aria-label={t.topbarBackAria}
         >
           <img src="/logo-versions-2.svg" alt="" className="pr-topbar-logo" />
           <span className="pr-topbar-wordmark">
@@ -128,9 +132,9 @@ export default function PricingScreen({
         </button>
         <nav className="pr-topbar-nav" aria-label="Navigation">
           <button type="button" className="pr-topbar-link" onClick={onBackToLanding}>
-            Accueil
+            {t.topbarHome}
           </button>
-          <span className="pr-topbar-current" aria-current="page">Tarifs</span>
+          <span className="pr-topbar-current" aria-current="page">{t.topbarCurrent}</span>
           {/* Switch FR/EN — même classe (.sb-lang-switch) que la sidebar du
               dashboard pour garder une UI parfaitement uniforme entre les
               deux écrans. */}
@@ -162,14 +166,11 @@ export default function PricingScreen({
       {/* HERO */}
       <section className="pr-hero">
         <div className="pr-hero-inner">
-          <div className="pr-eyebrow">Tarifs</div>
+          <div className="pr-eyebrow">{t.heroEyebrow}</div>
           <h1 className="pr-hero-title">
-            Paie ce que <em>tu mixes</em>.
+            {t.heroTitleStart}<em>{t.heroTitleEm}</em>{t.heroTitleEnd}
           </h1>
-          <p className="pr-hero-sub">
-            Une analyse à l'unité, un pack pour creuser un projet,
-            ou un abonnement dès que tu mixes en série. Pas d'engagement caché.
-          </p>
+          <p className="pr-hero-sub">{t.heroSub}</p>
         </div>
       </section>
 
@@ -180,27 +181,28 @@ export default function PricingScreen({
 
       {/* ── À LA CARTE — 5 packs en cartes verticales compactes ─────── */}
       <section className="pr-section pr-section-tight">
-        <div className="pr-section-eyebrow">À la carte</div>
+        <div className="pr-section-eyebrow">{t.packsEyebrow}</div>
         <h2 className="pr-section-title">
-          Une analyse, un pack, <em>aucun engagement</em>.
+          {t.packsTitleStart}<em>{t.packsTitleEm}</em>{t.packsTitleEnd}
         </h2>
 
         <div className="pr-packs-grid">
           {PACKS.map((p) => {
             const accent = PACK_ACCENT[p.key] || 'cerulean';
-            const isFeatured = p.highlight === 'Le plus choisi';
+            // 'mostChosen' = bouton CTA en mode primary (featured)
+            const isFeatured = p.highlightKey === 'mostChosen';
             const isPending = pendingKey === p.key;
-            const ribbon = p.highlight || null;
+            const ribbonLabel = p.highlightKey ? t.ribbons?.[p.highlightKey] : null;
             return (
               <article
                 key={p.key}
                 className={`pr-pack pr-pack-${accent}${isFeatured ? ' pr-pack-featured' : ''}`}
               >
-                {ribbon && <div className="pr-pack-ribbon">{ribbon}</div>}
+                {ribbonLabel && <div className="pr-pack-ribbon">{ribbonLabel}</div>}
                 <div className="pr-pack-qty">
                   <span className="pr-pack-num">{p.credits}</span>
                   <span className="pr-pack-unit">
-                    {p.credits > 1 ? 'Analyses' : 'Analyse'}
+                    {p.credits > 1 ? t.packAnalysisPlural : t.packAnalysisSingular}
                   </span>
                 </div>
                 <div className="pr-pack-price">
@@ -208,7 +210,7 @@ export default function PricingScreen({
                   <span className="pr-price-currency">€</span>
                 </div>
                 <div className="pr-pack-meta">
-                  <div className="pr-pack-unit-line">{formatPrice(p.perUnit)} €/analyse</div>
+                  <div className="pr-pack-unit-line">{formatPrice(p.perUnit)} {t.packPerUnit}</div>
                 </div>
                 <button
                   type="button"
@@ -216,7 +218,7 @@ export default function PricingScreen({
                   onClick={() => goToCheckout(p)}
                   disabled={isPending}
                 >
-                  {isPending ? 'Redirection…' : 'Acheter'}
+                  {isPending ? t.packRedirecting : t.packBuy}
                 </button>
               </article>
             );
@@ -225,49 +227,51 @@ export default function PricingScreen({
 
         {/* Bandeau "tout est inclus" sous les packs */}
         <div className="pr-included-strip">
-          <span className="pr-included-label">Inclus dans toutes les analyses</span>
-          <span className="pr-included-bullet">Fiche complète</span>
-          <span className="pr-included-bullet">Chat contextuel</span>
-          <span className="pr-included-bullet">Comparaison de versions</span>
-          <span className="pr-included-bullet">Export PDF + Score Card PNG</span>
-          <span className="pr-included-bullet">Suivi d'évolution</span>
+          <span className="pr-included-label">{t.includedLabel}</span>
+          <span className="pr-included-bullet">{t.included1}</span>
+          <span className="pr-included-bullet">{t.included2}</span>
+          <span className="pr-included-bullet">{t.included3}</span>
+          <span className="pr-included-bullet">{t.included4}</span>
+          <span className="pr-included-bullet">{t.included5}</span>
         </div>
       </section>
 
       {/* ── ABONNEMENTS — lignes éditoriales horizontales ───────────── */}
       <section className="pr-section">
-        <div className="pr-section-eyebrow">Abonnements</div>
+        <div className="pr-section-eyebrow">{t.subsEyebrow}</div>
         <h2 className="pr-section-title">
-          Au-delà de 10 analyses, <em>passe en abo</em>.
+          {t.subsTitleStart}<em>{t.subsTitleEm}</em>{t.subsTitleEnd}
         </h2>
-        <p className="pr-section-lede">
-          Une enveloppe d'analyses chaque mois, prix unitaire imbattable.
-          Tu peux changer de palier ou résilier à tout moment.
-        </p>
+        <p className="pr-section-lede">{t.subsLede}</p>
 
         <div className="pr-subs-stack">
           {SUBSCRIPTIONS.map((sub) => {
             const accent = SUB_ACCENT[sub.key] || 'cerulean';
             const isFeatured = sub.key === 'sub_pro';
             const isPending = pendingKey === sub.key;
+            // Description traduite si dispo, sinon fallback sur la copy
+            // FR de plans.js (sécurité : aucun écran cassé si une clé manque).
+            const subDesc = t.subDescriptions?.[sub.key] || sub.description;
+            const subUnitLine = (t.subUnitLine || 'soit {price} €/analyse')
+              .replace('{price}', formatPrice(sub.perUnit));
             return (
               <article
                 key={sub.key}
                 className={`pr-sub pr-sub-${accent}${isFeatured ? ' pr-sub-featured' : ''}`}
               >
-                {isFeatured && <div className="pr-sub-ribbon">Recommandé</div>}
+                {isFeatured && <div className="pr-sub-ribbon">{t.ribbons?.recommended}</div>}
                 <div className="pr-sub-meta">
                   <div className="pr-sub-name">{sub.label}</div>
-                  <div className="pr-sub-tag">{sub.description}</div>
+                  <div className="pr-sub-tag">{subDesc}</div>
                 </div>
                 <div className="pr-sub-allowance">
                   <span className="pr-sub-num">{sub.credits}</span>
-                  <span className="pr-sub-unit">analyses<br />par mois</span>
+                  <span className="pr-sub-unit">{t.subAllowanceLine1}<br />{t.subAllowanceLine2}</span>
                 </div>
                 <div className="pr-sub-price">
                   <span className="pr-price-amount">{formatPrice(sub.price_eur)}</span>
-                  <span className="pr-price-suffix">€<span>/mois</span></span>
-                  <span className="pr-sub-unit-line">soit {formatPrice(sub.perUnit)} €/analyse</span>
+                  <span className="pr-price-suffix">€<span>{t.subPerMonth}</span></span>
+                  <span className="pr-sub-unit-line">{subUnitLine}</span>
                 </div>
                 <button
                   type="button"
@@ -275,7 +279,7 @@ export default function PricingScreen({
                   onClick={() => goToCheckout(sub)}
                   disabled={isPending}
                 >
-                  {isPending ? 'Redirection…' : (isFeatured ? ctaLabel : 'Choisir')}
+                  {isPending ? t.packRedirecting : (isFeatured ? ctaLabel : t.subChoose)}
                 </button>
               </article>
             );
@@ -287,57 +291,35 @@ export default function PricingScreen({
       <section className="pr-section pr-section-school">
         <div className="pr-school">
           <div className="pr-school-text">
-            <div className="pr-school-eyebrow">Écoles &amp; centres de formation</div>
+            <div className="pr-school-eyebrow">{t.schoolEyebrow}</div>
             <h3 className="pr-school-title">
-              Pour les <em>structures</em>, on ajuste sur devis.
+              {t.schoolTitleStart}<em>{t.schoolTitleEm}</em>{t.schoolTitleEnd}
             </h3>
-            <p className="pr-school-lede">
-              Comptes équipe, volume ajusté, accompagnement pédagogique :
-              parlons du besoin réel et on construit l'offre adaptée.
-              Tarifs préférentiels selon le nombre de comptes et d'analyses mensuelles.
-            </p>
+            <p className="pr-school-lede">{t.schoolLede}</p>
           </div>
           <a
-            href={`mailto:${SCHOOL_CONTACT_EMAIL}?subject=${encodeURIComponent('Versions — partenariat école / centre de formation')}`}
+            href={`mailto:${SCHOOL_CONTACT_EMAIL}?subject=${encodeURIComponent(t.schoolMailSubject)}`}
             className="pr-school-cta"
           >
-            Nous contacter
+            {t.schoolCta}
           </a>
         </div>
       </section>
 
       {/* ── FAQ ─────────────────────────────────────────────────────── */}
       <section className="pr-section pr-section-tight">
-        <div className="pr-section-eyebrow">Questions fréquentes</div>
+        <div className="pr-section-eyebrow">{t.faqEyebrow}</div>
         <h2 className="pr-section-title">
-          Avant de te lancer, <em>tu peux tout savoir</em>.
+          {t.faqTitleStart}<em>{t.faqTitleEm}</em>{t.faqTitleEnd}
         </h2>
 
         <div className="pr-faq">
-          <PrFaq
-            q="Mes crédits expirent-ils ?"
-            a="Les crédits achetés via un pack n'expirent jamais — ils restent disponibles tant que ton compte existe. Les crédits inclus dans un abonnement, eux, se rechargent chaque mois et ne sont pas reportables : ce qui n'est pas utilisé sur le mois disparaît au renouvellement. Tes fiches déjà générées, elles, restent à vie dans ton dashboard."
-          />
-          <PrFaq
-            q="Puis-je cumuler un pack et un abonnement ?"
-            a="Oui. Les crédits d'un pack restent disponibles en plus de ton enveloppe mensuelle. On consomme d'abord l'enveloppe abo, puis les crédits du pack — tu ne perds rien."
-          />
-          <PrFaq
-            q="Puis-je résilier mon abonnement à tout moment ?"
-            a="Oui, sans frais. La résiliation prend effet à la fin du mois en cours. Tes fiches déjà générées restent accessibles à vie dans ton dashboard, même après résiliation."
-          />
-          <PrFaq
-            q="Que se passe-t-il si une analyse échoue ?"
-            a="Aucun crédit n'est débité quand une analyse n'aboutit pas. Si on a déjà commencé à débiter et qu'une étape plante, le crédit est restauré automatiquement et tu peux relancer."
-          />
-          <PrFaq
-            q="Y a-t-il une limite de durée par fichier audio ?"
-            a="Oui, 12 minutes maximum par fichier. C'est largement suffisant pour un titre, et ça nous permet de garantir des prix bas en maîtrisant les coûts d'analyse."
-          />
-          <PrFaq
-            q="Les tarifs sont-ils HT ou TTC ?"
-            a="Tous les prix affichés sont TTC (TVA française incluse). Une facture conforme est générée automatiquement après chaque achat."
-          />
+          <PrFaq q={t.faq1Q} a={t.faq1A} />
+          <PrFaq q={t.faq2Q} a={t.faq2A} />
+          <PrFaq q={t.faq3Q} a={t.faq3A} />
+          <PrFaq q={t.faq4Q} a={t.faq4A} />
+          <PrFaq q={t.faq5Q} a={t.faq5A} />
+          <PrFaq q={t.faq6Q} a={t.faq6A} />
         </div>
       </section>
 
@@ -347,7 +329,7 @@ export default function PricingScreen({
           VER<span className="accent">Si</span>ONS
         </div>
         <div className="pr-footer-line">
-          Une question avant de te lancer ?{' '}
+          {t.footerLine}{' '}
           <a href={`mailto:${SCHOOL_CONTACT_EMAIL}`}>{SCHOOL_CONTACT_EMAIL}</a>
         </div>
       </footer>

@@ -1165,6 +1165,99 @@ const STRINGS = {
       ],
     },
 
+    /* ─────────────── PRICING ─────────────── */
+    pricing: {
+      // Topbar
+      topbarHome: "Accueil",
+      topbarCurrent: "Tarifs",
+      topbarBackAria: "Retour à l'accueil",
+
+      // Hero
+      heroEyebrow: "Tarifs",
+      heroTitleStart: "Paie ce que ",
+      heroTitleEm: "tu mixes",
+      heroTitleEnd: ".",
+      heroSub: "Une analyse à l'unité, un pack pour creuser un projet, ou un abonnement dès que tu mixes en série. Pas d'engagement caché.",
+
+      // Erreurs checkout
+      errCheckoutNotConfigured: "Cette offre n'est pas encore configurée. Réessaie dans un instant.",
+      errCheckoutPrefix: "Erreur de paiement : ",
+      errUnknown: "inconnue",
+
+      // À la carte (packs)
+      packsEyebrow: "À la carte",
+      packsTitleStart: "Une analyse, un pack, ",
+      packsTitleEm: "aucun engagement",
+      packsTitleEnd: ".",
+      packAnalysisSingular: "Analyse",
+      packAnalysisPlural: "Analyses",
+      packPerUnit: "€/analyse",
+      packBuy: "Acheter",
+      packRedirecting: "Redirection…",
+
+      // Ribbons (résolus depuis plan.highlightKey)
+      ribbons: {
+        mostChosen: "Le plus choisi",
+        cheapestPerUnit: "Le moins cher /unité",
+        recommended: "Recommandé",
+      },
+
+      // Bandeau "tout est inclus"
+      includedLabel: "Inclus dans toutes les analyses",
+      included1: "Fiche complète",
+      included2: "Chat contextuel",
+      included3: "Comparaison de versions",
+      included4: "Export PDF + Score Card PNG",
+      included5: "Suivi d'évolution",
+
+      // Abonnements
+      subsEyebrow: "Abonnements",
+      subsTitleStart: "Au-delà de 10 analyses, ",
+      subsTitleEm: "passe en abo",
+      subsTitleEnd: ".",
+      subsLede: "Une enveloppe d'analyses chaque mois, prix unitaire imbattable. Tu peux changer de palier ou résilier à tout moment.",
+      subAllowanceLine1: "analyses",
+      subAllowanceLine2: "par mois",
+      subPerMonth: "/mois",
+      subUnitLine: "soit {price} €/analyse",
+      subChoose: "Choisir",
+      // Descriptions des abonnements indexées par plan.key
+      subDescriptions: {
+        sub_indie: "12 analyses par mois, reset chaque mois.",
+        sub_pro: "30 analyses par mois, reset chaque mois. Pour artistes en cycle de production.",
+      },
+
+      // École / centres de formation
+      schoolEyebrow: "Écoles & centres de formation",
+      schoolTitleStart: "Pour les ",
+      schoolTitleEm: "structures",
+      schoolTitleEnd: ", on ajuste sur devis.",
+      schoolLede: "Comptes équipe, volume ajusté, accompagnement pédagogique : parlons du besoin réel et on construit l'offre adaptée. Tarifs préférentiels selon le nombre de comptes et d'analyses mensuelles.",
+      schoolMailSubject: "Versions — partenariat école / centre de formation",
+      schoolCta: "Nous contacter",
+
+      // FAQ
+      faqEyebrow: "Questions fréquentes",
+      faqTitleStart: "Avant de te lancer, ",
+      faqTitleEm: "tu peux tout savoir",
+      faqTitleEnd: ".",
+      faq1Q: "Mes crédits expirent-ils ?",
+      faq1A: "Les crédits achetés via un pack n'expirent jamais — ils restent disponibles tant que ton compte existe. Les crédits inclus dans un abonnement, eux, se rechargent chaque mois et ne sont pas reportables : ce qui n'est pas utilisé sur le mois disparaît au renouvellement. Tes fiches déjà générées, elles, restent à vie dans ton dashboard.",
+      faq2Q: "Puis-je cumuler un pack et un abonnement ?",
+      faq2A: "Oui. Les crédits d'un pack restent disponibles en plus de ton enveloppe mensuelle. On consomme d'abord l'enveloppe abo, puis les crédits du pack — tu ne perds rien.",
+      faq3Q: "Puis-je résilier mon abonnement à tout moment ?",
+      faq3A: "Oui, sans frais. La résiliation prend effet à la fin du mois en cours. Tes fiches déjà générées restent accessibles à vie dans ton dashboard, même après résiliation.",
+      faq4Q: "Que se passe-t-il si une analyse échoue ?",
+      faq4A: "Aucun crédit n'est débité quand une analyse n'aboutit pas. Si on a déjà commencé à débiter et qu'une étape plante, le crédit est restauré automatiquement et tu peux relancer.",
+      faq5Q: "Y a-t-il une limite de durée par fichier audio ?",
+      faq5A: "Oui, 12 minutes maximum par fichier. C'est largement suffisant pour un titre, et ça nous permet de garantir des prix bas en maîtrisant les coûts d'analyse.",
+      faq6Q: "Les tarifs sont-ils HT ou TTC ?",
+      faq6A: "Tous les prix affichés sont TTC (TVA française incluse). Une facture conforme est générée automatiquement après chaque achat.",
+
+      // Footer
+      footerLine: "Une question avant de te lancer ?",
+    },
+
     /* ─────────────── LANDING ─────────────── */
     landing: {
       // CTAs (par défaut visiteur — App.jsx peut surcharger pour utilisateur connecté)
@@ -2400,6 +2493,99 @@ const STRINGS = {
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December",
       ],
+    },
+
+    /* ─────────────── PRICING ─────────────── */
+    pricing: {
+      // Topbar
+      topbarHome: "Home",
+      topbarCurrent: "Pricing",
+      topbarBackAria: "Back to home",
+
+      // Hero
+      heroEyebrow: "Pricing",
+      heroTitleStart: "Pay for what ",
+      heroTitleEm: "you mix",
+      heroTitleEnd: ".",
+      heroSub: "A single analysis, a pack to dig into a project, or a subscription once you mix on a roll. No hidden commitment.",
+
+      // Checkout errors
+      errCheckoutNotConfigured: "This offer isn't configured yet. Try again in a moment.",
+      errCheckoutPrefix: "Payment error: ",
+      errUnknown: "unknown",
+
+      // À la carte (packs)
+      packsEyebrow: "À la carte",
+      packsTitleStart: "One analysis, one pack, ",
+      packsTitleEm: "no commitment",
+      packsTitleEnd: ".",
+      packAnalysisSingular: "Analysis",
+      packAnalysisPlural: "Analyses",
+      packPerUnit: "€/analysis",
+      packBuy: "Buy",
+      packRedirecting: "Redirecting…",
+
+      // Ribbons (resolved from plan.highlightKey)
+      ribbons: {
+        mostChosen: "Most chosen",
+        cheapestPerUnit: "Cheapest /unit",
+        recommended: "Recommended",
+      },
+
+      // "All-included" strip
+      includedLabel: "Included in every analysis",
+      included1: "Full report",
+      included2: "Contextual chat",
+      included3: "Version comparison",
+      included4: "PDF export + Score Card PNG",
+      included5: "Progress tracking",
+
+      // Subscriptions
+      subsEyebrow: "Subscriptions",
+      subsTitleStart: "Past 10 analyses, ",
+      subsTitleEm: "go monthly",
+      subsTitleEnd: ".",
+      subsLede: "A monthly allowance of analyses with the best per-unit price. Switch tier or cancel anytime.",
+      subAllowanceLine1: "analyses",
+      subAllowanceLine2: "per month",
+      subPerMonth: "/month",
+      subUnitLine: "i.e. {price} €/analysis",
+      subChoose: "Choose",
+      // Subscription descriptions indexed by plan.key
+      subDescriptions: {
+        sub_indie: "12 analyses per month, resets every month.",
+        sub_pro: "30 analyses per month, resets every month. For artists in production cycle.",
+      },
+
+      // Schools / training centers
+      schoolEyebrow: "Schools & training centers",
+      schoolTitleStart: "For ",
+      schoolTitleEm: "organizations",
+      schoolTitleEnd: ", we tailor a quote.",
+      schoolLede: "Team accounts, custom volume, pedagogical support: let's talk about the actual need and we'll build the right offer. Preferred rates based on number of seats and monthly analyses.",
+      schoolMailSubject: "Versions — school / training center partnership",
+      schoolCta: "Contact us",
+
+      // FAQ
+      faqEyebrow: "Frequently asked questions",
+      faqTitleStart: "Before you commit, ",
+      faqTitleEm: "you can know it all",
+      faqTitleEnd: ".",
+      faq1Q: "Do my credits expire?",
+      faq1A: "Credits bought as a pack never expire — they stay available as long as your account exists. Credits included in a subscription reset every month and don't roll over: anything unused at month-end is gone at renewal. Your generated reports stay forever in your dashboard.",
+      faq2Q: "Can I combine a pack and a subscription?",
+      faq2A: "Yes. Pack credits stay available on top of your monthly allowance. We consume the subscription allowance first, then pack credits — nothing is lost.",
+      faq3Q: "Can I cancel my subscription anytime?",
+      faq3A: "Yes, free of charge. Cancellation takes effect at the end of the current month. Your generated reports stay accessible for life in your dashboard, even after cancellation.",
+      faq4Q: "What happens if an analysis fails?",
+      faq4A: "No credit is charged when an analysis doesn't go through. If we already started debiting and a step fails, the credit is automatically restored and you can retry.",
+      faq5Q: "Is there a duration limit per audio file?",
+      faq5A: "Yes, 12 minutes max per file. That's plenty for a track, and it lets us guarantee low prices by keeping analysis costs in check.",
+      faq6Q: "Are prices net or VAT-inclusive?",
+      faq6A: "All prices shown include VAT (French VAT). A compliant invoice is auto-generated after each purchase.",
+
+      // Footer
+      footerLine: "A question before getting started?",
     },
 
     /* ─────────────── LANDING ─────────────── */
