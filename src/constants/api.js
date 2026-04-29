@@ -1,20 +1,21 @@
 // URL du backend Versions (decode-api).
 //
-// 2026-04-29 (nuit) : retour sur Vercel après upgrade Supabase Pro et
-// activation de l'upload direct navigateur → Supabase Storage. La limite
-// ~4,5 Mo body de Vercel serverless n'est plus un blocage : le frontend
-// fait un PUT signé direct sur Supabase puis n'envoie qu'un body JSON
-// minuscule (storagePath + métadonnées) à `/api/analyze/start`.
+// REVERT 2026-04-29 (nuit) : retour sur Railway après tentative migration
+// Vercel échouée. Le pipeline d'analyse stocke le job state dans un `Map`
+// JavaScript en RAM (`jobs` dans `_analyze.js`). Sur Railway (container
+// long-running), toutes les requêtes hit le même process → ça marche.
+// Sur Vercel serverless, chaque invocation est un Lambda potentiellement
+// différent → POST /start crée le job dans Lambda A, GET /status hit
+// Lambda B qui ne le connaît pas → 404 sur tous les polls.
 //
-// Conséquences :
-// - Stack 100 % Vercel + Supabase Pro
-// - Stripe Checkout opérationnel (env vars déjà sur Vercel)
-// - Egress Supabase doublé pour les sources audio (entrée + sortie pour
-//   traitement backend), large sous 250 Go inclus Pro à ce stade
-// - Railway peut être coupé (économie ~$10/mois Hobby)
+// Pour migrer vraiment sur Vercel il faut d'abord déplacer le job state
+// dans une table Supabase (`analysis_jobs`) lisible/écrivable par toutes
+// les invocations. Plan détaillé : `docs/UPLOAD_DIRECT_PLAN.md`.
 //
-// Rollback d'urgence sur Railway : `decode-api-production.up.railway.app`
-// (Railway garde le même code, en filet jusqu'à validation de la migration)
-const API = "https://decode-kappa.vercel.app";
+// État actuel : upload direct câblé côté frontend, fonctionnel sur
+// Railway aussi (même code backend). Le PUT signé navigateur→Supabase
+// marche, le storagePath est bien transmis à `/analyze/start`. Seule
+// l'archi de partage de state bloque le passage Vercel.
+const API = "https://decode-api-production.up.railway.app";
 
 export default API;
