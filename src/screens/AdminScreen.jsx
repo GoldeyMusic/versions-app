@@ -107,6 +107,12 @@ export default function AdminScreen() {
 
   const isAdmin = !!ADMIN_EMAIL && user?.email?.toLowerCase() === ADMIN_EMAIL;
 
+  // Tant que Stripe n'est pas branché et qu'aucune vente n'est tombée
+  // dans revenue_logs, on cache tout ce qui suppose une activité
+  // commerciale (recettes, balance, marge). Réactivé automatiquement
+  // dès qu'une recette > 0 apparaît dans globalStats.
+  const isLiveBusiness = Number(globalStats?.total_revenue_all_time || 0) > 0;
+
   // ── Toggle expand sur une ligne user (charge le détail si besoin) ──
   async function toggleExpand(uid) {
     if (expanded?.userId === uid) { setExpanded(null); return; }
@@ -145,49 +151,82 @@ export default function AdminScreen() {
           {/* HERO discret */}
           <section className="cost-hero">
             <div className="cost-hero-inner">
-              <div className="cost-eyebrow">Admin — Vue d'ensemble</div>
+              <div className="cost-eyebrow">
+                Admin — {isLiveBusiness ? "Vue d'ensemble" : 'Phase de test'}
+              </div>
               <h1 className="cost-hero-title">
-                Combien ça <em>coûte</em>, combien ça <em>rapporte</em>.
+                {isLiveBusiness ? (
+                  <>Combien ça <em>coûte</em>, combien ça <em>rapporte</em>.</>
+                ) : (
+                  <>Combien ça <em>coûte</em>.</>
+                )}
               </h1>
               <p className="cost-hero-sub">
                 {globalStats
                   ? `${globalStats.total_users} user${globalStats.total_users > 1 ? 's' : ''} · ${globalStats.total_tracks} titre${globalStats.total_tracks > 1 ? 's' : ''} · ${globalStats.total_versions} version${globalStats.total_versions > 1 ? 's' : ''}`
                   : 'Données indisponibles'}
+                {!isLiveBusiness && ' · monétisation pas encore active'}
               </p>
             </div>
           </section>
 
           {/* SECTION KPIs BUSINESS */}
           <section className="cost-section">
-            <div className="cost-section-eyebrow">Business — 30 derniers jours</div>
+            <div className="cost-section-eyebrow">
+              {isLiveBusiness ? 'Business — 30 derniers jours' : 'Activité — 30 derniers jours'}
+            </div>
             <h2 className="cost-section-title">
-              La <em>rentabilité</em> en un coup d'œil.
+              {isLiveBusiness ? (
+                <>La <em>rentabilité</em> en un coup d'œil.</>
+              ) : (
+                <>L'<em>activité</em> en un coup d'œil.</>
+              )}
             </h2>
             <div className="cost-kpi-grid">
-              <KpiCard
-                label="Recettes 30j"
-                value={fmtEur(globalStats?.total_revenue_30d || 0)}
-                sub={`Total all-time : ${fmtEur(globalStats?.total_revenue_all_time || 0)}`}
-                tone="mint"
-              />
+              {isLiveBusiness && (
+                <KpiCard
+                  label="Recettes 30j"
+                  value={fmtEur(globalStats?.total_revenue_30d || 0)}
+                  sub={`Total all-time : ${fmtEur(globalStats?.total_revenue_all_time || 0)}`}
+                  tone="mint"
+                />
+              )}
               <KpiCard
                 label="Coûts 30j"
                 value={fmtEur(globalStats?.total_cost_30d || 0)}
                 sub={`Total all-time : ${fmtEur(globalStats?.total_cost_all_time || 0)}`}
                 tone="amber"
               />
-              <KpiCard
-                label="Balance 30j"
-                value={fmtEur(globalStats?.balance_30d || 0)}
-                sub={(globalStats?.balance_30d || 0) >= 0 ? 'Rentable ✓' : 'Déficit en cours'}
-                tone={(globalStats?.balance_30d || 0) >= 0 ? 'mint' : 'red'}
-              />
+              {isLiveBusiness && (
+                <KpiCard
+                  label="Balance 30j"
+                  value={fmtEur(globalStats?.balance_30d || 0)}
+                  sub={(globalStats?.balance_30d || 0) >= 0 ? 'Rentable ✓' : 'Déficit en cours'}
+                  tone={(globalStats?.balance_30d || 0) >= 0 ? 'mint' : 'red'}
+                />
+              )}
+              {!isLiveBusiness && (
+                <KpiCard
+                  label="Analyses 30j"
+                  value={String(stats.count)}
+                  sub={`Total all-time : ${fmtEur(globalStats?.total_cost_all_time || 0)} de coûts`}
+                  tone="violet"
+                />
+              )}
               <KpiCard
                 label="Nouveaux users 30j"
                 value={String(globalStats?.new_signups_30d || 0)}
                 sub={`Total inscrits : ${globalStats?.total_users || 0}`}
                 tone="cerulean"
               />
+              {!isLiveBusiness && (
+                <KpiCard
+                  label="Coût moyen / user"
+                  value={fmtEur(globalStats?.total_users > 0 ? (globalStats.total_cost_all_time || 0) / globalStats.total_users : 0)}
+                  sub={`sur ${globalStats?.total_users || 0} comptes`}
+                  tone="amber"
+                />
+              )}
             </div>
           </section>
 
@@ -216,12 +255,21 @@ export default function AdminScreen() {
                 sub={`${stats.count} analyses`}
                 tone="cerulean"
               />
-              <KpiCard
-                label="Marge sur prix bas (3,00 €)"
-                value={pctMarge(stats.avg, 3.0)}
-                sub="vs prix unit. plancher de 3 €"
-                tone={stats.avg < 1.0 ? 'mint' : 'red'}
-              />
+              {isLiveBusiness ? (
+                <KpiCard
+                  label="Marge sur prix bas (3,00 €)"
+                  value={pctMarge(stats.avg, 3.0)}
+                  sub="vs prix unit. plancher de 3 €"
+                  tone={stats.avg < 1.0 ? 'mint' : 'red'}
+                />
+              ) : (
+                <KpiCard
+                  label="Min observé"
+                  value={fmtEur(stats.min)}
+                  sub={`max ${fmtEur(stats.max)}`}
+                  tone="mint"
+                />
+              )}
             </div>
           </section>
 
@@ -282,7 +330,8 @@ export default function AdminScreen() {
           <section className="cost-section">
             <div className="cost-section-eyebrow">Tous les utilisateurs</div>
             <h2 className="cost-section-title">
-              {userStats.length} compte{userStats.length > 1 ? 's' : ''} · classés par <em>balance croissante</em>
+              {userStats.length} compte{userStats.length > 1 ? 's' : ''} · classés par{' '}
+              {isLiveBusiness ? <em>balance croissante</em> : <em>coûts décroissants</em>}
             </h2>
             <div className="cost-table-wrap">
               <table className="cost-table">
@@ -296,15 +345,18 @@ export default function AdminScreen() {
                     <th style={{textAlign: 'right'}}>Titres</th>
                     <th style={{textAlign: 'right'}}>Versions</th>
                     <th style={{textAlign: 'right'}}>Coûts</th>
-                    <th style={{textAlign: 'right'}}>Recettes</th>
-                    <th style={{textAlign: 'right'}}>Balance</th>
+                    {isLiveBusiness && <th style={{textAlign: 'right'}}>Recettes</th>}
+                    {isLiveBusiness && <th style={{textAlign: 'right'}}>Balance</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {userStats.length === 0 && (
-                    <tr><td colSpan="10" className="cost-empty">Aucun utilisateur.</td></tr>
+                    <tr><td colSpan={isLiveBusiness ? 10 : 8} className="cost-empty">Aucun utilisateur.</td></tr>
                   )}
-                  {userStats.map((u) => {
+                  {(isLiveBusiness
+                    ? userStats
+                    : [...userStats].sort((a, b) => Number(b.total_cost_eur || 0) - Number(a.total_cost_eur || 0))
+                  ).map((u) => {
                     const isOpen = expanded?.userId === u.user_id;
                     const balance = Number(u.balance_eur || 0);
                     return (
@@ -323,14 +375,18 @@ export default function AdminScreen() {
                           <td style={{textAlign: 'right'}}>{u.tracks_count}</td>
                           <td style={{textAlign: 'right'}}>{u.versions_count}</td>
                           <td style={{textAlign: 'right'}} className="cost-muted">{fmtEur(u.total_cost_eur)}</td>
-                          <td style={{textAlign: 'right'}} className="cost-muted">{fmtEur(u.total_revenue_eur)}</td>
-                          <td style={{textAlign: 'right'}} className={balance >= 0 ? 'cost-balance-pos' : 'cost-balance-neg'}>
-                            {fmtEur(balance)}
-                          </td>
+                          {isLiveBusiness && (
+                            <td style={{textAlign: 'right'}} className="cost-muted">{fmtEur(u.total_revenue_eur)}</td>
+                          )}
+                          {isLiveBusiness && (
+                            <td style={{textAlign: 'right'}} className={balance >= 0 ? 'cost-balance-pos' : 'cost-balance-neg'}>
+                              {fmtEur(balance)}
+                            </td>
+                          )}
                         </tr>
                         {isOpen && (
                           <tr className="cost-row-detail">
-                            <td colSpan="10">
+                            <td colSpan={isLiveBusiness ? 10 : 8}>
                               <UserDetail data={expanded} />
                             </td>
                           </tr>
@@ -378,47 +434,49 @@ export default function AdminScreen() {
             </div>
           </section>
 
-          {/* SECTION RECETTES */}
-          <section className="cost-section">
-            <div className="cost-section-eyebrow">Historique des recettes</div>
-            <h2 className="cost-section-title">
-              Tout ce qui <em>rentre</em>.
-            </h2>
-            {revenue.length === 0 ? (
-              <div className="cost-empty-card">
-                Aucune recette enregistrée pour l'instant. Cette table sera
-                automatiquement alimentée quand le paiement Stripe sera branché
-                (via webhooks <code>charge.succeeded</code> et <code>invoice.paid</code>).
-              </div>
-            ) : (
-              <div className="cost-table-wrap">
-                <table className="cost-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>User</th>
-                      <th>Source</th>
-                      <th>Produit</th>
-                      <th style={{textAlign: 'right'}}>Brut TTC</th>
-                      <th style={{textAlign: 'right'}}>Net après Stripe</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {revenue.map((r) => (
-                      <tr key={r.id}>
-                        <td className="cost-muted">{fmtDate(r.created_at)}</td>
-                        <td className="cost-userid">{r.user_id ? r.user_id.slice(0, 8) + '…' : <span className="cost-anon">—</span>}</td>
-                        <td className="cost-muted">{r.source}</td>
-                        <td className="cost-muted">{r.product || '—'}</td>
-                        <td style={{textAlign: 'right'}} className="cost-total">{fmtEur(r.amount_eur)}</td>
-                        <td style={{textAlign: 'right'}} className="cost-muted">{r.net_eur != null ? fmtEur(r.net_eur) : '—'}</td>
+          {/* SECTION RECETTES — visible uniquement quand au moins une vente
+              est tombée. Avant Stripe : section masquée pour ne pas
+              polluer l'admin avec des KPIs vides. */}
+          {isLiveBusiness && (
+            <section className="cost-section">
+              <div className="cost-section-eyebrow">Historique des recettes</div>
+              <h2 className="cost-section-title">
+                Tout ce qui <em>rentre</em>.
+              </h2>
+              {revenue.length === 0 ? (
+                <div className="cost-empty-card">
+                  Aucune recette dans la fenêtre récente.
+                </div>
+              ) : (
+                <div className="cost-table-wrap">
+                  <table className="cost-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>User</th>
+                        <th>Source</th>
+                        <th>Produit</th>
+                        <th style={{textAlign: 'right'}}>Brut TTC</th>
+                        <th style={{textAlign: 'right'}}>Net après Stripe</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+                    </thead>
+                    <tbody>
+                      {revenue.map((r) => (
+                        <tr key={r.id}>
+                          <td className="cost-muted">{fmtDate(r.created_at)}</td>
+                          <td className="cost-userid">{r.user_id ? r.user_id.slice(0, 8) + '…' : <span className="cost-anon">—</span>}</td>
+                          <td className="cost-muted">{r.source}</td>
+                          <td className="cost-muted">{r.product || '—'}</td>
+                          <td style={{textAlign: 'right'}} className="cost-total">{fmtEur(r.amount_eur)}</td>
+                          <td style={{textAlign: 'right'}} className="cost-muted">{r.net_eur != null ? fmtEur(r.net_eur) : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* SECTION DERNIÈRES ANALYSES */}
           <section className="cost-section">
@@ -583,12 +641,14 @@ function DailyChart({ series }) {
 /* ── Helpers stats ────────────────────────────────────── */
 function computeStats(logs) {
   const costs = logs.map((l) => Number(l.total_eur || 0)).filter((x) => !Number.isNaN(x));
-  if (costs.length === 0) return { count: 0, total: 0, avg: 0, median: 0, p95: 0 };
+  if (costs.length === 0) return { count: 0, total: 0, avg: 0, median: 0, p95: 0, min: 0, max: 0 };
   const total = costs.reduce((a, b) => a + b, 0);
   const sorted = [...costs].sort((a, b) => a - b);
   const median = sorted[Math.floor(sorted.length / 2)];
   const p95 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))];
-  return { count: costs.length, total, avg: total / costs.length, median, p95 };
+  const min = sorted[0];
+  const max = sorted[sorted.length - 1];
+  return { count: costs.length, total, avg: total / costs.length, median, p95, min, max };
 }
 
 function computeDailySeries(logs, days) {
