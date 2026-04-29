@@ -1186,6 +1186,12 @@ const STRINGS = {
       heroTitleEm: "tu mixes",
       heroTitleEnd: ".",
       heroSub: "Une analyse à l'unité, un pack pour creuser un projet, ou un abonnement dès que tu mixes en série. Pas d'engagement caché.",
+      // Chips décoratifs du hero — termes génériques (pas de noms de packs/abos)
+      heroChip1: "À LA CARTE",
+      heroChip2: "ABONNEMENT",
+      heroChip3: "CRÉDITS À VIE",
+      heroChip4: "À TON RYTHME",
+      heroChip5: "SUR MESURE",
 
       // Erreurs checkout
       errCheckoutNotConfigured: "Cette offre n'est pas encore configurée. Réessaie dans un instant.",
@@ -1197,6 +1203,7 @@ const STRINGS = {
       packsTitleStart: "Une analyse, un pack, ",
       packsTitleEm: "aucun engagement",
       packsTitleEnd: ".",
+      packsLede: "Tu achètes au moment où tu en as besoin, tes crédits ne périment jamais.",
       packAnalysisSingular: "Analyse",
       packAnalysisPlural: "Analyses",
       packPerUnit: "€/analyse",
@@ -1220,10 +1227,10 @@ const STRINGS = {
 
       // Abonnements
       subsEyebrow: "Abonnements",
-      subsTitleStart: "Au-delà de 10 analyses, ",
-      subsTitleEm: "passe en abo",
+      subsTitleStart: "Quand l'analyse devient un réflexe, ",
+      subsTitleEm: "abonne-toi",
       subsTitleEnd: ".",
-      subsLede: "Une enveloppe d'analyses chaque mois, prix unitaire imbattable. Tu peux changer de palier ou résilier à tout moment.",
+      subsLede: "Enveloppe mensuelle, meilleur prix unitaire, résiliable à tout moment.",
       subAllowanceLine1: "analyses",
       subAllowanceLine2: "par mois",
       subPerMonth: "/mois",
@@ -1240,7 +1247,10 @@ const STRINGS = {
       schoolTitleStart: "Pour les ",
       schoolTitleEm: "structures",
       schoolTitleEnd: ", on ajuste sur devis.",
-      schoolLede: "Comptes équipe, volume ajusté, accompagnement pédagogique : parlons du besoin réel et on construit l'offre adaptée. Tarifs préférentiels selon le nombre de comptes et d'analyses mensuelles.",
+      schoolLede: "Comptes équipe, accompagnement pédagogique, tarifs ajustés selon le volume.",
+      schoolCardLabel: "École",
+      schoolCardPrice: "Sur devis",
+      schoolCardHint: "Tarifs sur volume",
       schoolMailSubject: "Versions — partenariat école / centre de formation",
       schoolCta: "Nous contacter",
 
@@ -1250,7 +1260,7 @@ const STRINGS = {
       faqTitleEm: "tu peux tout savoir",
       faqTitleEnd: ".",
       faq1Q: "Mes crédits expirent-ils ?",
-      faq1A: "Les crédits achetés via un pack n'expirent jamais — ils restent disponibles tant que ton compte existe. Les crédits inclus dans un abonnement, eux, se rechargent chaque mois et ne sont pas reportables : ce qui n'est pas utilisé sur le mois disparaît au renouvellement. Tes fiches déjà générées, elles, restent à vie dans ton dashboard.",
+      faq1A: "Les crédits achetés en pack n'expirent jamais. Les crédits abo se cumulent tant que ton abonnement est actif (pas de reset mensuel), mais ils disparaissent à la résiliation — les crédits pack, eux, restent. Tes fiches déjà générées restent à vie dans ton dashboard.",
       faq2Q: "Puis-je cumuler un pack et un abonnement ?",
       faq2A: "Oui. Les crédits d'un pack restent disponibles en plus de ton enveloppe mensuelle. On consomme d'abord l'enveloppe abo, puis les crédits du pack — tu ne perds rien.",
       faq3Q: "Puis-je résilier mon abonnement à tout moment ?",
@@ -2524,6 +2534,12 @@ const STRINGS = {
       heroTitleEm: "you mix",
       heroTitleEnd: ".",
       heroSub: "A single analysis, a pack to dig into a project, or a subscription once you mix on a roll. No hidden commitment.",
+      // Decorative hero chips — generic terms (no plan or pack names)
+      heroChip1: "PAY AS YOU GO",
+      heroChip2: "SUBSCRIPTION",
+      heroChip3: "LIFETIME CREDITS",
+      heroChip4: "AT YOUR PACE",
+      heroChip5: "CUSTOM",
 
       // Checkout errors
       errCheckoutNotConfigured: "This offer isn't configured yet. Try again in a moment.",
@@ -2531,10 +2547,11 @@ const STRINGS = {
       errUnknown: "unknown",
 
       // À la carte (packs)
-      packsEyebrow: "À la carte",
+      packsEyebrow: "Pay as you go",
       packsTitleStart: "One analysis, one pack, ",
       packsTitleEm: "no commitment",
       packsTitleEnd: ".",
+      packsLede: "Buy when you need them, your credits never expire.",
       packAnalysisSingular: "Analysis",
       packAnalysisPlural: "Analyses",
       packPerUnit: "€/analysis",
@@ -2558,10 +2575,10 @@ const STRINGS = {
 
       // Subscriptions
       subsEyebrow: "Subscriptions",
-      subsTitleStart: "Past 10 analyses, ",
-      subsTitleEm: "go monthly",
+      subsTitleStart: "When analysis becomes a reflex, ",
+      subsTitleEm: "subscribe",
       subsTitleEnd: ".",
-      subsLede: "A monthly allowance of analyses with the best per-unit price. Switch tier or cancel anytime.",
+      subsLede: "Monthly allowance, best per-unit price, cancel anytime.",
       subAllowanceLine1: "analyses",
       subAllowanceLine2: "per month",
       subPerMonth: "/month",
@@ -2578,7 +2595,10 @@ const STRINGS = {
       schoolTitleStart: "For ",
       schoolTitleEm: "organizations",
       schoolTitleEnd: ", we tailor a quote.",
-      schoolLede: "Team accounts, custom volume, pedagogical support: let's talk about the actual need and we'll build the right offer. Preferred rates based on number of seats and monthly analyses.",
+      schoolLede: "Team accounts, pedagogical support, pricing tailored to volume.",
+      schoolCardLabel: "School",
+      schoolCardPrice: "Custom quote",
+      schoolCardHint: "Volume-based pricing",
       schoolMailSubject: "Versions — school / training center partnership",
       schoolCta: "Contact us",
 
@@ -2588,7 +2608,7 @@ const STRINGS = {
       faqTitleEm: "you can know it all",
       faqTitleEnd: ".",
       faq1Q: "Do my credits expire?",
-      faq1A: "Credits bought as a pack never expire — they stay available as long as your account exists. Credits included in a subscription reset every month and don't roll over: anything unused at month-end is gone at renewal. Your generated reports stay forever in your dashboard.",
+      faq1A: "Pack credits never expire. Subscription credits roll over as long as your subscription is active (no monthly reset), but disappear if you cancel — pack credits stay. Your generated reports stay forever in your dashboard.",
       faq2Q: "Can I combine a pack and a subscription?",
       faq2A: "Yes. Pack credits stay available on top of your monthly allowance. We consume the subscription allowance first, then pack credits — nothing is lost.",
       faq3Q: "Can I cancel my subscription anytime?",
