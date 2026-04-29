@@ -259,7 +259,7 @@ export default function PricingScreen({
       </section>
 
       {/* ── ÉCOLES — bloc partenariat sur devis ────────────────────── */}
-      <section className="pr-section pr-section-tight">
+      <section className="pr-section pr-section-school">
         <div className="pr-school">
           <div className="pr-school-text">
             <div className="pr-school-eyebrow">Écoles &amp; centres de formation</div>
@@ -420,6 +420,9 @@ function PricingStyles() {
       /* SECTIONS */
       .pr-section { padding: clamp(56px, 7vw, 96px) 24px; max-width: 1180px; margin: 0 auto; }
       .pr-section-tight { padding: clamp(40px, 6vw, 72px) 24px; }
+      /* Section École : on garde un peu d'air en dessous mais on colle haut
+         à la section Abonnements pour ne pas casser la lecture. */
+      .pr-section-school { padding: 8px 24px clamp(40px, 6vw, 64px); }
       .pr-section-eyebrow { font-family: ${T.mono}; font-size: 10.5px; font-weight: 500; letter-spacing: 2.2px; color: ${T.amber}; text-transform: uppercase; margin-bottom: 12px; }
       .pr-section-title { font-family: ${T.body}; font-weight: 600; font-size: clamp(24px, 3vw, 36px); line-height: 1.2; letter-spacing: -0.6px; color: ${T.text}; margin: 0 0 16px; }
       .pr-section-title em { font-family: ${T.serif}; font-style: italic; font-weight: 500; color: ${T.amber}; }
