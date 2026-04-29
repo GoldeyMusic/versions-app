@@ -6905,6 +6905,30 @@ export default function MockupStyles() {
     background: rgba(123,216,143,0.04);
     border-color: rgba(123,216,143,0.33);
   }
+  /* Etat erreur sur la zone drop : cap duree audio depasse ou format illisible */
+  .add-mini-drop.is-error {
+    background: rgba(255,93,93,0.04);
+    border-color: rgba(255,93,93,0.45);
+  }
+  .add-mini-file-error {
+    margin-top: 6px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(255,93,93,0.06);
+    border: 1px solid rgba(255,93,93,0.22);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .add-mini-file-error strong {
+    display: block;
+    font-weight: 600;
+    color: rgba(255,93,93,0.92);
+    margin-bottom: 2px;
+    font-size: 12px;
+    letter-spacing: 0.2px;
+  }
 
   /* Upload : pill (vocal) + select wrap (daw) */
   .add-mini-pill {

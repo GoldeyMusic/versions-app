@@ -268,7 +268,18 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           method: "POST",
           body: formData,
         });
-        if (!startRes.ok) throw new Error(s.loading.errorStart.replace('{status}', String(startRes.status)));
+        if (!startRes.ok) {
+          // 413 = cap audio dépassé (fichier > 12 min). Message dédié pour
+          // que l'utilisateur comprenne (au lieu d'une erreur générique).
+          if (startRes.status === 413) {
+            let payload = {};
+            try { payload = await startRes.json(); } catch {}
+            const recv = Math.round(Number(payload?.receivedSeconds || 0));
+            const recvLabel = recv > 0 ? ` (${Math.floor(recv / 60)} min ${String(recv % 60).padStart(2, '0')} s)` : '';
+            throw new Error(`Audio trop long${recvLabel}. Versions analyse les morceaux jusqu'à 12 minutes.`);
+          }
+          throw new Error(s.loading.errorStart.replace('{status}', String(startRes.status)));
+        }
         const { jobId } = await startRes.json();
         jobIdRef.current = jobId;
         console.log("✅ VERSIONS Job started:", jobId);

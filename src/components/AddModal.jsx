@@ -3,6 +3,48 @@ import { createPortal } from 'react-dom';
 import useLang from '../hooks/useLang';
 import DAWS from '../constants/daws';
 
+// Cap audio (sync avec backend decode-api/api/analyze.js).
+// 720s = 12 min : limite anti-DJ-set qui protège l'API Fadr/Gemini.
+const MAX_AUDIO_DURATION_SEC = 720;
+
+// Lit la durée audio d'un File via HTMLAudioElement (sans buffer entier en RAM).
+// Renvoie un Number (secondes) ou Promise.reject si format illisible.
+function readAudioDuration(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const audio = new Audio();
+    let done = false;
+    const cleanup = () => { try { URL.revokeObjectURL(url); } catch {} };
+    audio.preload = 'metadata';
+    audio.addEventListener('loadedmetadata', () => {
+      if (done) return; done = true;
+      const d = Number(audio.duration);
+      cleanup();
+      if (Number.isFinite(d) && d > 0) resolve(d);
+      else reject(new Error('invalid_duration'));
+    });
+    audio.addEventListener('error', () => {
+      if (done) return; done = true;
+      cleanup();
+      reject(new Error('decode_error'));
+    });
+    // Garde-fou : un fichier qui ne charge ni n'erreur en 8s = on abandonne.
+    setTimeout(() => {
+      if (done) return; done = true;
+      cleanup();
+      reject(new Error('timeout'));
+    }, 8000);
+    audio.src = url;
+  });
+}
+
+function formatDuration(sec) {
+  const total = Math.round(Number(sec) || 0);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}m ${String(s).padStart(2, '0')}s`;
+}
+
 /**
  * Met en amber (via <em>) le dernier mot d'un titre de modale, en conservant
  * une éventuelle ponctuation finale (« ? », « ! », etc.) collée au mot.
@@ -83,6 +125,10 @@ export default function AddModal({
   const [declaredGenre, setDeclaredGenre] = useState('');
   const [genreUnknown, setGenreUnknown] = useState(false);
   const [drag, setDrag] = useState(false);
+  // États du check durée audio (lecture/erreur). file ne devient non-null
+  // que si la durée a été lue ET qu'elle est ≤ MAX_AUDIO_DURATION_SEC.
+  const [fileChecking, setFileChecking] = useState(false);
+  const [fileError, setFileError] = useState(null);
   const fileInputRef = useRef(null);
 
   const hasProjects = projects.length > 0;
@@ -98,8 +144,26 @@ export default function AddModal({
 
   const uploadOk = !!file && !!daw && !!title.trim() && !!version.trim() && !!uploadCtx?.projectId && vocalOk;
 
-  const handlePickFile = (f) => {
+  const handlePickFile = async (f) => {
     if (!f) return;
+    // Reset les états du précédent essai et lance la lecture de durée.
+    setFileError(null);
+    setFile(null);
+    setFileChecking(true);
+    let dur;
+    try {
+      dur = await readAudioDuration(f);
+    } catch (e) {
+      setFileChecking(false);
+      setFileError({ kind: 'unreadable' });
+      return;
+    }
+    setFileChecking(false);
+    if (dur > MAX_AUDIO_DURATION_SEC) {
+      setFileError({ kind: 'too_long', durationSec: dur });
+      return;
+    }
+    // OK : on accepte le fichier.
     setFile(f);
     if (!title.trim()) {
       const cleaned = f.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').trim();
@@ -141,6 +205,8 @@ export default function AddModal({
       setDeclaredGenre('');
       setGenreUnknown(false);
       setDrag(false);
+      setFileError(null);
+      setFileChecking(false);
     }
   }, [step, defaultDaw]);
 
@@ -505,12 +571,13 @@ export default function AddModal({
             <div className="add-mini-field">
               <div className="add-mini-field-label">{s.addModal.uploadMixLabel}</div>
               <div
-                className={`add-mini-drop${file ? ' is-filled' : drag ? ' is-active' : ''}`}
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+                className={`add-mini-drop${file ? ' is-filled' : fileError ? ' is-error' : drag ? ' is-active' : ''}`}
+                onClick={() => !fileChecking && fileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); if (!fileChecking) setDrag(true); }}
                 onDragLeave={() => setDrag(false)}
                 onDrop={(e) => {
                   e.preventDefault(); setDrag(false);
+                  if (fileChecking) return;
                   const f = e.dataTransfer.files?.[0];
                   if (f) handlePickFile(f);
                 }}
@@ -522,7 +589,14 @@ export default function AddModal({
                   style={{ display: 'none' }}
                   onChange={(e) => e.target.files?.[0] && handlePickFile(e.target.files[0])}
                 />
-                {file ? (
+                {fileChecking ? (
+                  <>
+                    <span style={{ color: 'var(--amber)', fontSize: 14 }} aria-hidden="true">⏳</span>
+                    <div style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>
+                      {s.addModal.uploadDurationReading}
+                    </div>
+                  </>
+                ) : file ? (
                   <>
                     <span style={{ color: 'var(--mint)', fontSize: 16 }} aria-hidden="true">✓</span>
                     <div style={{
@@ -532,7 +606,7 @@ export default function AddModal({
                   </>
                 ) : (
                   <>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={drag ? 'var(--amber)' : 'var(--muted)'} strokeWidth="1.6" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={drag ? 'var(--amber)' : fileError ? 'var(--red, #ff5d5d)' : 'var(--muted)'} strokeWidth="1.6" aria-hidden="true">
                       <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
                       <path d="M8 8l4-4 4 4" />
                       <path d="M12 4v12" />
@@ -547,6 +621,18 @@ export default function AddModal({
                   </>
                 )}
               </div>
+              {fileError && (
+                <div className="add-mini-file-error">
+                  <strong>
+                    {fileError.kind === 'too_long'
+                      ? s.addModal.uploadDurationTooLongTitle
+                      : s.addModal.uploadDurationUnreadable.split('.')[0]}
+                  </strong>
+                  {fileError.kind === 'too_long' && (
+                    <> {s.addModal.uploadDurationTooLongDetail.replace('{dur}', formatDuration(fileError.durationSec))}</>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Titre + Version */}

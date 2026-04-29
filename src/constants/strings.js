@@ -996,6 +996,12 @@ const STRINGS = {
       uploadGenreAutoBtn: "Choisir automatiquement",
       uploadCta: "Lancer l'analyse",
       uploadCtaIncomplete: "Complète les champs pour lancer",
+      // Cap durée audio (12 min). Bloque côté navigateur avant POST,
+      // double validation côté backend.
+      uploadDurationReading: "Lecture du fichier…",
+      uploadDurationTooLongTitle: "Fichier trop long",
+      uploadDurationTooLongDetail: "Versions analyse les morceaux jusqu'à 12 minutes. Ce fichier dure {dur}.",
+      uploadDurationUnreadable: "Format de fichier non lisible. Essaie un autre fichier.",
     },
 
     /* ─────────────── MODALES ─────────────── */
@@ -2228,6 +2234,12 @@ const STRINGS = {
       uploadGenreAutoBtn: "Detect automatically",
       uploadCta: "Run analysis",
       uploadCtaIncomplete: "Fill in fields to run",
+      // Audio duration cap (12 min). Blocks in-browser before POST,
+      // double-validated server-side.
+      uploadDurationReading: "Reading file…",
+      uploadDurationTooLongTitle: "File too long",
+      uploadDurationTooLongDetail: "Versions analyzes tracks up to 12 minutes. This file is {dur}.",
+      uploadDurationUnreadable: "File format not readable. Try a different file.",
     },
 
     /* ─────────────── MODALS ─────────────── */
