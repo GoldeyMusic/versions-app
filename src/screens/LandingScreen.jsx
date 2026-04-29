@@ -28,55 +28,59 @@ export default function LandingScreen({
     <div className="landing-screen">
       <LandingStyles />
 
-      {/* Switch FR/EN — épinglé en haut à gauche, même composant que dans la
-          sidebar de l'app et le topbar de la page exemple (.sb-lang-switch). */}
-      <div className="lp-lang-switch-wrap">
-        <div className="sb-lang-switch" role="group" aria-label="Langue / Language">
-          <button
-            type="button"
-            className={lang === 'fr' ? 'on' : ''}
-            onClick={() => setLang('fr')}
-            aria-pressed={lang === 'fr'}
-          >
-            FR
-          </button>
-          <button
-            type="button"
-            className={lang === 'en' ? 'on' : ''}
-            onClick={() => setLang('en')}
-            aria-pressed={lang === 'en'}
-          >
-            EN
-          </button>
+      {/* TOPBAR — logo VERSiONS en haut à gauche, nav + switch FR/EN à droite.
+          Calé sur le topbar de la page Tarifs (mêmes tailles : logo 38px,
+          wordmark 27px, padding 22px 18px) pour que les deux écrans publics
+          aient une identité strictement identique en haut de page. */}
+      <header className="lp-topbar">
+        <div className="lp-topbar-brand">
+          <img src="/logo-versions-2.svg" alt="" className="lp-topbar-logo" />
+          <span className="lp-topbar-wordmark">
+            VER<span className="accent">Si</span>ONS
+          </span>
         </div>
-      </div>
-
-      {/* Lien "Tarifs" — épinglé en haut à droite, miroir du lang switch.
-          Même grammaire mono pill que les chips d'eyebrow. Renvoie sur
-          #/pricing. Ne s'affiche que si onViewPricing est passé en prop. */}
-      {onViewPricing && (
-        <div className="lp-topbar-actions">
-          <button
-            type="button"
-            className="lp-topbar-link"
-            onClick={onViewPricing}
-            aria-label="Voir les tarifs"
+        <nav className="lp-topbar-nav" aria-label="Navigation">
+          <span className="lp-topbar-current" aria-current="page">Accueil</span>
+          {onViewPricing && (
+            <button
+              type="button"
+              className="lp-topbar-link"
+              onClick={onViewPricing}
+              aria-label="Voir les tarifs"
+            >
+              Tarifs
+            </button>
+          )}
+          {/* Switch FR/EN — même classe (.sb-lang-switch) que la sidebar du
+              dashboard pour garder une UI uniforme entre les écrans. */}
+          <div
+            className="sb-lang-switch"
+            role="group"
+            aria-label="Langue / Language"
           >
-            Tarifs
-          </button>
-        </div>
-      )}
+            <button
+              type="button"
+              className={lang === 'fr' ? 'on' : ''}
+              onClick={() => setLang('fr')}
+              aria-pressed={lang === 'fr'}
+            >
+              FR
+            </button>
+            <button
+              type="button"
+              className={lang === 'en' ? 'on' : ''}
+              onClick={() => setLang('en')}
+              aria-pressed={lang === 'en'}
+            >
+              EN
+            </button>
+          </div>
+        </nav>
+      </header>
 
       {/* HERO */}
       <header className="lp-hero">
         <div className="lp-hero-inner">
-          <div className="lp-logo-row">
-            <img src="/logo-versions-2.svg" alt="" className="lp-logo-img" />
-            <div className="lp-brand">
-              {'VER'}<span className="accent">{'Si'}</span>{'ONS'}
-            </div>
-          </div>
-
           {/* Mockup produit v3 — Constellation de chips.
               Petits éléments décoratifs qui évoquent le langage produit
               (score, action, plugin pick, évolution, intention) sans
@@ -263,45 +267,58 @@ function LandingStyles() {
         overflow-x: hidden;
       }
 
-      /* Switch langue épinglé en haut à gauche — même grammaire visuelle
-         que .sb-lang-switch dans la sidebar (les styles viennent de
-         MockupStyles), positionnement absolu en overlay. */
-      .lp-lang-switch-wrap {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        z-index: 50;
+      /* TOPBAR — calé sur le topbar de la page Tarifs (PricingScreen) :
+         logo 38px, wordmark 27px, padding 22px 18px, full-width côté gauche
+         pour que le brand soit collé au bord gauche du viewport (comme la
+         sidebar du dashboard). */
+      .lp-topbar {
+        position: relative; z-index: 2;
+        padding: 22px 18px;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 24px;
       }
-      @media (max-width: 640px) {
-        .lp-lang-switch-wrap { top: 14px; left: 14px; }
+      .lp-topbar-brand {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 0;
       }
-
-      /* Topbar actions (top-right) — miroir du lang switch.
-         Pour l'instant : lien Tarifs vers #/pricing. Géométrie pill mono
-         alignée sur les chips d'eyebrow et les CTAs secondaires de la page. */
-      .lp-topbar-actions {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 50;
-        display: flex; gap: 8px;
+      .lp-topbar-logo {
+        height: 38px; width: auto;
+        filter: drop-shadow(0 0 16px rgba(245,166,35,0.18));
       }
-      @media (max-width: 640px) {
-        .lp-topbar-actions { top: 14px; right: 14px; }
+      .lp-topbar-wordmark {
+        font-family: ${T.body}; font-weight: 700;
+        font-size: 27px; letter-spacing: -0.5px;
+        color: ${T.text}; line-height: 1;
       }
-      .lp-topbar-link {
+      .lp-topbar-wordmark .accent, .lp-footer-mark .accent {
+        color: ${T.amber}; font-style: normal;
+      }
+      .lp-topbar-nav { display: inline-flex; align-items: center; gap: 8px; }
+      .lp-topbar-link, .lp-topbar-current {
         font-family: ${T.mono}; font-size: 11px; font-weight: 500;
         letter-spacing: 1.6px; text-transform: uppercase;
+        padding: 9px 16px; border-radius: 999px;
+        transition: all .15s;
+      }
+      .lp-topbar-link {
+        background: transparent; color: ${T.textSoft};
+        border: 1px solid transparent; cursor: pointer;
+      }
+      .lp-topbar-link:hover {
+        color: ${T.text};
+        background: rgba(255,255,255,0.04);
+        border-color: rgba(255,255,255,0.10);
+      }
+      .lp-topbar-current {
         color: ${T.amber};
         background: rgba(245,166,35,0.06);
         border: 1px solid rgba(245,166,35,0.32);
-        padding: 9px 16px; border-radius: 999px;
-        cursor: pointer; transition: all .15s;
       }
-      .lp-topbar-link:hover {
-        background: rgba(245,166,35,0.12);
-        border-color: rgba(245,166,35,0.55);
-        box-shadow: 0 0 0 4px rgba(245,166,35,0.06);
+      @media (max-width: 640px) {
+        .lp-topbar { padding: 14px 14px; gap: 12px; }
+        .lp-topbar-logo { height: 32px; }
+        .lp-topbar-wordmark { font-size: 22px; letter-spacing: -0.4px; }
+        .lp-topbar-link, .lp-topbar-current { padding: 7px 12px; font-size: 10px; }
       }
 
       /* ── HERO ─────────────────────────────────────── */
@@ -315,22 +332,6 @@ function LandingStyles() {
         gap: 28px; text-align: center;
         animation: fadeup .5s ease;
       }
-      .lp-logo-row {
-        display: flex; flex-direction: column; align-items: center; gap: 14px;
-      }
-      .lp-logo-img {
-        height: 56px; width: auto;
-        filter: drop-shadow(0 0 32px rgba(245,166,35,0.22));
-      }
-      .lp-brand {
-        font-family: ${T.body}; font-weight: 700;
-        font-size: clamp(28px, 4.5vw, 36px);
-        letter-spacing: -0.6px; color: ${T.text}; line-height: 1;
-      }
-      .lp-brand .accent, .lp-footer-mark .accent {
-        color: ${T.amber}; font-style: normal;
-      }
-
       /* ── HERO MOCKUP — Constellation de chips ──────────────────
          Cluster de petits chips colorés disposés en wrap libre,
          légèrement inclinés. Évoque le langage produit (score,
