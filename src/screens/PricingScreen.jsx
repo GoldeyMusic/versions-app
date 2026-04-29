@@ -43,7 +43,7 @@ export default function PricingScreen({
   onBackToLanding,
   ctaPrimaryLabel,
 }) {
-  const { s } = useLang();
+  const { s, lang, setLang } = useLang();
   const ctaLabel = ctaPrimaryLabel || s?.landing?.ctaPrimary || 'COMMENCER';
 
   const [user, setUser] = useState(null);
@@ -131,6 +131,31 @@ export default function PricingScreen({
             Accueil
           </button>
           <span className="pr-topbar-current" aria-current="page">Tarifs</span>
+          {/* Switch FR/EN — même classe (.sb-lang-switch) que la sidebar du
+              dashboard pour garder une UI parfaitement uniforme entre les
+              deux écrans. */}
+          <div
+            className="sb-lang-switch"
+            role="group"
+            aria-label="Langue / Language"
+          >
+            <button
+              type="button"
+              className={lang === 'fr' ? 'on' : ''}
+              onClick={() => setLang('fr')}
+              aria-pressed={lang === 'fr'}
+            >
+              FR
+            </button>
+            <button
+              type="button"
+              className={lang === 'en' ? 'on' : ''}
+              onClick={() => setLang('en')}
+              aria-pressed={lang === 'en'}
+            >
+              EN
+            </button>
+          </div>
         </nav>
       </header>
 
@@ -368,23 +393,26 @@ function PricingStyles() {
         overflow-x: hidden;
       }
 
-      /* TOPBAR */
+      /* TOPBAR
+         Logo + wordmark calés sur la sidebar du dashboard (38px / 27px /
+         padding 22px 18px) pour garder la même identité visuelle d'un écran
+         à l'autre. Topbar full-width côté gauche : la nav reste poussée à
+         droite. */
       .pr-topbar {
         position: relative; z-index: 2;
-        max-width: 1180px; margin: 0 auto;
-        padding: 22px 28px;
+        padding: 22px 18px;
         display: flex; align-items: center; justify-content: space-between;
         gap: 24px;
       }
       .pr-topbar-brand {
-        display: inline-flex; align-items: center; gap: 10px;
+        display: inline-flex; align-items: center; gap: 8px;
         background: transparent; border: 0; cursor: pointer;
-        padding: 4px 6px; border-radius: 8px;
+        padding: 0; border-radius: 8px;
         transition: opacity .15s;
       }
       .pr-topbar-brand:hover { opacity: 0.82; }
-      .pr-topbar-logo { height: 26px; width: auto; filter: drop-shadow(0 0 16px rgba(245,166,35,0.18)); }
-      .pr-topbar-wordmark { font-family: ${T.body}; font-weight: 700; font-size: 17px; letter-spacing: -0.4px; color: ${T.text}; line-height: 1; }
+      .pr-topbar-logo { height: 38px; width: auto; filter: drop-shadow(0 0 16px rgba(245,166,35,0.18)); }
+      .pr-topbar-wordmark { font-family: ${T.body}; font-weight: 700; font-size: 27px; letter-spacing: -0.5px; color: ${T.text}; line-height: 1; }
       .pr-topbar-wordmark .accent { color: ${T.amber}; font-style: normal; }
       .pr-topbar-nav { display: inline-flex; align-items: center; gap: 8px; }
       .pr-topbar-link, .pr-topbar-current {
