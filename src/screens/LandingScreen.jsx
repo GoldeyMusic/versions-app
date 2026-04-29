@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import T from '../constants/theme';
 import useLang from '../hooks/useLang';
 
@@ -24,6 +25,26 @@ export default function LandingScreen({
   const lp = s.landing;
   const ctaPrimary = ctaPrimaryLabel || lp.ctaPrimary;
   const ctaFooter = ctaFooterLabel || lp.ctaFooter;
+
+  // ── Animations d'entrée au scroll ────────────────────────────────
+  // Même mécanique que sur le pricing : un IntersectionObserver
+  // ajoute la classe .lp-anim-in aux .lp-anim quand ils entrent dans
+  // le viewport (à 15% de profondeur). One-shot via unobserve.
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return;
+    const els = document.querySelectorAll('.lp-anim');
+    if (!els.length) return;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('lp-anim-in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0, rootMargin: '0px 0px -15% 0px' });
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
 
   return (
     <div className="landing-screen">
@@ -131,15 +152,20 @@ export default function LandingScreen({
 
       <div className="lp-divider" />
 
-      {/* CE QUI NOUS REND DIFFÉRENTS */}
+      {/* CE QUI NOUS REND DIFFÉRENTS — cards "stickers" :
+          - rotation subtile (-1° / +1° / -1.5° / +1.5°) pour casser le grid Excel
+          - numérotation 01-04 via CSS counter (mono amber dimmé)
+          - halo color déjà en place, intensifié au hover
+          - icônes conservées (David : "j'aime bien")
+          - stagger d'entrée via .lp-anim + --anim-d */}
       <section className="lp-section">
-        <div className="lp-section-eyebrow">{lp.diffEyebrow}</div>
-        <h2 className="lp-section-title">
+        <div className="lp-section-eyebrow lp-anim">{lp.diffEyebrow}</div>
+        <h2 className="lp-section-title lp-anim" style={{ '--anim-d': '60ms' }}>
           {lp.diffTitleStart} <em>{lp.diffTitleEm}</em>
         </h2>
 
         <div className="lp-diff-grid">
-          <article className="lp-diff-card lp-diff-amber">
+          <article className="lp-diff-card lp-diff-amber lp-anim" style={{ '--anim-d': '160ms' }}>
             <div className="lp-diff-icon" aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
@@ -149,7 +175,7 @@ export default function LandingScreen({
             <p className="lp-diff-body">{lp.diffCard1Body}</p>
           </article>
 
-          <article className="lp-diff-card lp-diff-cerulean">
+          <article className="lp-diff-card lp-diff-cerulean lp-anim" style={{ '--anim-d': '240ms' }}>
             <div className="lp-diff-icon" aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/>
@@ -162,7 +188,7 @@ export default function LandingScreen({
             </p>
           </article>
 
-          <article className="lp-diff-card lp-diff-violet">
+          <article className="lp-diff-card lp-diff-violet lp-anim" style={{ '--anim-d': '320ms' }}>
             <div className="lp-diff-icon" aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
@@ -172,7 +198,7 @@ export default function LandingScreen({
             <p className="lp-diff-body">{lp.diffCard3Body}</p>
           </article>
 
-          <article className="lp-diff-card lp-diff-mint">
+          <article className="lp-diff-card lp-diff-mint lp-anim" style={{ '--anim-d': '400ms' }}>
             <div className="lp-diff-icon" aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 12h4l3-9 4 18 3-9h4"/>
@@ -188,11 +214,11 @@ export default function LandingScreen({
 
       {/* CE QU'ON ANALYSE */}
       <section className="lp-section lp-section-axes">
-        <div className="lp-section-eyebrow">{lp.axesEyebrow}</div>
-        <h2 className="lp-section-title">
+        <div className="lp-section-eyebrow lp-anim">{lp.axesEyebrow}</div>
+        <h2 className="lp-section-title lp-anim" style={{ '--anim-d': '60ms' }}>
           {lp.axesTitleStart} <em>{lp.axesTitleEm}</em>
         </h2>
-        <p className="lp-section-lede">{lp.axesLede}</p>
+        <p className="lp-section-lede lp-anim" style={{ '--anim-d': '120ms' }}>{lp.axesLede}</p>
 
         <div className="lp-axes-grid">
           <AxeCard num="01" label={lp.axe1Label} desc={lp.axe1Desc} tone="amber" pos="tl" />
@@ -208,21 +234,21 @@ export default function LandingScreen({
 
       {/* CE QU'ON NE FAIT PAS */}
       <section className="lp-section lp-section-tight">
-        <div className="lp-section-eyebrow">{lp.nopeEyebrow}</div>
-        <h2 className="lp-section-title">
+        <div className="lp-section-eyebrow lp-anim">{lp.nopeEyebrow}</div>
+        <h2 className="lp-section-title lp-anim" style={{ '--anim-d': '60ms' }}>
           <em>{lp.nopeTitleEm}</em>{lp.nopeTitleAfter}
         </h2>
 
         <div className="lp-nope-grid">
-          <div className="lp-nope-item lp-nope-amber">
+          <div className="lp-nope-item lp-nope-amber lp-anim" style={{ '--anim-d': '160ms' }}>
             <span className="lp-nope-mark" aria-hidden="true">×</span>
             <p>{lp.nope1}</p>
           </div>
-          <div className="lp-nope-item lp-nope-cerulean">
+          <div className="lp-nope-item lp-nope-cerulean lp-anim" style={{ '--anim-d': '240ms' }}>
             <span className="lp-nope-mark" aria-hidden="true">×</span>
             <p>{lp.nope2}</p>
           </div>
-          <div className="lp-nope-item lp-nope-violet">
+          <div className="lp-nope-item lp-nope-violet lp-anim" style={{ '--anim-d': '320ms' }}>
             <span className="lp-nope-mark" aria-hidden="true">×</span>
             <p>{lp.nope3}</p>
           </div>
@@ -253,7 +279,7 @@ export default function LandingScreen({
 
 function AxeCard({ num, label, desc, tone = 'amber', pos = 'tr' }) {
   return (
-    <div className={`lp-axe-card lp-axe-${tone} lp-axe-pos-${pos}`}>
+    <div className={`lp-axe-card lp-axe-${tone} lp-axe-pos-${pos} lp-anim`}>
       <div className="lp-axe-num">{num}</div>
       <div className="lp-axe-body">
         <div className="lp-axe-label">{label}</div>
@@ -269,13 +295,60 @@ function LandingStyles() {
       .landing-screen {
         position: relative; z-index: 1;
         min-height: 100vh; min-height: 100dvh;
-        /* Pas de background local : on laisse passer .ambient-halo (3 calques
-           qui crossfade) injecté globalement dans <body> par App.jsx, comme
-           sur le dashboard et les autres écrans connectés. */
+        /* Background : 2 couches s'empilent.
+           1. .ambient-halo global (App.jsx → body) : 3 calques crossfading
+              en 95s, 5 variantes de couleur. Donne le drift de fond lent.
+           2. .landing-screen::before ci-dessous : 3 orbes statiques (cerulean/
+              amber/violet) en drift court (28s). Donne la densité colorée
+              "façon pricing". Ensemble : palette saturée + 2 vitesses de
+              mouvement, pas plat. */
         background: transparent;
         color: var(--text, ${T.text});
         font-family: var(--body, ${T.body});
         overflow-x: hidden;
+      }
+      .landing-screen::before {
+        content: '';
+        position: fixed; inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        background:
+          radial-gradient(ellipse 50% 38% at 18% 22%, rgba(92,184,204,0.10), transparent 70%),
+          radial-gradient(ellipse 42% 50% at 82% 48%, rgba(245,166,35,0.11), transparent 70%),
+          radial-gradient(ellipse 50% 40% at 30% 82%, rgba(166,126,245,0.09), transparent 70%);
+        animation: lp-bg-drift 28s ease-in-out infinite alternate;
+      }
+      @keyframes lp-bg-drift {
+        0%   { transform: translate3d(0, 0, 0); }
+        100% { transform: translate3d(-2.5%, 1.5%, 0); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .landing-screen::before { animation: none; }
+      }
+
+      /* ── ANIMATIONS D'ENTRÉE AU SCROLL ────────────────────────────
+         Classe ajoutée par l'IntersectionObserver côté JS quand
+         l'élément entre dans le viewport (à 15% de profondeur).
+         Fade-up doux, stagger possible via la CSS var --anim-d. */
+      .lp-anim {
+        opacity: 0;
+        transform: translateY(14px);
+        transition:
+          opacity .55s cubic-bezier(.2,.7,.3,1),
+          transform .55s cubic-bezier(.2,.7,.3,1);
+        transition-delay: var(--anim-d, 0ms);
+        will-change: opacity, transform;
+      }
+      .lp-anim.lp-anim-in {
+        opacity: 1;
+        transform: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .lp-anim {
+          opacity: 1 !important;
+          transform: none !important;
+          transition: none !important;
+        }
       }
 
       /* TOPBAR — calé sur le topbar de la page Tarifs (PricingScreen) :
@@ -554,13 +627,17 @@ function LandingStyles() {
       /* ── DIFF GRID ────────────────────────────────── */
       .lp-diff-grid {
         margin-top: clamp(40px, 6vw, 64px);
-        display: grid; gap: 16px;
+        display: grid; gap: 22px;
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        counter-reset: lp-diff-counter;
       }
       /* Cartes "atouts" — halo de couleur radial flouté en haut à droite,
          même grammaire que les .fg-panel des fiches d'analyse. Chaque
          carte a sa teinte (amber, cerulean, violet, mint) qui colore à
-         la fois le halo, l'icône, et l'em du body. */
+         la fois le halo, l'icône, et l'em du body.
+         Rotation sticker subtile via --card-rot (set par nth-child),
+         numérotation 01-04 via CSS counter (mono amber dimmé en haut
+         à droite). */
       .lp-diff-card {
         position: relative;
         overflow: hidden;
@@ -569,7 +646,36 @@ function LandingStyles() {
         border: 1px solid ${T.border};
         border-radius: 16px;
         display: flex; flex-direction: column; gap: 12px;
-        transition: border-color .2s, transform .2s;
+        transform: rotate(var(--card-rot, 0deg));
+        transition: border-color .25s, transform .25s, box-shadow .25s;
+        counter-increment: lp-diff-counter;
+      }
+      /* Rotation par position dans le grid — chaque card a un angle
+         distinct pour éviter l'effet rangée stricte. Désactivé en mobile
+         (cf. media query existante 1 col). */
+      .lp-diff-grid > .lp-diff-card:nth-child(1) { --card-rot: -1deg; }
+      .lp-diff-grid > .lp-diff-card:nth-child(2) { --card-rot:  1deg; }
+      .lp-diff-grid > .lp-diff-card:nth-child(3) { --card-rot: -1.5deg; }
+      .lp-diff-grid > .lp-diff-card:nth-child(4) { --card-rot:  1.5deg; }
+      /* Numérotation 01-04 — mono ambre dimmé en haut à droite, hors flux */
+      .lp-diff-card::after {
+        content: counter(lp-diff-counter, decimal-leading-zero);
+        position: absolute; top: 14px; right: 18px;
+        z-index: 2;
+        font-family: ${T.mono}; font-weight: 600;
+        font-size: 14px; letter-spacing: 1.6px;
+        color: ${T.amber};
+        opacity: 0.5;
+        transition: opacity .25s;
+      }
+      /* On surcharge l'animation d'entrée pour préserver la rotation
+         (sans ça, .lp-anim-in retomberait à transform:none et casserait
+         la rotation par card). */
+      .lp-anim.lp-diff-card {
+        transform: translateY(14px) rotate(var(--card-rot, 0deg));
+      }
+      .lp-anim.lp-diff-card.lp-anim-in {
+        transform: rotate(var(--card-rot, 0deg));
       }
       /* Le halo lui-même : cercle radial flouté en pseudo-élément, posé
          au-dessus du fond mais derrière le contenu (z-index 0 vs 1).
@@ -630,10 +736,15 @@ function LandingStyles() {
         border-color: rgba(142,224,122,0.32);
         color: #8ee07a;
       }
+      /* Hover : on garde la rotation native + on lift + glow plus intense
+         (drop-shadow color-matched, intensifié par variante via les rules
+         color-spécifiques en dessous). Le numéro 01-04 sort de l'ombre. */
       .lp-diff-card:hover {
-        border-color: rgba(255,255,255,0.16);
-        transform: translateY(-2px);
+        border-color: rgba(255,255,255,0.18);
+        transform: rotate(var(--card-rot, 0deg)) translateY(-3px);
       }
+      .lp-diff-card:hover::after { opacity: 0.85; }
+      .lp-diff-card:hover::before { opacity: 0.85; filter: blur(36px); }
       .lp-diff-icon {
         width: 40px; height: 40px; border-radius: 10px;
         display: grid; place-items: center;
@@ -650,66 +761,82 @@ function LandingStyles() {
         font-family: ${T.body}; font-size: 14px; font-weight: 300;
         line-height: 1.6; color: ${T.textSoft};
       }
-      .lp-diff-body em { color: ${T.amber}; font-style: italic; }
+      .lp-diff-body em { color: ${T.amber}; font-style: normal; font-weight: 600; }
 
       /* ── AXES GRID (2×3 desktop) ──────────────────── */
+      /* AXES — 6 cards-stickers indépendantes (avant : tableau collé
+         par 1px de bordure partagée). Chacune a son halo color, sa
+         rotation propre via --card-rot, son hover qui lift + intensifie
+         le halo. Animation d'entrée staggered via nth-child. */
       .lp-axes-grid {
         margin-top: clamp(40px, 6vw, 64px);
-        display: grid; gap: 1px;
+        display: grid; gap: 18px;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        background: ${T.border};
-        border: 1px solid ${T.border};
-        border-radius: 14px;
-        overflow: hidden;
       }
-      /* Cartes axes — même grammaire de halo que .lp-diff-card. Couleur
-         et position du halo varient par carte (4 tons × 4 positions
-         possibles) pour casser toute symétrie. Halos plus discrets que
-         sur les "atouts" (taille + opacité réduites) car les axes sont
-         informatifs avant tout. */
       .lp-axe-card {
         position: relative;
         overflow: hidden;
         background: ${T.s1};
-        padding: 26px 22px;
+        border: 1px solid ${T.border};
+        border-radius: 14px;
+        padding: 22px 20px;
         display: flex; gap: 14px; align-items: flex-start;
-        transition: background .2s;
+        transform: rotate(var(--card-rot, 0deg));
+        transition: border-color .25s, transform .25s, box-shadow .25s;
       }
+      /* Rotations subtiles — différentes par card pour casser la symétrie */
+      .lp-axes-grid > .lp-axe-card:nth-child(1) { --card-rot: -1deg;   transition-delay: 80ms; }
+      .lp-axes-grid > .lp-axe-card:nth-child(2) { --card-rot:  0.6deg; transition-delay: 140ms; }
+      .lp-axes-grid > .lp-axe-card:nth-child(3) { --card-rot: -1.4deg; transition-delay: 200ms; }
+      .lp-axes-grid > .lp-axe-card:nth-child(4) { --card-rot:  1deg;   transition-delay: 260ms; }
+      .lp-axes-grid > .lp-axe-card:nth-child(5) { --card-rot: -0.8deg; transition-delay: 320ms; }
+      .lp-axes-grid > .lp-axe-card:nth-child(6) { --card-rot:  1.4deg; transition-delay: 380ms; }
+      /* Override .lp-anim pour préserver la rotation pendant l'entrée */
+      .lp-anim.lp-axe-card {
+        transform: translateY(14px) rotate(var(--card-rot, 0deg));
+      }
+      .lp-anim.lp-axe-card.lp-anim-in {
+        transform: rotate(var(--card-rot, 0deg));
+      }
+      /* Halo color */
       .lp-axe-card::before {
         content: '';
         position: absolute;
-        width: 200px; height: 200px;
+        width: 220px; height: 220px;
         border-radius: 50%;
-        filter: blur(46px);
-        opacity: 0.45;
+        filter: blur(42px);
+        opacity: 0.5;
         pointer-events: none;
         z-index: 0;
+        transition: opacity .25s, filter .25s;
       }
       .lp-axe-card > * { position: relative; z-index: 1; }
-      /* Positions du halo (4 coins) */
       .lp-axe-pos-tr::before { top: -34%; right: -22%; }
       .lp-axe-pos-tl::before { top: -34%; left: -22%; }
       .lp-axe-pos-br::before { bottom: -34%; right: -22%; }
       .lp-axe-pos-bl::before { bottom: -34%; left: -22%; }
-      /* Couleurs du halo (4 tons) — alignées sur la palette des fiches */
-      .lp-axe-amber::before {
-        background: radial-gradient(circle, rgba(245,166,35,0.50), transparent 70%);
+      .lp-axe-amber::before    { background: radial-gradient(circle, rgba(245,166,35,0.55), transparent 70%); }
+      .lp-axe-cerulean::before { background: radial-gradient(circle, rgba(92,184,204,0.50), transparent 70%); }
+      .lp-axe-violet::before   { background: radial-gradient(circle, rgba(166,126,245,0.48), transparent 70%); }
+      .lp-axe-mint::before     { background: radial-gradient(circle, rgba(142,224,122,0.46), transparent 70%); }
+      /* Hover : lift + halo plus intense + numéro qui sort de l'ombre */
+      .lp-axe-card:hover {
+        border-color: rgba(255,255,255,0.18);
+        transform: rotate(var(--card-rot, 0deg)) translateY(-3px);
       }
-      .lp-axe-cerulean::before {
-        background: radial-gradient(circle, rgba(92,184,204,0.45), transparent 70%);
-      }
-      .lp-axe-violet::before {
-        background: radial-gradient(circle, rgba(166,126,245,0.42), transparent 70%);
-      }
-      .lp-axe-mint::before {
-        background: radial-gradient(circle, rgba(142,224,122,0.40), transparent 70%);
-      }
-      .lp-axe-card:hover { background: ${T.s2}; }
+      .lp-axe-card:hover::before { opacity: 0.85; filter: blur(36px); }
+      .lp-axe-card:hover .lp-axe-num { opacity: 1; }
+      /* Numéro grossi, color-matched au halo de la card */
       .lp-axe-num {
-        font-family: ${T.mono}; font-size: 11px; font-weight: 500;
-        letter-spacing: 1.5px; color: ${T.amber};
+        font-family: ${T.mono}; font-size: 22px; font-weight: 600;
+        letter-spacing: -0.3px; line-height: 1;
         padding-top: 2px; flex-shrink: 0;
+        opacity: 0.7; transition: opacity .25s;
       }
+      .lp-axe-amber    .lp-axe-num { color: ${T.amber}; }
+      .lp-axe-cerulean .lp-axe-num { color: #5cb8cc; }
+      .lp-axe-violet   .lp-axe-num { color: #a67ef5; }
+      .lp-axe-mint     .lp-axe-num { color: #8ee07a; }
       .lp-axe-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
       .lp-axe-label {
         font-family: ${T.body}; font-weight: 500; font-size: 15px;
@@ -720,59 +847,81 @@ function LandingStyles() {
         line-height: 1.55; color: ${T.muted};
       }
 
-      /* ── NOPE LIST ────────────────────────────────── */
+      /* ── NOPE — 3 stickers "ce qu'on ne fait pas" ─────────────────
+         Même grammaire que les cards atouts/axes : rotation subtile,
+         halo color, hover qui lift + intensifie. Le × est gros, color-
+         matched, presque comme un sceau de refus. */
       .lp-nope-grid {
         margin-top: clamp(36px, 5vw, 56px);
-        display: grid; gap: 14px;
+        display: grid; gap: 22px;
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
-      /* Cases "ce qu'on ne fait pas" — même grammaire de halo que
-         les cartes "atouts", mais en intensité plus discrète (le
-         registre "limites assumées" demande un éclairage plus sobre).
-         Halos hors-axe pour éviter l'effet "tous éclairés pareil". */
       .lp-nope-item {
         position: relative;
         overflow: hidden;
-        padding: 22px 20px;
+        padding: 24px 22px;
         background: ${T.s1};
         border: 1px solid ${T.border};
         border-radius: 14px;
-        display: flex; gap: 12px; align-items: flex-start;
+        display: flex; gap: 14px; align-items: flex-start;
+        transform: rotate(var(--card-rot, 0deg));
+        transition: border-color .25s, transform .25s, box-shadow .25s;
       }
+      .lp-nope-grid > .lp-nope-item:nth-child(1) { --card-rot: -1deg; }
+      .lp-nope-grid > .lp-nope-item:nth-child(2) { --card-rot:  1.2deg; }
+      .lp-nope-grid > .lp-nope-item:nth-child(3) { --card-rot: -0.8deg; }
+      /* Override .lp-anim pour préserver la rotation pendant l'entrée */
+      .lp-anim.lp-nope-item {
+        transform: translateY(14px) rotate(var(--card-rot, 0deg));
+      }
+      .lp-anim.lp-nope-item.lp-anim-in {
+        transform: rotate(var(--card-rot, 0deg));
+      }
+      /* Halo color */
       .lp-nope-item::before {
         content: '';
         position: absolute;
         border-radius: 50%;
-        filter: blur(46px);
-        opacity: 0.4;
+        filter: blur(44px);
+        opacity: 0.5;
         pointer-events: none;
         z-index: 0;
+        transition: opacity .25s, filter .25s;
       }
       .lp-nope-item > * { position: relative; z-index: 1; }
-      /* Halo 1 — ambre, top-right */
       .lp-nope-amber::before {
-        top: -38%; right: -26%; width: 220px; height: 220px;
-        background: radial-gradient(circle, rgba(245,166,35,0.40), transparent 70%);
+        top: -38%; right: -26%; width: 240px; height: 240px;
+        background: radial-gradient(circle, rgba(245,166,35,0.50), transparent 70%);
       }
-      /* Halo 2 — céruléen, bottom-left */
       .lp-nope-cerulean::before {
-        bottom: -34%; left: -22%; width: 230px; height: 230px;
-        background: radial-gradient(circle, rgba(92,184,204,0.38), transparent 70%);
-        opacity: 0.45;
+        bottom: -34%; left: -22%; width: 240px; height: 240px;
+        background: radial-gradient(circle, rgba(92,184,204,0.48), transparent 70%);
       }
-      /* Halo 3 — violet, top-left */
       .lp-nope-violet::before {
-        top: -32%; left: -28%; width: 240px; height: 240px;
-        background: radial-gradient(circle, rgba(166,126,245,0.36), transparent 70%);
-        opacity: 0.42;
+        top: -32%; left: -28%; width: 250px; height: 250px;
+        background: radial-gradient(circle, rgba(166,126,245,0.46), transparent 70%);
       }
+      /* Hover : lift + glow + le × se gonfle un poil et brille */
+      .lp-nope-item:hover {
+        border-color: rgba(255,255,255,0.18);
+        transform: rotate(var(--card-rot, 0deg)) translateY(-3px);
+      }
+      .lp-nope-item:hover::before { opacity: 0.85; filter: blur(36px); }
+      .lp-nope-item:hover .lp-nope-mark { transform: scale(1.05); opacity: 1; }
+      /* × gros, color-matched par variante, droit (pas d'italique) */
       .lp-nope-mark {
-        font-family: ${T.serif}; font-size: 24px; line-height: 1;
-        color: ${T.muted2}; flex-shrink: 0; padding-top: 2px;
+        font-family: ${T.body}; font-size: 36px; font-weight: 700;
+        line-height: 1; flex-shrink: 0; padding-top: 0;
+        opacity: 0.85;
+        transition: transform .25s, opacity .25s;
       }
+      .lp-nope-amber    .lp-nope-mark { color: ${T.amber}; }
+      .lp-nope-cerulean .lp-nope-mark { color: #5cb8cc; }
+      .lp-nope-violet   .lp-nope-mark { color: #a67ef5; }
       .lp-nope-item p {
-        font-family: ${T.body}; font-weight: 300; font-size: 13.5px;
+        font-family: ${T.body}; font-weight: 300; font-size: 14px;
         line-height: 1.6; color: ${T.textSoft}; margin: 0;
+        align-self: center;
       }
 
       /* ── FOOTER ───────────────────────────────────── */
@@ -826,6 +975,14 @@ function LandingStyles() {
         .lp-cta-primary, .lp-cta-secondary { padding: 14px 26px; font-size: 11px; letter-spacing: 1.5px; }
         .lp-cta-row { flex-direction: column; gap: 10px; width: 100%; }
         .lp-cta-row > button { width: 100%; max-width: 320px; }
+        /* Sur mobile on neutralise la rotation des cards (1 col, lecture
+           prime sur l'effet sticker). On préserve les transforms hover
+           qui se simplifient à un translateY tout court. */
+        .lp-diff-grid > .lp-diff-card,
+        .lp-axes-grid > .lp-axe-card,
+        .lp-nope-grid > .lp-nope-item {
+          --card-rot: 0deg;
+        }
       }
     `}</style>
   );

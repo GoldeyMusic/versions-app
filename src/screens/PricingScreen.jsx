@@ -286,6 +286,8 @@ export default function PricingScreen({
         </div>
       </section>
 
+      <div className="pr-divider" />
+
       {/* ── ABONNEMENTS — 3 cards (Indie + Pro + École) ──────────────
           Indie + Pro viennent de SUBSCRIPTIONS, École est un cas
           spécial (sans Stripe — mailto + tarif "sur devis"). Les 3
@@ -365,6 +367,8 @@ export default function PricingScreen({
           </article>
         </div>
       </section>
+
+      <div className="pr-divider" />
 
       {/* ── FAQ ─────────────────────────────────────────────────────── */}
       <section className="pr-section pr-section-tight">
@@ -617,6 +621,16 @@ function PricingStyles() {
         text-align: center;
       }
 
+      /* SÉPARATEURS HORIZONTAUX — fine ligne en dégradé entre sections,
+         identique au .lp-divider de la landing. Largeur cappée à 960px
+         centrée pour ne pas filer pleine largeur. */
+      .pr-divider {
+        width: 100%; max-width: 960px; margin: 0 auto;
+        height: 1px;
+        background: linear-gradient(90deg,
+          transparent, rgba(255,255,255,0.10), transparent);
+      }
+
       /* SECTIONS
          Padding asymétrique : top resserré (la section précédente
          se termine sur le strip "inclus" qui apporte déjà sa propre
@@ -687,8 +701,8 @@ function PricingStyles() {
 
       .pr-pack-qty { display: flex; flex-direction: column; gap: 2px; align-items: center; text-align: center; }
       .pr-pack-num {
-        font-family: ${T.serif}; font-style: italic; font-weight: 500;
-        font-size: 38px; line-height: 1; letter-spacing: -1px;
+        font-family: ${T.body}; font-weight: 700;
+        font-size: 38px; line-height: 1; letter-spacing: -1.5px;
         color: ${T.text};
       }
       .pr-pack-unit {
@@ -846,9 +860,9 @@ function PricingStyles() {
         padding: 4px 10px; border-radius: 999px;
       }
       .pr-sub-meta { display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; }
-      .pr-sub-name { font-family: ${T.serif}; font-style: italic; font-weight: 500; font-size: 26px; color: ${T.text}; letter-spacing: -0.4px; line-height: 1; }
+      .pr-sub-name { font-family: ${T.body}; font-weight: 600; font-size: 24px; color: ${T.text}; letter-spacing: -0.5px; line-height: 1; }
       .pr-sub-tag { font-family: ${T.body}; font-size: 12.5px; color: ${T.muted}; line-height: 1.45; }
-      .pr-sub-allowance { display: flex; align-items: baseline; gap: 8px; justify-content: center; }
+      .pr-sub-allowance { display: flex; align-items: center; gap: 8px; justify-content: center; }
       .pr-sub-num { font-family: ${T.body}; font-weight: 700; font-size: 36px; letter-spacing: -1px; color: ${T.text}; line-height: 1; }
       .pr-sub-unit { font-family: ${T.mono}; font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; color: ${T.muted}; line-height: 1.2; }
       .pr-sub-quote { font-family: ${T.body}; font-weight: 400; font-size: 14px; letter-spacing: 0; color: ${T.muted}; line-height: 1.2; }
@@ -932,10 +946,11 @@ function PricingStyles() {
       }
       .pr-faq-item summary::before {
         content: counter(pr-faq-counter, decimal-leading-zero);
-        font-family: ${T.serif}; font-style: italic; font-weight: 500;
-        font-size: 18px; line-height: 1;
+        font-family: ${T.mono}; font-weight: 600;
+        font-size: 13px; line-height: 1;
+        letter-spacing: 1.4px;
         color: ${T.amber};
-        opacity: 0.5;
+        opacity: 0.55;
         min-width: 28px;
         flex-shrink: 0;
       }
@@ -946,7 +961,7 @@ function PricingStyles() {
       .pr-faq-item[open] .pr-faq-chev { transform: rotate(45deg); }
       .pr-faq-item p { margin: 0 20px 18px 66px; font-family: ${T.body}; font-size: 13.5px; font-weight: 300; color: ${T.textSoft}; line-height: 1.7; }
       @media (max-width: 560px) {
-        .pr-faq-item summary::before { font-size: 16px; min-width: 24px; }
+        .pr-faq-item summary::before { font-size: 12px; min-width: 24px; }
         .pr-faq-item p { margin-left: 20px; }
       }
 
