@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import T from '../constants/theme';
 import { supabase } from '../lib/supabase';
 
+// ── Constantes Fadr (synchro avec decode-api/lib/costTracker.js) ──
+// Abo Fadr Plus = $10/mois ≈ 9,20 € à 0.92, inclut $10 d'API soit
+// 200 minutes au tarif Create Stem Task ($0.05/min ≈ 0,046 €/min).
+const FADR_EUR_PER_MIN = 0.046;
+const FADR_PLAN_EUR = 9.20;
+const FADR_PLAN_MINUTES = 200;
+
 /**
  * AdminScreen — dashboard admin (#/admin), gaté par VITE_ADMIN_EMAIL.
  *
@@ -96,6 +103,7 @@ export default function AdminScreen() {
   const stats = useMemo(() => computeStats(logs), [logs]);
   const dailySeries = useMemo(() => computeDailySeries(logs, 30), [logs]);
   const topUsers = useMemo(() => computeTopUsers(logs, 10, userStats), [logs, userStats]);
+  const fadrMonth = useMemo(() => computeFadrMonth(logs), [logs]);
 
   const isAdmin = !!ADMIN_EMAIL && user?.email?.toLowerCase() === ADMIN_EMAIL;
 
@@ -224,6 +232,50 @@ export default function AdminScreen() {
               Volume et coût total <em>par jour</em>.
             </h2>
             <DailyChart series={dailySeries} />
+          </section>
+
+          {/* SECTION ABONNEMENT FADR */}
+          <section className="cost-section">
+            <div className="cost-section-eyebrow">Abonnement Fadr Plus — mois en cours</div>
+            <h2 className="cost-section-title">
+              Combien de <em>crédits</em> il me reste sur les 9,20 € inclus.
+            </h2>
+            <div className="cost-kpi-grid">
+              <KpiCard
+                label="Minutes consommées"
+                value={`${fadrMonth.minutesUsed.toFixed(0)} / ${FADR_PLAN_MINUTES}`}
+                sub={`${Math.round(fadrMonth.pctUsed * 100)} % de la franchise`}
+                tone={fadrMonth.pctUsed >= 0.8 ? 'red' : fadrMonth.pctUsed >= 0.5 ? 'amber' : 'mint'}
+              />
+              <KpiCard
+                label="Crédits utilisés"
+                value={fmtEur(fadrMonth.eurUsed)}
+                sub={`sur ${fmtEur(FADR_PLAN_EUR)} inclus dans l'abo`}
+                tone={fadrMonth.pctUsed >= 0.8 ? 'red' : fadrMonth.pctUsed >= 0.5 ? 'amber' : 'cerulean'}
+              />
+              <KpiCard
+                label="Analyses Fadr ce mois"
+                value={String(fadrMonth.count)}
+                sub={fadrMonth.avgDurationMin > 0 ? `durée moy. ${fadrMonth.avgDurationMin.toFixed(1)} min` : 'aucune analyse loggée'}
+                tone="violet"
+              />
+              <KpiCard
+                label="Reste estimé"
+                value={fadrMonth.analysesLeft != null ? `~${fadrMonth.analysesLeft} analyses` : '—'}
+                sub={fadrMonth.analysesLeft != null
+                  ? 'avant facturation au-delà'
+                  : 'logger des analyses pour estimer'}
+                tone={fadrMonth.analysesLeft != null && fadrMonth.analysesLeft <= 5 ? 'red' : 'mint'}
+              />
+            </div>
+            <div className="cost-fadr-note">
+              Tarif Fadr : {fmtEur(FADR_EUR_PER_MIN)}/minute d'audio (≈ $0,05).
+              L'abonnement Fadr Plus ($10/mois) inclut {FADR_PLAN_MINUTES} minutes.
+              Au-delà, chaque minute supplémentaire est facturée au même tarif.
+              {fadrMonth.eurOver > 0 && (
+                <> <strong>Dépassement ce mois : +{fmtEur(fadrMonth.eurOver)}.</strong></>
+              )}
+            </div>
           </section>
 
           {/* SECTION TOUS LES USERS */}
@@ -575,6 +627,35 @@ function computeTopUsers(logs, limit, userStats = []) {
     .slice(0, limit);
 }
 
+// computeFadrMonth — agrège la conso Fadr du mois en cours :
+// total minutes, € consommés (= minutes × tarif), nb d'analyses Fadr,
+// durée moyenne, analyses restantes avant fin de franchise (basé sur
+// la durée moyenne mesurée — fallback 4 min si aucune donnée).
+function computeFadrMonth(logs) {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const fadrLogs = logs.filter((l) => {
+    if (!l.fadr_called) return false;
+    if (!l.created_at) return false;
+    return new Date(l.created_at) >= monthStart;
+  });
+  const minutesUsed = fadrLogs.reduce((acc, l) => acc + (Number(l.audio_duration_sec || 0) / 60), 0);
+  const eurUsed = minutesUsed * FADR_EUR_PER_MIN;
+  const count = fadrLogs.length;
+  const avgDurationMin = count > 0 ? minutesUsed / count : 0;
+  const minutesLeft = Math.max(0, FADR_PLAN_MINUTES - minutesUsed);
+  // Estimation : combien d'analyses encore "gratuites" avant dépassement.
+  // Prend la durée moyenne mesurée ; fallback 4 min si pas encore de data.
+  const fallbackMin = 4;
+  const usableAvg = avgDurationMin > 0 ? avgDurationMin : fallbackMin;
+  const analysesLeft = count > 0 || fadrLogs.length === 0
+    ? Math.max(0, Math.floor(minutesLeft / usableAvg))
+    : null;
+  const eurOver = Math.max(0, eurUsed - FADR_PLAN_EUR);
+  const pctUsed = Math.min(1, minutesUsed / FADR_PLAN_MINUTES);
+  return { minutesUsed, eurUsed, count, avgDurationMin, minutesLeft, analysesLeft, eurOver, pctUsed };
+}
+
 /* ── Helpers format ───────────────────────────────────── */
 function fmtEur(n) {
   if (n == null || Number.isNaN(Number(n))) return '—';
@@ -791,6 +872,21 @@ function AdminStyles() {
 
       @media (max-width: 980px) { .cost-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
       @media (max-width: 520px) { .cost-kpi-grid { grid-template-columns: 1fr; } }
+
+      /* FADR NOTE */
+      .cost-fadr-note {
+        margin-top: 16px;
+        padding: 14px 18px;
+        background: rgba(245,166,35,0.04);
+        border: 1px solid rgba(245,166,35,0.16);
+        border-radius: 10px;
+        font-family: ${T.body}; font-size: 12.5px; font-weight: 300;
+        color: ${T.textSoft}; line-height: 1.6;
+      }
+      .cost-fadr-note strong {
+        font-weight: 600;
+        color: ${T.red};
+      }
 
       /* CHART */
       .cost-chart {
