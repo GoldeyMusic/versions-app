@@ -43,6 +43,7 @@ export default function PricingScreen({
   onBackToLanding,
   onViewDashboard,
   ctaPrimaryLabel,
+  isAuthenticated = false,
 }) {
   const { s, lang, setLang } = useLang();
   const ctaLabel = ctaPrimaryLabel || s?.landing?.ctaPrimary || 'COMMENCER';
@@ -157,14 +158,16 @@ export default function PricingScreen({
             {t.topbarHome}
           </button>
           <span className="pr-topbar-current" aria-current="page">{t.topbarCurrent}</span>
+          {/* Visiteur non connecté → "Connexion / inscription"
+              Utilisateur connecté → "Tableau de bord" */}
           {onViewDashboard && (
             <button
               type="button"
               className="pr-topbar-link"
               onClick={onViewDashboard}
-              aria-label={s.sidebar.dashboardLink}
+              aria-label={isAuthenticated ? s.sidebar.dashboardLink : s.sidebar.signInLink}
             >
-              {s.sidebar.dashboardLink}
+              {isAuthenticated ? s.sidebar.dashboardLink : s.sidebar.signInLink}
             </button>
           )}
           {/* Switch FR/EN — même classe (.sb-lang-switch) que la sidebar du
@@ -446,27 +449,8 @@ function PricingStyles() {
         overflow-x: hidden;
       }
       /* ── ATMOSPHÈRE DE FOND ───────────────────────────────────────
-         3 grosses orbes diffuses (cerulean / amber / violet) en fixed,
-         drift très lent — donne un fond vivant sans distraire. */
-      .pr-screen::before {
-        content: '';
-        position: fixed; inset: 0;
-        pointer-events: none;
-        z-index: 0;
-        background:
-          radial-gradient(ellipse 50% 38% at 18% 22%, rgba(92,184,204,0.10), transparent 70%),
-          radial-gradient(ellipse 42% 50% at 82% 48%, rgba(245,166,35,0.11), transparent 70%),
-          radial-gradient(ellipse 50% 40% at 30% 82%, rgba(166,126,245,0.09), transparent 70%);
-        animation: pr-bg-drift 28s ease-in-out infinite alternate;
-      }
-      @keyframes pr-bg-drift {
-        0%   { transform: translate3d(0, 0, 0); }
-        100% { transform: translate3d(-2.5%, 1.5%, 0); }
-      }
-      /* Si l'utilisateur a réduit les animations, on fige le fond */
-      @media (prefers-reduced-motion: reduce) {
-        .pr-screen::before { animation: none; }
-      }
+         Orbes colorées : déplacées vers le layer global .va-bg-orbs
+         (cf. MockupStyles + App.jsx). Continu d'une page à l'autre. */
 
       /* ── ANIMATIONS D'ENTRÉE AU SCROLL ────────────────────────────
          Classe ajoutée par l'IntersectionObserver côté JS. Fade-up

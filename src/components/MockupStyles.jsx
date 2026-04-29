@@ -63,7 +63,7 @@ export default function MockupStyles() {
     --display: 'Bebas Neue', sans-serif;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--body); font-weight: 300; font-size: 14px; scroll-behavior: smooth; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--body); font-weight: 300; font-size: 14px; scroll-behavior: smooth; overflow-x: hidden; }
   a { color: inherit; text-decoration: none; }
   button { font-family: inherit; color: inherit; background: none; border: none; cursor: pointer; padding: 0; }
 
@@ -150,6 +150,29 @@ export default function MockupStyles() {
      reste au-dessus du halo. */
   #root { position: relative; z-index: 1; }
 
+  /* ── Orbes colorées globales — couche monté en sibling de #root ──
+     Continu d'une page à l'autre (pas de remount à chaque navigation,
+     contrairement aux anciennes ::before par-page qui repartaient à
+     0% à chaque switch). Trois orbes (cerulean / amber / violet) en
+     position fixed, drift lent (50s) pour rester subtil. */
+  .va-bg-orbs {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 50% 38% at 18% 22%, rgba(92,184,204,0.13), transparent 70%),
+      radial-gradient(ellipse 42% 50% at 82% 48%, rgba(245,166,35,0.14), transparent 70%),
+      radial-gradient(ellipse 50% 40% at 30% 82%, rgba(166,126,245,0.12), transparent 70%);
+    animation: va-bg-drift 50s ease-in-out infinite alternate;
+  }
+  @keyframes va-bg-drift {
+    0%   { transform: translate3d(0, 0, 0); }
+    100% { transform: translate3d(-2.5%, 1.5%, 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .va-bg-orbs { animation: none; }
+  }
+
   /* ── Animations d'entrée au scroll (système global) ─────────────
      Classe ajoutée par un IntersectionObserver côté JS quand
      l'élément entre dans le viewport. Fade-up doux, stagger via
@@ -178,14 +201,91 @@ export default function MockupStyles() {
     }
   }
 
+  /* ── Rail utilitaire bas-gauche (DashboardRail) ──────────────────
+     picto Réglages + Déconnexion + pill crédits. Rendu sur welcome
+     ET sur la landing pour utilisateurs connectés. Position fixed,
+     aligné avec le logo (même left padding 18px), au-dessus du
+     player (76px + 16px d'air = ~92px du bas).
+     Le CSS vit ici (pas dans le composant) pour être chargé global
+     — sinon le rail rendu hors DashboardTopbar n'aurait pas son
+     style. */
+  .db-utility-rail {
+    position: fixed;
+    left: 18px;
+    bottom: 92px;
+    z-index: 10;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  /* Pill crédits — mono uppercase ambre, click → /pricing.
+     Visuellement parente des .pr-chip (langage néon, interactive). */
+  .db-utility-credits {
+    display: inline-flex; align-items: center;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: rgba(245,166,35,0.10);
+    border: 1px solid rgba(245,166,35,0.34);
+    color: var(--amber);
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    transition: background .15s, border-color .15s, transform .15s;
+  }
+  .db-utility-credits:hover {
+    background: rgba(245,166,35,0.16);
+    border-color: rgba(245,166,35,0.55);
+    transform: translateY(-1px);
+  }
+  .db-utility-credits:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  .db-utility-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    background: rgba(20, 20, 22, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--muted);
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: color .15s, border-color .15s, background .15s, transform .15s;
+  }
+  .db-utility-btn:hover {
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.20);
+    background: rgba(255, 255, 255, 0.04);
+    transform: translateY(-1px);
+  }
+  .db-utility-btn:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  @media (max-width: 480px) {
+    .db-utility-rail { gap: 6px; bottom: 80px; left: 12px; }
+    .db-utility-btn { width: 32px; height: 32px; }
+    .db-utility-btn svg { width: 16px; height: 16px; }
+  }
+
   /* ── Layout ──────────────────────────────────── */
   .app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
   /* .dapp = wrapper utilisé quand pas de sidebar (mobile + welcome
      desktop). On crée un stacking context (position relative + z-index
      1) pour soulever le contenu au-dessus de .ambient-halo, comme le
      font .lp-screen et .pr-screen. Sans ça, l'ambient-halo peint par-
-     dessus le contenu, qui assombrit visuellement la page. */
-  .dapp { position: relative; z-index: 1; min-height: 100vh; }
+     dessus le contenu, qui assombrit visuellement la page.
+     IMPORTANT : background transparent !important pour overrider la
+     règle de GlobalStyles.jsx qui pose un .dapp { background: black }
+     opaque. Sans ça, .dapp cache les orbes globaux (.va-bg-orbs) et
+     l'ambient-halo derrière son fond solide → fond noir uni. */
+  .dapp {
+    position: relative; z-index: 1; min-height: 100vh;
+    background: transparent !important;
+  }
 
   /* Sidebar — très discrète */
   .sidebar {
@@ -4896,9 +4996,15 @@ export default function MockupStyles() {
   }
 
   /* Tablette étroite / grand mobile : les deux colonnes de wh-cols
-     s'empilent. Permet aux cartes (projets + conseils) d'être lisibles. */
+     s'empilent. Permet aux cartes (projets + conseils) d'être lisibles.
+     Pareil pour .wh-onboarding (welcome+CTAs / checklist) qui doit
+     stacker dès le même breakpoint pour ne pas déborder en mode
+     portrait tablette. */
   @media (max-width: 860px) {
     .wh-desktop .wh-cols {
+      grid-template-columns: 1fr !important;
+    }
+    .wh-onboarding {
       grid-template-columns: 1fr !important;
     }
   }
@@ -5417,14 +5523,105 @@ export default function MockupStyles() {
   }
   .wh-check-label { color: var(--soft); }
 
-  /* ── Onboarding hero (état vide) ── */
+  /* ── Onboarding hero (état vide) — refonte 2026-04-29
+     Card "égayée" : 3 orbes de couleur en pseudo-éléments (cerulean
+     top-left + amber center-right + violet bottom-left), bordure
+     ambre conservée mais halos plus marqués. Hover : lift + glow
+     intensifié comme sur les cards atouts/axes de la landing. */
   .wh-onboarding {
-    background: linear-gradient(135deg, rgba(245,176,86,0.10) 0%, rgba(245,176,86,0.02) 100%);
-    border: 1px solid rgba(245,176,86,0.22);
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(245,176,86,0.12) 0%, rgba(245,176,86,0.03) 100%);
+    border: 1px solid rgba(245,176,86,0.28);
     border-radius: 20px;
     padding: 36px 40px;
     display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center;
+    transition: border-color .25s, transform .25s, box-shadow .25s;
   }
+  /* Halo cerulean en haut-gauche */
+  .wh-onboarding::before {
+    content: '';
+    position: absolute;
+    top: -30%; left: -15%;
+    width: 360px; height: 360px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(92,184,204,0.35), transparent 70%);
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: 0;
+    transition: opacity .25s, filter .25s;
+  }
+  /* Halo violet en bas-droite */
+  .wh-onboarding::after {
+    content: '';
+    position: absolute;
+    bottom: -35%; right: -15%;
+    width: 380px; height: 380px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(166,126,245,0.30), transparent 70%);
+    filter: blur(64px);
+    pointer-events: none;
+    z-index: 0;
+    transition: opacity .25s, filter .25s;
+  }
+  /* Tout le contenu passe au-dessus des halos */
+  .wh-onboarding > * { position: relative; z-index: 1; }
+
+  /* Pulse subtle de la bordure ambre — respiration lente (8s) qui
+     attire discrètement l'œil sur la card hero du compte neuf. Coupé
+     sur prefers-reduced-motion. */
+  .wh-onboarding {
+    animation: wh-ob-pulse 8s ease-in-out infinite;
+  }
+  @keyframes wh-ob-pulse {
+    0%, 100% {
+      border-color: rgba(245,176,86,0.28);
+      box-shadow: 0 0 0 0 rgba(245,176,86,0.0);
+    }
+    50% {
+      border-color: rgba(245,176,86,0.45);
+      box-shadow: 0 0 32px -8px rgba(245,176,86,0.20);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wh-onboarding { animation: none; }
+  }
+
+  /* Chips décoratifs au-dessus de "Bienvenue, David" — clin d'œil au
+     langage chips de la home/landing (constellation néon en haut du
+     hero). 3 mini-pills colorées avec rotation libre, pas cliquables. */
+  .wh-ob-chips {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 18px;
+    pointer-events: none;
+    user-select: none;
+  }
+  .wh-ob-chip {
+    display: inline-flex; align-items: center;
+    font-family: var(--mono); font-size: 10.5px; font-weight: 500;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    padding: 5px 11px;
+    border-radius: 999px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 6px 20px -10px rgba(0,0,0,0.5);
+    cursor: default;
+  }
+  .wh-ob-chip-amber    { background: rgba(245,166,35,0.14); border: 1px solid rgba(245,166,35,0.42); color: var(--amber); transform: rotate(-1.5deg); }
+  .wh-ob-chip-cerulean { background: rgba(92,184,204,0.10); border: 1px solid rgba(92,184,204,0.34); color: #5cb8cc; transform: rotate(1.5deg); }
+  .wh-ob-chip-mint     { background: rgba(142,224,122,0.10); border: 1px solid rgba(142,224,122,0.34); color: #8ee07a; transform: rotate(-1deg); }
+  /* Sur mobile on neutralise les rotations pour la lisibilité */
+  @media (max-width: 640px) {
+    .wh-ob-chip { transform: none !important; font-size: 9.5px; padding: 4px 9px; }
+    .wh-ob-chips { margin-bottom: 14px; gap: 6px; }
+  }
+  /* Hover : lift discret + halos qui s'intensifient + bordure plus chaude */
+  .wh-onboarding:hover {
+    border-color: rgba(245,176,86,0.42);
+    transform: translateY(-2px);
+  }
+  .wh-onboarding:hover::before { opacity: 1.4; filter: blur(50px); }
+  .wh-onboarding:hover::after { opacity: 1.4; filter: blur(54px); }
   /* Alignée sur .wh-slogan (Écoute, compare, décide.) : DM Sans 700 avec
      tracking négatif. Proportionnel à la taille (46px ici, 88px pour le slogan). */
   .wh-ob-welcome {
@@ -5443,9 +5640,27 @@ export default function MockupStyles() {
     max-width: 540px;
   }
   .wh-ob-ctas { display: flex; gap: 10px; flex-wrap: wrap; }
+  /* Card "Mise en route" — petite rotation sticker pour casser
+     l'alignement parfait avec la zone welcome à gauche et donner
+     du caractère. Hover réutilise la rotation pour ne pas la
+     "dérotater" au survol. Neutralisée sur mobile (1 col). */
   .wh-ob-checklist {
     background: var(--s1); border: 1px solid var(--border); border-radius: 14px;
     padding: 20px 22px;
+    transform: rotate(1.2deg);
+    transition: border-color .25s, transform .25s;
+  }
+  .wh-ob-checklist:hover {
+    border-color: rgba(255,255,255,0.18);
+    transform: rotate(1.2deg) translateY(-2px);
+  }
+  @media (max-width: 860px) {
+    .wh-ob-checklist {
+      transform: none;
+    }
+    .wh-ob-checklist:hover {
+      transform: translateY(-2px);
+    }
   }
   .wh-ob-progress {
     height: 6px; background: rgba(255,255,255,0.06); border-radius: 4px;
@@ -7615,32 +7830,32 @@ export default function MockupStyles() {
     position: relative;
   }
 
+  /* Bouton menu — refonte 2026-04-29 : avatar/photo retiré, on garde
+     un trigger sobre type "hamburger" (pill backdrop-blur, picto neutre).
+     Identique à .db-utility-btn pour un langage cohérent entre rail
+     desktop (gear/log-out) et menu mobile (hamburger). */
   .mobile-avatar-btn {
     width: 36px; height: 36px;
-    border-radius: 50%;
+    border-radius: 999px;
     padding: 0;
-    background: linear-gradient(135deg, var(--amber), #e88855);
-    border: 1.5px solid rgba(255,255,255,0.85);
-    display: flex; align-items: center; justify-content: center;
-    overflow: hidden;
+    background: rgba(20, 20, 22, 0.6);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    display: inline-flex; align-items: center; justify-content: center;
     cursor: pointer;
-    transition: box-shadow .2s, transform .15s;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: color .15s, border-color .15s, background .15s, transform .15s;
   }
   .mobile-avatar-btn:hover {
-    box-shadow: 0 0 0 2px rgba(255,255,255,0.35);
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.20);
+    background: rgba(255, 255, 255, 0.04);
   }
   .mobile-avatar-btn.open {
-    box-shadow: 0 0 0 2px #fff;
-  }
-  .mobile-avatar-btn img {
-    width: 100%; height: 100%; object-fit: cover;
-    border-radius: 50%;
-    display: block;
-  }
-  .mobile-avatar-initial {
-    font-family: var(--mono); font-weight: 600; font-size: 12px;
-    color: #000;
-    line-height: 1;
+    color: var(--text);
+    border-color: rgba(245, 166, 35, 0.45);
+    background: rgba(245, 166, 35, 0.08);
   }
 
   .mobile-avatar-backdrop {

@@ -595,6 +595,58 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0, onFinish }) {
 }
 
 /**
+ * DashboardRail — rail utilitaire flottant bas-gauche (pill crédits +
+ * picto Réglages + picto Déconnexion). Rendu sur le dashboard ET sur
+ * la landing quand l'utilisateur est connecté, pour qu'il ait toujours
+ * accès rapide à son solde + ses actions de compte.
+ * CSS vit dans MockupStyles (.db-utility-*).
+ */
+function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut }) {
+  const { s } = useLang();
+  return (
+    <div className="db-utility-rail" aria-label="Outils du compte">
+      {credits != null && (
+        <button
+          type="button"
+          className="db-utility-credits"
+          onClick={onGoPricing}
+          title="Acheter des crédits"
+        >
+          {credits === 1
+            ? (s.sidebar?.creditsSingular || '1 crédit')
+            : (s.sidebar?.creditsPlural || '{count} crédits').replace('{count}', String(credits))}
+        </button>
+      )}
+      <button
+        type="button"
+        className="db-utility-btn"
+        onClick={onGoReglages}
+        aria-label={s.sidebar?.reglages || 'Réglages'}
+        title={s.sidebar?.reglages || 'Réglages'}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+      <button
+        type="button"
+        className="db-utility-btn"
+        onClick={onSignOut}
+        aria-label={s.sidebar?.signOut || 'Se déconnecter'}
+        title={s.sidebar?.signOut || 'Se déconnecter'}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+/**
  * DashboardTopbar — topbar desktop pour les écrans authentifiés sans
  * sidebar (à ce jour : welcome). Calé sur le topbar de la landing /
  * pricing pour garder une identité visuelle homogène d'un écran à
@@ -605,15 +657,13 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0, onFinish }) {
  * écrans (admin, versions...), ça vaudra le coup d'extraire le CSS dans
  * MockupStyles ou un fichier shared.
  */
-function DashboardTopbar({ onGoLanding, onGoDashboard, onGoPricing, onGoReglages, onSignOut, lang, setLang }) {
+function DashboardTopbar({ onGoLanding, onGoDashboard, onGoPricing, onGoReglages, onSignOut, lang, setLang, credits }) {
   const { s } = useLang();
   return (
     <>
-      {/* Couche d'orbes colorées en fond — identique à .pr-screen::before
-          (pricing) et .landing-screen::before (landing) pour donner la
-          même densité chromatique aux écrans authentifiés en layout
-          topbar. S'empile au-dessus de .ambient-halo global. */}
-      <div className="db-bg-orbs" aria-hidden="true" />
+      {/* Orbes colorées : déplacées vers le layer global .va-bg-orbs
+          (monté côté body dans App.jsx). Continu d'une page à l'autre,
+          même cycle d'animation, même teintes. */}
 
       <header className="db-topbar">
         <button
@@ -628,7 +678,9 @@ function DashboardTopbar({ onGoLanding, onGoDashboard, onGoPricing, onGoReglages
           </span>
         </button>
         <nav className="db-topbar-nav" aria-label="Navigation">
-          <button type="button" className="db-topbar-link" onClick={onGoLanding}>
+          {/* Lien Accueil : visible desktop, masqué sur mobile (le logo
+              cliquable s'en charge — économie de place et lisibilité). */}
+          <button type="button" className="db-topbar-link db-topbar-link-home" onClick={onGoLanding}>
             {s.pricing?.topbarHome || 'Accueil'}
           </button>
           <button type="button" className="db-topbar-link" onClick={onGoPricing}>
@@ -654,64 +706,16 @@ function DashboardTopbar({ onGoLanding, onGoDashboard, onGoPricing, onGoReglages
         </nav>
       </header>
 
-      {/* Rail utilitaire bas-gauche — Réglages + Déconnexion en pictos.
-          Positionné en fixed pour rester au même endroit quel que soit
-          le scroll, aligné avec le logo (même left padding) et calé
-          au-dessus du player (qui occupe les ~76px du bas). */}
-      <div className="db-utility-rail" aria-label="Outils du compte">
-        <button
-          type="button"
-          className="db-utility-btn"
-          onClick={onGoReglages}
-          aria-label={s.sidebar?.reglages || 'Réglages'}
-          title={s.sidebar?.reglages || 'Réglages'}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-        </button>
-        <button
-          type="button"
-          className="db-utility-btn"
-          onClick={onSignOut}
-          aria-label={s.sidebar?.signOut || 'Se déconnecter'}
-          title={s.sidebar?.signOut || 'Se déconnecter'}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-        </button>
-      </div>
+      {/* Rail utilitaire bas-gauche — extrait dans <DashboardRail/>
+          pour pouvoir le réutiliser sur la landing connectée. */}
+      <DashboardRail
+        credits={credits}
+        onGoPricing={onGoPricing}
+        onGoReglages={onGoReglages}
+        onSignOut={onSignOut}
+      />
 
       <style>{`
-        /* DASHBOARD BACKGROUND ORBES — superposition à l'ambient-halo
-           global. Identique à .landing-screen::before / .pr-screen::before.
-           position: fixed, drift 28s, opacité raisonnable. */
-        .db-bg-orbs {
-          position: fixed; inset: 0;
-          pointer-events: none;
-          z-index: 0;
-          /* Opacités majorées vs landing/pricing (.10/.11/.09 → .15/.17/.14)
-             pour compenser le fait que les cards du dashboard couvrent
-             les zones où les orbes shineraient sur les pages plus
-             aérées. */
-          background:
-            radial-gradient(ellipse 50% 38% at 18% 22%, rgba(92,184,204,0.15), transparent 70%),
-            radial-gradient(ellipse 42% 50% at 82% 48%, rgba(245,166,35,0.17), transparent 70%),
-            radial-gradient(ellipse 50% 40% at 30% 82%, rgba(166,126,245,0.14), transparent 70%);
-          animation: db-bg-drift 28s ease-in-out infinite alternate;
-        }
-        @keyframes db-bg-drift {
-          0%   { transform: translate3d(0, 0, 0); }
-          100% { transform: translate3d(-2.5%, 1.5%, 0); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .db-bg-orbs { animation: none; }
-        }
-
         /* DASHBOARD TOPBAR — calé sur .lp-topbar / .pr-topbar (logo 38,
            wordmark 27, padding 22/18, nav pill mono). Ajout d'un lien
            "soft" pour la déconnexion (typo plus discrète, distance des
@@ -754,43 +758,10 @@ function DashboardTopbar({ onGoLanding, onGoDashboard, onGoPricing, onGoReglages
           border: 1px solid rgba(245,166,35,0.32);
         }
 
-        /* RAIL UTILITAIRE BAS-GAUCHE — picto Réglages + Déconnexion.
-           Position fixed pour rester aligné avec le logo (même left
-           padding 18px) quel que soit le scroll. Calé au-dessus du
-           player (76px de hauteur + 16px d'air = ~92px du bas). */
-        .db-utility-rail {
-          position: fixed;
-          left: 18px;
-          bottom: 92px;
-          z-index: 10;
-          display: inline-flex; align-items: center; gap: 8px;
-        }
-        .db-utility-btn {
-          display: inline-flex; align-items: center; justify-content: center;
-          width: 36px; height: 36px;
-          background: rgba(20, 20, 22, 0.6);
-          border: 1px solid var(--border);
-          border-radius: 999px;
-          color: var(--muted);
-          cursor: pointer;
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          transition: color .15s, border-color .15s, background .15s, transform .15s;
-        }
-        .db-utility-btn:hover {
-          color: var(--text);
-          border-color: rgba(255, 255, 255, 0.20);
-          background: rgba(255, 255, 255, 0.04);
-          transform: translateY(-1px);
-        }
-        .db-utility-btn:focus-visible {
-          outline: 2px solid var(--amber);
-          outline-offset: 2px;
-        }
-        /* Mobile : on cache le rail (le MobileMenu gère déjà ces actions) */
-        @media (max-width: 768px), (max-height: 500px) {
-          .db-utility-rail { display: none; }
-        }
+        /* CSS du rail (.db-utility-*) déplacé dans MockupStyles
+           (chargé global) pour qu'il fonctionne aussi quand on rend
+           DashboardRail seul, en dehors de DashboardTopbar (ex: sur
+           la landing pour les utilisateurs connectés). */
         /* Mobile/responsive — la topbar mobile est gérée par MobileMenu,
            mais si jamais ce topbar s'affiche sur tablette intermédiaire,
            on raccourcit. */
@@ -798,9 +769,18 @@ function DashboardTopbar({ onGoLanding, onGoDashboard, onGoPricing, onGoReglages
           .db-topbar { padding: 16px 14px; gap: 12px; }
           .db-topbar-wordmark { font-size: 22px; }
           .db-topbar-logo { height: 28px; }
+          .db-topbar-nav { gap: 6px; }
           .db-topbar-link, .db-topbar-current {
             font-size: 10px; letter-spacing: 1.2px;
-            padding: 7px 12px;
+            padding: 7px 11px;
+          }
+          /* Sur narrow on masque "Accueil" (logo cliquable s'en charge)
+             et le badge "Tableau de bord" current (on est déjà sur
+             cette page). Reste sur mobile : Tarifs + FR/EN —
+             strictement aligné sur le pattern pricing mobile. */
+          .db-topbar-link-home,
+          .db-topbar-nav > .db-topbar-current {
+            display: none;
           }
         }
       `}</style>
@@ -1776,6 +1756,15 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const desktopOnboarding = (
     <div className="wh-onboarding">
       <div>
+        {/* Constellation de chips décoratives au-dessus du welcome —
+            même langage que les chips du hero pricing/landing.
+            aria-hidden + pointer-events:none → décor pur, pas de
+            confusion possible avec un menu cliquable. */}
+        <div className="wh-ob-chips" aria-hidden="true">
+          <span className="wh-ob-chip wh-ob-chip-amber">× ESSAI GRATUIT</span>
+          <span className="wh-ob-chip wh-ob-chip-cerulean">PREMIERS PAS</span>
+          <span className="wh-ob-chip wh-ob-chip-mint">À TON RYTHME</span>
+        </div>
         <div className="wh-ob-welcome">
           {displayName ? s.home.welcomeHiName.replace('{name}', displayName) : s.home.welcomeHi}
         </div>
@@ -2121,13 +2110,11 @@ function WhMenuItem({ label, onClick, danger }) {
 
 const SIDEBAR_WIDTH = 260;
 
-/* ── Mobile Avatar Menu ────────────────────────────────── */
+/* ── Mobile Menu — hamburger (plus d'avatar/photo) ──────────── */
 function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd }) {
   const [open, setOpen] = useState(false);
   const go = (target) => { setOpen(false); onNavigate(target); };
-  const avatarUrl = userProfile?.avatar_url || null;
   const displayName = userProfile?.prenom || (user?.email ? user.email.split('@')[0] : 'utilisateur');
-  const initial = (userProfile?.prenom || user?.email || 'U').trim().charAt(0).toUpperCase();
 
   return (
     <>
@@ -2143,9 +2130,13 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd }) {
             onClick={() => setOpen(!open)}
             aria-label="Menu utilisateur"
           >
-            {avatarUrl
-              ? <img src={avatarUrl} alt="" />
-              : <span className="mobile-avatar-initial">{initial}</span>}
+            {/* Hamburger picto — remplace l'avatar (plus de photo
+                ni d'initiale, pour l'instant on ne garde pas). */}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="4" y1="7" x2="20" y2="7"/>
+              <line x1="4" y1="12" x2="20" y2="12"/>
+              <line x1="4" y1="17" x2="20" y2="17"/>
+            </svg>
           </button>
 
           {open && (
@@ -2327,6 +2318,22 @@ function VersionsAppAuthed() {
   const { user, loading: authLoading, signOut } = useAuth();
   const isMobile = useMobile();
   const isDesktop = !isMobile;
+
+  // Wrapper signOut → redirect explicite vers la home publique.
+  // L'effet de logout plus bas met déjà le hash à #/ et bascule sur
+  // 'welcome' (qui rend la landing pour un visiteur via l'auth gate),
+  // mais on force ici en plus pour éviter tout flash transitoire et
+  // garantir un comportement homogène depuis n'importe quelle page.
+  const handleSignOut = useCallback(async () => {
+    try { await signOut?.(); } catch { /* ignore */ }
+    if (typeof window !== 'undefined') {
+      try { window.history.replaceState({ screen: 'home' }, '', '#/'); } catch { /* ignore */ }
+    }
+    // setScreen via la route hash : l'effet "user null → réaligne le screen"
+    // s'occupera de tomber sur 'welcome' (auth-gated → landing publique).
+    // On ne fait pas setScreen('home') directement parce que 'home' est
+    // déjà le rendu autorisé pour un visiteur (cf. block plus bas).
+  }, [signOut]);
   // Initial screen aligné sur l'URL pour éviter un flash dashboard→landing
   // au cold start quand le hash demande explicitement `#/` ou `#/home`.
   // Les écrans qui dépendent d'un state volatil (fiche, loading) retombent
@@ -2405,6 +2412,22 @@ function VersionsAppAuthed() {
       halo.remove();
     };
   }, []);
+
+  // ── Layer global d'orbes colorées — continu d'une page à l'autre ──
+  // Avant : chaque page (landing/pricing/dashboard) avait son propre
+  // ::before / div d'orbes avec sa propre keyframe. Au switch entre
+  // pages, l'animation redémarrait de zéro → teinte/saturation/position
+  // différentes, déconnexion visuelle.
+  // Maintenant : un seul élément monté au body, animation continue sur
+  // toute la session. Persiste à travers les changements d'écran. CSS
+  // dans MockupStyles (.va-bg-orbs).
+  useEffect(() => {
+    const orbs = document.createElement('div');
+    orbs.className = 'va-bg-orbs';
+    orbs.setAttribute('aria-hidden', 'true');
+    document.body.insertBefore(orbs, document.body.firstChild);
+    return () => orbs.remove();
+  }, []);
   const [config, setConfig] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   // Deep-link fiche : quand on arrive sur `#/fiche/{trackId}/{versionId}`
@@ -2467,6 +2490,35 @@ function VersionsAppAuthed() {
       initialProjectOpenedRef.current = true;
     }
   }, [projectsLoaded, projects, currentProjectId]);
+
+  // Solde de crédits — affiché dans le rail bas-gauche du dashboard
+  // (à côté de Réglages / Déconnexion). Mirror exact de la logique
+  // Sidebar (RPC get_or_create_user_credits, balance_remaining).
+  // IMPORTANT : ce hook DOIT être AVANT tous les early returns plus bas
+  // (sinon Rules of Hooks → React #300 → page blanche).
+  const [userCredits, setUserCredits] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.id) { setUserCredits(null); return; }
+    (async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_or_create_user_credits');
+        if (cancelled) return;
+        if (error) {
+          console.warn('[topbar] get_or_create_user_credits failed:', error.message);
+          setUserCredits(null);
+          return;
+        }
+        const row = Array.isArray(data) ? data[0] : data;
+        const bal = Number(row?.balance_remaining);
+        setUserCredits(Number.isFinite(bal) ? bal : null);
+      } catch (e) {
+        console.warn('[topbar] credits fetch threw:', e);
+        if (!cancelled) setUserCredits(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   // ── User profile (avatar, prénom…) ──
   const [userProfile, setUserProfile] = useState(null);
@@ -3382,8 +3434,8 @@ function VersionsAppAuthed() {
     let view;
     if (showAuth) view = <AuthScreen />;
     else if (screen === 'sample') view = <SampleFicheScreen onSignup={goAuth} onBackToLanding={goLanding} />;
-    else if (screen === 'pricing') view = <PricingScreen onStart={goAuth} onBackToLanding={goLanding} onViewDashboard={goAuth} />;
-    else view = <LandingScreen onStart={goAuth} onViewSample={goSample} onViewPricing={goPricing} onViewDashboard={goAuth} />;
+    else if (screen === 'pricing') view = <PricingScreen onStart={goAuth} onBackToLanding={goLanding} onViewDashboard={goAuth} isAuthenticated={false} />;
+    else view = <LandingScreen onStart={goAuth} onViewSample={goSample} onViewPricing={goPricing} onViewDashboard={goAuth} isAuthenticated={false} />;
     return (
       <LangContext.Provider value={{ lang, s, setLang, t }}>
         <FontLink />
@@ -3397,6 +3449,9 @@ function VersionsAppAuthed() {
   // Utilisateur connecté qui visite la landing (#/home, ou clic "À propos"
   // dans la sidebar) : rendu plein écran sans sidebar/BottomPlayer pour
   // garder le ton "page de présentation". Les CTAs renvoient au dashboard.
+  // On rend en plus le DashboardRail (pill crédits + Réglages +
+  // Déconnexion) en bas-gauche, comme sur le dashboard, pour que
+  // l'utilisateur connecté ait toujours ses outils de compte à portée.
   if (screen === 'home') {
     return (
       <LangContext.Provider value={{ lang, s, setLang, t }}>
@@ -3410,6 +3465,22 @@ function VersionsAppAuthed() {
           onViewSample={() => setScreen('sample')}
           onViewPricing={() => setScreen('pricing')}
           onViewDashboard={() => setScreen('welcome')}
+          isAuthenticated={true}
+        />
+        {!!user && (
+          <DashboardRail
+            credits={userCredits}
+            onGoPricing={() => setScreen('pricing')}
+            onGoReglages={() => setReglagesOpen(true)}
+            onSignOut={handleSignOut}
+          />
+        )}
+        {/* Réglages modal accessible depuis le rail */}
+        <ReglagesModal
+          open={reglagesOpen}
+          onClose={() => setReglagesOpen(false)}
+          onSignOut={handleSignOut}
+          onProfileUpdate={setUserProfile}
         />
       </LangContext.Provider>
     );
@@ -3436,6 +3507,8 @@ function VersionsAppAuthed() {
   // Connecté + #/pricing : page tarifs plein écran, sans sidebar.
   // CTA primaire renvoie au dashboard (pas d'AuthScreen quand on est déjà
   // connecté), retour pointe sur la landing #/.
+  // Idem que la landing connectée : rail bas-gauche (crédits + Réglages
+  // + Déconnexion) ajouté pour les utilisateurs connectés uniquement.
   if (screen === 'pricing') {
     return (
       <LangContext.Provider value={{ lang, s, setLang, t }}>
@@ -3447,6 +3520,21 @@ function VersionsAppAuthed() {
           onBackToLanding={() => setScreen('home')}
           onViewDashboard={() => setScreen('welcome')}
           ctaPrimaryLabel={s.sidebar.dashboardLink}
+          isAuthenticated={true}
+        />
+        {!!user && (
+          <DashboardRail
+            credits={userCredits}
+            onGoPricing={() => setScreen('pricing')}
+            onGoReglages={() => setReglagesOpen(true)}
+            onSignOut={handleSignOut}
+          />
+        )}
+        <ReglagesModal
+          open={reglagesOpen}
+          onClose={() => setReglagesOpen(false)}
+          onSignOut={handleSignOut}
+          onProfileUpdate={setUserProfile}
         />
       </LangContext.Provider>
     );
@@ -3478,9 +3566,12 @@ function VersionsAppAuthed() {
   // d'analyse uniquement.
   const showSidebar = isDesktop && screen !== 'welcome';
   const contentMarginLeft = showSidebar ? SIDEBAR_WIDTH : 0;
-  // Topbar desktop pour les écrans sans sidebar (welcome) — affichage
-  // gated sur isDesktop pour ne pas doublonner avec MobileMenu.
-  const showDesktopTopbar = isDesktop && !showSidebar && !!user;
+  // Topbar dashboard — visible sur welcome (desktop ET mobile), pour
+  // que le pattern soit identique à la landing/pricing : logo + nav +
+  // FR/EN, sans avatar/menu déroulant. Sur les autres écrans mobiles
+  // (admin, fiche, versions), c'est MobileMenu qui prend le relais
+  // (cf. condition !showWelcomeTopbar plus bas).
+  const showWelcomeTopbar = !showSidebar && screen === 'welcome' && !!user;
 
   return (
     <LangContext.Provider value={{ lang, s, setLang, t }}>
@@ -3496,7 +3587,7 @@ function VersionsAppAuthed() {
              topbar resterait visuellement "sticky" parce que le scroll
              est piégé en interne). En layout sidebar/mobile, on laisse
              le comportement par défaut. */
-          showDesktopTopbar
+          showWelcomeTopbar
             ? { height: 'auto', minHeight: '100vh', overflow: 'visible' }
             : undefined
         }
@@ -3521,7 +3612,7 @@ function VersionsAppAuthed() {
             playerState={playerState}
             user={user}
             userProfile={userProfile}
-            onSignOut={signOut}
+            onSignOut={handleSignOut}
             onGoLanding={() => setScreen('home')}
             onGoDashboard={() => setScreen('welcome')}
             onGoAdmin={() => setScreen('admin')}
@@ -3532,8 +3623,11 @@ function VersionsAppAuthed() {
 
         {/* Main column */}
         <div style={showSidebar ? { display: "flex", flexDirection: "column", minWidth: 0 } : { marginLeft: contentMarginLeft, display: "flex", flexDirection: "column", minHeight: "100vh", transition: "margin-left .2s" }}>
-          {/* Mobile top bar with avatar menu */}
-          {isMobile && (
+          {/* Mobile top bar — masqué sur welcome car DashboardTopbar
+              gère le mobile aussi maintenant (parité visuelle avec
+              landing/pricing). Reste affiché sur les autres écrans
+              authentifiés (admin, fiche, versions, etc.). */}
+          {isMobile && !showWelcomeTopbar && (
             <MobileMenu
               onNavigate={(target) => {
                 setAskOpen(false);
@@ -3541,7 +3635,7 @@ function VersionsAppAuthed() {
                 if (target === 'reglages') { setReglagesOpen(true); return; }
                 setScreen(target);
               }}
-              onSignOut={signOut}
+              onSignOut={handleSignOut}
               user={user}
               userProfile={userProfile}
               onAdd={() => setHomeAddOpen(true)}
@@ -3552,16 +3646,17 @@ function VersionsAppAuthed() {
               Calé sur le topbar de la landing / pricing : logo + wordmark à
               gauche, nav (Accueil / Tableau de bord current / Tarifs /
               Réglages / Déconnexion / FR/EN) à droite. */}
-          {showDesktopTopbar && (
+          {showWelcomeTopbar && (
             <DashboardTopbar
               currentScreen={screen}
               onGoLanding={() => setScreen('home')}
               onGoDashboard={() => setScreen('welcome')}
               onGoPricing={() => setScreen('pricing')}
               onGoReglages={() => setReglagesOpen(true)}
-              onSignOut={signOut}
+              onSignOut={handleSignOut}
               lang={lang}
               setLang={setLang}
+              credits={userCredits}
             />
           )}
 
@@ -3573,7 +3668,7 @@ function VersionsAppAuthed() {
           <ReglagesModal
             open={reglagesOpen}
             onClose={() => setReglagesOpen(false)}
-            onSignOut={signOut}
+            onSignOut={handleSignOut}
             onProfileUpdate={setUserProfile}
           />
 
@@ -3631,13 +3726,13 @@ function VersionsAppAuthed() {
           <div
             ref={scrollContentRef}
             style={
-              showDesktopTopbar
+              showWelcomeTopbar
                 ? { display: "flex", flexDirection: "column", width: "100%", paddingBottom: 80 }
                 : { flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: 80 }
             }
           >
-            {showDesktopTopbar ? (
-              <div style={{ width: "100%", maxWidth: 1180, margin: "0 auto", padding: "0 24px", display: "flex", flexDirection: "column" }}>
+            {showWelcomeTopbar ? (
+              <div style={{ width: "100%", maxWidth: 1080, margin: "0 auto", padding: "0 24px", display: "flex", flexDirection: "column" }}>
                 {renderContent()}
               </div>
             ) : (

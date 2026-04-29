@@ -20,6 +20,7 @@ export default function LandingScreen({
   onViewDashboard,
   ctaPrimaryLabel,
   ctaFooterLabel,
+  isAuthenticated = false,
 }) {
   const { s, lang, setLang } = useLang();
   const lp = s.landing;
@@ -73,14 +74,19 @@ export default function LandingScreen({
               Tarifs
             </button>
           )}
+          {/* Visiteur non connecté → "Connexion / inscription"
+              Utilisateur connecté → "Tableau de bord"
+              Le handler (onViewDashboard) est aiguillé par App.jsx :
+              vers AuthScreen pour un visiteur, vers welcome pour un
+              user connecté. */}
           {onViewDashboard && (
             <button
               type="button"
               className="lp-topbar-link"
               onClick={onViewDashboard}
-              aria-label={s.sidebar.dashboardLink}
+              aria-label={isAuthenticated ? s.sidebar.dashboardLink : s.sidebar.signInLink}
             >
-              {s.sidebar.dashboardLink}
+              {isAuthenticated ? s.sidebar.dashboardLink : s.sidebar.signInLink}
             </button>
           )}
           {/* Switch FR/EN — même classe (.sb-lang-switch) que la sidebar du
@@ -295,35 +301,14 @@ function LandingStyles() {
       .landing-screen {
         position: relative; z-index: 1;
         min-height: 100vh; min-height: 100dvh;
-        /* Background : 2 couches s'empilent.
-           1. .ambient-halo global (App.jsx → body) : 3 calques crossfading
-              en 95s, 5 variantes de couleur. Donne le drift de fond lent.
-           2. .landing-screen::before ci-dessous : 3 orbes statiques (cerulean/
-              amber/violet) en drift court (28s). Donne la densité colorée
-              "façon pricing". Ensemble : palette saturée + 2 vitesses de
-              mouvement, pas plat. */
+        /* Background continu : .ambient-halo global (3 calques crossfading
+           en 95s) + .va-bg-orbs global (3 orbes color drift 50s) montés
+           tous les deux sur body. Persistent à travers les changements
+           de page → cohérence visuelle landing/pricing/dashboard. */
         background: transparent;
         color: var(--text, ${T.text});
         font-family: var(--body, ${T.body});
         overflow-x: hidden;
-      }
-      .landing-screen::before {
-        content: '';
-        position: fixed; inset: 0;
-        pointer-events: none;
-        z-index: 0;
-        background:
-          radial-gradient(ellipse 50% 38% at 18% 22%, rgba(92,184,204,0.10), transparent 70%),
-          radial-gradient(ellipse 42% 50% at 82% 48%, rgba(245,166,35,0.11), transparent 70%),
-          radial-gradient(ellipse 50% 40% at 30% 82%, rgba(166,126,245,0.09), transparent 70%);
-        animation: lp-bg-drift 28s ease-in-out infinite alternate;
-      }
-      @keyframes lp-bg-drift {
-        0%   { transform: translate3d(0, 0, 0); }
-        100% { transform: translate3d(-2.5%, 1.5%, 0); }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .landing-screen::before { animation: none; }
       }
 
       /* ── ANIMATIONS D'ENTRÉE AU SCROLL ────────────────────────────
@@ -398,11 +383,23 @@ function LandingStyles() {
         background: rgba(245,166,35,0.06);
         border: 1px solid rgba(245,166,35,0.32);
       }
-      @media (max-width: 640px) {
-        .lp-topbar { padding: 14px 14px; gap: 12px; }
-        .lp-topbar-logo { height: 32px; }
+      /* Mobile / petit desktop — calé sur le pattern .pr-topbar /
+         .sample-brand : logo 28px / wordmark 22px (format mobile éprouvé).
+         On masque le badge "Accueil" current : c'est redondant car on
+         est sur cette page. */
+      @media (max-width: 720px) {
+        .lp-topbar { padding: 16px 14px; gap: 12px; }
         .lp-topbar-wordmark { font-size: 22px; letter-spacing: -0.4px; }
-        .lp-topbar-link, .lp-topbar-current { padding: 7px 12px; font-size: 10px; }
+        .lp-topbar-logo { height: 28px; }
+        .lp-topbar-nav { gap: 6px; }
+        .lp-topbar-current { display: none; }
+      }
+      @media (max-width: 480px) {
+        .lp-topbar { padding: 14px 12px; gap: 8px; }
+        .lp-topbar-link {
+          font-size: 10px; letter-spacing: 1.2px;
+          padding: 7px 11px;
+        }
       }
 
       /* ── HERO ─────────────────────────────────────── */
