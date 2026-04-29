@@ -9,6 +9,33 @@ const FADR_EUR_PER_MIN = 0.046;
 const FADR_PLAN_EUR = 9.20;
 const FADR_PLAN_MINUTES = 200;
 
+// ── Coûts infra récurrents (mensuel, en EUR) ──
+// Ces lignes sont des constantes éditables — pas de tracking en DB. Mettre
+// à jour à la main quand un plan change (upgrade, ré-évaluation, etc.).
+// Les montants sont en EUR équivalents pour rester homogène avec le reste
+// du dashboard. USD → EUR via taux ~0,92 (mis à jour 2026-04-29).
+const INFRA_COSTS = [
+  {
+    label: 'Supabase Pro',
+    eurMonth: 23.00,           // $25 × 0.92
+    note: '100 Go storage + 250 Go egress + 5 Go max upload',
+    tone: 'cerulean',
+  },
+  {
+    label: 'Railway Hobby',
+    eurMonth: 9.20,            // $5 base + ~$5 usage estimé × 0.92
+    note: 'Backend decode-api · ~$5 base + usage variable',
+    tone: 'amber',
+  },
+  {
+    label: 'Vercel',
+    eurMonth: 0,
+    note: 'Free tier — frontend autodeploy',
+    tone: 'mint',
+  },
+];
+const INFRA_TOTAL_EUR_MONTH = INFRA_COSTS.reduce((sum, c) => sum + c.eurMonth, 0);
+
 /**
  * AdminScreen — dashboard admin (#/admin), gaté par VITE_ADMIN_EMAIL.
  *
@@ -270,6 +297,45 @@ export default function AdminScreen() {
                   sub={`max ${fmtEur(stats.max)}`}
                   tone="mint"
                 />
+              )}
+            </div>
+          </section>
+
+          {/* SECTION COÛTS INFRA RÉCURRENTS — fixed, mensuel, hors API */}
+          <section className="cost-section">
+            <div className="cost-section-eyebrow">Coûts infra récurrents</div>
+            <h2 className="cost-section-title">
+              Le <em>fixe mensuel</em> hors coûts d'analyse.
+            </h2>
+            <div className="cost-kpi-grid">
+              {INFRA_COSTS.map((c) => (
+                <KpiCard
+                  key={c.label}
+                  label={c.label}
+                  value={fmtEur(c.eurMonth)}
+                  sub={c.note}
+                  tone={c.tone}
+                />
+              ))}
+              <KpiCard
+                label="Total infra / mois"
+                value={fmtEur(INFRA_TOTAL_EUR_MONTH)}
+                sub={`soit ${fmtEur(INFRA_TOTAL_EUR_MONTH * 12)} / an`}
+                tone="violet"
+              />
+            </div>
+            {/* Petit récap ligne pour mettre en perspective avec coûts d'analyse */}
+            <div className="cost-fadr-note" style={{ marginTop: 14 }}>
+              <strong>Coût total mensuel estimé</strong> = {fmtEur(INFRA_TOTAL_EUR_MONTH)} fixe + {fmtEur(stats.total)} d'API sur les 30 derniers jours
+              {' = '}
+              <strong>{fmtEur(INFRA_TOTAL_EUR_MONTH + stats.total)}</strong>.
+              {isLiveBusiness && (
+                <>
+                  {' '}Recettes nettes 30j&nbsp;: <strong>{fmtEur(stripeStats.net_30d)}</strong> →
+                  {' '}<strong style={{ color: stripeStats.net_30d - INFRA_TOTAL_EUR_MONTH - stats.total >= 0 ? '#8ee07a' : '#ef6b6b' }}>
+                    Balance globale&nbsp;: {fmtEur(stripeStats.net_30d - INFRA_TOTAL_EUR_MONTH - stats.total)}
+                  </strong>.
+                </>
               )}
             </div>
           </section>
