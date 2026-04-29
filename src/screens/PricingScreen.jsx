@@ -26,12 +26,12 @@ import { PACKS, SUBSCRIPTIONS, SCHOOL_CONTACT_EMAIL, getPriceIdForPlan } from '.
  */
 
 // Mapping clé plan → variant CSS de carte (cycle d'accent visuel).
+// Grille révisée 2026-04-29 : packs réduits à 2 cartes (essai + occasionnel).
+// Les anciens variants amber/violet/rose restent dans le CSS — au cas où on
+// réintroduirait des packs plus tard, et parce qu'ils ne coûtent rien.
 const PACK_ACCENT = {
   pack_1: 'cerulean',
   pack_5: 'mint',
-  pack_10: 'amber',     // featured (Le plus choisi)
-  pack_25: 'violet',
-  pack_50: 'rose',
 };
 const SUB_ACCENT = {
   sub_indie: 'cerulean',
@@ -449,16 +449,19 @@ function PricingStyles() {
       .pr-section-title em { font-family: ${T.serif}; font-style: italic; font-weight: 500; color: ${T.amber}; }
       .pr-section-lede { font-family: ${T.body}; font-size: 14px; font-weight: 300; color: ${T.muted}; margin: 0; max-width: 680px; }
 
-      /* PACKS GRID — 5 colonnes desktop, 3 en grand tablet, 2 en tablet, 1 en mobile */
+      /* PACKS GRID — 2 cartes (Pack 1 + Pack 5) côte à côte sur desktop/tablet,
+         empilées en mobile. Centrées avec une largeur max pour ne pas avoir
+         des cartes énormes sur grand écran. */
       .pr-packs-grid {
         margin-top: clamp(40px, 5vw, 56px);
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 14px;
+        max-width: 720px;
+        margin-left: auto;
+        margin-right: auto;
       }
-      @media (max-width: 1080px) { .pr-packs-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-      @media (max-width: 760px)  { .pr-packs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
-      @media (max-width: 480px)  { .pr-packs-grid { grid-template-columns: 1fr; } }
+      @media (max-width: 480px)  { .pr-packs-grid { grid-template-columns: 1fr; gap: 12px; } }
 
       .pr-pack {
         position: relative; overflow: hidden;

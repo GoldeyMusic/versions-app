@@ -16,6 +16,14 @@
  * d'analyses sans faire confiance à un montant côté client.
  */
 
+// Grille révisée 2026-04-29 (Piste A) : élagage des packs 10/25/50.
+// Les abos (Indie 12/mois, Pro 30/mois) cannibalisaient ces gros packs —
+// personne de rationnel n'achetait 10 analyses à 34,99 € quand 1 mois Pro
+// donne 30 analyses à 29,99 €. Les Price IDs Stripe correspondants sont
+// archivés (mode test) et ne seront pas créés en live.
+//
+// Positionnement : Pack 1 = essai. Pack 5 = occasionnel sans engagement.
+// Au-delà → l'abo est la formule. Cf. project_versions_stripe.md.
 export const PACKS = [
   {
     key: 'pack_1',
@@ -33,38 +41,6 @@ export const PACKS = [
     credits: 5,
     perUnit: 3.99,
     priceIdEnv: 'VITE_STRIPE_PRICE_PACK_5',
-    highlight: null,
-  },
-  {
-    key: 'pack_10',
-    label: '10 analyses',
-    price_eur: 34.99,
-    credits: 10,
-    perUnit: 3.49,
-    priceIdEnv: 'VITE_STRIPE_PRICE_PACK_10',
-    // highlightKey : clé i18n résolue en runtime (s.pricing.ribbons[key]).
-    // 'mostChosen' = "Le plus choisi" / "Most chosen". Pilote aussi le
-    // styling featured (cf. PricingScreen).
-    highlightKey: 'mostChosen',
-    highlight: null,
-  },
-  {
-    key: 'pack_25',
-    label: '25 analyses',
-    price_eur: 79.99,
-    credits: 25,
-    perUnit: 3.19,
-    priceIdEnv: 'VITE_STRIPE_PRICE_PACK_25',
-    highlight: null,
-  },
-  {
-    key: 'pack_50',
-    label: '50 analyses',
-    price_eur: 139.99,
-    credits: 50,
-    perUnit: 2.79,
-    priceIdEnv: 'VITE_STRIPE_PRICE_PACK_50',
-    highlightKey: 'cheapestPerUnit',
     highlight: null,
   },
 ];
