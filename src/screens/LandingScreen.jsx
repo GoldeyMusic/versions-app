@@ -16,6 +16,7 @@ export default function LandingScreen({
   onStart,
   onViewSample,
   onViewPricing,
+  onViewDashboard,
   ctaPrimaryLabel,
   ctaFooterLabel,
 }) {
@@ -41,6 +42,16 @@ export default function LandingScreen({
         </div>
         <nav className="lp-topbar-nav" aria-label="Navigation">
           <span className="lp-topbar-current" aria-current="page">Accueil</span>
+          {onViewDashboard && (
+            <button
+              type="button"
+              className="lp-topbar-link"
+              onClick={onViewDashboard}
+              aria-label={s.sidebar.dashboardLink}
+            >
+              {s.sidebar.dashboardLink}
+            </button>
+          )}
           {onViewPricing && (
             <button
               type="button"

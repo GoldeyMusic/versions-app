@@ -3120,7 +3120,7 @@ function VersionsAppAuthed() {
     if (showAuth) view = <AuthScreen />;
     else if (screen === 'sample') view = <SampleFicheScreen onSignup={goAuth} onBackToLanding={goLanding} />;
     else if (screen === 'pricing') view = <PricingScreen onStart={goAuth} onBackToLanding={goLanding} />;
-    else view = <LandingScreen onStart={goAuth} onViewSample={goSample} onViewPricing={goPricing} />;
+    else view = <LandingScreen onStart={goAuth} onViewSample={goSample} onViewPricing={goPricing} onViewDashboard={goAuth} />;
     return (
       <LangContext.Provider value={{ lang, s, setLang, t }}>
         <FontLink />
@@ -3146,6 +3146,7 @@ function VersionsAppAuthed() {
           ctaFooterLabel={s.sidebar.dashboardLink}
           onViewSample={() => setScreen('sample')}
           onViewPricing={() => setScreen('pricing')}
+          onViewDashboard={() => setScreen('welcome')}
         />
       </LangContext.Provider>
     );
