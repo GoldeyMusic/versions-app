@@ -238,18 +238,23 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           if (!signRes.ok) {
             throw new Error(s.loading.errorStart.replace('{status}', `sign-upload ${signRes.status}`));
           }
-          const { storagePath, uploadUrl } = await signRes.json();
+          const { storagePath, token } = await signRes.json();
           console.log('[analyze] direct upload to', storagePath);
 
-          // 2. PUT direct vers Supabase Storage — c'est ICI que le gros
-          //    fichier voyage, sans repasser par Vercel ou Railway.
-          const putRes = await fetch(uploadUrl, {
-            method: 'PUT',
-            headers: { 'Content-Type': config.file.type || 'application/octet-stream' },
-            body: config.file,
-          });
-          if (!putRes.ok) {
-            throw new Error(`Supabase upload failed (HTTP ${putRes.status})`);
+          // 2. Upload direct vers Supabase Storage via le SDK officiel.
+          //    `uploadToSignedUrl` gère tout seul les bons headers (auth,
+          //    content-type, x-upsert) — le `fetch PUT` manuel renvoyait
+          //    HTTP 400 parce que Supabase attend un format précis.
+          //    C'est ICI que le gros fichier voyage, sans repasser par
+          //    Vercel ou Railway.
+          const { error: upErr } = await supabase.storage
+            .from('audio')
+            .uploadToSignedUrl(storagePath, token, config.file, {
+              contentType: config.file.type || 'application/octet-stream',
+              upsert: true,
+            });
+          if (upErr) {
+            throw new Error(`Supabase upload failed: ${upErr.message}`);
           }
 
           // 3. Démarrer le job avec un body JSON minuscule (quelques centaines
