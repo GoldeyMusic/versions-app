@@ -23,8 +23,8 @@ const INFRA_COSTS = [
   },
   {
     label: 'Railway Hobby',
-    eurMonth: 9.20,            // $5 base + ~$5 usage estimé × 0.92
-    note: 'Backend decode-api · ~$5 base + usage variable',
+    eurMonth: 4.60,            // $5/mois × 0.92 — inclut $5 d'usage, suffit pour le volume actuel
+    note: 'Backend decode-api · $5/mois flat (usage inclus)',
     tone: 'amber',
   },
   {
