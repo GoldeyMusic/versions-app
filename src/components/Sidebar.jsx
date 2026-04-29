@@ -12,6 +12,7 @@ import { confirmDialog } from '../lib/confirm.jsx';
 import RenameModal from './RenameModal';
 import { assignProjectColors, PROJECT_COLOR_COUNT } from '../lib/projectColors';
 import useLang from '../hooks/useLang';
+import { supabase } from '../lib/supabase';
 
 /**
  * Sidebar — accordéon de projets.
@@ -49,6 +50,35 @@ export default function Sidebar({
   const [renameTrackTarget, setRenameTrackTarget] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const renameInputRef = useRef(null);
+
+  // Solde de crédits affiché sous le nom (à la place de "Premium").
+  // Phase test : tous les comptes démarrent à 999, la logique de
+  // débit/refund n'est pas branchée tant que Stripe n'est pas live.
+  // null = en cours de chargement, number = solde courant.
+  const [credits, setCredits] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.id) { setCredits(null); return; }
+    (async () => {
+      try {
+        // RPC qui crée la ligne user_credits si absente, puis renvoie le balance.
+        const { data, error } = await supabase.rpc('get_or_create_user_credits');
+        if (cancelled) return;
+        if (error) {
+          console.warn('[sidebar] get_or_create_user_credits failed:', error.message);
+          setCredits(null);
+          return;
+        }
+        const row = Array.isArray(data) ? data[0] : data;
+        const bal = Number(row?.balance_remaining);
+        setCredits(Number.isFinite(bal) ? bal : null);
+      } catch (e) {
+        console.warn('[sidebar] credits fetch threw:', e);
+        if (!cancelled) setCredits(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   // Si le projet courant n'existe plus (après suppression), ouvre le 1er dispo.
   // `null` = volontairement replié → on le laisse tel quel.
@@ -266,7 +296,13 @@ export default function Sidebar({
         </div>
         <div>
           <div className="who">{who}</div>
-          <div className="plan">{s.sidebar.premiumBadge}</div>
+          <div className="plan">
+            {credits == null
+              ? s.sidebar.creditsLoading
+              : credits === 1
+                ? s.sidebar.creditsSingular
+                : s.sidebar.creditsPlural.replace('{count}', String(credits))}
+          </div>
         </div>
         {/* Mini switch FR/EN — raccourci pour éviter d'ouvrir Réglages juste
             pour changer de langue. stopPropagation pour que le clic ne remonte
