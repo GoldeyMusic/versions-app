@@ -4336,12 +4336,33 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
       return { cat: el?.cat || '', score: avg };
     }).filter((x) => typeof x.score === 'number');
 
+    // ─── Données complémentaires pour la nouvelle composition (refonte
+    //     2026-05-01) : BPM/Key/LUFS chips + genre + delta vs version
+    //     précédente. Récupère au mieux depuis les sources existantes.
+    const { bpm, key, lufs } = pickDspMetrics(version, ar);
+    const declared = (ar?.fiche?.declared_genre || '').trim();
+    const inferred = (ar?.fiche?.inferred_genre || '').trim();
+    const genre = declared || (ar?.fiche?.genre_inferred_by_ai === true ? inferred : '');
+    // Score V-1 : on cherche la version juste avant celle-ci dans l'ordre track.versions.
+    const versions = track?.versions || [];
+    const idx = versions.findIndex((v) => v.name === version.name);
+    const prev = idx > 0 ? versions[idx - 1] : null;
+    const prevAR = prev?.analysisResult;
+    const prevScore = prev && prevAR?.fiche
+      ? (typeof prevAR.fiche.globalScore === 'number' ? prevAR.fiche.globalScore : null)
+      : null;
+
     downloadScoreCard({
       title: track?.title || '',
       versionName: version?.name || '',
       score: sc,
       verdict: verdictText,
       subScores,
+      bpm,
+      key: key ? formatDspKey(key) : null,
+      lufs,
+      genre,
+      prevScore,
     }).catch((err) => {
       console.warn('[scoreCard] échec de la génération', err);
     });

@@ -1,46 +1,55 @@
-// Score Card 1080×1080 — partage Insta/X (Ticket 2.2 AubioMix).
-// Canvas 2D pur (pas de html2canvas) pour un rendu pixel-perfect,
-// indépendant des reflows DOM et des dimensions d'écran.
+// Score Card 1080×1080 — partage Insta/X.
+// Refonte 2026-05-01 : composition "trophée + constellation" — gros score
+// centré dans son anneau, 9 chips colorés flottants avec rotations subtiles
+// (catégories + BPM/Key/LUFS/genre/delta), verdict italique en bandeau bas.
+// Halos ambient amber/cyan/violet pour donner de la chaleur.
 //
-// Le design suit le DS existant : fond #0c0c0d, accents amber #f5b056,
-// halos colorés en arrière-plan, italique Fraunces pour le verdict.
-//
-// Fonts utilisées (déjà chargées par MockupStyles) : DM Sans, Fraunces,
-// JetBrains Mono. On attend leur disponibilité avant de dessiner pour
-// éviter le flash de fallback.
+// Canvas 2D pur (pas de html2canvas) pour un rendu pixel-perfect.
 
 const SIZE = 1080;
-const BG = '#0c0c0d';
-const AMBER = '#f5b056';
-const SOFT = '#bdbdc0';
-const MUTED = '#7c7c80';
-const BORDER = 'rgba(255,255,255,0.12)';
+const BG = '#0a0b14';
 
-// Couleur du ring selon le score (mêmes seuils que ScoreRingBig).
+// Palette cohérente avec les .vside-chip de la fiche.
+const AMBER = '#f5b056';
+const CYAN = '#5cb8cc';
+const VIOLET = '#a67ef5';
+const MINT = '#8ee07a';
+const RED = '#ff5d5d';
+const SOFT = 'rgba(255,255,255,0.75)';
+const MUTED = 'rgba(255,255,255,0.45)';
+
+// Couleur du ring + score chip selon le score (mêmes seuils que ScoreRingBig).
 function ringColor(v) {
-  if (v < 50) return '#ef6b6b';
+  if (v < 50) return RED;
   if (v < 75) return AMBER;
-  return '#7bd88f';
+  return MINT;
+}
+
+// Convertit un hex (#rrggbb) en rgba(r,g,b,a). Pour fond et bordure des chips.
+function hexToRgba(hex, alpha) {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 async function ensureFonts() {
   if (!document.fonts || !document.fonts.load) return;
   try {
     await Promise.all([
-      document.fonts.load('700 80px "DM Sans"'),
-      document.fonts.load('500 60px "DM Sans"'),
-      document.fonts.load('400 32px "DM Sans"'),
-      document.fonts.load('400 36px "JetBrains Mono"'),
-      document.fonts.load('italic 500 56px "Fraunces"'),
-      document.fonts.load('italic 400 28px "Fraunces"'),
+      document.fonts.load('700 220px "DM Sans"'),
+      document.fonts.load('700 64px "DM Sans"'),
+      document.fonts.load('600 24px "JetBrains Mono"'),
+      document.fonts.load('500 22px "JetBrains Mono"'),
+      document.fonts.load('italic 500 40px "Cormorant Garamond"'),
     ]);
   } catch {
-    // Best-effort : on dessine quand même avec le fallback du navigateur.
+    // Fallback navigateur si une font ne charge pas.
   }
 }
 
-// Wraps `text` to fit inside `maxWidth` at `font`. Returns array of lines.
-function wrapText(ctx, text, maxWidth, maxLines = 3) {
+function wrapText(ctx, text, maxWidth, maxLines = 2) {
   if (!text) return [];
   const words = String(text).split(/\s+/);
   const lines = [];
@@ -56,7 +65,6 @@ function wrapText(ctx, text, maxWidth, maxLines = 3) {
     }
   }
   if (cur && lines.length < maxLines) lines.push(cur);
-  // Si on a tronqué, ajoute …
   if (lines.length === maxLines) {
     let last = lines[maxLines - 1];
     while (ctx.measureText(`${last}…`).width > maxWidth && last.length > 1) {
@@ -67,44 +75,47 @@ function wrapText(ctx, text, maxWidth, maxLines = 3) {
   return lines;
 }
 
-// Halos colorés en arrière-plan (esprit pochette abstraite).
+// Halos ambient seedés sur le titre — amber centre, cyan top-left,
+// violet bottom-right. Reproduit la grammaire bg du site.
 function paintHalos(ctx, seed) {
-  const palette = [
-    'rgba(245, 176, 86, 0.55)',  // amber
-    'rgba(110, 185, 110, 0.35)', // sage
-    'rgba(70, 150, 210, 0.32)',  // cerulean
-    'rgba(215, 115, 170, 0.28)', // rose
-  ];
   let s = seed || 1;
   const rand = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
-  for (let i = 0; i < 4; i++) {
-    const x = rand() * SIZE;
-    const y = rand() * SIZE;
-    const r = 280 + rand() * 220;
-    const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
-    grad.addColorStop(0, palette[i % palette.length]);
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  // Léger voile pour foncer le rendu et garder la lisibilité du texte
-  ctx.fillStyle = 'rgba(12,12,13,0.45)';
+  // Amber au centre (gros, prédominant).
+  const ax = SIZE * (0.4 + rand() * 0.2);
+  const ay = SIZE * (0.4 + rand() * 0.2);
+  const ag = ctx.createRadialGradient(ax, ay, 0, ax, ay, SIZE * 0.7);
+  ag.addColorStop(0, 'rgba(245, 176, 86, 0.32)');
+  ag.addColorStop(0.5, 'rgba(245, 176, 86, 0.10)');
+  ag.addColorStop(1, 'rgba(245, 176, 86, 0)');
+  ctx.fillStyle = ag;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  // Cyan top-left.
+  const cg = ctx.createRadialGradient(SIZE * 0.1, SIZE * 0.15, 0, SIZE * 0.1, SIZE * 0.15, SIZE * 0.5);
+  cg.addColorStop(0, 'rgba(92, 184, 204, 0.22)');
+  cg.addColorStop(1, 'rgba(92, 184, 204, 0)');
+  ctx.fillStyle = cg;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  // Violet bottom-right.
+  const vg = ctx.createRadialGradient(SIZE * 0.9, SIZE * 0.9, 0, SIZE * 0.9, SIZE * 0.9, SIZE * 0.5);
+  vg.addColorStop(0, 'rgba(166, 126, 245, 0.20)');
+  vg.addColorStop(1, 'rgba(166, 126, 245, 0)');
+  ctx.fillStyle = vg;
   ctx.fillRect(0, 0, SIZE, SIZE);
 }
 
-// Dessine l'anneau de score centré.
+// Anneau de score avec gros chiffre au centre. Rayon donné, anneau
+// tracé sur 360° pour la track + arc partiel pour la valeur.
 function paintScoreRing(ctx, cx, cy, radius, value) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
   const color = ringColor(v);
-  // Track
-  ctx.lineWidth = 18;
-  ctx.strokeStyle = `${color}33`;
+  // Track de fond.
+  ctx.lineWidth = 22;
+  ctx.strokeStyle = `${color}26`;
+  ctx.lineCap = 'butt';
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.stroke();
-  // Progress (start at top, clockwise)
+  // Arc partiel (top center, clockwise).
   ctx.strokeStyle = color;
   ctx.lineCap = 'round';
   const start = -Math.PI / 2;
@@ -112,64 +123,71 @@ function paintScoreRing(ctx, cx, cy, radius, value) {
   ctx.beginPath();
   ctx.arc(cx, cy, radius, start, end);
   ctx.stroke();
-  // Numéro au centre
+  // Numéro centre.
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  ctx.font = '700 130px "DM Sans", sans-serif';
-  const num = String(Math.round(v));
-  const numW = ctx.measureText(num).width;
-  ctx.fillText(num, cx - 18, cy + 18);
-  // Suffixe /100
+  ctx.textBaseline = 'middle';
+  ctx.font = '700 220px "DM Sans", sans-serif';
+  ctx.fillText(String(Math.round(v)), cx, cy + 8);
+  // /100 sous le chiffre.
   ctx.fillStyle = MUTED;
-  ctx.font = '500 36px "DM Sans", sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('/100', cx + numW / 2 - 14, cy + 14);
+  ctx.font = '500 24px "JetBrains Mono", monospace';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('/ 100', cx, cy + 130);
 }
 
-// Sub-score pill (catégorie + score).
-function paintSubScore(ctx, x, y, w, h, label, score) {
-  // Carte arrondie
-  const r = 14;
-  ctx.fillStyle = 'rgba(255,255,255,0.04)';
-  ctx.strokeStyle = BORDER;
-  ctx.lineWidth = 1.5;
+// Pill chip color-coded avec rotation. Position = centre du chip après rotation.
+function paintChip(ctx, cx, cy, rotateDeg, label, color, paddingX = 24, height = 50, fontSize = 16) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate((rotateDeg * Math.PI) / 180);
+
+  ctx.font = `600 ${fontSize}px "JetBrains Mono", "DM Sans", monospace`;
+  const textW = ctx.measureText(label).width;
+  const w = Math.ceil(textW + paddingX * 2);
+  const h = height;
+  const r = h / 2;
+
+  // Fond tinted + bordure pleine.
+  ctx.fillStyle = hexToRgba(color, 0.10);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.6;
   ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
+  ctx.moveTo(-w / 2 + r, -h / 2);
+  ctx.arcTo(w / 2, -h / 2, w / 2, h / 2, r);
+  ctx.arcTo(w / 2, h / 2, -w / 2, h / 2, r);
+  ctx.arcTo(-w / 2, h / 2, -w / 2, -h / 2, r);
+  ctx.arcTo(-w / 2, -h / 2, w / 2, -h / 2, r);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
-  // Label
-  ctx.fillStyle = SOFT;
-  ctx.font = '500 22px "DM Sans", sans-serif';
-  ctx.textAlign = 'left';
+
+  // Label centré.
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  // Tronque le label si trop long
-  let lbl = String(label || '').toUpperCase();
-  while (ctx.measureText(lbl).width > w - 110 && lbl.length > 1) lbl = lbl.slice(0, -1);
-  ctx.fillText(lbl, x + 22, y + h / 2);
-  // Score à droite
-  ctx.fillStyle = ringColor(score);
-  ctx.font = '700 32px "JetBrains Mono", "DM Sans", monospace';
-  ctx.textAlign = 'right';
-  ctx.fillText(String(Math.round(score)), x + w - 22, y + h / 2 + 1);
+  ctx.fillText(label, 0, 1);
+
+  ctx.restore();
 }
 
 /**
  * Construit la Score Card 1080×1080 et déclenche son téléchargement.
  *
  * @param {object} args
- * @param {string} args.title          Titre du morceau
+ * @param {string} args.title          Titre du morceau (ex. "Your Song")
  * @param {number} args.score          Score global /100
- * @param {string} [args.verdict]      Verdict (1ʳᵉ phrase, italique)
+ * @param {string} [args.verdict]      Verdict 1ʳᵉ phrase, italique Cormorant
  * @param {Array<{cat:string,score:number}>} [args.subScores]
- *        Liste { cat, score } — on garde les 3 meilleurs.
+ *        Liste { cat, score } — on pioche les 4 plus marquantes (les 2
+ *        meilleures + les 2 moins bonnes pour donner un panorama).
  * @param {string} [args.versionName]  Nom de version (V1, V2…)
- * @param {string} [args.filename]     Nom du fichier téléchargé.
+ * @param {string|number} [args.bpm]   BPM (chip cyan)
+ * @param {string} [args.key]          Tonalité (chip violet)
+ * @param {string|number} [args.lufs]  LUFS (chip mint)
+ * @param {string} [args.genre]        Genre détecté (chip amber)
+ * @param {number} [args.prevScore]    Score V-1 (pour delta)
+ * @param {string} [args.filename]
  */
 export async function downloadScoreCard({
   title,
@@ -177,6 +195,11 @@ export async function downloadScoreCard({
   verdict = '',
   subScores = [],
   versionName = '',
+  bpm = null,
+  key = null,
+  lufs = null,
+  genre = '',
+  prevScore = null,
   filename,
 } = {}) {
   await ensureFonts();
@@ -186,86 +209,120 @@ export async function downloadScoreCard({
   canvas.height = SIZE;
   const ctx = canvas.getContext('2d');
 
-  // Fond
+  // Fond + halos.
   ctx.fillStyle = BG;
   ctx.fillRect(0, 0, SIZE, SIZE);
-
-  // Halos seedés depuis le titre (cohérent avec la pochette de la fiche)
   let seed = 0;
   for (let i = 0; i < (title || '').length; i++) seed = (seed * 31 + title.charCodeAt(i)) >>> 0;
   paintHalos(ctx, seed || 1);
 
-  // Eyebrow "VERSIONS" en haut, ambre, mono
+  // ── HEADER ──────────────────────────────────────────────────────
+  // Eyebrow VERSIONS (gauche) + version (droite).
   ctx.fillStyle = AMBER;
   ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
+  ctx.textBaseline = 'middle';
   ctx.font = '500 22px "JetBrains Mono", monospace';
-  ctx.fillText('VERSIONS', 64, 64);
-  // Pastille version à droite
+  ctx.fillText('VERSIONS', 60, 80);
   if (versionName) {
     ctx.fillStyle = MUTED;
     ctx.textAlign = 'right';
-    ctx.font = '500 22px "JetBrains Mono", monospace';
-    ctx.fillText(versionName.toUpperCase(), SIZE - 64, 64);
+    ctx.fillText(`MIX ${versionName.toUpperCase()}`, SIZE - 60, 80);
   }
 
-  // Titre du morceau (DM Sans bold) — wrap sur 2 lignes max
+  // ── TITRE DU MORCEAU ───────────────────────────────────────────
   ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
   ctx.font = '700 64px "DM Sans", sans-serif';
-  const titleLines = wrapText(ctx, title || 'Sans titre', SIZE - 128, 2);
-  let yCursor = 130;
+  const titleLines = wrapText(ctx, title || 'Sans titre', SIZE - 200, 2);
+  let titleY = titleLines.length === 1 ? 200 : 175;
   for (const line of titleLines) {
-    ctx.fillText(line, 64, yCursor);
-    yCursor += 76;
+    ctx.fillText(line, SIZE / 2, titleY);
+    titleY += 70;
   }
 
-  // Anneau de score centré
-  const ringR = 200;
+  // ── SCORE RING CENTRAL ─────────────────────────────────────────
+  const ringR = 240;
   const ringCx = SIZE / 2;
-  const ringCy = 540;
+  const ringCy = 560;
   paintScoreRing(ctx, ringCx, ringCy, ringR, score);
 
-  // Verdict italique sous l'anneau
-  if (verdict) {
-    ctx.fillStyle = SOFT;
-    ctx.font = 'italic 500 38px "Fraunces", "DM Sans", serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    const verdictLines = wrapText(ctx, verdict, SIZE - 200, 2);
-    let vy = ringCy + ringR + 60;
-    for (const line of verdictLines) {
-      ctx.fillText(line, SIZE / 2, vy);
-      vy += 50;
-    }
-  }
+  // ── CONSTELLATION DE CHIPS ─────────────────────────────────────
+  // Top center : BPM + Key (si disponibles).
+  if (bpm) paintChip(ctx, 420, 280, -3, `${bpm} BPM`, CYAN, 22, 48, 15);
+  if (key) paintChip(ctx, 660, 290, 2, String(key).toUpperCase(), VIOLET, 22, 48, 15);
 
-  // 3 top sub-scores (3 cartes côte à côte)
-  const top3 = (Array.isArray(subScores) ? subScores : [])
+  // Sub-scores : 2 meilleurs côtés haut, 2 moins bons côtés bas.
+  const sorted = (Array.isArray(subScores) ? subScores : [])
     .filter((s) => s && typeof s.score === 'number')
-    .slice() // copy
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
-  if (top3.length > 0) {
-    const cardH = 70;
-    const gap = 16;
-    const cardW = (SIZE - 128 - gap * (top3.length - 1)) / top3.length;
-    const cy = 900;
-    for (let i = 0; i < top3.length; i++) {
-      const cx = 64 + i * (cardW + gap);
-      paintSubScore(ctx, cx, cy, cardW, cardH, top3[i].cat, top3[i].score);
+    .slice()
+    .sort((a, b) => b.score - a.score);
+  const top2 = sorted.slice(0, 2);
+  const bot2 = sorted.length > 2 ? sorted.slice(-2).reverse() : [];
+
+  // Top-gauche, top-droit.
+  if (top2[0]) {
+    const c = ringColor(top2[0].score);
+    paintChip(ctx, 200, 420, -8, `${top2[0].cat.toUpperCase()} ${Math.round(top2[0].score)}`, c, 24, 56, 17);
+  }
+  if (top2[1]) {
+    const c = ringColor(top2[1].score);
+    paintChip(ctx, 880, 380, 6, `${top2[1].cat.toUpperCase()} ${Math.round(top2[1].score)}`, c, 24, 56, 17);
+  }
+  // Bottom-gauche, bottom-droit.
+  if (bot2[0]) {
+    const c = ringColor(bot2[0].score);
+    paintChip(ctx, 180, 780, -4, `${bot2[0].cat.toUpperCase()} ${Math.round(bot2[0].score)}`, c, 24, 56, 17);
+  }
+  if (bot2[1]) {
+    const c = ringColor(bot2[1].score);
+    paintChip(ctx, 900, 800, 5, `${bot2[1].cat.toUpperCase()} ${Math.round(bot2[1].score)}`, c, 24, 56, 17);
+  }
+
+  // Bottom center : LUFS + delta + genre (sous le score).
+  if (lufs) {
+    const lufsLabel = String(lufs).toLowerCase().includes('lufs') ? String(lufs) : `${lufs} LUFS`;
+    paintChip(ctx, 460, 880, 2, lufsLabel.toUpperCase(), MINT, 22, 50, 15);
+  }
+  if (typeof prevScore === 'number' && typeof score === 'number') {
+    const delta = Math.round(score - prevScore);
+    if (delta !== 0) {
+      const arrow = delta > 0 ? '↑' : '↓';
+      const color = delta > 0 ? MINT : RED;
+      paintChip(ctx, 645, 875, -2, `${arrow} ${delta > 0 ? '+' : ''}${delta}`, color, 22, 50, 16);
+    }
+  }
+  if (genre) {
+    // Tronque si trop long pour ne pas sortir du canvas.
+    let g = String(genre).toUpperCase();
+    ctx.font = '600 14px "JetBrains Mono", monospace';
+    while (ctx.measureText(g).width > 320 && g.length > 1) g = g.slice(0, -1);
+    paintChip(ctx, SIZE / 2, 945, 1, g, AMBER, 22, 48, 14);
+  }
+
+  // ── VERDICT BANDEAU BAS ────────────────────────────────────────
+  if (verdict) {
+    ctx.fillStyle = AMBER;
+    ctx.font = 'italic 500 40px "Cormorant Garamond", "Fraunces", Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const vLines = wrapText(ctx, `« ${verdict} »`, SIZE - 200, 2);
+    let vy = 1010;
+    if (vLines.length === 2) vy = 990;
+    for (const line of vLines) {
+      ctx.fillText(line, SIZE / 2, vy);
+      vy += 48;
     }
   }
 
-  // Watermark bas
+  // ── WATERMARK ──────────────────────────────────────────────────
   ctx.fillStyle = MUTED;
-  ctx.font = '500 18px "JetBrains Mono", monospace';
+  ctx.font = '500 14px "JetBrains Mono", monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
-  ctx.fillText('www.versions.studio', SIZE / 2, SIZE - 32);
+  ctx.fillText('www.versions.studio', SIZE / 2, SIZE - 30);
 
-  // Téléchargement
+  // ── EXPORT ─────────────────────────────────────────────────────
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
   if (!blob) throw new Error('Canvas toBlob a renvoyé null');
   const url = URL.createObjectURL(blob);
