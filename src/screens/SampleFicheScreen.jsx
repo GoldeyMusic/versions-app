@@ -556,14 +556,14 @@ export default function SampleFicheScreen({
             <div className="public-fiche-page page">
             {/* Bandeau "Verdict de sortie" — strictement aligné sur la
                 vraie fiche : toujours déployé, montre les bloquants
-                d'office, et CTA "Parlons-en dans le chat" qui sur la
-                page exemple route vers signup (la chat IA n'étant
-                accessible qu'aux utilisateurs connectés). */}
+                d'office, et CTA "Parlons-en dans le chat" présent
+                visuellement mais inerte sur la page exemple (cliquer
+                ne mène nulle part — c'est juste de la démonstration). */}
             <ReleaseReadinessBanner
               fiche={rawFiche}
               completedItems={null}
               uploadType="master"
-              onOpenChat={onSignup}
+              onOpenChat={() => {}}
             />
 
             {/* Verdict — strictement aligné sur FicheScreen :
