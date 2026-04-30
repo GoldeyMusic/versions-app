@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import API from '../constants/api';
 // import CompareButton from '../components/CompareButton'; // mis en sommeil
@@ -21,6 +21,7 @@ import useNarrowDesktop from '../hooks/useNarrowDesktop';
 import useLang from '../hooks/useLang';
 import OnboardingHints from '../components/OnboardingHints';
 import { FICHE_STEPS, ONBOARDING_STORAGE_KEYS } from '../constants/onboardingSteps';
+import { getMasteringCharter, MASTERING_CHARTER_SEED_KEY } from '../constants/masteringCharter';
 
 // ── Icônes catégories diagnostic — glyphes minimalistes (refonte
 // 2026-04-30, "page plus jeune"). Symboles premium type lucide :
@@ -3121,25 +3122,117 @@ function FocusModal({ open, plan, idx, elements, onClose, onPrev, onNext, isReso
 
 // ── VersionChat (panneau glissant) ─────────────────────────
 
-function VersionChat({ versionId, config, analysisResult, open, onClose, anchored = false }) {
+// Petit renderer markdown minimal : transforme **gras** en <strong> et
+// préserve les sauts de ligne (la CSS .msg utilise white-space: pre-wrap).
+// On l'applique à TOUS les messages — les réponses de l'IA n'ont pas de
+// markdown (le system prompt l'interdit) donc elles sont rendues identiques
+// à avant. Le message seed (charte mastering) est le seul qui en bénéficie.
+function renderMessageContent(text) {
+  if (typeof text !== 'string') return text;
+  // Découpe en alternant texte / **gras**. Regex ne capture qu'une paire.
+  const parts = text.split(/(\*\*[^*\n]+?\*\*)/g);
+  return parts.map((p, i) => {
+    if (p.length > 4 && p.startsWith('**') && p.endsWith('**')) {
+      return <strong key={i}>{p.slice(2, -2)}</strong>;
+    }
+    return <span key={i}>{p}</span>;
+  });
+}
+
+function VersionChat({
+  versionId,
+  config,
+  analysisResult,
+  open,
+  onClose,
+  anchored = false,
+  /* Seed mastering charter — seedFetcher renvoie une Promise<string>
+     (charte personnalisée générée par le backend) ; staticSeedFallback
+     est utilisé si le fetcher échoue ou n'est pas fourni. seedKey est
+     stocké dans le message pour le marquer comme seed. */
+  seedFetcher = null,
+  staticSeedFallback = null,
+  seedKey = null,
+}) {
   const { lang, s } = useLang();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const controllerRef = useRef(null);
   const textareaRef = useRef(null);
+  // N'essaye le seed qu'une fois par versionId pour éviter les double-fires
+  // si seedFetcher / seedKey changent de référence (ex: useCallback re-créé).
+  const seedAttemptedRef = useRef(false);
 
   // Charge l'historique persisté quand la version change — chat scopé par versionId.
   // Si versionId n'est pas encore en DB (__pending_v__) le helper retourne []
   // et on démarre avec une conversation vierge (sauvegardée plus tard quand l'ID existera).
   useEffect(() => {
     let alive = true;
-    if (!versionId) { setMessages([]); return; }
+    setHistoryLoaded(false);
+    seedAttemptedRef.current = false;
+    if (!versionId) { setMessages([]); setHistoryLoaded(true); return; }
     loadChatHistory(versionId).then((hist) => {
-      if (alive) setMessages(hist);
+      if (alive) {
+        setMessages(hist);
+        setHistoryLoaded(true);
+      }
     });
     return () => { alive = false; };
   }, [versionId]);
+
+  // Seed mastering — injecte une charte mastering comme premier message
+  // assistant si l'historique est vide. Le fetcher appelle l'API
+  // /api/mastering-charter qui croise contexte du track + charte de
+  // référence + RAG PureMix pour générer une réponse personnalisée.
+  // Pendant la génération : seeding=true → typing indicator dans la UI.
+  // Edge cases :
+  //   • versionId pending → loadChatHistory renvoie [] mais saveChatHistory
+  //     est no-op : on injecte localement, pas de persist (OK, sera persisté
+  //     au moment du send après que la version soit en DB).
+  //   • Historique non vide (l'user a déjà chatté) → on ne touche à rien.
+  //   • Historique cleared puis CTA recliqué → seedAttemptedRef est false
+  //     dans ce versionId donc on re-seed (volontaire).
+  //   • API /api/mastering-charter tombe → fallback sur staticSeedFallback
+  //     si fourni, sinon on abandonne le seed silencieusement.
+  useEffect(() => {
+    if (!historyLoaded) return;
+    if (!seedKey) return;
+    if (messages.length > 0) return;
+    if (seedAttemptedRef.current) return;
+    if (!seedFetcher && !staticSeedFallback) return;
+    seedAttemptedRef.current = true;
+
+    let alive = true;
+    const inject = (content) => {
+      if (!alive || !content) return;
+      const seed = { role: 'assistant', content, _seed: seedKey };
+      setMessages([seed]);
+      saveChatHistory(versionId, [seed]);
+    };
+
+    if (!seedFetcher) {
+      inject(staticSeedFallback);
+      return () => { alive = false; };
+    }
+
+    setSeeding(true);
+    (async () => {
+      try {
+        const content = await seedFetcher();
+        inject(content || staticSeedFallback);
+      } catch (e) {
+        console.warn('[seed] fetcher failed, fallback static:', e?.message || e);
+        inject(staticSeedFallback);
+      } finally {
+        if (alive) setSeeding(false);
+      }
+    })();
+
+    return () => { alive = false; };
+  }, [historyLoaded, seedFetcher, staticSeedFallback, seedKey, messages.length, versionId]);
 
   const send = async () => {
     if (!input.trim() || loading) return;
@@ -3160,7 +3253,9 @@ function VersionChat({ versionId, config, analysisResult, open, onClose, anchore
         signal: controller.signal,
         body: JSON.stringify({
           locale: lang,
-          messages: withUser,
+          // On strippe les champs internes (_seed) avant d'envoyer à
+          // l'API Claude — l'endpoint Anthropic n'accepte que role/content.
+          messages: withUser.map(({ role, content }) => ({ role, content })),
           title: config?.title || '',
           version: config?.version || '',
           daw: config?.daw || 'Logic Pro',
@@ -3237,21 +3332,26 @@ function VersionChat({ versionId, config, analysisResult, open, onClose, anchore
           </div>
         </div>
         <div className="chat-body">
-          {messages.length === 0 && (
+          {messages.length === 0 && !seeding && (
             <div className="msg ai">
               <span className="ai-label">{s.fiche.chatAiName}</span>
               {s.fiche.chatEmpty}
             </div>
           )}
           {messages.map((m, i) => (
-            <div key={i} className={`msg ${m.role === 'assistant' ? 'ai' : m.role}`}>
+            <div key={i} className={`msg ${m.role === 'assistant' ? 'ai' : m.role}${m._seed ? ' msg-seed' : ''}`}>
               {m.role === 'assistant' && <span className="ai-label">{s.fiche.chatAiName}</span>}
-              {m.content}
+              {renderMessageContent(m.content)}
             </div>
           ))}
-          {loading && (
+          {(loading || seeding) && (
             <div className="msg ai">
               <span className="ai-label">{s.fiche.chatAiName}</span>
+              {seeding && (
+                <span className="chat-seeding-label">
+                  {s.fiche.chatSeedingMastering || 'Préparation des recommandations mastering pour ton track…'}
+                </span>
+              )}
               <span className="chat-typing">
                 <span className="dot" /><span className="dot" /><span className="dot" />
               </span>
@@ -4058,6 +4158,49 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   const rawFiche = displayAR?.fiche || null;
   const listening = displayAR?.listening || null;
   const stage = displayAR?._stage || analysisResult?._stage || 'idle';
+
+  // ── Mastering charter seed fetcher (pour le chat) ──────────
+  // Appelle /api/mastering-charter avec le contexte complet du track :
+  // titre, version, DAW, genre, uploadType, métriques DSP (BPM/Key/LUFS),
+  // écoute qualitative, fiche d'analyse (verdict + diagnostic). Le backend
+  // croise avec la charte de référence + RAG PureMix → réponse Claude
+  // personnalisée. En cas d'erreur ou de timeout, on retourne null pour
+  // laisser le chat tomber sur staticSeedFallback (charte statique FR/EN).
+  // useCallback pour stabiliser la référence (le seed effect dans
+  // VersionChat a un seedAttemptedRef pour éviter les double-fires
+  // mais on évite quand même les renders inutiles).
+  const masteringSeedFetcher = useCallback(async () => {
+    try {
+      const dspMetrics = pickDspMetrics(versionInDb, displayAR);
+      const genre = versionInDb?.genre || rawFiche?.genre || null;
+      const uploadType = versionInDb?.uploadType || 'mix';
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
+      const res = await fetch(`${API}/api/mastering-charter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          locale: lang,
+          title: config?.title || '',
+          version: config?.version || '',
+          daw: config?.daw || 'Logic Pro',
+          genre,
+          uploadType,
+          dspMetrics,
+          listening: displayAR?.listening || null,
+          fiche: rawFiche,
+        }),
+      });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error('mastering-charter ' + res.status);
+      const json = await res.json();
+      return json?.reply || null;
+    } catch (e) {
+      console.warn('[mastering-charter] fetch failed:', e?.message || e);
+      return null; // → fallback statique côté VersionChat
+    }
+  }, [config, versionInDb, displayAR, rawFiche, lang]);
 
   // ── IntersectionObserver pour les .wh-anim de la fiche ──
   // L'observer global d'App.jsx tourne quand `screen` change, mais à
@@ -5311,6 +5454,13 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               open={true}
               onClose={() => {}}
               anchored
+              /* Seed dynamique : charte mastering générée par Claude
+                 (backend /api/mastering-charter) qui croise charte de
+                 référence + contexte du track + RAG PureMix. Fallback
+                 statique si l'API tombe. */
+              seedFetcher={masteringSeedFetcher}
+              staticSeedFallback={getMasteringCharter(lang)}
+              seedKey={MASTERING_CHARTER_SEED_KEY}
             />
           </aside>
         )}
@@ -5432,6 +5582,16 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             analysisResult={displayAR}
             open={chatOpen}
             onClose={() => setChatOpen(false)}
+            /* Seed dynamique : la charte mastering est générée par Claude
+               à la première ouverture (croise charte de référence +
+               contexte du track + verdict + RAG PureMix). Si l'API tombe,
+               on retombe sur la charte statique FR/EN comme filet de
+               sécurité. Le CTA "Conseils mastering ?" et la pill chat
+               ouvrent tous deux le drawer — le seed sert de point de
+               départ commun adapté au track. */
+            seedFetcher={masteringSeedFetcher}
+            staticSeedFallback={getMasteringCharter(lang)}
+            seedKey={MASTERING_CHARTER_SEED_KEY}
           />
         </>
       )}

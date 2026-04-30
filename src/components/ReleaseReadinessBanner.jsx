@@ -124,32 +124,40 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
         </ul>
       )}
 
-      {/* CTA "Parlons-en dans le chat" — posé à l'intérieur du
-          bandeau verdict, sous la liste des bloquants quand il y en a.
-          Visible aussi en mode "ready" (pas de bloquants) pour inviter
-          à creuser même un mix qui passe le seuil. */}
-      {onOpenChat && (
-        <button
-          type="button"
-          className="rr-chat-cta"
-          onClick={onOpenChat}
-          aria-label={s.fiche?.diagChatCta || 'Parlons-en dans le chat'}
-        >
-          <span className="rr-chat-cta-icon" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M21 12a8.5 8.5 0 0 1-12.39 7.55L4 21l1.45-4.61A8.5 8.5 0 1 1 21 12z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </span>
-          <span className="rr-chat-cta-label">
-            {s.fiche?.diagChatCta || 'Parlons-en dans le chat'}
-          </span>
-          <span className="rr-chat-cta-arrow" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </span>
-        </button>
-      )}
+      {/* CTA chat — posé à l'intérieur du bandeau verdict, sous la
+          liste des bloquants quand il y en a. Visible aussi en mode
+          "ready" (pas de bloquants) pour inviter à creuser même un mix
+          qui passe le seuil. Affiché sur 2 lignes : intro discrète
+          ("Conseils mastering ?") sur la 1ère ligne, libellé principal
+          ("Parlons-en dans le chat") sur la 2ème — l'aria-label
+          regroupe les deux pour rester lisible aux lecteurs d'écran. */}
+      {onOpenChat && (() => {
+        const intro = s.fiche?.diagChatCtaIntro || 'Conseils mastering ?';
+        const main = s.fiche?.diagChatCta || 'Parlons-en dans le chat';
+        return (
+          <button
+            type="button"
+            className="rr-chat-cta"
+            onClick={onOpenChat}
+            aria-label={`${intro} ${main}`}
+          >
+            <span className="rr-chat-cta-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M21 12a8.5 8.5 0 0 1-12.39 7.55L4 21l1.45-4.61A8.5 8.5 0 1 1 21 12z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </span>
+            <span className="rr-chat-cta-label">
+              <span className="rr-chat-cta-intro">{intro}</span>
+              <span className="rr-chat-cta-main">{main}</span>
+            </span>
+            <span className="rr-chat-cta-arrow" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </span>
+          </button>
+        );
+      })()}
 
       <Styles />
     </section>
@@ -314,8 +322,8 @@ function Styles() {
          plus marquée et flèche qui glisse. */
       .rr-chat-cta {
         display: inline-flex; align-items: center;
-        gap: 8px;
-        margin: 12px 0 0 46px;
+        gap: 10px;
+        margin: 14px 0 0 46px;
         padding: 0;
         background: transparent;
         border: none;
@@ -323,6 +331,7 @@ function Styles() {
         font-family: var(--body);
         font-size: 12.5px; font-weight: 500;
         letter-spacing: 0;
+        text-align: left;
         cursor: pointer;
         transition: color .15s;
         /* Bounce subtil toutes les 30s pour signaler discrètement la
@@ -352,7 +361,25 @@ function Styles() {
         transition: opacity .15s;
       }
       .rr-chat-cta:hover .rr-chat-cta-icon { opacity: 1; }
-      .rr-chat-cta-label { line-height: 1; }
+      /* Label en 2 lignes : intro discrète au-dessus, main en dessous.
+         flex-direction: column pour empiler, align-items: flex-start
+         pour caler les deux lignes sur le même bord gauche. */
+      .rr-chat-cta-label {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1px;
+        line-height: 1.15;
+      }
+      /* Intro et main rendues identiques visuellement (à la demande
+         du user) — même taille, même graisse, même opacité. Les deux
+         lignes ont juste un saut de ligne entre elles. */
+      .rr-chat-cta-intro,
+      .rr-chat-cta-main {
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0;
+      }
       .rr-chat-cta-arrow {
         display: inline-flex; align-items: center; justify-content: center;
         flex-shrink: 0;

@@ -4816,6 +4816,33 @@ export default function MockupStyles() {
     padding: 10px 14px;
     border-radius: 12px;
     font-size: 14px; line-height: 1.55; font-weight: 300;
+    /* Préserve les sauts de ligne du contenu (utile pour le seed
+       mastering qui structure ses sections avec \n). Les réponses IA
+       n'utilisent pas le markdown (system prompt côté backend), donc
+       ce comportement est inoffensif sur du texte sans sauts. */
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  /* Seed = premier message AI pré-rempli (charte mastering p. ex.).
+     Légèrement plus large pour respirer le contenu structuré. */
+  .msg.msg-seed {
+    max-width: 94%;
+  }
+  .msg strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+  /* Label "Préparation de la charte mastering…" affiché à côté du
+     typing indicator pendant que /api/mastering-charter génère le seed
+     personnalisé. Reste lisible mais discret pour ne pas compétir avec
+     les 3 dots qui annoncent l'attente. */
+  .chat-seeding-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--muted, rgba(255,255,255,0.6));
+    font-weight: 400;
   }
   .msg.user {
     align-self: flex-end;
