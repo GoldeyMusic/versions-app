@@ -30,6 +30,7 @@ export default function Sidebar({
   // comportement).
   onOpenFiche,
   onGoReglages,
+  onGoPricing,
   onGoLanding,
   onGoDashboard,
   onGoAdmin,
@@ -296,7 +297,15 @@ export default function Sidebar({
         </div>
         <div>
           <div className="who">{who}</div>
-          <div className="plan">
+          {/* Credits cliquables → pricing. stopPropagation pour ne pas
+              déclencher l'ouverture de Réglages (le user-pill parent
+              capte les clics). */}
+          <div
+            className="plan plan-credits"
+            onClick={onGoPricing ? (e) => { e.stopPropagation(); onGoPricing(); } : undefined}
+            style={{ cursor: onGoPricing ? 'pointer' : 'default' }}
+            title={onGoPricing ? (s.sidebar?.viewPricing || 'Voir les tarifs') : undefined}
+          >
             {credits == null
               ? s.sidebar.creditsLoading
               : credits === 1

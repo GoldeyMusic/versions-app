@@ -325,9 +325,25 @@ function Styles() {
         letter-spacing: 0;
         cursor: pointer;
         transition: color .15s;
+        /* Bounce subtil toutes les 30s pour signaler discrètement la
+           présence du CTA. 1er bounce à 5s, puis cycle infini.
+           Le keyframe occupe ~1.5s sur 30s (5%), le reste = pause. */
+        animation: rr-chat-bounce 30s ease-in-out 5s infinite;
       }
-      .rr-chat-cta:hover {
+      .rr-chat-cta:hover,
+      .rr-chat-cta:focus-visible {
         color: var(--amber);
+        animation: none;
+      }
+      @keyframes rr-chat-bounce {
+        0%   { transform: translateY(0); }
+        1%   { transform: translateY(-5px); }
+        2.5% { transform: translateY(0); }
+        4%   { transform: translateY(-2px); }
+        5%, 100% { transform: translateY(0); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .rr-chat-cta { animation: none; }
       }
       .rr-chat-cta-icon {
         display: inline-flex; align-items: center; justify-content: center;

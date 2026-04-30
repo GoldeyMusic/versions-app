@@ -3826,6 +3826,7 @@ function VersionsAppAuthed() {
             onOpenFiche={handleOpenFiche}
             onNewTrack={handleSidebarNewTrack}
             onGoReglages={() => setReglagesOpen(true)}
+            onGoPricing={() => setScreen('pricing')}
             onAskOpen={() => setAskOpen(true)}
             onAdd={() => setHomeAddOpen(true)}
             onPlay={play}

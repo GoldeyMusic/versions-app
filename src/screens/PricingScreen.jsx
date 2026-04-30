@@ -340,7 +340,12 @@ export default function PricingScreen({
                   onClick={() => goToCheckout(sub)}
                   disabled={isPending}
                 >
-                  {isPending ? t.packRedirecting : (isFeatured ? ctaLabel : t.subChoose)}
+                  {/* Toutes les cards plan affichent "Choisir" pour
+                      rester cohérentes — même la featured (Pro). Le
+                      ctaPrimaryLabel passé par le parent s'applique au
+                      CTA hero de la page (Commencer / Tableau de bord),
+                      pas aux boutons de chaque plan. */}
+                  {isPending ? t.packRedirecting : t.subChoose}
                 </button>
               </article>
             );
