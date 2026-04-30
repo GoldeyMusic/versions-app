@@ -918,15 +918,19 @@ function AdminStyles() {
         color: ${T.textSoft};
       }
 
-      /* HERO */
+      /* HERO — calé sur la grammaire typo de la landing (.lp-slogan +
+         .lp-tagline-trio + .lp-hero-sub) pour homogénéiser admin avec
+         home / tarifs / dashboard. DM Sans 700 gros, em ambre SANS
+         italique (règle visuelle Versions : italique réservé aux
+         verdicts, jamais sur les mots ambres isolés). */
       .cost-hero {
-        padding: clamp(24px, 4vw, 48px) 24px clamp(16px, 3vw, 32px);
+        padding: clamp(48px, 7vw, 96px) 24px clamp(24px, 4vw, 48px);
         display: grid; place-items: center;
       }
       .cost-hero-inner {
-        width: 100%; max-width: 760px;
+        width: 100%; max-width: 880px;
         display: flex; flex-direction: column; align-items: center;
-        gap: 14px; text-align: center;
+        gap: 18px; text-align: center;
         animation: fadeup .5s ease;
       }
       .cost-eyebrow {
@@ -935,20 +939,29 @@ function AdminStyles() {
       }
       .cost-hero-title {
         font-family: ${T.body}; font-weight: 700;
-        font-size: clamp(32px, 4.6vw, 56px);
-        line-height: 1.0; letter-spacing: -1.6px;
+        font-size: clamp(40px, 7vw, 80px);
+        line-height: 0.98; letter-spacing: -2.4px;
         color: ${T.text}; margin: 0;
       }
       .cost-hero-title em {
-        font-family: ${T.serif}; font-style: italic; font-weight: 500;
-        color: ${T.amber};
+        font-family: inherit; font-style: normal; font-weight: inherit;
+        letter-spacing: inherit; color: ${T.amber};
       }
       .cost-hero-sub {
-        font-family: ${T.body}; font-size: 13.5px; font-weight: 300;
-        color: ${T.muted}; margin: 0;
+        font-family: ${T.body}; font-style: normal;
+        font-size: 15px; font-weight: 300; line-height: 1.7;
+        color: var(--soft, ${T.textSoft});
+        max-width: 560px; margin: 0;
+      }
+      @media (max-width: 640px) {
+        .cost-hero-title {
+          font-size: clamp(34px, 10vw, 52px);
+          letter-spacing: -1.2px;
+        }
       }
 
-      /* SECTIONS */
+      /* SECTIONS — eyebrow + titre H2 alignés sur la grammaire chips
+         + .lp-tagline-trio. Em ambre SANS italique (cohérence). */
       .cost-section {
         padding: clamp(28px, 4vw, 48px) 24px;
         max-width: 1480px; margin: 0 auto;
@@ -960,12 +973,12 @@ function AdminStyles() {
       }
       .cost-section-title {
         font-family: ${T.body}; font-weight: 500;
-        font-size: clamp(18px, 2.2vw, 24px);
+        font-size: clamp(20px, 2.4vw, 28px);
         line-height: 1.3; letter-spacing: -0.4px;
         color: ${T.textSoft}; margin: 0 0 24px;
       }
       .cost-section-title em {
-        font-family: ${T.serif}; font-style: italic; font-weight: 500;
+        font-family: inherit; font-style: normal; font-weight: 600;
         color: ${T.amber};
       }
 
@@ -1014,7 +1027,9 @@ function AdminStyles() {
         color: ${T.muted};
       }
       .cost-kpi-value {
-        font-family: ${T.serif}; font-style: italic; font-weight: 500;
+        /* Charte Versions : DM Sans 700 pour les chiffres clés, sans
+           italique. Italique réservé aux verdicts (Cormorant). */
+        font-family: ${T.body}; font-style: normal; font-weight: 700;
         font-size: 36px; line-height: 1; letter-spacing: -1px;
         color: ${T.text};
       }
@@ -1091,17 +1106,19 @@ function AdminStyles() {
         font-family: ${T.mono}; font-size: 12px; color: ${T.textSoft};
       }
       .cost-email { color: ${T.text}; }
-      .cost-anon { color: ${T.muted2}; font-style: italic; }
+      .cost-anon { color: ${T.muted2}; font-style: normal; }
+      /* Totaux + balance : DM Sans 600 (semi-bold) au lieu de Cormorant
+         italic — charte Versions, italique exclusivement sur les verdicts. */
       .cost-total {
-        font-family: ${T.serif}; font-style: italic; font-weight: 500;
+        font-family: ${T.body}; font-style: normal; font-weight: 600;
         font-size: 14px; color: ${T.amber};
       }
       .cost-balance-pos {
-        font-family: ${T.serif}; font-style: italic; font-weight: 500;
+        font-family: ${T.body}; font-style: normal; font-weight: 600;
         font-size: 14px; color: ${T.mint};
       }
       .cost-balance-neg {
-        font-family: ${T.serif}; font-style: italic; font-weight: 500;
+        font-family: ${T.body}; font-style: normal; font-weight: 600;
         font-size: 14px; color: ${T.red};
       }
       .cost-muted {
@@ -1112,7 +1129,7 @@ function AdminStyles() {
         text-align: center;
         padding: 32px 16px !important;
         color: ${T.muted2};
-        font-style: italic;
+        font-style: normal;
       }
       .cost-empty-card {
         padding: 32px 28px;
@@ -1134,7 +1151,7 @@ function AdminStyles() {
       /* DETAIL EXPAND (sub-table dans une row) */
       .cost-detail-state {
         padding: 24px;
-        font-family: ${T.body}; font-size: 13px; font-style: italic;
+        font-family: ${T.body}; font-size: 13px; font-style: normal;
         color: ${T.muted};
         text-align: center;
       }
@@ -1157,7 +1174,9 @@ function AdminStyles() {
         background: rgba(245,166,35,0.04);
       }
       .cost-detail-track-title {
-        font-family: ${T.serif}; font-style: italic; font-weight: 500;
+        /* DM Sans 600 — titres de tracks dans les expand admin, charte
+           Versions (pas de Cormorant italic ici, réservé aux verdicts). */
+        font-family: ${T.body}; font-style: normal; font-weight: 600;
         font-size: 16px; color: ${T.text};
       }
       .cost-detail-track-meta {

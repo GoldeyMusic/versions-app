@@ -2600,6 +2600,18 @@ function VersionsAppAuthed() {
   // Le BottomPlayer est maintenant toujours rendu (sticky bas de page),
   // y compris sur la home — donc plus besoin de retirer la réserve de 68px :
   // on la garde partout pour que rien ne passe sous la barre du player.
+  // Exception (refonte 2026-04-30) : sur la page admin, le BottomPlayer
+  // n'est PAS rendu (cf. condition `screen !== 'admin'` plus bas), donc
+  // on applique body.no-bottom-player pour libérer la réserve de 68px et
+  // que le contenu admin descende jusqu'au fond du viewport.
+  useEffect(() => {
+    if (screen === 'admin') {
+      document.body.classList.add('no-bottom-player');
+      return () => document.body.classList.remove('no-bottom-player');
+    }
+    document.body.classList.remove('no-bottom-player');
+    return undefined;
+  }, [screen]);
 
   // ── Halo ambient — 3 calques qui crossfade au fil de la session ──
   // On insère un conteneur `.ambient-halo` en premier enfant du body,
@@ -4000,8 +4012,9 @@ function VersionsAppAuthed() {
           {/* Bottom Player — toujours présent (sticky), y compris sur la home.
               État "idle" quand aucune piste n'est lancée : transport grisé,
               waveform placeholder, meta vide. Masqué en MINIMAL_SCREENS
-              (loading) pour garder l'écran d'analyse focalisé. */}
-          {!isMinimalScreen && (
+              (loading) pour garder l'écran d'analyse focalisé, et sur la
+              page admin (page de gestion, pas de lecture audio attendue). */}
+          {!isMinimalScreen && screen !== 'admin' && (
           <BottomPlayer
             trackTitle={playerState?.trackTitle}
             versionName={playerState?.versionName}
@@ -4022,11 +4035,12 @@ function VersionsAppAuthed() {
           {/* Pill "Ajouter" — miroir gauche du chat pill, statique
               (ne s'anime pas tout seul, ne réagit qu'au hover). Click
               ouvre la modale d'ajout (projet / titre / version). Visible
-              sur tous les écrans authentifiés sauf MINIMAL_SCREENS.
+              sur tous les écrans authentifiés sauf MINIMAL_SCREENS et
+              admin (la page admin est en consultation, pas en édition).
               Refonte 2026-04-30bis : tous les layouts authentifiés
               partagent maintenant la largeur 920px (fiche + dashboard
               + autres), donc layoutWidth fixé à 'fiche'. */}
-          {!isMinimalScreen && !!user && (
+          {!isMinimalScreen && screen !== 'admin' && !!user && (
             <AddPill
               onOpen={() => setHomeAddOpen(true)}
               isOpen={homeAddOpen}
