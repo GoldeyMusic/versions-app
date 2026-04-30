@@ -27,10 +27,38 @@ Récap pour reprendre proprement le projet depuis Cowork.
 
 - **Layout 1 colonne** (plus de 2 colonnes).
 - **Section Plan d'action supprimée** — absorbée dans les items de diagnostic via les champs `how` (recette technique chiffrée) et `plugin_pick` (plugin réel).
-- **Ordre des sections** : Topbar → Pochette + Score global → Évolution + Intention → Diagnostic par éléments → Impression d'écoute → Notes.
+- **Ordre des sections** : Topbar → Verdict de sortie + side panel → Pochette + Score global → Évolution + Intention → Diagnostic par éléments → Impression d'écoute → Notes.
 - **Checklist cochable** par item de diagnostic — table `mix_note_completions` (Supabase).
 - **Score Card PNG** exportable (watermark `www.versions.studio`).
 - **Scores /100** (plus de /10).
+
+## Refonte UI desktop fiche (2026-04-30, "page plus jeune")
+
+- **Topbar fiche** = juste eyebrow `FICHE D'ANALYSE` + chips de versions (V1/V2 + bouton + nouvelle version). DspBadge / Genre / actions ont été SORTIS de la topbar et redistribués (cf. side panel verdict).
+- **Slot topbar** (`.db-topbar-slot`) : `justify-content: flex-start` + `padding-left: max(16px, calc((100vw - 920px) / 2 - 204px))` pour que les chips topbar s'alignent avec le bord gauche de la colonne contenu 920px centrée.
+- **Verdict row grid** (`.verdict-row-grid`) : 2/3 (ReleaseReadinessBanner) + 1/3 (`.verdict-col-side`).
+  - Side panel = chips colorées centrées : BPM (cyan), Key (violet), LUFS (mint), Genre (amber), + 3 boutons share/scoreCard/export.
+  - **BPM / Key cliquables** → `DspEditModal` (state `dspEditOpen` au niveau FicheScreen).
+  - **Genre cliquable** → édition inline directement dans la chip (input + Enter/Escape).
+  - **LUFS NON éditable** (mesure objective, cf. comment dans DspEditModal).
+- **Chips fiche** : système néon cohérent avec `.pr-chip` (pricing) et `.vside-chip` (fiche side). Rotations `-2°/+1.5°/-1°/+2°` sur les chips de métadonnées et de delta. **PAS de rotation sur les TITRES de section (eyebrows)** — ça ressemblait à un bug.
+- **Eyebrows en chip pill** : `.score-eyebrow`, `.q-eyebrow`, `.diag-eyebrow`, `.notes-eyebrow`, `.rr-eyebrow` (Verdict de sortie), titre EvolutionBanner — tous transformés en chips pill avec bg tinted + bordure colorée + box-shadow. **Sans rotation**. L'eyebrow Verdict + Évolution sont chartés en CERULEAN comme Diagnostic (et pas dans la couleur du tier).
+- **Glyphes premium SVG** par catégorie diagnostic (`<CategoryIcon cat={...}/>` dans `FicheScreen.jsx`) : voix=micro, instruments=piano, basses=onde basse, drums=cymbale+stick, spatial=cube, master=VU meter. **Pas d'emojis** — le user veut des symboles premium type lucide.
+- **MOY color-coded chip** : remplace le texte gris "MOY. 75" → mini chip mint (≥80) / amber (60-79) / red (<60). Le compteur "X éléments" se sépare en chiffre solide + label muted.
+- **EvolutionBanner deltas** = chips colorées avec rotations (mint up / red down / muted stable / amber new), cohérent avec le langage chip global.
+- **Animations entrée scroll** : classe `.wh-anim` + `--anim-d` sur les sections fiche. **Important** : un IntersectionObserver LOCAL est dans `FicheScreen.jsx` (pas que celui d'App.jsx), parce que le body fiche se monte async (rawFiche arrive après l'analyse) et l'observer global ne le ramasse pas. Si tu ajoutes `.wh-anim` ailleurs sur fiche, vérifie que ça apparaît bien — sinon le body reste à `opacity: 0`.
+
+## Fond + bande sombre (debug 2026-04-30)
+
+Le fond de page utilise 2 couches globales (`.ambient-halo` + `.va-bg-orbs`) montées au body via `useEffect` dans `App.jsx`. Une **bande sombre intermittente côté droit** (et top) était causée par l'animation `va-bg-drift` qui translate `-2.5%, 1.5%` → expose le bord du body noir derrière pendant la moitié du cycle 50s. **Fix** : `.va-bg-orbs { inset: -8vh -8vw }` au lieu de `inset: 0` → le conteneur dépasse le viewport, plus aucun bord exposé.
+
+Une **2è bande sur la fiche uniquement** venait du `.chat-panel` (drawer) qui était toujours monté avec `box-shadow: -20px 0 40px rgba(0,0,0,0.45)` même fermé : son ombre dépassait de 60 px à gauche, entrait dans le viewport. **Fix** : `box-shadow` seulement quand `body.chat-open`, et `transform: translateX(calc(100% + 80px))` au lieu de `100%` pour pousser le panel encore plus loin.
+
+## Chat pill (FAB chat fiche)
+
+- Wrapper `.chat-pill-wrap` : `position: fixed; right: 0; height: 100vh; width: max(0px, calc((100vw - 920px) / 2)); padding-right: 40px;` avec flex center → centre la pill dans l'espace libre droit, légèrement décalée à gauche pour compenser l'asymétrie visuelle (920px contenu n'est pas exactement centré entre les chips à cause du padding interne des cards).
+- Animation `chat-pill-peek` : 56px → 280-295px overshoot → 280 hold 10s → 56, cycle 60s. Override sur hover (`animation: none`) pour ouvrir/fermer instant.
+- Sous 1240px, le wrapper bascule en bottom-strip pleine largeur.
 
 ## Roadmap AubioMix
 
