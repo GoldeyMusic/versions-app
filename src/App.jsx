@@ -601,8 +601,13 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0, onFinish }) {
  * accès rapide à son solde + ses actions de compte.
  * CSS vit dans MockupStyles (.db-utility-*).
  */
-function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut }) {
+function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut, onGoAdmin, user }) {
   const { s } = useLang();
+  // Admin gated par VITE_ADMIN_EMAIL — visible uniquement sur le compte
+  // de David. Permet d'atteindre #/admin en un clic depuis n'importe
+  // quel écran qui rend le DashboardRail (home, pricing, dashboard).
+  const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
+  const isAdmin = adminEmail && user?.email?.toLowerCase() === adminEmail;
   return (
     <div className="db-utility-rail" aria-label="Outils du compte">
       {credits != null && (
@@ -615,6 +620,19 @@ function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut }) {
           {credits === 1
             ? (s.sidebar?.creditsSingular || '1 crédit')
             : (s.sidebar?.creditsPlural || '{count} crédits').replace('{count}', String(credits))}
+        </button>
+      )}
+      {isAdmin && onGoAdmin && (
+        <button
+          type="button"
+          className="db-utility-btn db-utility-btn-admin"
+          onClick={onGoAdmin}
+          aria-label="Admin — coûts"
+          title="Admin — coûts"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 2l3 7h7l-5.5 4 2 8L12 17l-6.5 4 2-8L2 9h7z" />
+          </svg>
         </button>
       )}
       <button
@@ -657,7 +675,7 @@ function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut }) {
  * écrans (admin, versions...), ça vaudra le coup d'extraire le CSS dans
  * MockupStyles ou un fichier shared.
  */
-function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricing, onGoReglages, onSignOut, lang, setLang, credits }) {
+function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricing, onGoReglages, onSignOut, onGoAdmin, user, lang, setLang, credits }) {
   const { s } = useLang();
   return (
     <>
@@ -727,6 +745,8 @@ function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricin
         onGoPricing={onGoPricing}
         onGoReglages={onGoReglages}
         onSignOut={onSignOut}
+        onGoAdmin={onGoAdmin}
+        user={user}
       />
 
       <style>{`
@@ -3684,6 +3704,8 @@ function VersionsAppAuthed() {
             onGoPricing={() => setScreen('pricing')}
             onGoReglages={() => setReglagesOpen(true)}
             onSignOut={handleSignOut}
+            onGoAdmin={() => setScreen('admin')}
+            user={user}
           />
         )}
         {/* Réglages modal accessible depuis le rail */}
@@ -3739,6 +3761,8 @@ function VersionsAppAuthed() {
             onGoPricing={() => setScreen('pricing')}
             onGoReglages={() => setReglagesOpen(true)}
             onSignOut={handleSignOut}
+            onGoAdmin={() => setScreen('admin')}
+            user={user}
           />
         )}
         <ReglagesModal
@@ -3878,6 +3902,8 @@ function VersionsAppAuthed() {
               onGoPricing={() => setScreen('pricing')}
               onGoReglages={() => setReglagesOpen(true)}
               onSignOut={handleSignOut}
+              onGoAdmin={() => setScreen('admin')}
+              user={user}
               lang={lang}
               setLang={setLang}
               credits={userCredits}

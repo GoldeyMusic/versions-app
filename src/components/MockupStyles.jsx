@@ -276,6 +276,17 @@ export default function MockupStyles() {
     outline: 2px solid var(--amber);
     outline-offset: 2px;
   }
+  /* Variante Admin — accent ambre pour le distinguer (visible
+     uniquement sur le compte admin via VITE_ADMIN_EMAIL). */
+  .db-utility-btn-admin {
+    color: var(--amber, #f5a623);
+    border-color: rgba(245,166,35,0.35);
+  }
+  .db-utility-btn-admin:hover {
+    color: var(--amber, #f5a623);
+    border-color: rgba(245,166,35,0.55);
+    background: rgba(245,166,35,0.08);
+  }
   @media (max-width: 480px) {
     .db-utility-rail { gap: 6px; bottom: 80px; left: 12px; }
     .db-utility-btn { width: 32px; height: 32px; }
@@ -5653,52 +5664,6 @@ export default function MockupStyles() {
     border-color: rgba(245,176,86,.25);
   }
   .sidebar-dashboard-btn:hover svg { opacity: 1; }
-
-  /* Footer sidebar — pile de boutons utilitaires (Admin, Réglages,
-     Déconnexion). Posé en bas de la sidebar, séparé de la liste des
-     projets par une bordure top discrète. Layout vertical. */
-  .sidebar-footer {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 10px 6px 12px;
-    border-top: 1px solid rgba(255,255,255,0.04);
-    margin-top: auto;
-    flex-shrink: 0;
-  }
-  .sidebar-footer-btn {
-    display: flex; align-items: center; gap: 10px;
-    width: 100%;
-    padding: 7px 10px;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    color: rgba(232,232,234,0.72);
-    font-family: var(--body);
-    font-size: 13px; font-weight: 500;
-    text-align: left;
-    cursor: pointer;
-    transition: background .15s, color .15s, border-color .15s;
-  }
-  .sidebar-footer-btn svg {
-    flex-shrink: 0;
-    opacity: 0.7;
-    transition: opacity .15s;
-  }
-  .sidebar-footer-btn:hover {
-    background: rgba(255,255,255,0.04);
-    color: var(--text, #ededed);
-    border-color: rgba(255,255,255,0.06);
-  }
-  .sidebar-footer-btn:hover svg { opacity: 1; }
-  /* Admin : accent ambre pour le distinguer (réservé à David). */
-  .sidebar-footer-admin { color: rgba(245,166,35,0.85); }
-  .sidebar-footer-admin svg { color: var(--amber, #f5a623); opacity: 0.85; }
-  .sidebar-footer-admin:hover {
-    background: rgba(245,166,35,0.08);
-    border-color: rgba(245,166,35,0.22);
-    color: var(--amber, #f5a623);
-  }
 
   /* Lien "À propos" — pied de sidebar, discret, mono uppercase muted. */
   .sidebar-about-btn {
