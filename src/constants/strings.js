@@ -1286,8 +1286,8 @@ const STRINGS = {
       subChoose: "Choisir",
       // Descriptions des abonnements indexées par plan.key
       subDescriptions: {
-        sub_indie: "12 analyses par mois, reset chaque mois.",
-        sub_pro: "30 analyses par mois, reset chaque mois. Pour artistes en cycle de production.",
+        sub_indie: "12 analyses par mois, cumulables tant que ton abonnement est actif.",
+        sub_pro: "30 analyses par mois, cumulables tant que ton abonnement est actif. Pour artistes en cycle de production.",
       },
 
       // École / centres de formation
@@ -2680,8 +2680,8 @@ const STRINGS = {
       subChoose: "Choose",
       // Subscription descriptions indexed by plan.key
       subDescriptions: {
-        sub_indie: "12 analyses per month, resets every month.",
-        sub_pro: "30 analyses per month, resets every month. For artists in production cycle.",
+        sub_indie: "12 analyses per month, roll over as long as your subscription is active.",
+        sub_pro: "30 analyses per month, roll over as long as your subscription is active. For artists in production cycle.",
       },
 
       // Schools / training centers

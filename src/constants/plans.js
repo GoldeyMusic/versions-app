@@ -3,7 +3,7 @@
  *
  * Source de vérité pour la page /pricing et le mapping vers Stripe :
  *   - 5 packs one-shot (sans expiration)
- *   - 2 abonnements mensuels (reset chaque mois)
+ *   - 2 abonnements mensuels (crédits cumulables tant que l'abo est actif)
  *   - 1 formule École "sur devis" (pas de Stripe, mailto)
  *
  * Les Price IDs Stripe ne sont PAS hardcodés ici : ils arrivent via les
@@ -53,7 +53,7 @@ export const SUBSCRIPTIONS = [
     credits: 12,        // monthly_grant
     perUnit: 1.24,
     priceIdEnv: 'VITE_STRIPE_PRICE_SUB_INDIE',
-    description: '12 analyses par mois, reset chaque mois.',
+    description: '12 analyses par mois, cumulables tant que ton abonnement est actif.',
   },
   {
     key: 'sub_pro',
@@ -62,7 +62,7 @@ export const SUBSCRIPTIONS = [
     credits: 30,
     perUnit: 0.99,
     priceIdEnv: 'VITE_STRIPE_PRICE_SUB_PRO',
-    description: '30 analyses par mois, reset chaque mois. Pour artistes en cycle de production.',
+    description: '30 analyses par mois, cumulables tant que ton abonnement est actif. Pour artistes en cycle de production.',
   },
 ];
 
