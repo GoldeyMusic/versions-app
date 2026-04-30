@@ -3222,12 +3222,18 @@ function VersionChat({
     // garder pour les versions pending/buggy ; supprimer une fois stable.
     console.log('[seed] fire — versionId:', versionId, 'fetcher:', !!fetcher, 'fallback:', !!fallback);
 
-    // unmounted ne bloque PAS l'inject/setSeeding parce que React 18
-    // tolère setState sur composants unmount (warning seulement). Ce
-    // qui compte c'est qu'à la résolution on ait bien décollé du seeding.
+    // IMPORTANT : on ne gate PLUS inject/setSeeding sur un flag "unmounted".
+    // Précédemment on observait que le cleanup React fire pendant les ~20s
+    // d'attente du fetcher (via un changement de dep — messages.length ou
+    // historyLoaded qui flicker) → unmounted=true → inject+setSeeding(false)
+    // skippés à la résolution → seeding bloqué à vie. seedAttemptedRef
+    // empêche déjà les double-fires en amont, et React 18 tolère un
+    // setState sur composant un-mount sans casser. Donc on commit
+    // toujours le résultat. Le `unmounted` n'est plus utilisé que pour
+    // le clearTimeout du safety.
     let unmounted = false;
     const inject = (content) => {
-      if (unmounted || !content) return;
+      if (!content) return;
       const seed = { role: 'assistant', content, _seed: seedKey };
       setMessages([seed]);
       saveChatHistory(versionId, [seed]);
@@ -3240,11 +3246,8 @@ function VersionChat({
 
     setSeeding(true);
     // Filet de sécurité : si rien ne s'est résolu après 90s, on force
-    // seeding=false ET on injecte le fallback statique. Couvre tous les
-    // bugs imaginables (fetch hung, promesse jamais résolue, etc.) pour
-    // que l'utilisateur ne reste jamais bloqué sur le placeholder.
+    // seeding=false ET on injecte le fallback statique.
     const safetyTimeout = setTimeout(() => {
-      if (unmounted) return;
       console.warn('[seed] safety timeout after 90s — falling back static');
       inject(fallback);
       setSeeding(false);
@@ -3252,22 +3255,14 @@ function VersionChat({
 
     (async () => {
       try {
-        console.log('[seed] awaiting fetcher…');
         const content = await fetcher();
-        console.log('[seed] fetcher resolved — content len:', content ? content.length : 0, 'unmounted:', unmounted);
         inject(content || fallback);
-        console.log('[seed] inject called, will setSeeding(false) — unmounted:', unmounted);
       } catch (e) {
         console.warn('[seed] fetcher threw:', e?.message || e);
         inject(fallback);
       } finally {
         clearTimeout(safetyTimeout);
-        if (!unmounted) {
-          setSeeding(false);
-          console.log('[seed] setSeeding(false) called');
-        } else {
-          console.log('[seed] skipped setSeeding(false) — unmounted=true');
-        }
+        setSeeding(false);
       }
     })();
 
@@ -3335,6 +3330,9 @@ function VersionChat({
     if (res !== 'confirm') return;
     setMessages([]);
     saveChatHistory(versionId, []);
+    // Reset le gate pour que le seed mastering puisse re-fire après clear
+    // (effet déclenché par le passage messages.length 1+ → 0).
+    seedAttemptedRef.current = false;
   };
 
   return (
