@@ -730,35 +730,35 @@ export default function AddModal({
                 On garde la même grammaire que les pills vocal pour
                 rester cohérent visuellement. La hint sous le toggle
                 explique en clair l'impact sur le score, au cas où
-                l'utilisateur ne sait pas quoi cocher. */}
-            {file && (
-              <div className="add-mini-field">
-                <div className="add-mini-field-label">{s.addModal.uploadTypeLabel}</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    className={`add-mini-pill${uploadType === 'mix' ? ' on' : ''}`}
-                    onClick={() => setUploadType('mix')}
-                  >{s.addModal.uploadTypeMix}</button>
-                  <button
-                    type="button"
-                    className={`add-mini-pill${uploadType === 'master' ? ' on' : ''}`}
-                    onClick={() => setUploadType('master')}
-                  >{s.addModal.uploadTypeMaster}</button>
-                </div>
-                <div style={{
-                  marginTop: 8,
-                  fontSize: 11.5,
-                  lineHeight: 1.45,
-                  color: 'var(--muted)',
-                  fontWeight: 300,
-                }}>
-                  {uploadType === 'mix'
-                    ? s.addModal.uploadTypeMixHint
-                    : s.addModal.uploadTypeMasterHint}
-                </div>
+                l'utilisateur ne sait pas quoi cocher.
+                Toujours visible (pas de gate sur `file`) pour rester
+                cohérent avec DAW/Genre qui s'affichent dès l'ouverture. */}
+            <div className="add-mini-field">
+              <div className="add-mini-field-label">{s.addModal.uploadTypeLabel}</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className={`add-mini-pill${uploadType === 'mix' ? ' on' : ''}`}
+                  onClick={() => setUploadType('mix')}
+                >{s.addModal.uploadTypeMix}</button>
+                <button
+                  type="button"
+                  className={`add-mini-pill${uploadType === 'master' ? ' on' : ''}`}
+                  onClick={() => setUploadType('master')}
+                >{s.addModal.uploadTypeMaster}</button>
               </div>
-            )}
+              <div style={{
+                marginTop: 8,
+                fontSize: 11.5,
+                lineHeight: 1.45,
+                color: 'var(--muted)',
+                fontWeight: 300,
+              }}>
+                {uploadType === 'mix'
+                  ? s.addModal.uploadTypeMixHint
+                  : s.addModal.uploadTypeMasterHint}
+              </div>
+            </div>
 
             {/* DAW */}
             <div className="add-mini-field">
