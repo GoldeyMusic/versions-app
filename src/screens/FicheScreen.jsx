@@ -3162,8 +3162,19 @@ function VersionChat({
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const controllerRef = useRef(null);
   const textareaRef = useRef(null);
-  // N'essaye le seed qu'une fois par versionId pour éviter les double-fires
-  // si seedFetcher / seedKey changent de référence (ex: useCallback re-créé).
+  // Refs pour seedFetcher + staticSeedFallback : ces props bougent à
+  // chaque rebuild de useCallback côté FicheScreen (versionInDb,
+  // displayAR qui change quand la traduction arrive, etc.). Si on les
+  // mettait en deps de l'effet seed, l'effet rerun + cleanup mettrait
+  // alive=false sur la requête en cours → l'inject + setSeeding(false)
+  // seraient skippés à la résolution, et le placeholder "Préparation…"
+  // resterait à vie. On capture donc via refs pour que l'effet ne
+  // dépende QUE de versionId / historyLoaded / seedKey.
+  const seedFetcherRef = useRef(seedFetcher);
+  const staticSeedFallbackRef = useRef(staticSeedFallback);
+  useEffect(() => { seedFetcherRef.current = seedFetcher; }, [seedFetcher]);
+  useEffect(() => { staticSeedFallbackRef.current = staticSeedFallback; }, [staticSeedFallback]);
+  // N'essaye le seed qu'une fois par versionId pour éviter les double-fires.
   const seedAttemptedRef = useRef(false);
 
   // Charge l'historique persisté quand la version change — chat scopé par versionId.
@@ -3188,51 +3199,57 @@ function VersionChat({
   // /api/mastering-charter qui croise contexte du track + charte de
   // référence + RAG PureMix pour générer une réponse personnalisée.
   // Pendant la génération : seeding=true → typing indicator dans la UI.
-  // Edge cases :
-  //   • versionId pending → loadChatHistory renvoie [] mais saveChatHistory
-  //     est no-op : on injecte localement, pas de persist (OK, sera persisté
-  //     au moment du send après que la version soit en DB).
-  //   • Historique non vide (l'user a déjà chatté) → on ne touche à rien.
-  //   • Historique cleared puis CTA recliqué → seedAttemptedRef est false
-  //     dans ce versionId donc on re-seed (volontaire).
-  //   • API /api/mastering-charter tombe → fallback sur staticSeedFallback
-  //     si fourni, sinon on abandonne le seed silencieusement.
+  // IMPORTANT : on ne dépend ni de seedFetcher ni de staticSeedFallback
+  // (récupérés via refs) pour éviter qu'un rebuild de useCallback côté
+  // parent annule la requête en vol.
   useEffect(() => {
     if (!historyLoaded) return;
+    // On attend d'avoir un versionId réel (les tracks sont chargés async
+    // depuis Supabase, donc versionInDb?.id est null sur les premiers
+    // renders). Sans ce gate, l'effet fire avec versionId=null ET avec
+    // le vrai versionId → 2 appels API + race sur l'inject. Les versions
+    // pending ont un id sentinelle ('__pending_v__') qui est truthy, donc
+    // elles passent le gate et bénéficient du seed local.
+    if (!versionId) return;
     if (!seedKey) return;
     if (messages.length > 0) return;
     if (seedAttemptedRef.current) return;
-    if (!seedFetcher && !staticSeedFallback) return;
+    const fetcher = seedFetcherRef.current;
+    const fallback = staticSeedFallbackRef.current;
+    if (!fetcher && !fallback) return;
     seedAttemptedRef.current = true;
 
-    let alive = true;
+    // unmounted ne bloque PAS l'inject/setSeeding parce que React 18
+    // tolère setState sur composants unmount (warning seulement). Ce
+    // qui compte c'est qu'à la résolution on ait bien décollé du seeding.
+    let unmounted = false;
     const inject = (content) => {
-      if (!alive || !content) return;
+      if (unmounted || !content) return;
       const seed = { role: 'assistant', content, _seed: seedKey };
       setMessages([seed]);
       saveChatHistory(versionId, [seed]);
     };
 
-    if (!seedFetcher) {
-      inject(staticSeedFallback);
-      return () => { alive = false; };
+    if (!fetcher) {
+      inject(fallback);
+      return () => { unmounted = true; };
     }
 
     setSeeding(true);
     (async () => {
       try {
-        const content = await seedFetcher();
-        inject(content || staticSeedFallback);
+        const content = await fetcher();
+        inject(content || fallback);
       } catch (e) {
         console.warn('[seed] fetcher failed, fallback static:', e?.message || e);
-        inject(staticSeedFallback);
+        inject(fallback);
       } finally {
-        if (alive) setSeeding(false);
+        if (!unmounted) setSeeding(false);
       }
     })();
 
-    return () => { alive = false; };
-  }, [historyLoaded, seedFetcher, staticSeedFallback, seedKey, messages.length, versionId]);
+    return () => { unmounted = true; };
+  }, [historyLoaded, seedKey, messages.length, versionId]);
 
   const send = async () => {
     if (!input.trim() || loading) return;
