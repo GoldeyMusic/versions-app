@@ -46,12 +46,30 @@ export default function EvolutionBanner({ evolution, previousVersionName, floorA
     ? (s.fiche?.evolutionSince || 'Évolution depuis {prev}').replace('{prev}', previousVersionName)
     : (s.fiche?.evolutionSinceLast || 'Évolution depuis la dernière');
 
-  // Compteurs compacts à droite — affichés uniquement si la liste a du contenu.
+  // Compteurs compacts à droite — chips colorés avec rotations
+  // subtiles façon stickers (refonte 2026-04-30 "page plus jeune").
+  // Chaque chip a sa couleur tinted bg + border + rotation différente.
   const chips = [];
-  if (progres.length) chips.push({ key: 'p', txt: `${progres.length}↑`, color: 'var(--mint, #8ee07a)' });
-  if (regressions.length) chips.push({ key: 'r', txt: `${regressions.length}↓`, color: 'var(--red, #ff5d5d)' });
-  if (persistants.length) chips.push({ key: 's', txt: `${persistants.length}→`, color: 'var(--muted, rgba(255,255,255,0.5))' });
-  if (nouveaux.length) chips.push({ key: 'n', txt: `+${nouveaux.length}`, color: 'var(--amber, #f5a623)' });
+  if (progres.length) chips.push({
+    key: 'p', txt: `${progres.length}↑`,
+    color: '#8ee07a', bg: 'rgba(142,224,122,0.10)', border: 'rgba(142,224,122,0.40)',
+    rot: '-2deg',
+  });
+  if (regressions.length) chips.push({
+    key: 'r', txt: `${regressions.length}↓`,
+    color: '#ef6b6b', bg: 'rgba(239,107,107,0.10)', border: 'rgba(239,107,107,0.40)',
+    rot: '1.5deg',
+  });
+  if (persistants.length) chips.push({
+    key: 's', txt: `${persistants.length}→`,
+    color: 'rgba(255,255,255,0.62)', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.18)',
+    rot: '-1deg',
+  });
+  if (nouveaux.length) chips.push({
+    key: 'n', txt: `+${nouveaux.length}`,
+    color: '#f5a623', bg: 'rgba(245,166,35,0.12)', border: 'rgba(245,166,35,0.42)',
+    rot: '2deg',
+  });
 
   return (
     <section
@@ -119,17 +137,24 @@ export default function EvolutionBanner({ evolution, previousVersionName, floorA
             flex: 1,
           }}
         >
-          {/* Titre : DOT + "DEPUIS V1" (mono uppercase ambré, comme les autres panneaux) */}
+          {/* Titre : chip pill cerulean (charté comme le titre
+              "DIAGNOSTIC PAR ÉLÉMENTS" — même padding, border, bg). */}
           <span
             style={{
-              display: 'flex',
+              alignSelf: 'flex-start',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: 10,
               fontFamily: 'var(--mono, JetBrains Mono, monospace)',
               fontSize: 10.5,
               letterSpacing: 2.2,
               textTransform: 'uppercase',
-              color: 'var(--amber, #f5a623)',
+              color: '#5cb8cc',
+              padding: '5px 12px 5px 10px',
+              borderRadius: 999,
+              background: 'rgba(92,184,204,0.06)',
+              border: '1px solid rgba(92,184,204,0.30)',
+              boxShadow: '0 6px 18px -10px rgba(0,0,0,0.55)',
             }}
           >
             <span
@@ -137,7 +162,7 @@ export default function EvolutionBanner({ evolution, previousVersionName, floorA
                 width: 6,
                 height: 6,
                 borderRadius: '50%',
-                background: 'var(--amber, #f5a623)',
+                background: '#5cb8cc',
                 flexShrink: 0,
               }}
             />
@@ -167,17 +192,28 @@ export default function EvolutionBanner({ evolution, previousVersionName, floorA
           )}
         </span>
 
-        {/* Chips compactes (n↑ n↓ n→ +n) — aperçu rapide des deltas */}
+        {/* Chips compactes (n↑ n↓ n→ +n) — stickers colorés avec
+            rotations subtiles, langage néon cohérent avec les chips
+            BPM/Key/Genre du panneau verdict. */}
         {chips.length > 0 && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             {chips.map((c) => (
               <span
                 key={c.key}
                 style={{
+                  display: 'inline-flex', alignItems: 'center',
                   fontFamily: 'var(--mono, JetBrains Mono, monospace)',
-                  fontSize: 11.5,
+                  fontSize: 10.5, fontWeight: 600,
+                  letterSpacing: 0.6,
+                  padding: '3px 9px',
+                  borderRadius: 999,
                   color: c.color,
-                  letterSpacing: 0.5,
+                  background: c.bg,
+                  border: `1px solid ${c.border}`,
+                  fontVariantNumeric: 'tabular-nums',
+                  transform: `rotate(${c.rot})`,
+                  transition: 'transform .2s ease',
+                  boxShadow: '0 6px 18px -10px rgba(0,0,0,0.55)',
                 }}
               >
                 {c.txt}

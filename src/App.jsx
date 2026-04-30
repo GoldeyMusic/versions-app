@@ -657,7 +657,7 @@ function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut }) {
  * écrans (admin, versions...), ça vaudra le coup d'extraire le CSS dans
  * MockupStyles ou un fichier shared.
  */
-function DashboardTopbar({ onGoLanding, onGoDashboard, onGoPricing, onGoReglages, onSignOut, lang, setLang, credits }) {
+function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricing, onGoReglages, onSignOut, lang, setLang, credits }) {
   const { s } = useLang();
   return (
     <>
@@ -677,6 +677,11 @@ function DashboardTopbar({ onGoLanding, onGoDashboard, onGoPricing, onGoReglages
             VER<span className="accent">Si</span>ONS
           </span>
         </button>
+        {/* Slot réservé pour des contenus contextuels rendus via portail
+            (ex: les chips de versions sur la fiche, montés depuis
+            FicheScreen via ReactDOM.createPortal sur cet id). Rien à
+            afficher tant qu'aucun écran ne pousse de contenu. */}
+        <div id="topbar-context-slot" className="db-topbar-slot" />
         <nav className="db-topbar-nav" aria-label="Navigation">
           {/* Lien Accueil : visible desktop, masqué sur mobile (le logo
               cliquable s'en charge — économie de place et lisibilité). */}
@@ -686,9 +691,18 @@ function DashboardTopbar({ onGoLanding, onGoDashboard, onGoPricing, onGoReglages
           <button type="button" className="db-topbar-link" onClick={onGoPricing}>
             {s.pricing?.topbarCurrent || 'Tarifs'}
           </button>
-          <span className="db-topbar-current" aria-current="page">
-            {s.sidebar?.dashboardLink || 'Tableau de bord'}
-          </span>
+          {/* Sur welcome → "Tableau de bord" est current (badge ambre).
+              Sur fiche (et autres futurs écrans en topbar layout) →
+              c'est un lien actif qui ramène au dashboard. */}
+          {currentScreen === 'welcome' ? (
+            <span className="db-topbar-current" aria-current="page">
+              {s.sidebar?.dashboardLink || 'Tableau de bord'}
+            </span>
+          ) : (
+            <button type="button" className="db-topbar-link" onClick={onGoDashboard}>
+              {s.sidebar?.dashboardLink || 'Tableau de bord'}
+            </button>
+          )}
           <div className="sb-lang-switch" role="group" aria-label="Langue / Language">
             <button
               type="button"
@@ -734,6 +748,46 @@ function DashboardTopbar({ onGoLanding, onGoDashboard, onGoPricing, onGoReglages
           flex-shrink: 0;
         }
         .db-topbar-brand:hover { opacity: 0.82; }
+        /* Slot contextuel — prend la place disponible entre brand et nav.
+           Permet aux écrans (ex: FicheScreen) d'injecter des contrôles
+           via portail React. Refonte 2026-04-30 : aligné avec le début
+           de la colonne de contenu (920 px centré) — le padding-left
+           calc pousse le contenu à la même abscisse que la colonne
+           visible en dessous. ~228 px = brand + padding + gap. */
+        .db-topbar-slot {
+          flex: 1;
+          display: inline-flex; align-items: center; justify-content: flex-start;
+          gap: 12px; min-width: 0;
+          padding-left: max(16px, calc((100vw - 920px) / 2 - 204px));
+          padding-right: 16px;
+          overflow: hidden;
+        }
+        .db-topbar-slot:empty { padding: 0; }
+        /* Conteneur des contrôles fiche (portail) — réunit eyebrow,
+           dropdown versions, [BPM/LUFS + genre stackés], actions, sur
+           une rangée dans la topbar globale. */
+        .fiche-topbar-portal {
+          display: inline-flex; align-items: center;
+          gap: 12px;
+          flex-wrap: nowrap;
+          min-width: 0;
+        }
+        /* Colonne BPM + Genre — DspBadge en haut, ligne genre en dessous */
+        .fiche-topbar-meta-col {
+          display: inline-flex; flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+          min-width: 0;
+        }
+        .fiche-topbar-genre-row {
+          display: inline-flex; align-items: center;
+          padding: 0 4px;
+          line-height: 1;
+        }
+        /* Sur narrow on autorise le wrap pour ne pas tout pousser hors écran */
+        @media (max-width: 1100px) {
+          .fiche-topbar-portal { gap: 8px; flex-wrap: wrap; justify-content: center; }
+        }
         .db-topbar-logo { height: 38px; width: auto; filter: drop-shadow(0 0 16px rgba(245,166,35,0.18)); }
         .db-topbar-wordmark { font-family: var(--body); font-weight: 700; font-size: 27px; letter-spacing: -0.5px; color: var(--text); line-height: 1; }
         .db-topbar-wordmark .accent { color: var(--amber); font-style: normal; }
@@ -852,7 +906,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     }, { threshold: 0, rootMargin: '0px 0px -15% 0px' });
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, [projectsLoaded, projects]);
+  }, [projectsLoaded, projects, screen]);
 
   // Liste à plat de tous les titres (pour le picker "À quel titre ?")
   const allTracks = projects.flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectName: p.name, projectId: p.id })));
@@ -1048,9 +1102,15 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     setNewProjectOpen(true);
     setTimeout(() => newProjectInputRef.current?.focus(), 50);
   };
+  // Garde anti-double-submit : si l'utilisateur appuie 2 fois sur Entrée
+  // ou clique vite 2 fois sur "Créer", on créait 2 projets en DB. Le ref
+  // bloque les appels concurrents pendant la requête.
+  const creatingProjectRef = useRef(false);
   const submitNewProject = async () => {
     const name = newProjectValue.trim();
     if (!name) return;
+    if (creatingProjectRef.current) return;
+    creatingProjectRef.current = true;
     try {
       const created = await createProject(name);
       setNewProjectOpen(false);
@@ -1063,7 +1123,11 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         pendingNewTrackRef.current = false;
         if (onNewTrack) onNewTrack();
       }
-    } catch (err) { console.warn('createProject failed', err); }
+    } catch (err) {
+      console.warn('createProject failed', err);
+    } finally {
+      creatingProjectRef.current = false;
+    }
   };
 
   // Renommer titre
@@ -3260,9 +3324,13 @@ function VersionsAppAuthed() {
     setNewProjectOpenApp(true);
     setTimeout(() => newProjectInputRefApp.current?.focus(), 50);
   };
+  // Garde anti-double-submit (cf. submitNewProject dans WelcomeHome).
+  const creatingProjectAppRef = useRef(false);
   const submitNewProjectApp = async () => {
     const name = newProjectValueApp.trim();
     if (!name) return;
+    if (creatingProjectAppRef.current) return;
+    creatingProjectAppRef.current = true;
     try {
       const created = await createProject(name);
       setNewProjectOpenApp(false);
@@ -3273,7 +3341,11 @@ function VersionsAppAuthed() {
         pendingNewTrackRefApp.current = false;
         handleSidebarNewTrack();
       }
-    } catch (err) { console.warn('createProject failed', err); }
+    } catch (err) {
+      console.warn('createProject failed', err);
+    } finally {
+      creatingProjectAppRef.current = false;
+    }
   };
 
   // ── Screen routing ──
@@ -3564,14 +3636,18 @@ function VersionsAppAuthed() {
   // écrans authentifiés (fiche, versions, admin) gardent la sidebar pour
   // l'instant. La sidebar pourrait à terme être réservée aux fiches
   // d'analyse uniquement.
-  const showSidebar = isDesktop && screen !== 'welcome';
+  // Refonte 2026-04-30 : la sidebar est maintenant retirée de welcome ET
+  // fiche. Les autres écrans authentifiés (admin, versions) la gardent
+  // pour l'instant. Liste des écrans en layout topbar :
+  const TOPBAR_SCREENS = new Set(['welcome', 'fiche']);
+  const showSidebar = isDesktop && !TOPBAR_SCREENS.has(screen);
   const contentMarginLeft = showSidebar ? SIDEBAR_WIDTH : 0;
-  // Topbar dashboard — visible sur welcome (desktop ET mobile), pour
-  // que le pattern soit identique à la landing/pricing : logo + nav +
-  // FR/EN, sans avatar/menu déroulant. Sur les autres écrans mobiles
-  // (admin, fiche, versions), c'est MobileMenu qui prend le relais
+  // Topbar dashboard — visible sur welcome ET fiche (desktop + mobile),
+  // pour que le pattern soit identique à la landing/pricing : logo +
+  // nav + FR/EN, sans avatar/menu déroulant. Sur les autres écrans
+  // mobiles (admin, versions), c'est MobileMenu qui prend le relais
   // (cf. condition !showWelcomeTopbar plus bas).
-  const showWelcomeTopbar = !showSidebar && screen === 'welcome' && !!user;
+  const showWelcomeTopbar = !showSidebar && TOPBAR_SCREENS.has(screen) && !!user;
 
   return (
     <LangContext.Provider value={{ lang, s, setLang, t }}>
@@ -3732,7 +3808,12 @@ function VersionsAppAuthed() {
             }
           >
             {showWelcomeTopbar ? (
-              <div style={{ width: "100%", maxWidth: 1080, margin: "0 auto", padding: "0 24px", display: "flex", flexDirection: "column" }}>
+              /* Wrap centré pour les écrans en layout topbar :
+                 - welcome : 1080px (aligné avec landing/pricing)
+                 - fiche : 920px (un poil plus étroit pour laisser de
+                   la place au chat anchored qui flotte à droite en
+                   position:fixed sans être dans la colonne) */
+              <div style={{ width: "100%", maxWidth: screen === 'fiche' ? 920 : 1080, margin: "0 auto", padding: "0 24px", display: "flex", flexDirection: "column" }}>
                 {renderContent()}
               </div>
             ) : (

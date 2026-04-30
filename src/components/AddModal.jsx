@@ -117,13 +117,18 @@ export default function AddModal({
   const [daw, setDaw] = useState(defaultDaw || '');
   const [vocalKind, setVocalKind] = useState('vocal');
   const [finalInstru, setFinalInstru] = useState(null);
-  // Genre musical déclaré par l'artiste à l'upload. Soit du texte libre court,
-  // soit `genreUnknown=true` quand l'utilisateur clique "Choisir automatiquement"
-  // (Claude infère depuis l'écoute Gemini déjà faite, zéro coût supplémentaire).
-  // Les deux états sont mutuellement exclusifs côté UI : cocher l'auto vide le
-  // texte ; commencer à taper du texte décoche l'auto.
+  // Genre musical déclaré par l'artiste à l'upload. Texte libre court.
+  // Refonte 2026-04-29 : si vide au lancement, le pipeline détecte
+  // automatiquement (équivalent ancien "Choisir automatiquement"). Le
+  // bouton dédié a été retiré pour alléger la modale — moins de
+  // décisions, plus fluide.
   const [declaredGenre, setDeclaredGenre] = useState('');
-  const [genreUnknown, setGenreUnknown] = useState(false);
+  // Intention artistique (facultative). Toggle dépliable pour ne pas
+  // alourdir la modale par défaut. Ce qu'on saisissait avant dans
+  // l'IntentionScreen post-Phase-A : maintenant tout en amont, plus
+  // d'interruption mid-analyse.
+  const [artisticIntent, setArtisticIntent] = useState('');
+  const [intentExpanded, setIntentExpanded] = useState(false);
   const [drag, setDrag] = useState(false);
   // États du check durée audio (lecture/erreur). file ne devient non-null
   // que si la durée a été lue ET qu'elle est ≤ MAX_AUDIO_DURATION_SEC.
@@ -176,6 +181,8 @@ export default function AddModal({
 
   const handleLaunchAnalyze = () => {
     if (!uploadOk) return;
+    const trimmedGenre = declaredGenre.trim();
+    const trimmedIntent = artisticIntent.trim();
     onAnalyze?.({
       file,
       title: title.trim(),
@@ -184,11 +191,22 @@ export default function AddModal({
       projectId: uploadCtx.projectId,
       vocalType,
       refFile: null,
-      // Genre musical : soit déclaré (texte non vide), soit "auto" (genreUnknown=true).
-      // Si rien n'est rempli ni coché, on envoie null/false : le pipeline analyse
-      // sans signal genre (mode legacy).
-      declaredGenre: declaredGenre.trim() || null,
-      genreUnknown: !!genreUnknown,
+      // Genre : si l'utilisateur a tapé quelque chose on le passe, sinon
+      // on bascule en auto-détection (équivalent ancien "Choisir
+      // automatiquement" — supprimé de l'UI). Le pipeline infère depuis
+      // l'écoute Gemini déjà faite, zéro coût supplémentaire.
+      declaredGenre: trimmedGenre || null,
+      genreUnknown: !trimmedGenre,
+      // Intention artistique saisie en amont (toggle "+ Ajouter une
+      // intention artistique"). On utilise le champ `inlineIntent`
+      // existant que LoadingScreen passe directement dans /api/analyze/
+      // start → le backend reçoit l'intention dès le départ et ne pause
+      // plus sur `awaiting_intent` post-Phase-A. Plus d'IntentionScreen
+      // à afficher mid-analyse, plus de double round-trip.
+      inlineIntent: (intentExpanded && trimmedIntent) ? trimmedIntent : null,
+      // Scope par défaut 'track' (cas le plus courant : V1, ou V2+
+      // qui re-déclare l'intention pour tout le titre).
+      _pendingIntentScope: 'track',
     });
     onClose();
   };
@@ -203,7 +221,8 @@ export default function AddModal({
       setVocalKind('vocal');
       setFinalInstru(null);
       setDeclaredGenre('');
-      setGenreUnknown(false);
+      setArtisticIntent('');
+      setIntentExpanded(false);
       setDrag(false);
       setFileError(null);
       setFileChecking(false);
@@ -715,47 +734,59 @@ export default function AddModal({
               </div>
             </div>
 
-            {/* Genre musical : texte libre OU "Choisir automatiquement".
-                Mutuellement exclusifs : cliquer "auto" vide et grise le champ ;
-                taper du texte décoche l'auto. Le genre déclaré sert de calibrage
-                pour Claude (un mix dub-techno tolère ce qu'un mix folk ne
-                tolère pas), et pour mention textuelle dans le verdict. Le mode
-                "auto" délègue la détection au pipeline (zéro coût car partagé
-                avec l'écoute Gemini déjà faite). */}
+            {/* Genre musical — texte libre. Si vide au moment du
+                lancement, le pipeline détecte automatiquement (cf.
+                handleLaunchAnalyze : genreUnknown = !trimmedGenre).
+                Plus de bouton "Choisir automatiquement" : moins de
+                décisions, le défaut intelligent suffit. */}
             <div className="add-mini-field">
               <div className="add-mini-field-label">{s.addModal.uploadGenreLabel}</div>
-              {/* En mode auto, on affiche le message comme VALEUR (italic, opacité
-                  pleine) plutôt que placeholder dans un input disabled : sinon
-                  le texte est trop estompé. readOnly empêche l'édition mais ne
-                  casse pas le contraste. Pour quitter le mode auto, l'utilisateur
-                  re-clique sur le bouton "Choisir automatiquement" en dessous. */}
               <input
                 type="text"
-                className={`add-mini-input${genreUnknown ? ' is-auto' : ''}`}
-                value={genreUnknown ? s.addModal.uploadGenreAutoHint : declaredGenre}
+                className="add-mini-input"
+                value={declaredGenre}
                 placeholder={s.addModal.uploadGenrePlaceholder}
-                readOnly={genreUnknown}
                 maxLength={60}
-                style={genreUnknown ? { fontStyle: 'italic' } : undefined}
-                onChange={(e) => {
-                  if (genreUnknown) return;
-                  setDeclaredGenre(e.target.value);
-                }}
+                onChange={(e) => setDeclaredGenre(e.target.value)}
               />
-              <button
-                type="button"
-                className={`add-mini-pill${genreUnknown ? ' on' : ''}`}
-                style={{ marginTop: 8 }}
-                onClick={() => {
-                  setGenreUnknown((v) => {
-                    const next = !v;
-                    if (next) setDeclaredGenre(''); // bascule en auto -> on vide le texte
-                    return next;
-                  });
-                }}
-              >
-                {s.addModal.uploadGenreAutoBtn}
-              </button>
+            </div>
+
+            {/* Intention artistique — toggle dépliable. Plié par défaut
+                pour ne pas alourdir la modale. Si l'utilisateur clique
+                "+ Ajouter une intention artistique", le textarea
+                apparaît. Si saisi, le pipeline saute l'IntentionScreen
+                post-Phase-A (tout est en amont, pas d'interruption). */}
+            <div className="add-mini-field">
+              {!intentExpanded ? (
+                <button
+                  type="button"
+                  className="add-mini-intent-toggle"
+                  onClick={() => setIntentExpanded(true)}
+                >
+                  + Ajouter une intention artistique
+                </button>
+              ) : (
+                <>
+                  <div className="add-mini-field-label add-mini-field-label-row">
+                    <span>Intention artistique</span>
+                    <button
+                      type="button"
+                      className="add-mini-intent-collapse"
+                      onClick={() => { setIntentExpanded(false); setArtisticIntent(''); }}
+                      aria-label="Replier"
+                      title="Replier"
+                    >×</button>
+                  </div>
+                  <textarea
+                    className="add-mini-input add-mini-textarea"
+                    value={artisticIntent}
+                    onChange={(e) => setArtisticIntent(e.target.value)}
+                    placeholder="Ex : Je vise un son à la Frank Ocean — Blonde, pas Channel Orange."
+                    rows={3}
+                    maxLength={600}
+                  />
+                </>
+              )}
             </div>
 
             {/* CTA */}

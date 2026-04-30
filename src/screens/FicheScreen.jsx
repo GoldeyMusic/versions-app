@@ -14,12 +14,88 @@ import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
 import { downloadScoreCard } from '../lib/exportScoreCard';
-import { renderWithEmphasis, formatAnalyzedAt, splitVerdict, applyVocalTypeToFiche, isVoiceCategory, normalizeDiagItem } from '../lib/ficheHelpers.jsx';
+import { renderWithEmphasis, formatAnalyzedAt, splitVerdict, applyVocalTypeToFiche, isVoiceCategory, normalizeDiagItem, computeReleaseReadiness } from '../lib/ficheHelpers.jsx';
 import useMobile from '../hooks/useMobile';
 import useNarrowDesktop from '../hooks/useNarrowDesktop';
 import useLang from '../hooks/useLang';
 import OnboardingHints from '../components/OnboardingHints';
 import { FICHE_STEPS, ONBOARDING_STORAGE_KEYS } from '../constants/onboardingSteps';
+
+// ── Icônes catégories diagnostic — glyphes minimalistes (refonte
+// 2026-04-30, "page plus jeune"). Symboles premium type lucide :
+// stroke 1.6, viewBox 16, balanced. Évite emojis pour rester pro.
+function CategoryIcon({ cat }) {
+  const k = String(cat || '').toLowerCase();
+  const common = {
+    width: 14, height: 14, viewBox: '0 0 16 16',
+    fill: 'none', stroke: 'currentColor',
+    strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round',
+    'aria-hidden': true,
+  };
+  if (k.includes('voix') || k.includes('vocal') || k.includes('voice')) {
+    // Microphone : capsule + base
+    return (
+      <svg {...common}>
+        <rect x="6" y="2" width="4" height="7" rx="2" />
+        <path d="M4 8a4 4 0 008 0" />
+        <path d="M8 12v2" />
+      </svg>
+    );
+  }
+  if (k.includes('instrument')) {
+    // Touches piano (3 verticales)
+    return (
+      <svg {...common}>
+        <rect x="2.5" y="3" width="11" height="10" rx="1.2" />
+        <path d="M6 3v6M10 3v6" />
+        <path d="M2.5 9h11" />
+      </svg>
+    );
+  }
+  if (k.includes('bass') || k.includes('kick')) {
+    // Onde basse fréquence (sinus large)
+    return (
+      <svg {...common}>
+        <path d="M2 8 C 4 3, 6 13, 8 8 S 12 3, 14 8" />
+      </svg>
+    );
+  }
+  if (k.includes('drum') || k.includes('percu')) {
+    // Cymbale + stick
+    return (
+      <svg {...common}>
+        <ellipse cx="8" cy="10" rx="5.5" ry="1.6" />
+        <path d="M11 4l-2.5 5" />
+        <circle cx="11" cy="3.5" r="1" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+  if (k.includes('spatial') || k.includes('reverb')) {
+    // Cube/diamond avec arcs concentriques
+    return (
+      <svg {...common}>
+        <path d="M8 2.5l5 2.5v6L8 13.5 3 11V5z" />
+        <path d="M8 2.5v11M3 5l5 2.5L13 5" />
+      </svg>
+    );
+  }
+  if (k.includes('master') || k.includes('loudness')) {
+    // Niveau / VU meter (3 barres montantes)
+    return (
+      <svg {...common}>
+        <rect x="3" y="9" width="2.4" height="4.5" rx="0.5" />
+        <rect x="6.8" y="6" width="2.4" height="7.5" rx="0.5" />
+        <rect x="10.6" y="3" width="2.4" height="10.5" rx="0.5" />
+      </svg>
+    );
+  }
+  // Fallback : cercle plein
+  return (
+    <svg {...common}>
+      <circle cx="8" cy="8" r="3" />
+    </svg>
+  );
+}
 
 /**
  * FicheScreen — rendu fidèle à mockup-v3.html.
@@ -2705,7 +2781,7 @@ function _DspMasterBlockSkyline({ analysisResult }) {
 
 // ── Timeline (sticky bar topbar + dropdown versions) ──────────────
 
-function Timeline({ track, currentVersionName, stage, analysisResult, onSelectVersion, onAddVersion, onShareVersion, onExportVersion, onScoreCard, onTracksRefresh, onGoHome }) {
+function Timeline({ track, currentVersionName, stage, analysisResult, onSelectVersion, onAddVersion, onShareVersion, onExportVersion, onScoreCard, onTracksRefresh, onGoHome, renderGenreLine }) {
   const { s } = useLang();
   const isMobile = useMobile();
 
@@ -2728,93 +2804,56 @@ function Timeline({ track, currentVersionName, stage, analysisResult, onSelectVe
   const canShare = !!current?.id && current.id !== '__pending_v__';
 
   // ── Desktop v2 : topbar + versions-row séparés, fidèle à la maquette ──
+  // Refonte 2026-04-30 : les chips de versions remontent dans la topbar
+  // globale (DashboardTopbar) via un portail React. Le slot cible est
+  // le div id="topbar-context-slot" rendu par DashboardTopbar.
+  // Les autres contrôles (back, dsp badge, share/export/scoreCard)
+  // restent dans la fiche-topbar locale pour l'instant.
   if (!isMobile) {
+    const versionChipsPortal = (typeof document !== 'undefined')
+      ? document.getElementById('topbar-context-slot')
+      : null;
     return (
       <div className="fiche-topbar-wrap">
-        <div className="fiche-topbar">
-          {onGoHome && (
-            <button className="fiche-back" onClick={onGoHome} title={s.fiche.timelineBackHome} aria-label={s.fiche.timelineBackHome}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13l-5-5 5-5"/></svg>
-            </button>
-          )}
-          {/* Titre supprimé de la topbar : il est déjà affiché en gros sur
-              l'artwork (.cover-big-title) en colonne droite. */}
-          <div className="fiche-topbar-versions">
-            <VersionDropdown
-              track={track}
-              currentVersionName={currentVersionName}
-              versions={versions}
-              onSelectVersion={onSelectVersion}
-              onAddVersion={onAddVersion}
-              onRefresh={onTracksRefresh}
-              onGoHome={onGoHome}
-              newVersionLabel={s.fiche.newVersionTitle || 'Nouvelle version'}
-              showAddInMenu={false}
-            />
-            {onAddVersion && (
-              <button
-                type="button"
-                className="vchip-new"
-                title={s.fiche.newVersionTitle}
-                onClick={() => onAddVersion(track)}
-              >+ {s.fiche.newVersionTitle || 'Nouvelle version'}</button>
+        {/* Refonte 2026-04-30 : TOUTE la topbar fiche est rendue dans
+            la topbar globale (DashboardTopbar) via portail, dans le
+            slot #topbar-context-slot. Eyebrow "FICHE D'ANALYSE" +
+            version chips + BPM/LUFS + actions share/scoreCard/export
+            dans une seule rangée. La fiche-topbar locale est vidée. */}
+        {versionChipsPortal && createPortal(
+          <div className="fiche-topbar-portal">
+            {current && (
+              <div className="fiche-topbar-meta">
+                <div className="ver-label"><b className={stageClass}>{stageLabel}</b></div>
+              </div>
             )}
-          </div>
-          {current && (
-            <div className="fiche-topbar-meta">
-              <div className="ver-label"><b className={stageClass}>{stageLabel}</b></div>
-            </div>
-          )}
-          {current && <DspBadge version={current} analysisResult={analysisResult} track={track} onRefresh={onTracksRefresh} />}
-          {current && (onShareVersion || onExportVersion || onScoreCard) && (
-            <div className="fiche-topbar-actions">
-              {onShareVersion && (
+            <div className="fiche-topbar-versions">
+              <VersionDropdown
+                track={track}
+                currentVersionName={currentVersionName}
+                versions={versions}
+                onSelectVersion={onSelectVersion}
+                onAddVersion={onAddVersion}
+                onRefresh={onTracksRefresh}
+                onGoHome={onGoHome}
+                newVersionLabel={s.fiche.newVersionTitle || 'Nouvelle version'}
+                showAddInMenu={false}
+              />
+              {onAddVersion && (
                 <button
                   type="button"
-                  className="btn-ic"
-                  onClick={() => onShareVersion(track, current)}
-                  disabled={!canShare}
-                  title={canShare ? s.fiche.timelineShareTitle : s.fiche.timelineSavingInProgress}
-                  aria-label={s.fiche.timelineShareBtn}
-                >
-                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M8 9V2M5.5 4.5L8 2l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M4 8v4.5h8V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-              )}
-              {onScoreCard && (
-                <button
-                  type="button"
-                  className="btn-ic"
-                  onClick={() => onScoreCard(track, current)}
-                  title={s.fiche.timelineScoreCardTitle}
-                  aria-label={s.fiche.timelineScoreCardBtn}
-                >
-                  {/* Icône Score Card : carré avec petit anneau */}
-                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-                    <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-                  </svg>
-                </button>
-              )}
-              {onExportVersion && (
-                <button
-                  type="button"
-                  className="btn-ic"
-                  onClick={() => onExportVersion(track, current)}
-                  title={s.fiche.timelineExportTitle}
-                  aria-label={s.fiche.timelineExportBtn}
-                >
-                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12v1.5A1.5 1.5 0 004.5 15h7A1.5 1.5 0 0013 13.5V12"
-                          stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
+                  className="vchip-new"
+                  title={s.fiche.newVersionTitle}
+                  onClick={() => onAddVersion(track)}
+                >+ {s.fiche.newVersionTitle || 'Nouvelle version'}</button>
               )}
             </div>
-          )}
-        </div>
+            {/* DspBadge / Genre / Actions : déplacés dans la colonne
+                droite (1/3) à côté du verdict de sortie — refonte
+                2026-04-30. La topbar reste légère (eyebrow + chips). */}
+          </div>,
+          versionChipsPortal
+        )}
 
       </div>
     );
@@ -3808,6 +3847,10 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   const [verdictExpanded, setVerdictExpanded] = useState(false); // verdict rétracté par défaut
   // Ticket 4.4 — état du toggle "Marquer comme finale" (plateau detector).
   const [markFinalBusy, setMarkFinalBusy] = useState(false);
+  // Modale d'édition BPM/Key — déclenchée au clic sur les chips
+  // BPM ou Key dans la colonne droite du verdict. LUFS reste non
+  // éditable manuellement (mesure objective, cf. DspEditModal).
+  const [dspEditOpen, setDspEditOpen] = useState(false);
   // Édition inline du genre depuis la fiche : click sur la ligne genre →
   // bascule en input. Save sur Enter/blur. Échap pour annuler.
   // `genreOverride` permet d'afficher la nouvelle valeur immédiatement après
@@ -3819,7 +3862,11 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   const [genreSaving, setGenreSaving] = useState(false);
   const isMobile = useMobile();
   const isNarrow = useNarrowDesktop(1200);
-  const chatAsDrawer = isMobile || isNarrow;
+  // Refonte 2026-04-30 (UX pill A) : drawer/pill TOUJOURS, peu importe
+  // la largeur. La pill bas-centrée invite à ouvrir le chat ; click →
+  // panel slide-up. Plus de mode anchored colonne (qui rétrécissait le
+  // contenu et n'était pas cohérent avec la nav globale).
+  const chatAsDrawer = true;
   const planRefs = useRef({});
 
   // Scroll doux vers l'item Plan d'action ouvert
@@ -3976,6 +4023,35 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   const listening = displayAR?.listening || null;
   const stage = displayAR?._stage || analysisResult?._stage || 'idle';
 
+  // ── IntersectionObserver pour les .wh-anim de la fiche ──
+  // L'observer global d'App.jsx tourne quand `screen` change, mais à
+  // ce moment-là le body de la fiche n'est pas encore monté (rawFiche
+  // se charge async). On relance un observer LOCAL quand rawFiche
+  // devient truthy → les sections apparaissent en cascade au scroll.
+  // requestAnimationFrame pour s'assurer que le DOM est bien peint.
+  useEffect(() => {
+    if (!rawFiche) return;
+    if (typeof IntersectionObserver === 'undefined') return;
+    let io = null;
+    const raf = requestAnimationFrame(() => {
+      const els = document.querySelectorAll('.wh-anim:not(.wh-anim-in)');
+      if (!els.length) return;
+      io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('wh-anim-in');
+            io.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0, rootMargin: '0px 0px -10% 0px' });
+      els.forEach((el) => io.observe(el));
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      if (io) io.disconnect();
+    };
+  }, [rawFiche]);
+
   // Type vocal du titre : priorité à la DB (la source de vérité), fallback
   // sur config.vocalType fraîchement choisi pendant l'import (avant que
   // le titre n'arrive en DB).
@@ -4100,6 +4176,129 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     });
   };
 
+  // ── renderGenreLine : ligne "Genre · pop lofi" éditable inline.
+  // Refonte 2026-04-30bis : DspBadge + Genre + actions sortis du
+  // portail topbar, replacés dans la colonne droite (1/3) à côté du
+  // verdict. On extrait la fonction du Timeline render-prop pour
+  // pouvoir l'appeler aussi dans le panneau verdict-side.
+  const renderGenreLine = () => {
+    const src = genreOverride || rawFiche || null;
+    const declared = (src?.declared_genre || '').trim();
+    const inferred = (src?.inferred_genre || '').trim();
+    const inferredFlag = src?.genre_inferred_by_ai === true;
+    const currentLabel = declared || (inferredFlag ? inferred : '');
+    const editVersionId = versionId || config?.versionId || null;
+    const editable = !!editVersionId
+      && editVersionId !== '__pending_v__' && editVersionId !== '__pending__';
+
+    const startEdit = () => {
+      if (!editable || genreSaving) return;
+      setGenreDraft(currentLabel);
+      setEditingGenre(true);
+    };
+    const cancelEdit = () => {
+      setEditingGenre(false);
+      setGenreDraft('');
+    };
+    const commitEdit = async () => {
+      if (genreSaving) return;
+      const next = (genreDraft || '').trim();
+      if (next === (declared || (inferredFlag ? inferred : ''))) {
+        cancelEdit();
+        return;
+      }
+      setGenreSaving(true);
+      try {
+        const ok = await updateVersionGenre(editVersionId, next);
+        if (ok) {
+          setGenreOverride({
+            declared_genre: next || null,
+            genre_inferred_by_ai: false,
+            inferred_genre: null,
+          });
+        }
+      } finally {
+        setGenreSaving(false);
+        setEditingGenre(false);
+        setGenreDraft('');
+      }
+    };
+
+    const lineStyle = {
+      fontSize: '11px',
+      lineHeight: 1.3,
+      fontFamily: 'var(--mono)',
+      letterSpacing: 0.5,
+      color: 'var(--muted)',
+    };
+
+    if (editingGenre) {
+      return (
+        <div className="fiche-genre-line is-editing" style={{ ...lineStyle, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ opacity: 0.6 }}>{s.fiche.genreDeclared}</span>
+          <input
+            autoFocus
+            type="text"
+            value={genreDraft}
+            maxLength={60}
+            placeholder={s.fiche.genreEditPlaceholder}
+            onChange={(e) => setGenreDraft(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
+              else if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+            }}
+            style={{
+              flex: 1, minWidth: 100,
+              fontSize: 'inherit', fontWeight: 600,
+              padding: '1px 4px',
+              border: '1px solid currentColor', borderRadius: 4,
+              background: 'transparent', color: 'var(--text)', opacity: 1,
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (!currentLabel) {
+      if (!editable) return null;
+      return (
+        <button
+          type="button"
+          className="fiche-genre-line is-empty"
+          onClick={startEdit}
+          style={{
+            ...lineStyle,
+            opacity: 0.7, background: 'transparent', border: 'none',
+            padding: 0, cursor: 'pointer', textAlign: 'left',
+          }}
+          title={s.fiche.genreEditTooltip}
+        >
+          {s.fiche.genreAdd}
+        </button>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        className="fiche-genre-line"
+        onClick={startEdit}
+        disabled={!editable || genreSaving}
+        style={{
+          ...lineStyle,
+          background: 'transparent', border: 'none',
+          padding: 0, cursor: editable ? 'pointer' : 'default',
+          textAlign: 'left',
+        }}
+        title={editable ? s.fiche.genreEditTooltip : ''}
+      >
+        <span style={{ opacity: 0.6, marginRight: 4 }}>{s.fiche.genreDeclared}</span>
+        <strong style={{ fontWeight: 600, color: 'var(--text)' }}>{currentLabel}</strong>
+      </button>
+    );
+  };
+
   return (
     <>
       <main className="main">
@@ -4116,10 +4315,139 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             onExportVersion={handleExportVersion}
             onScoreCard={handleScoreCard}
             onTracksRefresh={() => loadTracks().then(setTracks)}
+            renderGenreLine={() => {
+              // (legacy) render-prop conservé pour le mobile / fallback
+              // — sur desktop la genre line est rendue dans le panneau
+              // verdict-side. Le portail topbar ne l'appelle plus.
+              const src = genreOverride || rawFiche || null;
+              const declared = (src?.declared_genre || '').trim();
+              const inferred = (src?.inferred_genre || '').trim();
+              const inferredFlag = src?.genre_inferred_by_ai === true;
+              const currentLabel = declared || (inferredFlag ? inferred : '');
+              const editVersionId = versionId || config?.versionId || null;
+              const editable = !!editVersionId
+                && editVersionId !== '__pending_v__' && editVersionId !== '__pending__';
+
+              const startEdit = () => {
+                if (!editable || genreSaving) return;
+                setGenreDraft(currentLabel);
+                setEditingGenre(true);
+              };
+              const cancelEdit = () => {
+                setEditingGenre(false);
+                setGenreDraft('');
+              };
+              const commitEdit = async () => {
+                if (genreSaving) return;
+                const next = (genreDraft || '').trim();
+                if (next === (declared || (inferredFlag ? inferred : ''))) {
+                  cancelEdit();
+                  return;
+                }
+                setGenreSaving(true);
+                try {
+                  const ok = await updateVersionGenre(editVersionId, next);
+                  if (ok) {
+                    setGenreOverride({
+                      declared_genre: next || null,
+                      genre_inferred_by_ai: false,
+                      inferred_genre: null,
+                    });
+                  }
+                } finally {
+                  setGenreSaving(false);
+                  setEditingGenre(false);
+                  setGenreDraft('');
+                }
+              };
+
+              const lineStyle = {
+                fontSize: '11px',
+                lineHeight: 1.3,
+                fontFamily: 'var(--mono)',
+                letterSpacing: 0.5,
+                color: 'var(--muted)',
+              };
+
+              if (editingGenre) {
+                return (
+                  <div className="fiche-genre-line is-editing" style={{ ...lineStyle, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ opacity: 0.6 }}>{s.fiche.genreDeclared}</span>
+                    <input
+                      autoFocus
+                      type="text"
+                      value={genreDraft}
+                      maxLength={60}
+                      placeholder={s.fiche.genreEditPlaceholder}
+                      onChange={(e) => setGenreDraft(e.target.value)}
+                      onBlur={commitEdit}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
+                        else if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+                      }}
+                      style={{
+                        flex: 1, minWidth: 100,
+                        fontSize: 'inherit', fontWeight: 600,
+                        padding: '1px 4px',
+                        border: '1px solid currentColor', borderRadius: 4,
+                        background: 'transparent', color: 'var(--text)', opacity: 1,
+                      }}
+                    />
+                  </div>
+                );
+              }
+
+              if (!currentLabel) {
+                if (!editable) return null;
+                return (
+                  <button
+                    type="button"
+                    className="fiche-genre-line is-empty"
+                    onClick={startEdit}
+                    style={{
+                      ...lineStyle,
+                      opacity: 0.7, background: 'transparent', border: 'none',
+                      padding: 0, cursor: 'pointer', textAlign: 'left',
+                    }}
+                    title={s.fiche.genreEditTooltip}
+                  >
+                    {s.fiche.genreAdd}
+                  </button>
+                );
+              }
+
+              return (
+                <button
+                  type="button"
+                  className="fiche-genre-line"
+                  onClick={startEdit}
+                  disabled={!editable || genreSaving}
+                  style={{
+                    ...lineStyle,
+                    background: 'transparent', border: 'none',
+                    padding: 0, cursor: editable ? 'pointer' : 'default',
+                    textAlign: 'left',
+                  }}
+                  title={editable ? s.fiche.genreEditTooltip : ''}
+                >
+                  <span style={{ opacity: 0.6, marginRight: 4 }}>{s.fiche.genreDeclared}</span>
+                  <strong style={{ fontWeight: 600, color: 'var(--text)' }}>{currentLabel}</strong>
+                </button>
+              );
+            }}
           />
         )}
 
-        <div className={`fiche-layout${rawFiche ? ' fiche-v2' : ''}${!chatAsDrawer && rawFiche ? ' has-chat' : ''}`}>
+        {/* Genre musical — refonte 2026-04-30 : extrait en
+            renderGenreLine et passé en prop à Timeline pour qu'il
+            s'affiche dans le portail topbar, juste sous le BPM. */}
+
+        {/* Refonte 2026-04-30 : on retire la classe .has-chat (qui
+            posait un grid 1fr+400px et rétrécissait le contenu). Le
+            chat-side reste en position:fixed (indépendant du flux),
+            et le wrap centré App.jsx donne au contenu sa largeur
+            réduite ~920px alignée sur dashboard/landing/pricing. */}
+        <div className={`fiche-layout${rawFiche ? ' fiche-v2' : ''}`}>
         <div className="page">
           {!rawFiche ? (
             <AnalyzingState stage={stage} />
@@ -4204,10 +4532,217 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               }}
             />
           )}
-          {/* Ticket 4.3 — bandeau "Prêt à sortir / Presque / Pas encore" */}
-          <ReleaseReadinessBanner fiche={rawFiche} completedItems={completedItems} />
+          {/* Ticket 4.3 — bandeau "Prêt à sortir / Presque / Pas encore"
+              Refonte 2026-04-30bis : layout 2/3 + 1/3 sur desktop. À
+              droite : panneau "pop" avec BPM/Key/LUFS/Genre en chips
+              colorés (rotations subtiles) + actions share/scoreCard/
+              export. Ces éléments étaient avant dans le portail topbar. */}
+          <div className="verdict-row-grid wh-anim" style={{ '--anim-d': '0ms' }}>
+            <div className="verdict-col-main">
+              <ReleaseReadinessBanner fiche={rawFiche} completedItems={completedItems} />
+            </div>
+            {(() => {
+              const { bpm, key, lufs } = pickDspMetrics(versionInDb, analysisResult);
+              const lufsLabel = lufs
+                ? (String(lufs).toLowerCase().includes('lufs') ? String(lufs) : `${lufs} LUFS`)
+                : null;
+              const hasShare = !!handleShareVersion;
+              const hasExport = !!handleExportVersion;
+              const hasScoreCard = !!handleScoreCard;
+              // BPM et Key sont éditables via DspEditModal si la
+              // version est persistée (id valide, pas un pending temp).
+              const dspEditable = !!(versionInDb?.id
+                && !String(versionInDb.id).startsWith('__pending'));
+              const editTooltip = dspEditable
+                ? 'Mesures objectives (clique pour corriger)'
+                : 'Mesures objectives du fichier audio';
+              const renderBpmChip = () => {
+                if (!bpm && !dspEditable) return null;
+                const label = bpm ? `${bpm} BPM` : '— BPM';
+                if (!dspEditable) {
+                  return <span className="vside-chip vside-chip-cerulean vside-rot-a">{label}</span>;
+                }
+                return (
+                  <button
+                    type="button"
+                    className="vside-chip vside-chip-cerulean vside-rot-a"
+                    onClick={() => setDspEditOpen(true)}
+                    title={editTooltip}
+                  >{label}</button>
+                );
+              };
+              const renderKeyChip = () => {
+                if (!key && !dspEditable) return null;
+                const label = key ? formatDspKey(key) : '— maj';
+                if (!dspEditable) {
+                  return <span className="vside-chip vside-chip-violet vside-rot-b">{label}</span>;
+                }
+                return (
+                  <button
+                    type="button"
+                    className="vside-chip vside-chip-violet vside-rot-b"
+                    onClick={() => setDspEditOpen(true)}
+                    title={editTooltip}
+                  >{label}</button>
+                );
+              };
+              return (
+                <aside className="verdict-col-side" aria-label="Métadonnées du titre">
+                  <div className="vside-chips">
+                    {renderBpmChip()}
+                    {renderKeyChip()}
+                    {lufsLabel && (
+                      <span
+                        className="vside-chip vside-chip-mint vside-rot-c"
+                        title="LUFS — mesure objective non éditable manuellement"
+                      >
+                        {lufsLabel}
+                      </span>
+                    )}
+                    {(() => {
+                      const src = genreOverride || rawFiche || null;
+                      const declared = (src?.declared_genre || '').trim();
+                      const inferred = (src?.inferred_genre || '').trim();
+                      const inferredFlag = src?.genre_inferred_by_ai === true;
+                      const currentLabel = declared || (inferredFlag ? inferred : '');
+                      const editVersionId = versionId || config?.versionId || null;
+                      const editable = !!editVersionId
+                        && editVersionId !== '__pending_v__'
+                        && editVersionId !== '__pending__';
+
+                      const startEdit = () => {
+                        if (!editable || genreSaving) return;
+                        setGenreDraft(currentLabel);
+                        setEditingGenre(true);
+                      };
+                      const cancelEdit = () => {
+                        setEditingGenre(false);
+                        setGenreDraft('');
+                      };
+                      const commitEdit = async () => {
+                        if (genreSaving) return;
+                        const next = (genreDraft || '').trim();
+                        if (next === (declared || (inferredFlag ? inferred : ''))) {
+                          cancelEdit();
+                          return;
+                        }
+                        setGenreSaving(true);
+                        try {
+                          const ok = await updateVersionGenre(editVersionId, next);
+                          if (ok) {
+                            setGenreOverride({
+                              declared_genre: next || null,
+                              genre_inferred_by_ai: false,
+                              inferred_genre: null,
+                            });
+                          }
+                        } finally {
+                          setGenreSaving(false);
+                          setEditingGenre(false);
+                          setGenreDraft('');
+                        }
+                      };
+
+                      // Mode édition : input inline dans une chip amber
+                      if (editingGenre && editable) {
+                        return (
+                          <span className="vside-chip vside-chip-amber vside-rot-d vside-chip-editing">
+                            <input
+                              autoFocus
+                              type="text"
+                              value={genreDraft}
+                              maxLength={60}
+                              placeholder={s.fiche.genreEditPlaceholder}
+                              onChange={(e) => setGenreDraft(e.target.value)}
+                              onBlur={commitEdit}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
+                                else if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+                              }}
+                            />
+                          </span>
+                        );
+                      }
+                      // Pas de genre, mais éditable : chip "+ ajouter"
+                      if (!currentLabel) {
+                        if (!editable) return null;
+                        return (
+                          <button
+                            type="button"
+                            className="vside-chip vside-chip-amber vside-rot-d vside-chip-empty"
+                            onClick={startEdit}
+                            title={s.fiche.genreEditTooltip}
+                          >
+                            + {s.fiche.genreAdd}
+                          </button>
+                        );
+                      }
+                      // Genre présent : chip cliquable pour édition
+                      return (
+                        <button
+                          type="button"
+                          className="vside-chip vside-chip-amber vside-rot-d"
+                          onClick={editable ? startEdit : undefined}
+                          disabled={!editable || genreSaving}
+                          title={editable ? s.fiche.genreEditTooltip : ''}
+                        >
+                          {currentLabel}
+                        </button>
+                      );
+                    })()}
+                  </div>
+                  {(hasShare || hasExport || hasScoreCard) && (
+                    <div className="vside-actions">
+                      {hasShare && (
+                        <button
+                          type="button"
+                          className="vside-action-btn"
+                          onClick={() => handleShareVersion(currentTrack, versionInDb)}
+                          title={s.fiche.timelineShareTitle}
+                          aria-label={s.fiche.timelineShareBtn}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M8 9V2M5.5 4.5L8 2l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M4 8v4.5h8V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                      )}
+                      {hasScoreCard && (
+                        <button
+                          type="button"
+                          className="vside-action-btn"
+                          onClick={() => handleScoreCard(currentTrack, versionInDb)}
+                          title={s.fiche.timelineScoreCardTitle}
+                          aria-label={s.fiche.timelineScoreCardBtn}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+                            <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+                          </svg>
+                        </button>
+                      )}
+                      {hasExport && (
+                        <button
+                          type="button"
+                          className="vside-action-btn"
+                          onClick={() => handleExportVersion(currentTrack, versionInDb)}
+                          title={s.fiche.timelineExportTitle}
+                          aria-label={s.fiche.timelineExportBtn}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12v1.5A1.5 1.5 0 004.5 15h7A1.5 1.5 0 0013 13.5V12"
+                                  stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </aside>
+              );
+            })()}
+          </div>
           {/* 1 · Verdict / Score global */}
-          <section className="row-verdict">
+          <section className="row-verdict wh-anim" style={{ '--anim-d': '80ms' }}>
             {/* Pochette carrée (v2 desktop) — artwork fait de halos color\u00e9s seed\u00e9s
                 + titre en gros (police du logo VERSIONS). Remplaçable par l'upload user. */}
             {(() => {
@@ -4313,16 +4848,18 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     const delta = Math.round(score - prevScore);
                     const prevName = prevVersion?.name || '';
                     if (!prevName) return null;
-                    let tpl;
-                    if (delta === 0) tpl = s.fiche.scoreDeltaStable;
-                    else if (delta > 0) tpl = s.fiche.scoreDeltaUp;
-                    else tpl = s.fiche.scoreDeltaDown;
+                    // Refonte 2026-04-30 : on n'affiche plus le cas
+                    // stable (delta = 0) — l'évolution depuis V1 est
+                    // déjà signalée plus bas dans .EvolutionPanel.
+                    // Seuls les deltas non nuls (montée/baisse) restent.
+                    if (delta === 0) return null;
+                    const tpl = delta > 0 ? s.fiche.scoreDeltaUp : s.fiche.scoreDeltaDown;
                     if (!tpl) return null;
                     const txt = tpl
                       .replace('{delta}', String(Math.abs(delta)))
                       .replace('{prev}', prevName);
                     return (
-                      <div className={`score-calibration${delta < 0 ? ' down' : delta === 0 ? ' stable' : ''}`}>
+                      <div className={`score-calibration${delta < 0 ? ' down' : ''}`}>
                         {txt}
                       </div>
                     );
@@ -4350,173 +4887,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   })()}
                 </>
               )}
-              {/* Genre musical : déclaré par l'artiste OU détecté par l'IA pendant
-                  l'analyse (cf. migration 011 + AddModal). Affiché au-dessus du
-                  verdict en libellé court, ÉDITABLE inline : click sur la ligne
-                  → input, Enter/blur pour sauver, Échap pour annuler. Une fois
-                  édité, ça devient le genre déclaré (genre_inferred_by_ai bascule
-                  à false côté DB et le caveat "détecté pendant l'analyse" disparaît). */}
-              {(() => {
-                // Source : override local (édition à chaud) en priorité, sinon fiche.
-                const src = genreOverride || rawFiche || null;
-                const declared = (src?.declared_genre || '').trim();
-                const inferred = (src?.inferred_genre || '').trim();
-                const inferredFlag = src?.genre_inferred_by_ai === true;
-                const currentLabel = declared || (inferredFlag ? inferred : '');
-                const note = declared
-                  ? s.fiche.genreDeclared
-                  : (inferredFlag ? s.fiche.genreInferred : s.fiche.genreDeclared);
-                // Pas d'id de version persistée -> pas d'édition possible.
-                // versionId vient de versionInDb.id (lookup par nom dans tracks)
-                // qui peut être null juste après l'analyse, le temps que tracks
-                // soit rechargé. config.versionId, lui, est injecté direct par
-                // saveAnalysis dès que la version est créée en DB — c'est un
-                // fallback fiable pour activer l'édition tout de suite.
-                const editVersionId = versionId || config?.versionId || null;
-                const editable = !!editVersionId
-                  && editVersionId !== '__pending_v__' && editVersionId !== '__pending__';
-
-                const startEdit = () => {
-                  if (!editable || genreSaving) return;
-                  setGenreDraft(currentLabel);
-                  setEditingGenre(true);
-                };
-                const cancelEdit = () => {
-                  setEditingGenre(false);
-                  setGenreDraft('');
-                };
-                const commitEdit = async () => {
-                  if (genreSaving) return;
-                  const next = (genreDraft || '').trim();
-                  // Si la valeur est inchangée, on ne déclenche pas de save.
-                  if (next === (declared || (inferredFlag ? inferred : ''))) {
-                    cancelEdit();
-                    return;
-                  }
-                  setGenreSaving(true);
-                  try {
-                    const ok = await updateVersionGenre(editVersionId, next);
-                    if (ok) {
-                      setGenreOverride({
-                        declared_genre: next || null,
-                        genre_inferred_by_ai: false,
-                        inferred_genre: null,
-                      });
-                    }
-                  } finally {
-                    setGenreSaving(false);
-                    setEditingGenre(false);
-                    setGenreDraft('');
-                  }
-                };
-
-                // Style commun : taille uniforme, pas de uppercase ni letterspacing
-                // (la hiérarchie se fait sur l'opacity et le poids, pas sur la casse).
-                // Paddings : un peu d'air au-dessus pour séparer du badge "points" et
-                // en dessous pour respirer avant le verdict.
-                const lineBase = {
-                  fontSize: '0.85rem',
-                  marginTop: 10,
-                  marginBottom: 12,
-                  lineHeight: 1.4,
-                };
-
-                if (editingGenre) {
-                  return (
-                    <div
-                      className="fiche-genre-line is-editing"
-                      style={{
-                        ...lineBase,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                      }}
-                    >
-                      <span style={{ flexShrink: 0, opacity: 0.55 }}>{s.fiche.genreDeclared}</span>
-                      <input
-                        autoFocus
-                        type="text"
-                        value={genreDraft}
-                        maxLength={60}
-                        placeholder={s.fiche.genreEditPlaceholder}
-                        onChange={(e) => setGenreDraft(e.target.value)}
-                        onBlur={commitEdit}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
-                          else if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
-                        }}
-                        style={{
-                          flex: 1,
-                          minWidth: 120,
-                          fontSize: 'inherit',
-                          fontWeight: 600,
-                          padding: '2px 6px',
-                          border: '1px solid currentColor',
-                          borderRadius: 4,
-                          background: 'transparent',
-                          color: 'inherit',
-                          opacity: 1,
-                        }}
-                      />
-                    </div>
-                  );
-                }
-
-                // Mode lecture : pas de label → CTA discret pour ajouter.
-                if (!currentLabel) {
-                  if (!editable) return null;
-                  return (
-                    <button
-                      type="button"
-                      className="fiche-genre-line is-empty"
-                      onClick={startEdit}
-                      style={{
-                        ...lineBase,
-                        opacity: 0.5,
-                        background: 'transparent',
-                        border: 'none',
-                        padding: 0,
-                        cursor: 'pointer',
-                        color: 'inherit',
-                        font: 'inherit',
-                      }}
-                      title={s.fiche.genreEditTooltip}
-                    >
-                      {s.fiche.genreAdd}
-                    </button>
-                  );
-                }
-
-                // Mode lecture avec valeur : libellé "Genre" muté + valeur bright,
-                // et caveat "(détecté pendant l'analyse)" en suffixe discret quand inféré.
-                return (
-                  <button
-                    type="button"
-                    className="fiche-genre-line"
-                    onClick={startEdit}
-                    disabled={!editable || genreSaving}
-                    style={{
-                      ...lineBase,
-                      background: 'transparent',
-                      border: 'none',
-                      padding: 0,
-                      cursor: editable ? 'pointer' : 'default',
-                      color: 'inherit',
-                      font: 'inherit',
-                      textAlign: 'left',
-                    }}
-                    title={editable ? s.fiche.genreEditTooltip : ''}
-                  >
-                    <span style={{ opacity: 0.55, marginRight: 6 }}>{s.fiche.genreDeclared}</span>
-                    <strong style={{ fontWeight: 600, opacity: 1 }}>{currentLabel}</strong>
-                    {!declared && inferredFlag && (
-                      <span style={{ opacity: 0.45, marginLeft: 8, fontStyle: 'italic' }}>
-                        ({s.fiche.genreInferredSuffix})
-                      </span>
-                    )}
-                  </button>
-                );
-              })()}
+              {/* Bloc Genre déplacé en haut, juste après le Timeline,
+                  pour qu'il apparaisse sous BPM/tonalité/LUFS et que
+                  le verdict puisse remonter dans le score card. */}
               <div className={`verdict-text${verdictExpanded ? ' expanded' : ' collapsed'}`}>
                 {(() => {
                   // Priorité : verdict (phrase accrocheuse) pour le titre, summary pour le paragraphe.
@@ -4577,8 +4950,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               {/* Wrapper évolution + intention — pleine largeur en layout 1 colonne. */}
               {(evolution || hasIntentSource) && (
                 <div
-                  className="evo-intent-stack"
+                  className="evo-intent-stack wh-anim"
                   style={{
+                    '--anim-d': '160ms',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'stretch',
@@ -4682,11 +5056,28 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                               <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                           </span>
+                          <span className="diag-cat-icon" aria-hidden="true">
+                            <CategoryIcon cat={el?.cat} />
+                          </span>
                           <span className="name">{catLabel}</span>
                           <span className="count">
                             {isVoice && voiceLabelOverride
                               ? s.fiche.pendingVoiceStep
-                              : `${count} ${count > 1 ? s.fiche.elementPlural : s.fiche.elementSingular}${avg != null ? `${s.fiche.avgPrefix}${Math.round(avg)}` : ''}`}
+                              : (
+                                <>
+                                  <span className="count-num">{count}</span>
+                                  <span className="count-label">{count > 1 ? s.fiche.elementPlural : s.fiche.elementSingular}</span>
+                                  {avg != null && (() => {
+                                    const a = Math.round(avg);
+                                    const band = a >= 80 ? 'mint' : a >= 60 ? 'amber' : 'red';
+                                    return (
+                                      <span className={`avg-chip avg-${band}`} title={`Moyenne ${a}/100`}>
+                                        {a}
+                                      </span>
+                                    );
+                                  })()}
+                                </>
+                              )}
                           </span>
                         </div>
                         <div className="diag-cat-body">
@@ -4820,7 +5211,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                   // Rendu v2 (desktop + mobile) : panel unifié avec eyebrow
                   // ambre + halo. Les media queries adaptent la taille mobile.
                   return (
-                    <section className="diag-panel">
+                    <section className="diag-panel wh-anim" style={{ '--anim-d': '240ms' }}>
                       <div className="diag-eyebrow">
                         <span className="dot" />
                         {s.fiche.diagTitle} · {elements.length} {elements.length > 1 ? s.fiche.categoryPlural : s.fiche.categorySingular}
@@ -4848,15 +5239,19 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           )}
 
           {/* Impression d'écoute — pleine largeur, après le diagnostic */}
-          <QualitativeSection listening={listening} />
+          <div className="wh-anim" style={{ '--anim-d': '320ms' }}>
+            <QualitativeSection listening={listening} />
+          </div>
 
           {/* 4 · Notes perso — tout en bas, pleine largeur */}
-          <NotesSection
-            key={versionInDb?.id || 'pending'}
-            versionId={versionInDb?.id || null}
-            initialNotes={(analysisResult && analysisResult.userNotes) || ''}
-            v2
-          />
+          <div className="wh-anim" style={{ '--anim-d': '400ms' }}>
+            <NotesSection
+              key={versionInDb?.id || 'pending'}
+              versionId={versionInDb?.id || null}
+              initialNotes={(analysisResult && analysisResult.userNotes) || ''}
+              v2
+            />
+          </div>
           </>
           )}
         </div>
@@ -4934,14 +5329,56 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
         />
       )}
 
-      {/* Chat — bulle + panneau (mobile + desktop étroit <1200px) */}
+      {/* Modale édition BPM / Key — déclenchée au clic sur les chips
+          BPM ou Key dans la colonne droite du verdict. */}
+      {dspEditOpen && versionInDb && (() => {
+        const { bpm, key, lufs } = pickDspMetrics(versionInDb, analysisResult);
+        return (
+          <DspEditModal
+            version={versionInDb}
+            track={currentTrack}
+            initial={{ bpm, key, lufs }}
+            onClose={() => setDspEditOpen(false)}
+            onSaved={() => {
+              setDspEditOpen(false);
+              loadTracks().then(setTracks);
+            }}
+          />
+        );
+      })()}
+
+      {/* Chat — wrapper qui occupe l'espace libre à droite, avec la
+          pill centrée dedans via flex. Plus fiable que des calc()
+          basés sur 100vw (qui peuvent diverger selon scrollbar/zoom).
+          Sur narrow (<1240px), le wrapper devient bottom-centered. */}
       {chatAsDrawer && (
         <>
-          <button className="chat-fab" onClick={() => setChatOpen(true)} title={s.fiche.chatFabTitle}>
-            <svg width="22" height="22" viewBox="0 0 16 16" fill="none">
-              <path d="M2 3h12v8H7l-3 3v-3H2V3z" stroke="#000" strokeWidth="1.5" strokeLinejoin="round" />
-            </svg>
-          </button>
+          <div className="chat-pill-wrap" aria-hidden="true">
+            <button
+              type="button"
+              className="chat-pill"
+              onClick={() => setChatOpen(true)}
+              aria-label={s.fiche.chatFabTitle}
+              title={s.fiche.chatFabTitle}
+            >
+              <span className="chat-pill-icon" aria-hidden="true">
+                {/* Speech-bubble standard 24×24 — le pill est désormais
+                    centré correctement (justify-content flex-start +
+                    padding 12), donc plus besoin de shift viewBox. */}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 12a8.5 8.5 0 0 1-12.39 7.55L4 21l1.45-4.61A8.5 8.5 0 1 1 21 12z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+              <span className="chat-pill-placeholder">
+                {s.fiche.chatPillPlaceholder || 'Demande à Versions…'}
+              </span>
+              <span className="chat-pill-cta" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+            </button>
+          </div>
           <VersionChat
             versionId={versionInDb?.id || null}
             config={config}

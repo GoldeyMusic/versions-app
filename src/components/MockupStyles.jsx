@@ -156,13 +156,19 @@ export default function MockupStyles() {
      0% à chaque switch). Trois orbes (cerulean / amber / violet) en
      position fixed, drift lent (50s) pour rester subtil. */
   .va-bg-orbs {
-    position: fixed; inset: 0;
+    position: fixed;
+    /* Conteneur volontairement plus grand que le viewport (-8vh/-8vw)
+       pour que l'animation va-bg-drift (qui translate jusqu'à -2.5%
+       horizontalement) ne fasse JAMAIS apparaître un bord noir du
+       body bg sur la droite. Avant : inset 0 + translate -2.5% →
+       bande sombre côté droit pendant ~25s du cycle. */
+    inset: -8vh -8vw;
     pointer-events: none;
     z-index: 0;
     background:
-      radial-gradient(ellipse 50% 38% at 18% 22%, rgba(92,184,204,0.13), transparent 70%),
-      radial-gradient(ellipse 42% 50% at 82% 48%, rgba(245,166,35,0.14), transparent 70%),
-      radial-gradient(ellipse 50% 40% at 30% 82%, rgba(166,126,245,0.12), transparent 70%);
+      radial-gradient(ellipse 60% 45% at 12% 22%, rgba(92,184,204,0.14), transparent 80%),
+      radial-gradient(ellipse 55% 60% at 92% 50%, rgba(245,166,35,0.16), transparent 85%),
+      radial-gradient(ellipse 60% 45% at 25% 85%, rgba(166,126,245,0.13), transparent 80%);
     animation: va-bg-drift 50s ease-in-out infinite alternate;
   }
   @keyframes va-bg-drift {
@@ -1028,6 +1034,249 @@ export default function MockupStyles() {
   }
   .fiche-topbar-actions .btn-ic:disabled { opacity: .5; cursor: not-allowed; }
   .fiche-topbar-actions .btn-ic svg { width: 16px; height: 16px; }
+
+  /* ── Verdict row grid (refonte 2026-04-30bis) ──────────────────
+     Layout 2/3 + 1/3 sous la fiche : à gauche le bandeau "Verdict
+     de sortie" (ReleaseReadinessBanner), à droite un panneau "pop"
+     avec BPM/Key/LUFS/Genre en chips colorés (langage néon comme
+     les chips de la pricing/landing) + actions share/scoreCard/
+     export. Sur viewport étroit, on revient à 1 colonne. */
+  .verdict-row-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 16px;
+    margin: 0 0 18px;
+    align-items: stretch;
+  }
+  /* Le ReleaseReadinessBanner a déjà son margin-bottom de 18px ; on
+     l'annule dans le grid pour que le gap géré par grid suffise. */
+  .verdict-row-grid .verdict-col-main .release-readiness {
+    margin: 0;
+    height: 100%;
+  }
+  .verdict-col-side {
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border, rgba(255,255,255,0.06));
+    background: var(--card, #101118);
+    text-align: center;
+  }
+  .vside-chips {
+    display: flex; flex-wrap: wrap;
+    gap: 8px 10px;
+    align-items: center; justify-content: center;
+  }
+  .vside-chip {
+    display: inline-flex; align-items: center;
+    font-family: var(--mono);
+    font-size: 10.5px; font-weight: 500;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    padding: 5px 11px;
+    border-radius: 999px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 6px 18px -10px rgba(0,0,0,0.55);
+    user-select: none;
+    transition: transform .2s ease, background .15s, border-color .15s;
+  }
+  /* Reset des styles bouton natif pour les chips boutons (genre éditable) */
+  button.vside-chip {
+    font-family: var(--mono);
+    cursor: pointer;
+    appearance: none;
+  }
+  button.vside-chip:disabled { cursor: default; opacity: 0.7; }
+  .vside-chip-cerulean { background: rgba(92,184,204,0.10); border: 1px solid rgba(92,184,204,0.34); color: #5cb8cc; }
+  .vside-chip-violet   { background: rgba(166,126,245,0.10); border: 1px solid rgba(166,126,245,0.34); color: #c2a8ff; }
+  .vside-chip-mint     { background: rgba(142,224,122,0.10); border: 1px solid rgba(142,224,122,0.34); color: #8ee07a; }
+  .vside-chip-amber    { background: rgba(245,166,35,0.12);  border: 1px solid rgba(245,166,35,0.40); color: var(--amber, #f5a623); }
+  /* Variantes empty / editing pour la chip genre */
+  .vside-chip-empty {
+    background: rgba(245,166,35,0.04);
+    border-style: dashed;
+    color: rgba(245,166,35,0.75);
+  }
+  .vside-chip-editing {
+    padding: 2px 8px;
+  }
+  .vside-chip-editing input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--amber, #f5a623);
+    font-family: var(--mono);
+    font-size: 10.5px; font-weight: 500;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    width: 100%; min-width: 90px;
+    padding: 3px 0;
+  }
+  /* Rotations subtiles pour le côté "pop", chacun son angle */
+  .vside-rot-a { transform: rotate(-2deg); }
+  .vside-rot-b { transform: rotate(1.5deg); }
+  .vside-rot-c { transform: rotate(-1deg); }
+  .vside-rot-d { transform: rotate(2deg); }
+  .vside-chip:hover:not(:disabled) { transform: rotate(0deg) scale(1.02); }
+  /* Boutons d'action (share / scoreCard / export) — petits, neutres,
+     alignés à gauche. Cohérents avec les .btn-ic existants mais en
+     plus compact pour la colonne 1/3. */
+  .vside-actions {
+    display: flex; gap: 6px;
+    justify-content: center;
+    margin-top: 2px;
+  }
+  .vside-action-btn {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--btn-border, rgba(255,255,255,0.10));
+    background: transparent;
+    color: var(--soft, rgba(255,255,255,0.78));
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0;
+    transition: background .15s, color .15s, border-color .15s, transform .15s;
+  }
+  .vside-action-btn:hover {
+    background: var(--s1, rgba(255,255,255,0.04));
+    color: var(--text, #ededed);
+    border-color: var(--btn-border-hover, rgba(255,255,255,0.20));
+    transform: translateY(-1px);
+  }
+  /* Mobile / narrow : on bascule en 1 colonne, on neutralise les
+     rotations pour la lisibilité (cohérent avec .pr-chip mobile). */
+  @media (max-width: 900px) {
+    .verdict-row-grid {
+      grid-template-columns: 1fr;
+    }
+    .vside-chip { transform: none !important; }
+    .vside-chip:hover { transform: scale(1.02); }
+  }
+
+  /* ── Diagnostic : icône catégorie + count chip color-coded ─────
+     Refonte 2026-04-30 ("page plus jeune") : un glyphe SVG premium
+     est ajouté à gauche du nom de la catégorie. La moyenne devient
+     un mini chip coloré (mint ≥80, amber 60-79, red <60) à droite.
+     Le compteur "X éléments" devient une typographie plus douce
+     (chiffre en évidence, label en muted). */
+  .fiche-v2 .diag-cat-head .diag-cat-icon {
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 7px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: currentColor;
+    flex-shrink: 0;
+    margin-right: 2px;
+    transition: transform .25s cubic-bezier(.4,1.5,.5,1),
+                background .15s, border-color .15s;
+  }
+  .fiche-v2 .diag-cat:hover .diag-cat-head .diag-cat-icon {
+    transform: rotate(-6deg) scale(1.05);
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.16);
+  }
+  /* Couleur de l'icône calée sur la couleur de la catégorie (.c-amber, .c-cerulean, etc.) */
+  .fiche-v2 .diag-cat.c-amber    .diag-cat-icon { color: var(--amber, #f5a623); border-color: rgba(245,166,35,0.28); }
+  .fiche-v2 .diag-cat.c-cerulean .diag-cat-icon { color: #5cb8cc;             border-color: rgba(92,184,204,0.28); }
+  .fiche-v2 .diag-cat.c-mint     .diag-cat-icon { color: #8ee07a;             border-color: rgba(142,224,122,0.28); }
+  .fiche-v2 .diag-cat.c-red      .diag-cat-icon { color: #ef6b6b;             border-color: rgba(239,107,107,0.28); }
+  .fiche-v2 .diag-cat.c-violet   .diag-cat-icon { color: #c2a8ff;             border-color: rgba(166,126,245,0.28); }
+
+  /* Count "X éléments" en typo douce (chiffre solide, label muted) */
+  .fiche-v2 .diag-cat-head .count {
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .fiche-v2 .diag-cat-head .count .count-num {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--soft, rgba(255,255,255,0.78));
+    font-variant-numeric: tabular-nums;
+  }
+  .fiche-v2 .diag-cat-head .count .count-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: lowercase;
+    letter-spacing: 0.4px;
+  }
+  /* Avg chip : mini score color-coded à droite du count */
+  .fiche-v2 .diag-cat-head .avg-chip {
+    display: inline-flex; align-items: center;
+    margin-left: 6px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    letter-spacing: 0.6px;
+    font-variant-numeric: tabular-nums;
+    border: 1px solid;
+    transition: transform .2s ease, background .15s;
+  }
+  .fiche-v2 .diag-cat-head .avg-chip.avg-mint {
+    background: rgba(142,224,122,0.10);
+    border-color: rgba(142,224,122,0.40);
+    color: #8ee07a;
+  }
+  .fiche-v2 .diag-cat-head .avg-chip.avg-amber {
+    background: rgba(245,166,35,0.10);
+    border-color: rgba(245,166,35,0.40);
+    color: var(--amber, #f5a623);
+  }
+  .fiche-v2 .diag-cat-head .avg-chip.avg-red {
+    background: rgba(239,107,107,0.10);
+    border-color: rgba(239,107,107,0.40);
+    color: #ef6b6b;
+  }
+  .fiche-v2 .diag-cat:hover .diag-cat-head .avg-chip {
+    transform: scale(1.06);
+  }
+
+  /* ── Eyebrow pop : transforme les eyebrows mono uppercase
+     existants en mini chips colorés avec rotation subtile.
+     Cible toutes les eyebrows (.score-eyebrow, .q-eyebrow,
+     .diag-eyebrow, .notes-eyebrow, .intent-panel-eyebrow) sans
+     casser leur structure (dot + texte). On ajoute un bg, une
+     bordure, padding pill, box-shadow doux et une légère rotation.
+     La rotation alterne via :nth-of-type pour casser l'alignement. */
+  .fiche-v2 .score-eyebrow,
+  .fiche-v2 .q-eyebrow,
+  .fiche-v2 .diag-panel .diag-eyebrow,
+  .fiche-v2 .notes-panel .notes-eyebrow {
+    align-self: flex-start;
+    width: auto;
+    padding: 5px 12px 5px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 6px 18px -10px rgba(0,0,0,0.55);
+    transition: transform .2s ease, background .15s, border-color .15s;
+  }
+  /* Pas de rotation sur les eyebrows — ça ressemblait à un bug. On
+     garde juste le chip pill coloré pour le pop. */
+  .fiche-v2 .diag-panel .diag-eyebrow { align-self: flex-start; }
+  .fiche-v2 .notes-panel .notes-eyebrow { align-self: flex-start; }
+  /* Au hover de la section parente, légère intensification du fond */
+  .fiche-v2 .row-verdict:hover .score-eyebrow,
+  .fiche-v2 .row-qualitative:hover .q-eyebrow,
+  .fiche-v2 .diag-panel:hover .diag-eyebrow,
+  .fiche-v2 .notes-panel:hover .notes-eyebrow {
+    background: rgba(255,255,255,0.04);
+  }
+  /* Tinted bg basé sur la couleur du dot — héritée des règles
+     existantes via leur color: var(--xxx). Le dot reste tel quel. */
+  .fiche-v2 .score-eyebrow            { color: var(--amber, #f5a623); border-color: rgba(245,166,35,0.30); background: rgba(245,166,35,0.06); }
+  .fiche-v2 .q-eyebrow                { color: #c2a8ff;              border-color: rgba(166,126,245,0.30); background: rgba(166,126,245,0.06); }
+  .fiche-v2 .q-eyebrow.cerulean       { color: #5cb8cc;              border-color: rgba(92,184,204,0.30); background: rgba(92,184,204,0.06); }
+  .fiche-v2 .q-eyebrow.amber          { color: var(--amber, #f5a623); border-color: rgba(245,166,35,0.30); background: rgba(245,166,35,0.06); }
+  .fiche-v2 .q-eyebrow.mint           { color: #8ee07a;              border-color: rgba(142,224,122,0.30); background: rgba(142,224,122,0.06); }
+  .fiche-v2 .diag-panel .diag-eyebrow { color: #5cb8cc;              border-color: rgba(92,184,204,0.30); background: rgba(92,184,204,0.06); }
+  .fiche-v2 .notes-panel .notes-eyebrow { color: var(--amber, #f5a623); border-color: rgba(245,166,35,0.30); background: rgba(245,166,35,0.06); }
+
+  /* (Plus de rotations sur les eyebrows — média query mobile retirée.) */
+
 
   /* Versions timeline (chips v2) — row sous la topbar */
   .fiche-topbar-wrap .versions-row-wrap {
@@ -4444,11 +4693,23 @@ export default function MockupStyles() {
     border-left: 1px solid var(--border);
     display: flex; flex-direction: column;
     z-index: 95;
-    box-shadow: -20px 0 40px rgba(0,0,0,0.45);
-    transform: translateX(100%);
-    transition: transform .28s cubic-bezier(.4, .0, .2, 1);
+    /* Ombre désactivée au repos : sinon elle dépasse de ~60 px à gauche
+       du panel et entre dans le viewport — le panel est hors écran via
+       translateX 100%, mais le shadow -20 0 40 reste visible et crée la
+       bande sombre fantôme sur le bord droit de la fiche. On applique
+       l'ombre uniquement quand le chat est réellement ouvert. */
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+    /* Translation un peu plus large que 100% pour empêcher tout résidu
+       de paint / composite layer de déborder dans le viewport. */
+    transform: translateX(calc(100% + 80px));
+    transition:
+      transform .28s cubic-bezier(.4, .0, .2, 1),
+      box-shadow .2s ease;
   }
-  body.chat-open .chat-panel { transform: translateX(0); }
+  body.chat-open .chat-panel {
+    transform: translateX(0);
+    box-shadow: -20px 0 40px rgba(0,0,0,0.45);
+  }
   .chat-head {
     padding: 14px 18px;
     display: flex; align-items: center; justify-content: space-between;
@@ -4655,20 +4916,276 @@ export default function MockupStyles() {
     flex-shrink: 0;
   }
 
-  /* ── Chat overlay bubble ──────────────────────── */
-  .chat-fab {
-    position: fixed; bottom: 90px; right: 28px;
-    width: 48px; height: 48px; border-radius: 50%;
-    background: var(--amber) !important; color: var(--black);
-    border: none; padding: 0;
+  /* ── Chat pill (refonte 2026-04-30 — wrapper anchor) ───────────
+     Approche plus fiable que calc() : un wrapper fixed occupe
+     l'espace libre à droite (entre fin du contenu 920px et bord
+     droit), centré verticalement, avec la pill centrée DEDANS via
+     flex justify-content: center align-items: center. Quand la
+     largeur de la pill change (animation peek), elle grandit des
+     2 côtés simultanément parce que le flex la garde centrée. */
+  .chat-pill-wrap {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    /* Largeur = moitié de l'espace "extra" autour du wrap centré
+       920px de la fiche. Si viewport > 920, c'est (V-920)/2.
+       Sinon 0 (mais alors @media bottom-centered prend le relais). */
+    width: max(0px, calc((100vw - 920px) / 2));
+    pointer-events: none;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 8px 28px rgba(245,176,86,0.35);
-    cursor: pointer; z-index: 100;
-    transition: transform .2s ease, opacity .2s ease;
+    /* Léger padding-right pour compenser le décalage perçu (la pill
+       paraît trop à droite sans, trop à gauche avec 80). 40 = sweet
+       spot : pill décalée de 20 px à gauche du centre mathématique. */
+    padding-right: 40px;
+    z-index: 100;
   }
-  .chat-fab:hover { transform: scale(1.06); }
-  body.chat-open .chat-fab {
-    transform: scale(0.6); opacity: 0; pointer-events: none;
+  .chat-pill {
+    position: relative;
+    pointer-events: auto;
+    width: 56px;
+    /* justify-content flex-start (default) — sinon le groupe icon+
+       placeholder+cta dépasse 56px et se centre en débordant des 2
+       côtés, faisant disparaître l'icône clippée à gauche. Avec
+       flex-start + padding 12, l'icône (32px) est positionnée de
+       12 à 44 → center 28 = center du pill 56 ✓. */
+    display: inline-flex; align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: rgba(20, 20, 22, 0.78);
+    border: 1px solid rgba(245, 166, 35, 0.32);
+    border-radius: 999px;
+    color: var(--soft);
+    cursor: pointer;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 12px 40px -12px rgba(0,0,0,0.55), 0 0 0 0 rgba(245, 166, 35, 0);
+    overflow: hidden;
+    white-space: nowrap;
+    /* Animation peek : délai 5s à l'ouverture de la page, puis cycle
+       de 60s avec ~10s de hold en ouvert. */
+    animation: chat-pill-peek 60s ease-in-out 5s infinite;
+    transition:
+      width 0.5s cubic-bezier(.34, 1.45, .64, 1),
+      border-color .2s, box-shadow .2s, background .2s;
+  }
+  .chat-pill:hover {
+    width: 280px;
+    border-color: rgba(245, 166, 35, 0.55);
+    box-shadow: 0 16px 48px -12px rgba(0,0,0,0.65), 0 0 32px -8px rgba(245, 166, 35, 0.32);
+    background: rgba(28, 24, 20, 0.85);
+    /* Override l'animation pendant le hover — la pill reste allongée
+       et la transition width fait le smooth open/close. */
+    animation: none;
+  }
+  /* Cycle peek : 60s total. Expand rapide (~0.5s, matché sur la
+     vitesse hover), 10s d'affichage ouvert, collapse rapide, puis
+     ~49s en compact avant le prochain cycle.
+     - 0%       : 56  (cycle start = peek démarre)
+     - 0.5%     : 295 (~0.3s, overshoot bounce)
+     - 0.7%     : 272 (~0.42s, pullback)
+     - 0.83%    : 280 (~0.5s, settle ✓)
+     - 17.5%    : 280 (10s d'affichage en plein)
+     - 18.3%    : 56  (~0.5s collapse)
+     - 100%     : 56  (rest 49s avant prochain peek) */
+  @keyframes chat-pill-peek {
+    0%           { width: 56px; }
+    0.5%         { width: 295px; }
+    0.7%         { width: 272px; }
+    0.83%, 17.5% { width: 280px; }
+    18.3%, 100%  { width: 56px; }
+  }
+  .chat-pill:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  .chat-pill-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: 999px;
+    background: rgba(245, 166, 35, 0.14);
+    color: var(--amber);
+    flex-shrink: 0;
+  }
+  .chat-pill-placeholder {
+    flex: 1;
+    font-family: var(--body); font-size: 14px; font-weight: 400;
+    color: var(--muted);
+    text-align: left;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .chat-pill-cta {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.05);
+    color: var(--muted);
+    flex-shrink: 0;
+    transition: background .2s, color .2s;
+  }
+  .chat-pill:hover .chat-pill-cta {
+    background: var(--amber);
+    color: var(--black);
+  }
+  /* Quand le chat panel est ouvert, on cache la pill (légère
+     translation + fade out). Pas besoin de translateX/translateY
+     compliqué — la pill est centrée par flex dans son wrapper. */
+  body.chat-open .chat-pill {
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    animation: none;
+  }
+  /* Sous 1240px : pas d'espace libre à droite — on rebascule le
+     wrapper en bottom-strip pleine largeur. La pill reste centrée
+     à l'intérieur via flex. */
+  @media (max-width: 1240px) {
+    .chat-pill-wrap {
+      top: auto;
+      bottom: 94px;
+      right: 0;
+      width: 100vw;
+      height: auto;
+    }
+  }
+  @media (max-width: 480px) {
+    .chat-pill-wrap {
+      bottom: 84px;
+    }
+    .chat-pill {
+      gap: 8px;
+      padding: 8px;
+      width: 48px;
+    }
+    .chat-pill:hover { width: calc(100vw - 24px); max-width: 360px; }
+    @keyframes chat-pill-peek {
+      0%        { width: 48px; }
+      1%        { width: 250px; }
+      2%        { width: 232px; }
+      3%, 19.7% { width: 240px; }
+      22%, 100% { width: 48px; }
+    }
+    .chat-pill-icon { width: 28px; height: 28px; }
+    .chat-pill-placeholder { font-size: 13px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .chat-pill {
+      animation: none;
+      width: 56px;
+    }
+    .chat-pill:hover {
+      width: 280px;
+      transform: none;
+    }
+  }
+
+  /* Ancien FAB rond + rail vertical B — masqués (remplacés par
+     .chat-pill mix A+B ci-dessous, positionnée centre-vertical à
+     droite, pas collée au bord). */
+  .chat-fab { display: none; }
+  .chat-rail { display: none; }
+
+  /* ── Chat rail (variante B 2026-04-30) ─────────────────────────
+     Strip fin collé au bord droit du viewport, vertical. Icône
+     chat ambre + label "Demander" en texte vertical (writing-mode).
+     Click n'importe où sur le rail → ouvre le panel chat slide-in. */
+  .chat-rail {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 52px;
+    padding: 22px 0;
+    background: rgba(20, 20, 22, 0.78);
+    border: 1px solid rgba(245, 166, 35, 0.32);
+    border-right: none;
+    border-radius: 16px 0 0 16px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    color: var(--muted);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: -8px 0 24px -10px rgba(0,0,0,0.5);
+    z-index: 100;
+    transition: width .2s, padding .2s, border-color .2s, background .2s, box-shadow .2s, color .2s;
+  }
+  .chat-rail:hover {
+    width: 60px;
+    border-color: rgba(245, 166, 35, 0.55);
+    background: rgba(28, 24, 20, 0.85);
+    box-shadow: -10px 0 32px -10px rgba(0,0,0,0.55), 0 0 24px -8px rgba(245, 166, 35, 0.32);
+    color: var(--text);
+  }
+  .chat-rail:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  .chat-rail-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: 999px;
+    background: rgba(245, 166, 35, 0.14);
+    color: var(--amber);
+    flex-shrink: 0;
+    transition: background .2s, transform .2s;
+  }
+  .chat-rail:hover .chat-rail-icon {
+    background: rgba(245, 166, 35, 0.22);
+    transform: scale(1.05);
+  }
+  /* Label vertical : writing-mode rotate le texte de bas en haut.
+     Mono uppercase pour rester dans le langage chips/topbar. */
+  .chat-rail-label {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: var(--mono);
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 2.4px;
+    text-transform: uppercase;
+    color: inherit;
+    user-select: none;
+    transition: color .2s;
+  }
+  /* Quand le panel chat est ouvert, on cache le rail (le panel a son
+     propre header avec close, le rail ferait doublon). */
+  body.chat-open .chat-rail {
+    opacity: 0;
+    transform: translateY(-50%) translateX(8px);
+    pointer-events: none;
+  }
+  /* Mobile : rail collé en bas (pas un strip à droite — pas adapté
+     aux écrans étroits avec keyboard ouvert), redevient quasi un
+     petit FAB pour ne pas rogner sur le contenu. */
+  @media (max-width: 720px) {
+    .chat-rail {
+      top: auto;
+      bottom: 92px;
+      right: 16px;
+      width: auto; height: auto;
+      padding: 10px 14px;
+      transform: none;
+      border-right: 1px solid rgba(245, 166, 35, 0.32);
+      border-radius: 999px;
+      flex-direction: row;
+      gap: 8px;
+    }
+    .chat-rail:hover {
+      width: auto;
+      transform: translateY(-2px);
+    }
+    .chat-rail-label {
+      writing-mode: horizontal-tb;
+      transform: none;
+      font-size: 10.5px;
+    }
+    body.chat-open .chat-rail {
+      transform: translateY(8px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .chat-rail { transition: none; }
+    .chat-rail:hover { width: 52px; transform: translateY(-50%); }
   }
 
   /* ── Keyframes for loading animations ── */
@@ -7207,6 +7724,41 @@ export default function MockupStyles() {
   .add-mini-pill.on {
     background: var(--amber); border-color: var(--amber);
     color: #0a0a0c;
+  }
+  /* Toggle "+ Ajouter une intention artistique" — discret, link-like.
+     Hover : couleur ambre, soulignement subtil. */
+  .add-mini-intent-toggle {
+    display: inline-flex; align-items: center;
+    background: transparent; border: none;
+    color: var(--muted);
+    font-family: var(--body); font-size: 13px; font-weight: 400;
+    padding: 4px 0; cursor: pointer;
+    transition: color .15s;
+  }
+  .add-mini-intent-toggle:hover {
+    color: var(--amber);
+  }
+  /* Label avec un bouton × à droite (replier le textarea intention) */
+  .add-mini-field-label-row {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%;
+  }
+  .add-mini-intent-collapse {
+    background: transparent; border: none;
+    color: var(--muted2);
+    font-family: var(--body); font-size: 18px; font-weight: 400;
+    line-height: 1; padding: 0 4px; cursor: pointer;
+    transition: color .15s;
+  }
+  .add-mini-intent-collapse:hover { color: var(--text); }
+  /* Textarea — même style que .add-mini-input mais hauteur libre,
+     placeholder italic léger. */
+  .add-mini-textarea {
+    min-height: 80px;
+    resize: vertical;
+    line-height: 1.5;
+    padding: 10px 12px;
+    font-family: var(--body); font-size: 13px;
   }
   .add-mini-select-wrap { position: relative; }
   .add-mini-select {

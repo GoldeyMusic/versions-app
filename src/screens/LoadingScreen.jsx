@@ -226,7 +226,14 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
         setPhase(1);
         let startRes;
 
-        if (userId && config.file) {
+        // Workaround 2026-04-30 : upload direct Supabase pend
+        // indéfiniment (signed URL → requête PUT/POST stuck en (pending)
+        // dans Network tab, jamais résolue). On force le chemin multipart
+        // (browser → Railway → MP3 → Supabase) qui marche déjà, en
+        // attendant un fix côté Supabase Storage / policy. Cf. mémoire
+        // project_versions_upload_direct_pending.md.
+        const USE_DIRECT_UPLOAD = false;
+        if (USE_DIRECT_UPLOAD && userId && config.file) {
           // ─── UPLOAD DIRECT NAVIGATEUR → SUPABASE ─────────────────────
           // 1. Demander une URL signée d'upload au backend
           const fileExt = (config.file.name?.split('.').pop() || 'wav').toLowerCase();
@@ -276,8 +283,13 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           if (previousCompletions && previousCompletions.length) {
             startBody.previousCompletions = JSON.stringify(previousCompletions);
           }
-          if (!INTENT_ENABLED) startBody.skipIntent = 'true';
-          else if (config.inlineIntent) startBody.intent = config.inlineIntent;
+          // Intention : refonte 2026-04-30 — collectée en amont dans
+          // AddModal (toggle "+ Ajouter une intention artistique").
+          // Si fournie → passée au backend dès le start. Si non →
+          // skipIntent=true silencieux. Plus jamais d'IntentionScreen
+          // mid-analyse, peu importe l'état de INTENT_ENABLED.
+          if (config.inlineIntent) startBody.intent = config.inlineIntent;
+          else startBody.skipIntent = 'true';
           if (config.declaredGenre) startBody.declaredGenre = config.declaredGenre;
           if (config.genreUnknown) startBody.genreUnknown = 'true';
 
@@ -308,10 +320,12 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
             formData.append("previousCompletions", JSON.stringify(previousCompletions));
           }
           if (durationSeconds) formData.append("durationSeconds", String(durationSeconds));
-          if (!INTENT_ENABLED) {
-            formData.append("skipIntent", "true");
-          } else if (config.inlineIntent) {
+          // Intention : refonte 2026-04-30 — voir commentaire chemin
+          // JSON ci-dessus. Si non fournie en amont → skipIntent=true.
+          if (config.inlineIntent) {
             formData.append("intent", config.inlineIntent);
+          } else {
+            formData.append("skipIntent", "true");
           }
           if (config.declaredGenre) formData.append("declaredGenre", config.declaredGenre);
           if (config.genreUnknown) formData.append("genreUnknown", "true");

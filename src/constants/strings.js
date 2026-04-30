@@ -647,6 +647,8 @@ const STRINGS = {
       chatClearConfirmLabel: "Effacer",
       chatPlaceholderAnalysis: "…",
       chatFabTitle: "Discussion",
+      chatPillPlaceholder: "Demande à Versions…",
+      chatRailLabel: "Demander",
 
       /* EvolutionPanel */
       evolutionTitle: "Évolution",
@@ -2003,6 +2005,8 @@ const STRINGS = {
       chatClearConfirmLabel: "Clear",
       chatPlaceholderAnalysis: "…",
       chatFabTitle: "Discussion",
+      chatPillPlaceholder: "Ask Versions…",
+      chatRailLabel: "Ask",
 
       /* EvolutionPanel */
       evolutionTitle: "Evolution",

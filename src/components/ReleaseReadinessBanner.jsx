@@ -186,11 +186,27 @@ function Styles() {
         display: flex; flex-direction: column; gap: 2px;
       }
       .rr-eyebrow {
+        align-self: flex-start;
+        display: inline-flex; align-items: center;
         font-family: var(--mono, 'JetBrains Mono', monospace);
         font-size: 9.5px;
         letter-spacing: 1.8px;
         text-transform: uppercase;
-        color: var(--rr-accent);
+        color: #5cb8cc;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(92,184,204,0.10);
+        border: 1px solid rgba(92,184,204,0.38);
+        box-shadow: 0 6px 18px -10px rgba(0,0,0,0.55);
+        transform: rotate(-1.5deg);
+        transition: transform .2s ease, background .15s;
+        margin-bottom: 2px;
+      }
+      .release-readiness:hover .rr-eyebrow {
+        transform: rotate(0deg);
+      }
+      @media (max-width: 720px) {
+        .rr-eyebrow { transform: none !important; }
       }
       .rr-label {
         font-size: 16px;
