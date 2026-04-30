@@ -83,3 +83,10 @@ Implémentée :
 - Badge "EN COURS" tronqué sur mobile (premier chip V1).
 - Thème clair à finaliser (maquettes H explorées, pas encore implémenté).
 - Adapter vue mobile complète (commencé, reste à auditer).
+- **Toggle Mix/Master à l'upload** : ajouter un toggle dans la modale d'upload entre le type vocal et le DAW. Default `mix`.
+  - Si `mix` : section Master & Loudness évalue headroom/dynamique **sans pénaliser le score** (pondération `0.5` au lieu de `2`), verdict "Prêt pour le mastering".
+  - Si `master` : comportement actuel (LUFS / LRA / True Peak, pondération `2`, verdict "Prêt pour la sortie").
+  - Colonne Supabase : `versions.upload_type` (text, default `'mix'`). Migration : `supabase/migrations/010_upload_type.sql`.
+  - Backend : adapter `lib/claude.js` dans `~/decode-api/`.
+  - Front : modale, `storage.js`, `FicheScreen` (verdict), strings.
+  - Spec complète : voir mémoire Dispatch `project_versions_mix_master.md`.
