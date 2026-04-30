@@ -105,9 +105,13 @@ export default function EvolutionBanner({ evolution, previousVersionName, floorA
         }}
       />
 
-      {/* Eyebrow cliquable — structure alignée sur .intent-panel-eyebrow */}
+      {/* Eyebrow cliquable — structure alignée sur .intent-panel-eyebrow.
+          Le className `evo-eyebrow` permet aux media queries (cf.
+          MockupStyles) de réagencer le layout en mobile (chips wrap
+          sous la ligne titre + résumé qui peut s'étaler sur 2 lignes). */}
       <button
         type="button"
+        className="evo-eyebrow"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         style={{
@@ -222,7 +226,8 @@ export default function EvolutionBanner({ evolution, previousVersionName, floorA
           </span>
         )}
 
-        {/* Chevron — même style que .intent-panel-chev */}
+        {/* Chevron pointant à DROITE par défaut (comme .points-forts /
+            .à-travailler), rotate 90° quand ouvert pour pointer en bas. */}
         {hasAnyItem && (
           <span
             aria-hidden="true"
@@ -232,13 +237,13 @@ export default function EvolutionBanner({ evolution, previousVersionName, floorA
               justifyContent: 'center',
               color: 'var(--amber, #f5a623)',
               marginLeft: 4,
-              transform: open ? 'rotate(180deg)' : 'none',
+              transform: open ? 'rotate(90deg)' : 'none',
               transition: 'transform .2s ease',
             }}
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path
-                d="M3 4.5l3 3 3-3"
+                d="M4.5 3l3 3-3 3"
                 stroke="currentColor"
                 strokeWidth="1.8"
                 strokeLinecap="round"

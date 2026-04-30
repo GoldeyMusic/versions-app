@@ -342,22 +342,19 @@ export default function BottomPlayer({
         </svg>
       </div>
 
-      {/* Meta */}
-      <div className="pl-meta">
+      {/* Meta — refonte 2026-04-30 : seul le titre du morceau est affiché.
+          Le nom de version (mix sans limiter, master v2…) prenait 1 ligne
+          + min-width 140 du bloc meta, ce qui rétrécissait la waveform en
+          mobile. Sur fiche, l'utilisateur voit déjà la version dans la
+          topbar fiche ; sur dashboard, peu importe (rien de joué actif).
+          État loading rebasculé en suffixe du titre. */}
+      <div className="pl-meta pl-meta-single">
         {idle ? (
-          <>
-            <div className="pl-title" style={{ color: '#7c7c80' }}>{s.player.idleShort}</div>
-            <div className="pl-sub">—</div>
-          </>
+          <div className="pl-title" style={{ color: '#7c7c80' }}>{s.player.idleShort}</div>
         ) : (
-          <>
-            <div className="pl-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {trackTitle}
-            </div>
-            <div className="pl-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {versionName}{loading ? ` · ${s.player.loadingInline}` : ''}
-            </div>
-          </>
+          <div className="pl-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {trackTitle}{loading ? ` · ${s.player.loadingInline}` : ''}
+          </div>
         )}
       </div>
 
@@ -392,12 +389,15 @@ export default function BottomPlayer({
         }}
       />
 
-      {/* Time */}
+      {/* Time — refonte 2026-04-30 : on n'affiche que la position de
+          lecture courante (pas la durée totale). La durée est lisible
+          via la waveform et n'a pas besoin d'occuper sa propre largeur
+          fixe quand l'écran est étroit. */}
       <div className="pl-time">
         {idle || !duration ? (
-          <span>—:— / —:—</span>
+          <span>—:—</span>
         ) : (
-          <><b>{fmt(currentTime)}</b> / {fmt(duration)}</>
+          <b>{fmt(currentTime)}</b>
         )}
       </div>
 

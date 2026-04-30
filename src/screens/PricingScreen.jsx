@@ -4,6 +4,8 @@ import API from '../constants/api';
 import useLang from '../hooks/useLang';
 import { supabase } from '../lib/supabase';
 import { PACKS, SUBSCRIPTIONS, SCHOOL_CONTACT_EMAIL, getPriceIdForPlan } from '../constants/plans';
+import LangDropdown from '../components/LangDropdown';
+import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
 
 /**
  * PricingScreen — page tarifs publique (#/pricing).
@@ -44,6 +46,14 @@ export default function PricingScreen({
   onViewDashboard,
   ctaPrimaryLabel,
   isAuthenticated = false,
+  // ─── Props utilitaires (utilisateur connecté) — section utility +
+  //     footer crédits du hamburger. Tous facultatifs.
+  credits = null,
+  planLabel = null,
+  isAdmin = false,
+  onGoAdmin = null,
+  onGoReglages = null,
+  onSignOut = null,
 }) {
   const { s, lang, setLang } = useLang();
   const ctaLabel = ctaPrimaryLabel || s?.landing?.ctaPrimary || 'COMMENCER';
@@ -51,6 +61,11 @@ export default function PricingScreen({
   // FR/EN via useLang. Tout texte en dur ici doit avoir une clé sous
   // s.pricing dans constants/strings.js.
   const t = s.pricing;
+  const utilityItems = [
+    ...(isAdmin && onGoAdmin ? [{ key: 'admin', label: 'Admin', icon: NavIcons.admin, onSelect: onGoAdmin }] : []),
+    ...(onGoReglages ? [{ key: 'reglages', label: s.sidebar?.reglages || 'Réglages', icon: NavIcons.settings, onSelect: onGoReglages }] : []),
+    ...(onSignOut ? [{ key: 'signout', label: s.sidebar?.signOut || 'Se déconnecter', icon: NavIcons.signOut, onSelect: onSignOut, danger: true }] : []),
+  ];
 
   const [user, setUser] = useState(null);
   const [pendingKey, setPendingKey] = useState(null);
@@ -154,12 +169,11 @@ export default function PricingScreen({
           </span>
         </button>
         <nav className="pr-topbar-nav" aria-label="Navigation">
+          {/* Desktop : nav texte. Mobile : hamburger via media query. */}
           <button type="button" className="pr-topbar-link" onClick={onBackToLanding}>
             {t.topbarHome}
           </button>
           <span className="pr-topbar-current" aria-current="page">{t.topbarCurrent}</span>
-          {/* Visiteur non connecté → "Connexion / inscription"
-              Utilisateur connecté → "Tableau de bord" */}
           {onViewDashboard && (
             <button
               type="button"
@@ -170,31 +184,23 @@ export default function PricingScreen({
               {isAuthenticated ? s.sidebar.dashboardLink : s.sidebar.signInLink}
             </button>
           )}
-          {/* Switch FR/EN — même classe (.sb-lang-switch) que la sidebar du
-              dashboard pour garder une UI parfaitement uniforme entre les
-              deux écrans. */}
-          <div
-            className="sb-lang-switch"
-            role="group"
-            aria-label="Langue / Language"
-          >
-            <button
-              type="button"
-              className={lang === 'fr' ? 'on' : ''}
-              onClick={() => setLang('fr')}
-              aria-pressed={lang === 'fr'}
-            >
-              FR
-            </button>
-            <button
-              type="button"
-              className={lang === 'en' ? 'on' : ''}
-              onClick={() => setLang('en')}
-              aria-pressed={lang === 'en'}
-            >
-              EN
-            </button>
-          </div>
+          {/* Hamburger — visible uniquement en mobile (CSS gating). */}
+          <HamburgerMenu
+            items={[
+              { key: 'home', label: t.topbarHome, icon: NavIcons.home, onSelect: onBackToLanding },
+              { key: 'pricing', label: t.topbarCurrent, icon: NavIcons.pricing, current: true },
+              ...(onViewDashboard ? [{
+                key: 'dashboard',
+                label: isAuthenticated ? s.sidebar.dashboardLink : s.sidebar.signInLink,
+                icon: NavIcons.dashboard,
+                onSelect: onViewDashboard,
+              }] : []),
+            ]}
+            utilityItems={utilityItems}
+            credits={credits}
+            planLabel={planLabel}
+          />
+          <LangDropdown lang={lang} setLang={setLang} />
         </nav>
       </header>
 

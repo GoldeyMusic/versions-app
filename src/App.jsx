@@ -13,6 +13,8 @@ import WaveSurfer from 'wavesurfer.js';
 import BottomPlayer, { resolveAudio, VolumeControl } from "./components/BottomPlayer";
 import AskModal from "./components/AskModal";
 import Sidebar from "./components/Sidebar";
+import LangDropdown from "./components/LangDropdown";
+import HamburgerMenu, { NavIcons } from "./components/HamburgerMenu";
 import LoadingScreen from "./screens/LoadingScreen";
 import IntentionScreen from "./screens/IntentionScreen";
 import FicheScreen from "./screens/FicheScreen";
@@ -676,8 +678,18 @@ function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut, onGoAdmi
  * écrans (admin, versions...), ça vaudra le coup d'extraire le CSS dans
  * MockupStyles ou un fichier shared.
  */
-function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricing, onGoReglages, onSignOut, onGoAdmin, user, lang, setLang, credits }) {
+function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricing, onGoReglages, onSignOut, onGoAdmin, user, lang, setLang, credits, planLabel = null }) {
   const { s } = useLang();
+  // Admin gated par VITE_ADMIN_EMAIL — visible uniquement sur le compte
+  // de David. Permet d'atteindre #/admin en un clic depuis le menu
+  // hamburger sur tous les écrans en topbar layout.
+  const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
+  const isAdmin = adminEmail && user?.email?.toLowerCase() === adminEmail;
+  const utilityItems = [
+    ...(isAdmin && onGoAdmin ? [{ key: 'admin', label: 'Admin', icon: NavIcons.admin, onSelect: onGoAdmin }] : []),
+    ...(onGoReglages ? [{ key: 'reglages', label: s.sidebar?.reglages || 'Réglages', icon: NavIcons.settings, onSelect: onGoReglages }] : []),
+    ...(onSignOut ? [{ key: 'signout', label: s.sidebar?.signOut || 'Se déconnecter', icon: NavIcons.signOut, onSelect: onSignOut, danger: true }] : []),
+  ];
   return (
     <>
       {/* Orbes colorées : déplacées vers le layer global .va-bg-orbs
@@ -702,17 +714,15 @@ function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricin
             afficher tant qu'aucun écran ne pousse de contenu. */}
         <div id="topbar-context-slot" className="db-topbar-slot" />
         <nav className="db-topbar-nav" aria-label="Navigation">
-          {/* Lien Accueil : visible desktop, masqué sur mobile (le logo
-              cliquable s'en charge — économie de place et lisibilité). */}
+          {/* Desktop : nav texte (Accueil/Tarifs/Tableau de bord). Mobile :
+              hamburger via media query. Lang dropdown + hamburger
+              accessibles partout (mobile + desktop). */}
           <button type="button" className="db-topbar-link db-topbar-link-home" onClick={onGoLanding}>
             {s.pricing?.topbarHome || 'Accueil'}
           </button>
           <button type="button" className="db-topbar-link" onClick={onGoPricing}>
             {s.pricing?.topbarCurrent || 'Tarifs'}
           </button>
-          {/* Sur welcome → "Tableau de bord" est current (badge ambre).
-              Sur fiche (et autres futurs écrans en topbar layout) →
-              c'est un lien actif qui ramène au dashboard. */}
           {currentScreen === 'welcome' ? (
             <span className="db-topbar-current" aria-current="page">
               {s.sidebar?.dashboardLink || 'Tableau de bord'}
@@ -722,20 +732,27 @@ function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricin
               {s.sidebar?.dashboardLink || 'Tableau de bord'}
             </button>
           )}
-          <div className="sb-lang-switch" role="group" aria-label="Langue / Language">
-            <button
-              type="button"
-              className={lang === 'fr' ? 'on' : ''}
-              onClick={() => setLang('fr')}
-              aria-pressed={lang === 'fr'}
-            >FR</button>
-            <button
-              type="button"
-              className={lang === 'en' ? 'on' : ''}
-              onClick={() => setLang('en')}
-              aria-pressed={lang === 'en'}
-            >EN</button>
-          </div>
+          {/* Hamburger — visible uniquement en mobile (CSS gating).
+              Contient le même nav + utilitaires (admin/réglages/signout)
+              + footer crédits/abonnement. */}
+          <HamburgerMenu
+            items={[
+              { key: 'home', label: s.pricing?.topbarHome || 'Accueil', icon: NavIcons.home, onSelect: onGoLanding },
+              { key: 'pricing', label: s.pricing?.topbarCurrent || 'Tarifs', icon: NavIcons.pricing, onSelect: onGoPricing },
+              {
+                key: 'dashboard',
+                label: s.sidebar?.dashboardLink || 'Tableau de bord',
+                icon: NavIcons.dashboard,
+                current: currentScreen === 'welcome',
+                onSelect: currentScreen !== 'welcome' ? onGoDashboard : undefined,
+              },
+            ]}
+            utilityItems={utilityItems}
+            credits={credits}
+            planLabel={planLabel}
+            onPlanClick={onGoPricing}
+          />
+          <LangDropdown lang={lang} setLang={setLang} />
         </nav>
       </header>
 
@@ -858,6 +875,9 @@ function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricin
             display: none;
           }
         }
+        /* Mobile gating est géré globalement dans MockupStyles
+           (.hb-menu visible uniquement <768px, .db-topbar-link/current
+           cachés en parallèle). Plus de règle locale ici. */
       `}</style>
     </>
   );
@@ -3758,6 +3778,11 @@ function VersionsAppAuthed() {
           onViewPricing={() => setScreen('pricing')}
           onViewDashboard={() => setScreen('welcome')}
           isAuthenticated={true}
+          credits={userCredits}
+          isAdmin={!!(import.meta.env.VITE_ADMIN_EMAIL && user?.email?.toLowerCase() === import.meta.env.VITE_ADMIN_EMAIL.trim().toLowerCase())}
+          onGoAdmin={() => setScreen('admin')}
+          onGoReglages={() => setReglagesOpen(true)}
+          onSignOut={handleSignOut}
         />
         {!!user && (
           <DashboardRail
@@ -3815,6 +3840,11 @@ function VersionsAppAuthed() {
           onViewDashboard={() => setScreen('welcome')}
           ctaPrimaryLabel={s.sidebar.dashboardLink}
           isAuthenticated={true}
+          credits={userCredits}
+          isAdmin={!!(import.meta.env.VITE_ADMIN_EMAIL && user?.email?.toLowerCase() === import.meta.env.VITE_ADMIN_EMAIL.trim().toLowerCase())}
+          onGoAdmin={() => setScreen('admin')}
+          onGoReglages={() => setReglagesOpen(true)}
+          onSignOut={handleSignOut}
         />
         {!!user && (
           <DashboardRail

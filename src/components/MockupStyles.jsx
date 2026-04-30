@@ -287,10 +287,303 @@ export default function MockupStyles() {
     border-color: rgba(245,166,35,0.55);
     background: rgba(245,166,35,0.08);
   }
+
+  /* ── EvolutionBanner — fix layout mobile ──────────────────────
+     Sur mobile (≤480 px), les chips compactes (n↑ n↓ n→ +n) prennent
+     trop de place sur la ligne du titre, ce qui réduit le résumé à
+     "Score …". On réagence : titre + résumé prennent toute la ligne,
+     les chips wrap sur une 2e ligne sous le titre, le chevron reste
+     à droite. Sélecteurs neutralisent les inline-styles via attr. */
   @media (max-width: 480px) {
-    .db-utility-rail { gap: 6px; bottom: 80px; left: 12px; }
-    .db-utility-btn { width: 32px; height: 32px; }
-    .db-utility-btn svg { width: 16px; height: 16px; }
+    .evo-eyebrow {
+      flex-wrap: wrap !important;
+      align-items: flex-start !important;
+    }
+    /* La colonne titre+résumé prend toute la largeur disponible, le
+       chevron sticky à droite. Les chips wrap dessous (order 3). */
+    .evo-eyebrow > span:first-of-type {
+      flex: 1 1 100% !important;
+      min-width: 0 !important;
+    }
+    .evo-eyebrow > span:first-of-type span:last-child {
+      white-space: normal !important;
+      display: -webkit-box !important;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-clamp: 2;
+      overflow: hidden;
+    }
+  }
+
+  /* ── Lang dropdown — variante compacte du switch FR/EN ─────────
+     Bouton avec la langue courante + chevron, qui ouvre un mini menu
+     listant les deux options en toutes lettres (Français / English).
+     Calé sur la grammaire visuelle des autres pills topbar (.lp-topbar-link
+     / .db-topbar-link, .pr-chip etc.) : mono uppercase, border subtle,
+     hover ambre. */
+  .lang-dd {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .lang-dd-trigger {
+    display: inline-flex; align-items: center; gap: 6px;
+    /* Refonte 2026-04-30 : aligné sur .hb-trigger (32 px de haut)
+       pour que hamburger + lang dropdown soient raccord visuellement
+       côté droit du topbar. */
+    height: 32px;
+    padding: 0 11px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    color: var(--text-soft, var(--muted));
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    line-height: 1; cursor: pointer;
+    box-sizing: border-box;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .lang-dd-trigger:hover,
+  .lang-dd-trigger.is-open {
+    color: var(--amber);
+    border-color: rgba(245, 166, 35, 0.45);
+    background: rgba(245, 166, 35, 0.04);
+  }
+  .lang-dd-trigger:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  .lang-dd-chev {
+    transition: transform .18s ease;
+    flex-shrink: 0;
+  }
+  .lang-dd-trigger.is-open .lang-dd-chev {
+    transform: rotate(180deg);
+  }
+  .lang-dd-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 140px;
+    background: var(--s1, #18181c);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    padding: 6px;
+    z-index: 200;
+    display: flex; flex-direction: column;
+    gap: 2px;
+  }
+  .lang-dd-item {
+    display: flex; align-items: center;
+    padding: 8px 12px;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    color: var(--text-soft, var(--muted));
+    font-family: var(--body); font-size: 13px; font-weight: 400;
+    letter-spacing: 0;
+    text-align: left;
+    cursor: pointer;
+    transition: background .12s, color .12s;
+  }
+  .lang-dd-item:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .lang-dd-item.is-active {
+    color: var(--amber);
+    background: rgba(245, 166, 35, 0.08);
+  }
+  .lang-dd-item.is-active::after {
+    content: '✓';
+    margin-left: auto;
+    font-size: 12px;
+  }
+
+  /* ── Hamburger menu — bouton + dropdown nav principale ─────────
+     Trigger 32x32 carré arrondi avec icône 3 lignes. Au click, ouvre
+     un mini menu vertical avec icône + label par ligne. Le hamburger
+     est rendu côte à côte des liens texte sur le DOM, mais visible
+     UNIQUEMENT en mobile (≤768 px) via CSS — sur desktop, c'est la
+     nav texte classique (Accueil/Tarifs/Tableau de bord) qui s'affiche
+     dans la topbar. */
+  .hb-menu {
+    /* Hidden by default (desktop) — toggled to inline-flex in mobile
+       media query below. */
+    display: none;
+    position: relative;
+    align-items: center;
+  }
+  @media (max-width: 768px) {
+    .hb-menu { display: inline-flex; }
+    /* À l'inverse, on cache la nav texte sur mobile pour ne pas avoir
+       de doublon avec le hamburger. */
+    .lp-topbar-nav .lp-topbar-link,
+    .lp-topbar-nav .lp-topbar-current,
+    .pr-topbar-nav .pr-topbar-link,
+    .pr-topbar-nav .pr-topbar-current,
+    .db-topbar-nav .db-topbar-link,
+    .db-topbar-nav .db-topbar-current {
+      display: none;
+    }
+  }
+  .hb-trigger {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    color: var(--text-soft, var(--muted));
+    cursor: pointer;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .hb-trigger:hover,
+  .hb-trigger.is-open {
+    color: var(--amber);
+    border-color: rgba(245, 166, 35, 0.45);
+    background: rgba(245, 166, 35, 0.04);
+  }
+  .hb-trigger:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+
+  /* Menu vertical : icône + label sur chaque ligne. Refonte 2026-04-30
+     suite test icon-only — les symboles seuls n étaient pas assez
+     parlants. Sections Nav + Utility + Footer (crédits/abonnement). */
+  .hb-menu-pop {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: var(--s1, #18181c);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    padding: 6px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 220px;
+    overflow: hidden;
+  }
+  .hb-section {
+    display: flex; flex-direction: column;
+    gap: 2px;
+  }
+  .hb-sep {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 6px 4px;
+  }
+
+  .hb-item {
+    display: inline-flex; align-items: center;
+    width: 100%;
+    padding: 9px 12px;
+    gap: 12px;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    color: var(--text-soft, var(--muted));
+    cursor: pointer;
+    transition: background .12s, color .12s;
+  }
+  .hb-item:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .hb-item.is-current {
+    color: var(--amber);
+    background: rgba(245, 166, 35, 0.08);
+  }
+  .hb-item.is-danger { color: rgba(255, 130, 130, 0.85); }
+  .hb-item.is-danger:hover {
+    color: #ff8a8a;
+    background: rgba(255, 100, 100, 0.08);
+  }
+  .hb-item-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+  }
+  .hb-item-label {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    line-height: 1.1;
+  }
+
+  /* Footer crédits + abonnement — pill cliquable plein-largeur en bas
+     du menu, qui mène à /pricing. Tinted ambre subtil pour l attirer
+     l œil sans crier. */
+  .hb-footer {
+    display: inline-flex; align-items: center;
+    width: 100%;
+    padding: 10px 12px;
+    gap: 12px;
+    text-align: left;
+    background: rgba(245, 166, 35, 0.06);
+    border: 0;
+    border-radius: 8px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .hb-footer:hover {
+    background: rgba(245, 166, 35, 0.12);
+  }
+  .hb-footer-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    color: var(--amber);
+  }
+  .hb-footer-info {
+    display: flex; flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+  .hb-footer-credits {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--amber);
+    line-height: 1;
+  }
+  .hb-footer-plan {
+    font-family: var(--body); font-size: 11px; font-weight: 400;
+    color: var(--muted);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hb-footer-arrow {
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .hb-footer:hover .hb-footer-arrow { color: var(--amber); }
+
+  @media (max-width: 480px) {
+    /* Fix mobile 2026-04-30 : sur 390 px le rail bas-gauche
+       (99 CRÉDITS + ★ ⚙ ⎋) chevauchait l add-pill, le chat-pill et le
+       player en bas — 4 couches superposées sur ~100 px.
+       → On le passe en position: absolute (scroll-with-page) ancré
+         juste sous la topbar, à droite. Visible au chargement, scrolle
+         avec la page (pas de chevauchement permanent). Pour revenir à
+         crédits/réglages/signout, l utilisateur remonte en haut. */
+    /* Refonte mobile 2026-04-30 (v3) : tous les items du rail flottant
+       (crédits, admin, réglages, signout) sont maintenant rapatriés
+       dans le menu hamburger de la topbar — section utility + footer
+       crédits/abonnement. Le rail devient redondant sur mobile, on le
+       masque entièrement. Le rail desktop reste inchangé (toujours
+       affiché en bas-gauche pour les utilisateurs connectés). */
+    .db-utility-rail {
+      display: none;
+    }
   }
 
   /* ── Layout ──────────────────────────────────── */
@@ -1908,7 +2201,11 @@ export default function MockupStyles() {
       flex-direction: column;
       align-items: stretch;
       gap: 16px;
-      padding: 16px 16px 80px;
+      /* Refonte 2026-04-30 : padding latéral remonté à 22 px pour
+         laisser de l'air entre les cards et le bord viewport (les
+         16 px précédents donnaient l'impression que le contenu collait
+         les bords sur smartphone). */
+      padding: 16px 22px 80px;
     }
     /* display: contents fait remonter les enfants de f2-col-main / side
        directement au niveau du flex parent .page. Ça permet d'ordonner
@@ -1918,21 +2215,67 @@ export default function MockupStyles() {
     .fiche-v2 .page > .f2-col-side {
       display: contents;
     }
-    /* Ordre d'empilement mobile :
-       0 vocal-suggest (banner) · 1 pochette · 2 score · 3 diag · 4 plan
-       · 5 qualitative · 6 notes. */
-    .fiche-v2 .page .vocal-suggest   { order: 0; }
-    .fiche-v2 .page .col-cover-wrap  { order: 1; }
-    .fiche-v2 .page .row-verdict     { order: 2; }
-    /* Évolution depuis Vn + Intention artistique : juste avant le diagnostic
-       par élément. Sans cette règle, le wrapper hérite de l'order par défaut
-       (0) et remonte tout en haut, au-dessus de la pochette. */
-    .fiche-v2 .page .evo-intent-stack { order: 3; }
-    .fiche-v2 .page .col-diag        { order: 4; }
+    /* Ordre d'empilement mobile (refonte 2026-04-30 v3) — ordre voulu
+       par David :
+         1. chipset version (timeline, hors .page)
+         2. mesures (verdict-col-side : BPM/Tonalité/LUFS chips)
+         3. verdict de sortie (verdict-col-main)
+         4. pochette + chanté (col-cover-wrap)
+         5. score global (score-eyebrow + rv-top)
+         6. évolution + intention (evo-intent-stack)
+         7. diagnostic par élément (col-diag)
+         8. impression d écoute (row-qualitative)
+         9. notes de version (notes-section, en dernier)
+       Pour pouvoir ordonner verdict-col-side / verdict-col-main / score
+       eyebrow / rv-top au même niveau que col-cover-wrap, on aplatit
+       leurs wrappers (.row-verdict + .rv-left + .verdict-row-grid)
+       avec display: contents — leurs enfants deviennent des flex items
+       directs de .page et se laissent ré-ordonner. */
+    .fiche-v2 .page .row-verdict,
+    .fiche-v2 .page .rv-left,
+    .fiche-v2 .page .verdict-row-grid {
+      display: contents !important;
+    }
+    /* Halo + petits bandeaux secondaires inutiles en mobile (rv-halo
+       est purement décoratif et pose problème quand .rv-left passe en
+       display: contents). */
+    .fiche-v2 .page .row-verdict .rv-halo {
+      display: none;
+    }
+
+    /* Ordre v4 (2026-04-30) : pochette remontée tout en haut, juste
+       sous le chipset version. */
+    .fiche-v2 .page .vocal-suggest         { order: 0; }
+    .fiche-v2 .page .col-cover-wrap        { order: 1; }
+    .fiche-v2 .page .verdict-col-side      { order: 2; }
+    .fiche-v2 .page .verdict-col-main      { order: 3; }
+    .fiche-v2 .page .score-eyebrow         { order: 4; }
+    .fiche-v2 .page .rv-top                { order: 5; }
+    .fiche-v2 .page .score-calibration     { order: 6; }
+    .fiche-v2 .page .score-floor-banner    { order: 7; }
+    .fiche-v2 .page .verdict-text          { order: 8; }
+    .fiche-v2 .page .evo-intent-stack      { order: 9; }
+    .fiche-v2 .page .col-diag              { order: 10; }
     .fiche-v2 .page .col-plan,
-    .fiche-v2 .page .intent-panel-fiche { order: 5; }
-    .fiche-v2 .page .row-qualitative { order: 6; }
-    .fiche-v2 .page .notes-section   { order: 7; }
+    .fiche-v2 .page .intent-panel-fiche    { order: 11; }
+    .fiche-v2 .page .row-qualitative       { order: 12; }
+    .fiche-v2 .page .notes-section         { order: 13; }
+    /* Sample fiche (#/exemple) — la sample utilise les mêmes classes
+       de base mais a quelques noms différents : verdict via
+       <ReleaseReadinessBanner> rendu en .release-readiness sans
+       wrapper verdict-col-main, diag-panel sans .col-diag wrapper.
+       Le .fiche-genre-line bubble up via display: contents sur
+       .rv-left → on lui donne l'ordre 2 (à la place des mesures
+       chips qui n'existent pas en sample). */
+    .fiche-v2 .page .fiche-genre-line      { order: 2; }
+    .fiche-v2 .page .release-readiness     { order: 3; }
+    .fiche-v2 .page .diag-panel            { order: 10; }
+    /* QualitativeSection et NotesSection sont enveloppés dans des
+       <div class="wh-anim"> directement enfants de .page — l'order
+       posé sur .row-qualitative / .notes-section ne s'applique donc
+       pas. On cible les wrappers via :has() pour les ordonner. */
+    .fiche-v2 .page > .wh-anim:has(.row-qualitative) { order: 12; }
+    .fiche-v2 .page > .wh-anim:has(.notes-section)   { order: 13; }
     /* Neutralise les grid-column/row du layout desktop (qui faisaient
        déborder les enfants puisqu'on n'est plus en grid). On reset aussi
        align-self : en grid c'est l'axe block, mais en flex column c'est
@@ -1951,8 +2294,16 @@ export default function MockupStyles() {
       align-self: stretch;
     }
     /* Pochette : on neutralise le padding-left 48px et le stretch desktop,
-       on la centre horizontalement dans .page (qui est flex column). */
-    .fiche-v2 .page .col-cover-wrap {
+       on la centre horizontalement dans .page (qui est flex column).
+       Fix 2026-04-30 : il faut aussi neutraliser le position absolute
+       hérité du desktop (.row-verdict > .col-cover-wrap) — sans ça la
+       pochette sortait de son flow et chevauchait le radar du Score Global.
+       Le sélecteur enfant direct ci-dessous est plus spécifique, on
+       l override explicitement. */
+    .fiche-v2 .page .col-cover-wrap,
+    .fiche-v2 .page .row-verdict > .col-cover-wrap {
+      position: relative;
+      inset: auto;
       width: 100%;
       max-width: 280px;
       padding-left: 0;
@@ -1961,6 +2312,7 @@ export default function MockupStyles() {
       align-self: center;
       justify-self: center;
       justify-content: center;
+      z-index: auto;
     }
     .fiche-v2 .page .col-cover-wrap .col-cover-holder {
       max-width: 100%;
@@ -2662,8 +3014,9 @@ export default function MockupStyles() {
     font-weight: 500;
     text-transform: uppercase;
     color: var(--cerulean, #5cb8cc);
-    flex: 1;
-    line-height: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.15;
   }
   .fiche-v2 .diag-panel .diag-cat-head .count {
     font-family: var(--mono);
@@ -2671,6 +3024,35 @@ export default function MockupStyles() {
     letter-spacing: 0.5px;
     color: var(--muted, rgba(255,255,255,0.5));
     text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  /* Fix mobile 2026-04-30 : sur 390 px les noms longs (INSTRUMENTS,
+     DRUMS & PERCUSSIONS) poussaient le chip de score en-dehors de
+     la card. On resserre padding + gap, on autorise le wrap du nom,
+     et on garde le count compact à droite. */
+  @media (max-width: 480px) {
+    .fiche-v2 .diag-panel .diag-cat-head {
+      padding: 12px 12px;
+      gap: 8px;
+    }
+    .fiche-v2 .diag-panel .diag-cat-head .name {
+      font-size: 9px;
+      letter-spacing: 1px;
+      white-space: normal;
+      word-break: break-word;
+    }
+    .fiche-v2 .diag-panel .diag-cat-head .count {
+      font-size: 9.5px;
+      gap: 6px;
+    }
+    .fiche-v2 .diag-panel .diag-cat-head .count .count-label {
+      display: none;
+    }
+    .fiche-v2 .diag-panel .diag-cat-head .avg-chip {
+      padding: 3px 8px;
+      font-size: 12px;
+      min-width: 28px;
+    }
   }
   .fiche-v2 .diag-panel .diag-cat-head .chev {
     color: var(--muted, rgba(255,255,255,0.5));
@@ -4663,6 +5045,14 @@ export default function MockupStyles() {
     display: flex; flex-direction: column; gap: 2px;
     min-width: 140px; flex-shrink: 0;
   }
+  /* Variante single-line — refonte 2026-04-30 : seul le titre est rendu,
+     plus besoin de réserver la place du sous-titre version. On baisse
+     le min-width pour laisser plus de largeur à la waveform. */
+  .player .pl-meta.pl-meta-single {
+    min-width: 0;
+    flex: 0 1 auto;
+    max-width: 180px;
+  }
   .player .pl-meta .pl-title {
     font-family: var(--body); font-size: 14px; font-weight: 300; color: var(--soft); line-height: 1; letter-spacing: 0.3px;
   }
@@ -4697,7 +5087,7 @@ export default function MockupStyles() {
   }
   .player .pl-time {
     font-family: var(--mono); font-size: 12px; color: var(--muted);
-    flex-shrink: 0; min-width: 78px; text-align: right;
+    flex-shrink: 0; min-width: 38px; text-align: right;
   }
   .player .pl-time b { color: var(--text); font-weight: 500; }
 
@@ -5062,9 +5452,10 @@ export default function MockupStyles() {
     box-shadow: 0 12px 40px -12px rgba(0,0,0,0.55), 0 0 0 0 rgba(245, 166, 35, 0);
     overflow: hidden;
     white-space: nowrap;
-    /* Animation peek : délai 5s à l'ouverture de la page, puis cycle
-       de 60s avec ~10s de hold en ouvert. */
-    animation: chat-pill-peek 60s ease-in-out 5s infinite;
+    /* Refonte 2026-04-30 : retiré l animation peek (qui ouvrait
+       automatiquement la pill toutes les 60s pendant 10s) — David
+       préfère que la pill reste fermée tant qu on ne la survole pas
+       / clique pas. La pill ne s anime plus que sur hover/focus. */
     transition:
       width 0.5s cubic-bezier(.34, 1.45, .64, 1),
       border-color .2s, box-shadow .2s, background .2s;
@@ -5074,26 +5465,6 @@ export default function MockupStyles() {
     border-color: rgba(245, 166, 35, 0.55);
     box-shadow: 0 16px 48px -12px rgba(0,0,0,0.65), 0 0 32px -8px rgba(245, 166, 35, 0.32);
     background: rgba(28, 24, 20, 0.85);
-    /* Override l'animation pendant le hover — la pill reste allongée
-       et la transition width fait le smooth open/close. */
-    animation: none;
-  }
-  /* Cycle peek : 60s total. Expand rapide (~0.5s, matché sur la
-     vitesse hover), 10s d'affichage ouvert, collapse rapide, puis
-     ~49s en compact avant le prochain cycle.
-     - 0%       : 56  (cycle start = peek démarre)
-     - 0.5%     : 295 (~0.3s, overshoot bounce)
-     - 0.7%     : 272 (~0.42s, pullback)
-     - 0.83%    : 280 (~0.5s, settle ✓)
-     - 17.5%    : 280 (10s d'affichage en plein)
-     - 18.3%    : 56  (~0.5s collapse)
-     - 100%     : 56  (rest 49s avant prochain peek) */
-  @keyframes chat-pill-peek {
-    0%           { width: 56px; }
-    0.5%         { width: 295px; }
-    0.7%         { width: 272px; }
-    0.83%, 17.5% { width: 280px; }
-    18.3%, 100%  { width: 56px; }
   }
   .chat-pill:focus-visible {
     outline: 2px solid var(--amber);
@@ -5149,32 +5520,33 @@ export default function MockupStyles() {
     }
   }
   @media (max-width: 480px) {
+    /* Fix mobile 2026-04-30 : la chat-pill remonte juste au-dessus du
+       player et se cale à DROITE, en miroir de l add-pill (gauche).
+       Le wrap était centré (justify-content: center) → on passe à
+       flex-end pour ancrer la pill côté droit. */
     .chat-pill-wrap {
-      bottom: 84px;
+      bottom: 72px;
+      justify-content: flex-end;
+      padding-right: 16px;
     }
     .chat-pill {
       gap: 8px;
       padding: 8px;
       width: 48px;
     }
-    .chat-pill:hover { width: calc(100vw - 24px); max-width: 360px; }
-    @keyframes chat-pill-peek {
-      0%        { width: 48px; }
-      1%        { width: 250px; }
-      2%        { width: 232px; }
-      3%, 19.7% { width: 240px; }
-      22%, 100% { width: 48px; }
-    }
+    /* Expand vers la GAUCHE depuis le bord droit. Avec
+       justify-content: flex-end, la pill garde son ancrage right:16
+       et grandit vers le centre. Cap 240 px → finit à x≈134, l
+       add-pill (16-154) reste hors de portée. */
+    .chat-pill:hover { width: 240px; }
     .chat-pill-icon { width: 28px; height: 28px; }
     .chat-pill-placeholder { font-size: 13px; }
   }
+  /* prefers-reduced-motion : keyframe peek désormais retiré, plus
+     besoin de l override pour neutraliser l animation. La règle
+     reste pour neutraliser le bounce du transform au hover. */
   @media (prefers-reduced-motion: reduce) {
-    .chat-pill {
-      animation: none;
-      width: 56px;
-    }
     .chat-pill:hover {
-      width: 280px;
       transform: none;
     }
   }
@@ -5388,12 +5760,23 @@ export default function MockupStyles() {
     }
   }
   @media (max-width: 480px) {
+    /* Fix mobile 2026-04-30 : alignée avec la chat-pill (bottom 72)
+       pour qu elles partagent la même ligne au-dessus du player.
+       Largeur resserrée (138 → 100) pour coller au contenu visible
+       en compact (icône 28 + gap 8 + label "Ajouter" ~52 + padding
+       8+8 = ~104). Plus d espace mort à droite après le mot. */
+    .add-pill-wrap {
+      bottom: 72px;
+    }
     .add-pill {
       gap: 8px;
-      padding: 8px;
-      width: 138px;
+      padding: 8px 12px 8px 8px;
+      width: 100px;
     }
-    .add-pill:hover, .add-pill:focus-visible { width: calc(100vw - 24px); max-width: 320px; }
+    /* Expand cap réduit pour ne pas chevaucher la chat-pill (centrée
+       horizontalement dans son wrap full width). 16 + 240 = 256 < 320
+       qui serait trop proche de la chat-pill collapsed à center 195. */
+    .add-pill:hover, .add-pill:focus-visible { width: 240px; }
     .add-pill-icon { width: 28px; height: 28px; }
     .add-pill-label { font-size: 13px; }
     .add-pill-placeholder { font-size: 12.5px; }
@@ -7244,6 +7627,46 @@ export default function MockupStyles() {
     .wh-acc-meta { font-size: 9.5px; }
     .wh-acc-score { font-size: 22px; margin-right: 28px; }
     .wh-head-btn { font-size: 11px; padding: 7px 12px; }
+  }
+
+  /* Fix mobile 2026-04-30 : sur 390 px les titres de projets/versions
+     étaient tronqués à 2-3 caractères ("EP …", "Yo…", "Co…"). On
+     compacte le head en mode ouvert (cover 48 au lieu de 64, padding
+     réduit, eyebrow Score moyen masquée) et on resserre les tracks
+     (drag handle masqué, gaps + paddings réduits, ANALYSE compact). */
+  @media (max-width: 480px) {
+    .wh-acc-item.open .wh-acc-head {
+      padding: 14px 12px;
+      grid-template-columns: 48px 1fr auto;
+      gap: 12px;
+    }
+    .wh-acc-item.open .wh-acc-cover {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+    }
+    .wh-acc-item.open .wh-acc-name { font-size: 16px; }
+    .wh-acc-item.open .wh-acc-score { font-size: 24px; }
+    /* Compacte le score-block — eyebrow masquée et marge droite réduite
+       pour rendre la place au titre. */
+    .wh-acc-score-block { margin-right: 18px; }
+    .wh-acc-score-eyebrow { display: none; }
+
+    /* Track-row : drag-handle masqué (pas de DnD prioritaire en mobile),
+       padding/gap resserrés. Le titre + meta retrouvent une largeur
+       lisible. ANALYSE devient une chip compacte. */
+    .wh-track-row {
+      padding: 8px 10px;
+      gap: 10px;
+    }
+    .wh-drag-handle { display: none; }
+    .wh-track-play { width: 36px; height: 36px; }
+    .wh-track-fiche {
+      padding: 4px 8px;
+      font-size: 9.5px;
+      letter-spacing: 1px;
+    }
+    .wh-track-title { font-size: 13.5px; }
+    .wh-track-meta { font-size: 11px; }
   }
 
   .wh-empty {
@@ -9246,7 +9669,11 @@ export default function MockupStyles() {
     .app { grid-template-columns: 1fr; }
     .sidebar { display: none; }
     .player { padding-left: 24px; }
-    body { padding-bottom: 68px; }
+    /* Padding bas pour réserver la place du dock en mobile : player
+       (60) + chat/add-pill row (46 + 12 gap) ≈ 120 px. Le rail
+       utilitaire est remonté dans la topbar (cf. App.jsx + MockupStyles
+       .db-utility-rail mobile), donc plus besoin de réserver 168. */
+    body { padding-bottom: 128px; }
 
     /* Auth */
     .auth-screen { padding: 30px 20px; min-height: 100dvh; }
@@ -9421,15 +9848,18 @@ export default function MockupStyles() {
     }
     .chat-fab { bottom: 82px; right: 16px; width: 44px; height: 44px; }
 
-    /* Player mobile */
+    /* Player mobile — refonte 2026-04-30 : meta single-line, cap haut
+       à 110 px pour laisser la waveform respirer. !important pour
+       battre la règle .pl-meta-single (max-width 180px desktop). */
     .player .pl-meta .pl-title { font-size: 12px; }
-    .player .pl-meta { min-width: 100px; }
+    .player .pl-meta,
+    .player .pl-meta.pl-meta-single { min-width: 0; max-width: 110px; }
     .player .pl-wave { display: none; }
     /* Mobile : wavesurfer visible (même rendu que desktop, on garde les
        barres audio), scrubber range caché. */
     .player .pl-wavesurfer { display: block; }
     .player .pl-scrubber { display: none; }
-    .player .pl-time { font-size: 9px; min-width: 60px; }
+    .player .pl-time { font-size: 10px; min-width: 36px; }
     .player { gap: 8px; height: 60px; }
     .player .pl-btn { width: 34px; height: 34px; }
     /* Les deux boutons prev/next collent davantage au play : on resserre
@@ -9455,40 +9885,76 @@ export default function MockupStyles() {
      ─────────────────────────────────────────────────── */
   .public-fiche-shell {
     min-height: 100vh;
-    background: var(--bg);
+    /* Refonte 2026-04-30 : background transparent pour laisser passer
+       les halos ambient (.ambient-halo + .va-bg-orbs montés au body)
+       comme sur le reste du site. Avant : var(--bg) solide cachait
+       complètement les halos derrière. Le shell garde un stacking
+       context (position + z-index) pour rester au-dessus des halos. */
+    position: relative;
+    z-index: 1;
+    background: transparent;
     color: var(--text);
     display: flex;
     flex-direction: column;
   }
   .public-fiche-topbar {
+    /* Refonte 2026-04-30 v4 : topbar exemple alignée strictement sur
+       celle des pages d'analyses (lp-topbar / db-topbar) — bg
+       transparent, plus de border-bottom, plus de sticky qui collait
+       au scroll (les autres topbars ne le sont pas non plus). Padding
+       22 18 pour matcher exactement .db-topbar / .lp-topbar. */
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 28px;
-    border-bottom: 1px solid var(--border);
-    background: var(--s1);
-    position: sticky; top: 0; z-index: 10;
+    padding: 22px 18px;
+    border-bottom: 0;
+    background: transparent;
+    position: relative;
+    z-index: 2;
+    gap: 24px;
   }
   .public-fiche-topbar .pft-left {
-    display: flex; align-items: baseline; gap: 12px;
+    display: flex; align-items: center; gap: 12px;
   }
-  .public-fiche-topbar .pft-brand {
-    font-family: var(--mono, "DM Sans", sans-serif);
-    font-size: 12px; font-weight: 600; letter-spacing: 2px;
-    color: var(--accent);
-  }
-  .public-fiche-topbar .pft-subbrand {
-    font-size: 12px; color: var(--muted); letter-spacing: 1px;
-    text-transform: uppercase;
-  }
+  /* Typographie nav identique à .lp-topbar-link / .db-topbar-link
+     (mono uppercase 11 px, hauteur 32 px, padding 0 16, hover ambre).
+     On override .pft-nav-link / .pft-cta pour qu ils héritent de la
+     même grammaire que partout ailleurs. */
+  .public-fiche-topbar .pft-nav-link,
   .public-fiche-topbar .pft-cta {
-    font-size: 14px; color: var(--text); text-decoration: none;
-    padding: 8px 14px;
-    border: 1px solid var(--border); border-radius: 8px;
-    transition: border-color .15s ease, background .15s ease;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.6px; text-transform: uppercase;
+    height: 32px;
+    padding: 0 16px;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-soft, var(--muted));
+    border: 1px solid transparent;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: color .15s, background .15s, border-color .15s;
+    display: inline-flex; align-items: center;
+    line-height: 1;
+    text-decoration: none;
+  }
+  .public-fiche-topbar .pft-nav-link:hover,
+  .public-fiche-topbar .pft-cta:hover {
+    color: var(--text);
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.10);
+  }
+  /* Le CTA "Tableau de bord" est marqué comme current pour correspondre
+     au style du badge ambre des autres topbars (.db-topbar-current,
+     .pr-topbar-current). */
+  .public-fiche-topbar .pft-cta {
+    color: var(--amber);
+    background: rgba(245,166,35,0.06);
+    border-color: rgba(245,166,35,0.32);
   }
   .public-fiche-topbar .pft-cta:hover {
-    border-color: var(--accent); background: var(--s2);
+    color: var(--amber);
+    background: rgba(245,166,35,0.12);
+    border-color: rgba(245,166,35,0.55);
   }
 
   .public-fiche-main {
@@ -9589,8 +10055,10 @@ export default function MockupStyles() {
   }
 
   @media (max-width: 720px) {
-    .public-fiche-topbar { padding: 12px 16px; }
-    .public-fiche-page { padding: 0 16px; }
+    /* Refonte 2026-04-30 : padding latéral remonté à 22 px (aligné
+       sur .fiche-v2 .page mobile) pour donner plus d'air aux cards. */
+    .public-fiche-topbar { padding: 12px 22px; }
+    .public-fiche-page { padding: 0 22px; }
     .public-fiche-main { padding: 20px 0 48px; }
   }
 
@@ -9700,6 +10168,57 @@ export default function MockupStyles() {
     .vchip { padding: 6px 8px; min-width: 46px; }
     .vchip .vname { font-size: 10px; }
     .vchip .vscore { font-size: 14px; }
+
+    /* Fix mobile 2026-04-30 : la topbar fiche débordait à droite parce que
+       le dropdown de version (.version-dropdown) ne se laissait pas
+       comprimer quand le nom était long ("Mix sans limiter" = 173 px).
+       Le bouton "exporter en PDF" se faisait alors couper.
+       → On rend le dropdown shrinkable, le texte tronqué via ellipsis,
+         et on resserre les actions share/scoreCard/export. */
+    /* Refonte mobile 2026-04-30 (v3) : topbar fiche allégée — DspBadge
+       + 3 boutons retirés du JSX (dupliqués dans le panneau side du
+       verdict). Flèche back retirée aussi. Reste juste le dropdown de
+       version, centré horizontalement, sur fond transparent (plus de
+       bande sombre disjointe). */
+    .timeline {
+      position: static;
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border-bottom: 0;
+      gap: 0;
+      padding: 4px 14px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      grid-template-columns: none;
+      grid-template-rows: none;
+    }
+    .version-dropdown {
+      display: inline-flex;
+      flex: 0 1 auto;
+      min-width: 0;
+      max-width: 100%;
+    }
+    .version-dropdown-trigger {
+      width: 100%;
+      min-width: 0;
+      padding: 7px 10px;
+      gap: 6px;
+      letter-spacing: 0.8px;
+      overflow: hidden;
+    }
+    .version-dropdown-trigger b {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      letter-spacing: 0.8px;
+      min-width: 0;
+    }
+    .version-dropdown-trigger .vdd-chev { flex-shrink: 0; }
+    .fiche-head-actions { gap: 2px; }
+    .fiche-head-btn { padding: 6px 6px; }
+    .fiche-head-btn svg { width: 16px; height: 16px; }
   }
 `}</style>
 

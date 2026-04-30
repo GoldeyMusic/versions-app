@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import T from '../constants/theme';
 import useLang from '../hooks/useLang';
+import LangDropdown from '../components/LangDropdown';
+import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
 
 /**
  * LandingScreen — page de présentation accessible aux visiteurs ET aux
@@ -21,11 +23,26 @@ export default function LandingScreen({
   ctaPrimaryLabel,
   ctaFooterLabel,
   isAuthenticated = false,
+  // ─── Props utilitaires (utilisateur connecté) — rapatriées dans le
+  //     hamburger : crédits/abonnement en footer + admin/réglages/
+  //     signout en section utility. Tous facultatifs : si non passés,
+  //     le hamburger ne montre que la nav publique.
+  credits = null,
+  planLabel = null,
+  isAdmin = false,
+  onGoAdmin = null,
+  onGoReglages = null,
+  onSignOut = null,
 }) {
   const { s, lang, setLang } = useLang();
   const lp = s.landing;
   const ctaPrimary = ctaPrimaryLabel || lp.ctaPrimary;
   const ctaFooter = ctaFooterLabel || lp.ctaFooter;
+  const utilityItems = [
+    ...(isAdmin && onGoAdmin ? [{ key: 'admin', label: 'Admin', icon: NavIcons.admin, onSelect: onGoAdmin }] : []),
+    ...(onGoReglages ? [{ key: 'reglages', label: s.sidebar?.reglages || 'Réglages', icon: NavIcons.settings, onSelect: onGoReglages }] : []),
+    ...(onSignOut ? [{ key: 'signout', label: s.sidebar?.signOut || 'Se déconnecter', icon: NavIcons.signOut, onSelect: onSignOut, danger: true }] : []),
+  ];
 
   // ── Animations d'entrée au scroll ────────────────────────────────
   // Même mécanique que sur le pricing : un IntersectionObserver
@@ -63,6 +80,8 @@ export default function LandingScreen({
           </span>
         </div>
         <nav className="lp-topbar-nav" aria-label="Navigation">
+          {/* Desktop : nav texte (Accueil/Tarifs/Tableau de bord). Mobile :
+              le hamburger prend le relais via media query (cf. CSS). */}
           <span className="lp-topbar-current" aria-current="page">Accueil</span>
           {onViewPricing && (
             <button
@@ -74,11 +93,6 @@ export default function LandingScreen({
               Tarifs
             </button>
           )}
-          {/* Visiteur non connecté → "Connexion / inscription"
-              Utilisateur connecté → "Tableau de bord"
-              Le handler (onViewDashboard) est aiguillé par App.jsx :
-              vers AuthScreen pour un visiteur, vers welcome pour un
-              user connecté. */}
           {onViewDashboard && (
             <button
               type="button"
@@ -89,30 +103,26 @@ export default function LandingScreen({
               {isAuthenticated ? s.sidebar.dashboardLink : s.sidebar.signInLink}
             </button>
           )}
-          {/* Switch FR/EN — même classe (.sb-lang-switch) que la sidebar du
-              dashboard pour garder une UI uniforme entre les écrans. */}
-          <div
-            className="sb-lang-switch"
-            role="group"
-            aria-label="Langue / Language"
-          >
-            <button
-              type="button"
-              className={lang === 'fr' ? 'on' : ''}
-              onClick={() => setLang('fr')}
-              aria-pressed={lang === 'fr'}
-            >
-              FR
-            </button>
-            <button
-              type="button"
-              className={lang === 'en' ? 'on' : ''}
-              onClick={() => setLang('en')}
-              aria-pressed={lang === 'en'}
-            >
-              EN
-            </button>
-          </div>
+          {/* Hamburger menu — visible uniquement en mobile (CSS gating).
+              Contient nav + utilitaires + crédits/abonnement (refonte
+              2026-04-30 v3). */}
+          <HamburgerMenu
+            items={[
+              { key: 'home', label: 'Accueil', icon: NavIcons.home, current: true },
+              ...(onViewPricing ? [{ key: 'pricing', label: 'Tarifs', icon: NavIcons.pricing, onSelect: onViewPricing }] : []),
+              ...(onViewDashboard ? [{
+                key: 'dashboard',
+                label: isAuthenticated ? s.sidebar.dashboardLink : s.sidebar.signInLink,
+                icon: NavIcons.dashboard,
+                onSelect: onViewDashboard,
+              }] : []),
+            ]}
+            utilityItems={utilityItems}
+            credits={credits}
+            planLabel={planLabel}
+            onPlanClick={onViewPricing}
+          />
+          <LangDropdown lang={lang} setLang={setLang} />
         </nav>
       </header>
 

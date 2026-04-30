@@ -2896,91 +2896,28 @@ function Timeline({ track, currentVersionName, stage, analysisResult, onSelectVe
     );
   }
 
-  // ── Mobile : rendu historique préservé ──
+  // ── Mobile : timeline allégée 2026-04-30 ──
+  // DspBadge (140 BPM · Eb maj · -16.9 LUFS) ET le bloc fiche-head-actions
+  // (share / scoreCard / export) ont été retirés ici parce qu'ils sont
+  // déjà rendus dans le panneau side du verdict juste en-dessous (chips
+  // colorées + même triplet d'actions). La flèche back a été retirée
+  // aussi (le hamburger global a déjà l'accès "Tableau de bord", et le
+  // logo VERSIONS de la topbar haute renvoie sur la landing). Topbar
+  // mobile = juste le dropdown de version, centré.
   return (
     <div className="timeline">
-      <div className="track-title">
-        <span className="track-title-left">
-          {onGoHome && (
-            <button className="fiche-back" onClick={onGoHome} title={s.fiche.timelineBackHome}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13l-5-5 5-5"/></svg>
-            </button>
-          )}
-          {/* Titre + badge type vocal retirés : tous deux déjà visibles
-              sur l'artwork (.cover-big-title + .cover-vocal-pill). */}
-        </span>
-        {current && (
-          <VersionDropdown
-            track={track}
-            currentVersionName={currentVersionName}
-            versions={versions}
-            onSelectVersion={onSelectVersion}
-            onAddVersion={onAddVersion}
-            onRefresh={onTracksRefresh}
-            onGoHome={onGoHome}
-            newVersionLabel={s.fiche.newVersionTitle || 'Nouvelle version'}
-          />
-        )}
-      </div>
-
       {current && (
-        <div style={{ display: 'flex', justifyContent: 'flex-start', padding: '4px 0 8px' }}>
-          <DspBadge version={current} analysisResult={analysisResult} />
-        </div>
+        <VersionDropdown
+          track={track}
+          currentVersionName={currentVersionName}
+          versions={versions}
+          onSelectVersion={onSelectVersion}
+          onAddVersion={onAddVersion}
+          onRefresh={onTracksRefresh}
+          onGoHome={onGoHome}
+          newVersionLabel={s.fiche.newVersionTitle || 'Nouvelle version'}
+        />
       )}
-
-      {current && (onShareVersion || onExportVersion || onScoreCard) && (
-        <div className="fiche-head-actions">
-          {onShareVersion && (
-            <button
-              type="button"
-              className="fiche-head-btn"
-              onClick={() => onShareVersion(track, current)}
-              disabled={!canShare}
-              title={!canShare ? s.fiche.timelineSavingInProgress : s.fiche.timelineShareTitle}
-            >
-              {/* Icône share iOS-style : flèche vers le haut depuis un carré */}
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M8 9V2M5.5 4.5L8 2l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M4 8v4.5h8V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span className="fhb-label">{s.fiche.timelineShareBtn}</span>
-            </button>
-          )}
-          {onScoreCard && (
-            <button
-              type="button"
-              className="fiche-head-btn"
-              onClick={() => onScoreCard(track, current)}
-              title={s.fiche.timelineScoreCardTitle}
-            >
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-                <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-              </svg>
-              <span className="fhb-label">{s.fiche.timelineScoreCardBtn}</span>
-            </button>
-          )}
-          {onExportVersion && (
-            <button
-              type="button"
-              className="fiche-head-btn"
-              onClick={() => onExportVersion(track, current)}
-              title={s.fiche.timelineExportTitle}
-            >
-              {/* Icône export PDF : flèche vers le bas dans un plateau */}
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12v1.5A1.5 1.5 0 004.5 15h7A1.5 1.5 0 0013 13.5V12"
-                      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="fhb-label">{s.fiche.timelineExportBtn}</span>
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* .versions-block supprimée en mobile : le choix de version passe
-          désormais par le dropdown compact dans .track-title. */}
     </div>
   );
 }
@@ -5465,7 +5402,10 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     <section className="diag-panel wh-anim" style={{ '--anim-d': '240ms' }}>
                       <div className="diag-eyebrow">
                         <span className="dot" />
-                        {s.fiche.diagTitle} · {elements.length} {elements.length > 1 ? s.fiche.categoryPlural : s.fiche.categorySingular}
+                        {/* Refonte 2026-04-30 : on retire "· N catégories"
+                            (redondant avec la liste juste en-dessous) qui
+                            wrapait le titre sur 2 lignes en mobile. */}
+                        {s.fiche.diagTitle}
                         {totalCount > 0 && (
                           <span className="diag-progress" title={s.fiche.diagProgressTitle}>
                             <span className="diag-progress-bar" aria-hidden="true">

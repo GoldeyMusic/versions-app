@@ -23,6 +23,8 @@ import {
 } from '../lib/ficheHelpers.jsx';
 import useLang from '../hooks/useLang';
 import T from '../constants/theme';
+import LangDropdown from '../components/LangDropdown';
+import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
 
 // FontLink dupliqué — comme PublicFicheScreen, on évite l'import circulaire
 // d'App pour rester rendu en pré-auth sans dépendance lourde.
@@ -497,6 +499,18 @@ export default function SampleFicheScreen({
     "Refrain : tester de monter le bus voix +1.5 dB pendant le couplet 2 → refrain pour vraiment libérer.\nVérifier le pré-refrain en mono sur enceintes Bluetooth (suspicion phasing pads).\nGarder l'identité sombre — ne pas céder à la tentation d'éclaircir."
   );
 
+  // Body class pour que .add-pill-wrap pioche la bonne valeur de
+  // --app-content-w (920 px = layout fiche). Sans ça, la pill se
+  // positionne sur la formule par défaut et atterrit décalée.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.body.classList.remove('app-layout-fiche', 'app-layout-dashboard');
+    document.body.classList.add('app-layout-fiche');
+    return () => {
+      document.body.classList.remove('app-layout-fiche');
+    };
+  }, []);
+
   return (
     <>
       <FontLink />
@@ -518,32 +532,29 @@ export default function SampleFicheScreen({
                 {'VER'}<span className="sample-brand-accent">{'Si'}</span>{'ONS'}
               </span>
             </button>
-            {/* Switch FR/EN — strictement le même composant que la sidebar
-                de l'app (cf. .sb-lang-switch dans Sidebar.jsx). */}
-            <div className="sb-lang-switch" role="group" aria-label="Langue / Language">
-              <button
-                type="button"
-                className={lang === 'fr' ? 'on' : ''}
-                onClick={() => setLang('fr')}
-                aria-pressed={lang === 'fr'}
-              >
-                FR
-              </button>
-              <button
-                type="button"
-                className={lang === 'en' ? 'on' : ''}
-                onClick={() => setLang('en')}
-                aria-pressed={lang === 'en'}
-              >
-                EN
-              </button>
-            </div>
             <span className="sample-eyebrow">
               {lang === 'en' ? 'EXAMPLE — FICTIONAL DATA' : 'EXEMPLE — DONNÉES FICTIVES'}
             </span>
           </div>
           <div className="pft-right">
+            {/* Desktop : nav texte (Accueil/Tarifs/Tableau de bord) +
+                lang dropdown. Mobile : hamburger via CSS media gating.
+                Le lang dropdown reste visible partout. */}
+            <button type="button" className="pft-nav-link" onClick={onBackToLanding}>
+              {lang === 'en' ? 'Home' : 'Accueil'}
+            </button>
+            <button type="button" className="pft-nav-link" onClick={onSignup}>
+              {lang === 'en' ? 'Pricing' : 'Tarifs'}
+            </button>
             <button type="button" className="pft-cta" onClick={onSignup}>{resolvedTopbarCta}</button>
+            <HamburgerMenu
+              items={[
+                { key: 'home', label: lang === 'en' ? 'Home' : 'Accueil', icon: NavIcons.home, onSelect: onBackToLanding },
+                { key: 'pricing', label: lang === 'en' ? 'Pricing' : 'Tarifs', icon: NavIcons.pricing, onSelect: onSignup },
+                { key: 'dashboard', label: resolvedTopbarCta, icon: NavIcons.dashboard, onSelect: onSignup },
+              ]}
+            />
+            <LangDropdown lang={lang} setLang={setLang} />
           </div>
         </header>
 
@@ -554,17 +565,78 @@ export default function SampleFicheScreen({
                 pas distraire avec une fausse sidebar. */}
             <div className="sample-sidebar-spacer" aria-hidden="true" />
             <div className="public-fiche-page page">
-            {/* Bandeau "Verdict de sortie" — strictement aligné sur la
-                vraie fiche : toujours déployé, montre les bloquants
-                d'office, et CTA "Parlons-en dans le chat" présent
-                visuellement mais inerte sur la page exemple (cliquer
-                ne mène nulle part — c'est juste de la démonstration). */}
-            <ReleaseReadinessBanner
-              fiche={rawFiche}
-              completedItems={null}
-              uploadType="master"
-              onOpenChat={() => {}}
-            />
+            {/* Verdict-row-grid (refonte 2026-04-30) — strictement
+                aligné sur la fiche réelle : grille 2/3 + 1/3 avec
+                ReleaseReadinessBanner à gauche et panneau side
+                (chips BPM/Key/LUFS/Genre + 3 boutons share/scoreCard/
+                export) à droite. Tous les éléments sont mockés / non
+                interactifs sur la page d'exemple. */}
+            {/* Pas de wh-anim ici : la sample n'a pas d'IntersectionObserver
+                qui ajoute la classe `wh-anim-in`, donc l'élément resterait
+                à opacity: 0. On force la visibilité directement. */}
+            <div className="verdict-row-grid">
+              <div className="verdict-col-main">
+                <ReleaseReadinessBanner
+                  fiche={rawFiche}
+                  completedItems={null}
+                  uploadType="master"
+                  onOpenChat={() => {}}
+                />
+              </div>
+              <aside className="verdict-col-side" aria-label="Métadonnées du titre">
+                <div className="vside-chips">
+                  <span className="vside-chip vside-chip-cerulean vside-rot-a">95 BPM</span>
+                  <span className="vside-chip vside-chip-violet vside-rot-b">C# min</span>
+                  <span
+                    className="vside-chip vside-chip-mint vside-rot-c"
+                    title="LUFS — mesure objective non éditable manuellement"
+                  >
+                    -12.1 LUFS
+                  </span>
+                  <span className="vside-chip vside-chip-amber vside-rot-d">
+                    pop électro mélancolique
+                  </span>
+                </div>
+                <div className="vside-actions">
+                  <button
+                    type="button"
+                    className="vside-action-btn"
+                    onClick={onSignup}
+                    title="Partager un lien (démo — créer un compte pour utiliser)"
+                    aria-label="Partager"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M8 9V2M5.5 4.5L8 2l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M4 8v4.5h8V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className="vside-action-btn"
+                    onClick={onSignup}
+                    title="Score Card (démo)"
+                    aria-label="Score Card"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+                      <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className="vside-action-btn"
+                    onClick={onSignup}
+                    title="Exporter en PDF (démo)"
+                    aria-label="Exporter"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12v1.5A1.5 1.5 0 004.5 15h7A1.5 1.5 0 0013 13.5V12"
+                            stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  </button>
+                </div>
+              </aside>
+            </div>
 
             {/* Verdict — strictement aligné sur FicheScreen :
                 pochette à halos seedés à gauche, .rv-left avec eyebrow score,
@@ -665,36 +737,10 @@ export default function SampleFicheScreen({
                   );
                 })()}
 
-                {/* Ligne genre — strictement même rendu que sur la vraie fiche :
-                    libellé "Genre" muté + valeur en bold + suffixe parenthétique
-                    "(détecté pendant l'analyse)" en italique discret quand inféré.
-                    Mode démo : non éditable (cliquable mais sans effet). */}
-                {(() => {
-                  const declared = (rawFiche.declared_genre || '').trim();
-                  const inferred = (rawFiche.inferred_genre || '').trim();
-                  const inferredFlag = rawFiche.genre_inferred_by_ai === true;
-                  const currentLabel = declared || (inferredFlag ? inferred : '');
-                  if (!currentLabel) return null;
-                  return (
-                    <div
-                      className="fiche-genre-line"
-                      style={{
-                        fontSize: '0.85rem',
-                        marginTop: 10,
-                        marginBottom: 12,
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      <span style={{ opacity: 0.55, marginRight: 6 }}>{s.fiche.genreDeclared}</span>
-                      <strong style={{ fontWeight: 600, opacity: 1 }}>{currentLabel}</strong>
-                      {!declared && inferredFlag && (
-                        <span style={{ opacity: 0.45, marginLeft: 8, fontStyle: 'italic' }}>
-                          ({s.fiche.genreInferredSuffix})
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
+                {/* Ligne genre retirée 2026-04-30 : le genre est
+                    désormais affiché dans la chip ambre du side panel
+                    du verdict (verdict-col-side), aligné sur la fiche
+                    réelle. */}
 
                 <div className="verdict-text">
                   {(() => {
@@ -786,20 +832,12 @@ export default function SampleFicheScreen({
                 <section className="diag-panel">
                   <div className="diag-eyebrow">
                     <span className="dot" />
-                    {s.fiche.diagTitle} · {elements.length} {elements.length > 1 ? s.fiche.categoryPlural : s.fiche.categorySingular}
-                    {totalCount > 0 && (
-                      <span className="diag-progress" title={s.fiche.diagProgressTitle || ''}>
-                        <span className="diag-progress-bar" aria-hidden="true">
-                          <span
-                            className="diag-progress-bar-fill"
-                            style={{ width: `${donePct}%` }}
-                          />
-                        </span>
-                        <span className="diag-progress-label">
-                          {doneCount}/{totalCount} {s.fiche.diagProgressDone} ({donePct}%)
-                        </span>
-                      </span>
-                    )}
+                    {/* Aligné sur FicheScreen 2026-04-30 : on retire
+                        "· N catégories" (redondant avec la liste).
+                        Page d'exemple : on retire aussi la barre de
+                        progression "0/N complétés" — pas de cocher
+                        d'items en mode démo, donc inutile. */}
+                    {s.fiche.diagTitle}
                   </div>
                   <div className="diag-cats">
                       {elements.map((el, idx) => {
@@ -850,8 +888,20 @@ export default function SampleFicheScreen({
                               </span>
                               <span className="name">{catLabel}</span>
                               <span className="count">
-                                {items.length} {items.length > 1 ? s.fiche.elementPlural : s.fiche.elementSingular}
-                                {avg != null ? `${s.fiche.avgPrefix}${Math.round(avg)}` : ''}
+                                {/* Aligné sur FicheScreen 2026-04-30 :
+                                    structure split en count-num / count-label /
+                                    avg-chip pour que le CSS mobile puisse
+                                    masquer le label "éléments" et garder
+                                    juste le chip de score. */}
+                                <span className="count-num">{items.length}</span>
+                                <span className="count-label">{items.length > 1 ? s.fiche.elementPlural : s.fiche.elementSingular}</span>
+                                {avg != null && (() => {
+                                  const a = Math.round(avg);
+                                  const band = a >= 80 ? 'mint' : a >= 60 ? 'amber' : 'red';
+                                  return (
+                                    <span className={`avg-chip avg-${band}`} title={`Moyenne ${a}/100`}>{a}</span>
+                                  );
+                                })()}
                               </span>
                             </div>
                             <div className="diag-cat-body">
@@ -1002,9 +1052,9 @@ export default function SampleFicheScreen({
 
             </div>
 
-            <aside className="sample-chat-side" aria-label="Chat de démonstration">
-              <SampleChatPanel />
-            </aside>
+            {/* Chat panel anchored retiré 2026-04-30 : remplacé par la
+                chat-pill flottante à droite (cohérent avec la vraie
+                fiche). Click → onSignup pour la conversion. */}
           </div>
         </main>
 
@@ -1050,6 +1100,60 @@ export default function SampleFicheScreen({
             vrai BottomPlayer (prev/play/next + meta + waveform + time +
             volume), mais non fonctionnel (pointer-events bloqués). */}
         <SampleBottomPlayer trackTitle={data.trackTitle} versionName={data.versionName} />
+      </div>
+
+      {/* Pills flottantes — strictement les mêmes que la vraie fiche :
+          .add-pill-wrap à gauche (animée au hover), .chat-pill-wrap à
+          droite (animée). En mode démo, click → onSignup pour pousser
+          la création de compte. CSS commun avec FicheScreen, donc le
+          comportement (peek collapsed/hover expand) est identique. */}
+      <div className="add-pill-wrap" aria-hidden="false">
+        <button
+          type="button"
+          className="add-pill"
+          onClick={onSignup}
+          aria-label={lang === 'en' ? 'Add' : 'Ajouter'}
+          title={lang === 'en' ? 'Add (sign up to use)' : 'Ajouter (créer un compte pour utiliser)'}
+        >
+          <span className="add-pill-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </span>
+          <span className="add-pill-label">{lang === 'en' ? 'Add' : 'Ajouter'}</span>
+          <span className="add-pill-placeholder">
+            {lang === 'en' ? 'Project, track, version…' : 'Projet, titre, version…'}
+          </span>
+          <span className="add-pill-cta" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </button>
+      </div>
+
+      <div className="chat-pill-wrap" aria-hidden="true">
+        <button
+          type="button"
+          className="chat-pill"
+          onClick={onSignup}
+          aria-label={lang === 'en' ? 'Ask Versions' : 'Demande à Versions'}
+          title={lang === 'en' ? 'Ask Versions (sign up to use)' : 'Demande à Versions (créer un compte pour utiliser)'}
+        >
+          <span className="chat-pill-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M21 12a8.5 8.5 0 0 1-12.39 7.55L4 21l1.45-4.61A8.5 8.5 0 1 1 21 12z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
+          <span className="chat-pill-placeholder">
+            {lang === 'en' ? 'Ask Versions…' : 'Demande à Versions…'}
+          </span>
+          <span className="chat-pill-cta" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
+        </button>
       </div>
     </>
   );
@@ -1151,9 +1255,11 @@ function SampleBottomPlayer({ trackTitle, versionName }) {
           </svg>
         </button>
       </div>
-      <div className="sbp-section sbp-meta">
+      {/* Meta — aligné sur le BottomPlayer trimmé (refonte 2026-04-30) :
+          juste le titre du morceau, pas la version (redondant avec le
+          chip de version sur la fiche). */}
+      <div className="sbp-section sbp-meta sbp-meta-single">
         <div className="sbp-title">{trackTitle}</div>
-        <div className="sbp-sub">{isEn ? 'version' : 'version'} {versionName}</div>
       </div>
       <div className="sbp-section sbp-wave">
         <div className="sbp-wave-track" aria-hidden="true">
@@ -1173,10 +1279,10 @@ function SampleBottomPlayer({ trackTitle, versionName }) {
             aria-hidden="true"
           />
         </div>
+        {/* Time — uniquement la position courante (pas la durée totale),
+            aligné sur BottomPlayer (refonte 2026-04-30). */}
         <div className="sbp-time">
           <span>1:23</span>
-          <span className="sbp-time-sep">/</span>
-          <span>3:45</span>
         </div>
       </div>
       <div className="sbp-section sbp-volume">
@@ -1253,6 +1359,18 @@ function SampleStyles() {
          On surcharge .public-fiche-topbar pour les éléments specifics. */
       .sample-topbar .pft-left {
         display: flex; align-items: center; gap: 14px;
+      }
+      .sample-topbar .pft-right {
+        display: flex; align-items: center; gap: 8px;
+      }
+      /* Le styling des liens texte (.pft-nav-link / .pft-cta) est
+         centralisé dans MockupStyles.jsx (.public-fiche-topbar) pour
+         partager la même grammaire que .lp-topbar / .db-topbar.
+         Mobile gating géré par le @media global sur .hb-menu /
+         .lp-topbar-link etc. (cf. MockupStyles). */
+      @media (max-width: 768px) {
+        .sample-topbar .pft-nav-link,
+        .sample-topbar .pft-cta { display: none; }
       }
       /* Brand "VERSiONS" — même grammaire que .brand de la sidebar
          (Sidebar.jsx). Logo + lettrage avec accent ambre sur le "Si". */
@@ -1483,49 +1601,23 @@ function SampleStyles() {
          Le chat est sticky pour rester visible quand on scrolle la fiche.
          Sous le seuil, le chat est masqué (mobile/tablette) — la grammaire
          "chat ancré" est avant tout une démo desktop. */
-      .sample-stage { display: block; width: 100%; }
+      /* Refonte 2026-04-30 v4 : la sample n'a plus de sidebar ni de
+         chat-side anchored — la grammaire desktop suit maintenant
+         celle de la fiche réelle : contenu centré (max 920 px) avec
+         add-pill flottante à gauche et chat-pill flottante à droite,
+         positionnées via leur formule (100vw - --app-content-w) / 2.
+         Le spacer + chat-side de l'ancienne maquette sont retirés. */
+      .sample-stage {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+      }
       .sample-chat-side { display: none; }
       .sample-sidebar-spacer { display: none; }
-      @media (min-width: 1180px) {
-        .sample-stage {
-          display: grid;
-          /* 240px = largeur de la sidebar de l'app (cf. .app dans MockupStyles).
-             Le spacer reproduit l'offset gauche de la vraie fiche pour que
-             le contenu central retombe au même endroit visuellement. */
-          grid-template-columns: 240px minmax(0, 1fr) 380px;
-          column-gap: 28px;
-          max-width: 1740px;
-          margin: 0 auto;
-          padding: 0 28px;
-          align-items: start;
-        }
-        .sample-sidebar-spacer {
-          display: block;
-          height: 1px;       /* réserve la colonne grid sans rien afficher */
-        }
-        .sample-stage > .public-fiche-page {
-          margin: 0;          /* le centrage est géré par .sample-stage */
-          padding: 0;
-          max-width: 1080px;
-        }
-        .sample-chat-side {
-          display: flex;
-          position: sticky;
-          top: 88px;          /* topbar 56 + 32 respiration */
-          /* 88 top + 76 player + 24 air = 188 réservés */
-          height: calc(100vh - 188px);
-          min-height: 480px;
-        }
-        .sample-chat-side .chat-panel.chat-panel-anchored {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          flex: 1;
-          background: ${T.s1};
-          border: 1px solid ${T.border};
-          border-radius: 14px;
-          box-shadow: 0 12px 32px rgba(0,0,0,0.25);
-        }
+      .sample-stage > .public-fiche-page {
+        max-width: 920px;
+        width: 100%;
+        margin: 0 auto;
       }
       /* Input désactivé : on garde le rendu visuel actif (pas grisé)
          pour que la maquette ne donne pas l'impression d'être cassée,
