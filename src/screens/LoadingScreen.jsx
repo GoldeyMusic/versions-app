@@ -360,11 +360,13 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
             // (body trop gros). Message orienté "exporte en MP3/AAC".
             throw new Error(s.loading.errorFileTooLarge);
           }
-          // 402 = solde de crédits insuffisant. On redirige l'utilisateur
-          // vers /pricing pour qu'il achète un pack ou un abo.
+          // 402 = solde de crédits insuffisant. On notifie l'App pour qu'elle
+          // ouvre la modale "Plus de crédits" (CTA → /pricing). L'utilisateur
+          // décide quand naviguer plutôt que de subir une redirection auto.
           if (startRes.status === 402) {
-            // Petit délai pour laisser voir le message avant la redirection
-            setTimeout(() => { window.location.hash = '#/pricing'; }, 1500);
+            try {
+              window.dispatchEvent(new CustomEvent('versions:no-credits'));
+            } catch { /* noop */ }
             throw new Error(s.loading.errorNoCredits);
           }
           throw new Error(s.loading.errorStart.replace('{status}', String(startRes.status)));

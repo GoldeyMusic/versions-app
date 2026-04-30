@@ -1075,6 +1075,11 @@ const STRINGS = {
       // Confirm
       confirmTitle: "Confirmer l'action",
       confirmDeleteDefault: "Cette action est irréversible. Continuer ?",
+      // No credits — bloque l'ajout de titre/version quand le solde est à 0.
+      noCreditsTitle: "Plus de crédits",
+      noCreditsBody: "Tu n'as plus de crédits d'analyse. Abonne-toi ou achète un pack pour continuer à analyser tes mix.",
+      noCreditsCta: "Voir les offres",
+      noCreditsCancel: "Plus tard",
       // Add version
       addTitle: "Ajouter une version",
       addVersionName: "Nom de la version",
@@ -2474,6 +2479,10 @@ const STRINGS = {
       renameConfirm: "Rename",
       confirmTitle: "Confirm action",
       confirmDeleteDefault: "This action is irreversible. Continue?",
+      noCreditsTitle: "Out of credits",
+      noCreditsBody: "You're out of analysis credits. Subscribe or buy a pack to keep analyzing your mixes.",
+      noCreditsCta: "See plans",
+      noCreditsCancel: "Later",
       addTitle: "Add a version",
       addVersionName: "Version name",
       addVersionPlaceholder: "e.g. Mix v3, Master, Radio Edit…",

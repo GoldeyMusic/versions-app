@@ -34,6 +34,7 @@ import PublicFicheScreen from "./screens/PublicFicheScreen";
 import ReglagesModal from "./components/ReglagesModal";
 import RenameModal from "./components/RenameModal";
 import AddModal from "./components/AddModal";
+import NoCreditsModal from "./components/NoCreditsModal";
 import { confirmDialog } from "./lib/confirm.jsx";
 
 /* ── Font loader ────────────────────────────────────────── */
@@ -2728,28 +2729,61 @@ function VersionsAppAuthed() {
   // IMPORTANT : ce hook DOIT être AVANT tous les early returns plus bas
   // (sinon Rules of Hooks → React #300 → page blanche).
   const [userCredits, setUserCredits] = useState(null);
+  const refreshCredits = useCallback(async () => {
+    if (!user?.id) { setUserCredits(null); return null; }
+    try {
+      const { data, error } = await supabase.rpc('get_or_create_user_credits');
+      if (error) {
+        console.warn('[topbar] get_or_create_user_credits failed:', error.message);
+        return null;
+      }
+      const row = Array.isArray(data) ? data[0] : data;
+      const bal = Number(row?.balance_remaining);
+      const next = Number.isFinite(bal) ? bal : null;
+      setUserCredits(next);
+      return next;
+    } catch (e) {
+      console.warn('[topbar] credits fetch threw:', e);
+      return null;
+    }
+  }, [user?.id]);
   useEffect(() => {
     let cancelled = false;
     if (!user?.id) { setUserCredits(null); return; }
     (async () => {
-      try {
-        const { data, error } = await supabase.rpc('get_or_create_user_credits');
-        if (cancelled) return;
-        if (error) {
-          console.warn('[topbar] get_or_create_user_credits failed:', error.message);
-          setUserCredits(null);
-          return;
-        }
-        const row = Array.isArray(data) ? data[0] : data;
-        const bal = Number(row?.balance_remaining);
-        setUserCredits(Number.isFinite(bal) ? bal : null);
-      } catch (e) {
-        console.warn('[topbar] credits fetch threw:', e);
-        if (!cancelled) setUserCredits(null);
-      }
+      const next = await refreshCredits();
+      if (cancelled) return;
+      // refreshCredits met déjà à jour userCredits ; ce return ne fait que
+      // documenter l'intention.
+      void next;
     })();
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [user?.id, refreshCredits]);
+
+  // Gate "0 crédit" — bloque l'ajout de titre / version / lancement
+  // d'analyse quand le solde est à zéro. La création de projet reste
+  // libre. CTA → page tarifs (#/pricing).
+  const [noCreditsOpen, setNoCreditsOpen] = useState(false);
+  const requireCredits = useCallback(() => {
+    // userCredits === null = chargement ou erreur de fetch : on laisse
+    // passer (le backend re-checkera et renverra 402 si vraiment 0).
+    if (userCredits != null && userCredits < 1) {
+      setNoCreditsOpen(true);
+      return false;
+    }
+    return true;
+  }, [userCredits]);
+  // Écoute le 402 émis par LoadingScreen quand le backend refuse une
+  // analyse pour cause de solde insuffisant (ex. course entre check FE et
+  // débit serveur). Ouvre la même modale que la pré-vérification.
+  useEffect(() => {
+    const onNoCredits = () => {
+      setNoCreditsOpen(true);
+      refreshCredits();
+    };
+    window.addEventListener('versions:no-credits', onNoCredits);
+    return () => window.removeEventListener('versions:no-credits', onNoCredits);
+  }, [refreshCredits]);
 
   // ── User profile (avatar, prénom…) ──
   const [userProfile, setUserProfile] = useState(null);
@@ -3269,6 +3303,9 @@ function VersionsAppAuthed() {
                   if (ids?.trackId) {
                     setConfig(c => ({ ...(c || {}), trackId: ids.trackId, versionId: ids.versionId || c?.versionId }));
                   }
+                  // Le backend a débité 1 crédit au start de l'analyse.
+                  // On rafraîchit le solde affiché (sidebar + topbar).
+                  refreshCredits();
                   return refreshProjects();
                 })
                 .catch(e => console.warn("saveAnalysis failed:", e));
@@ -3285,6 +3322,9 @@ function VersionsAppAuthed() {
 
   // ── Handlers ──
   const handleAnalyze = (cfg) => {
+    // Garde-fou crédits : bloque le lancement si solde à 0. Le backend
+    // re-vérifie en 402, mais on intercepte ici pour éviter l'aller-retour.
+    if (!requireCredits()) return;
     // Injecte le projet cible (choisi explicitement dans AddModal ou déduit du contexte)
     const cfgWithProject = { ...cfg, projectId: cfg.projectId || currentProjectId || null };
     setConfig(cfgWithProject);
@@ -3329,6 +3369,9 @@ function VersionsAppAuthed() {
             if (ids?.trackId) {
               setConfig(c => ({ ...(c || {}), trackId: ids.trackId, versionId: ids.versionId || c?.versionId }));
             }
+            // Le backend a débité 1 crédit au start de l'analyse.
+            // On rafraîchit le solde affiché (sidebar + topbar).
+            refreshCredits();
             return refreshProjects();
           })
           .catch(e => console.warn("saveAnalysis failed:", e));
@@ -3452,6 +3495,10 @@ function VersionsAppAuthed() {
     setScreen("fiche");
   };
   const handleSidebarNewTrack = () => {
+    // Garde-fou crédits : "ajouter un titre" suppose une analyse derrière,
+    // donc on bloque tôt pour ne pas laisser l'utilisateur uploader un
+    // fichier qu'il ne pourra pas analyser. La création de projet reste libre.
+    if (!requireCredits()) return;
     // Ouvre la modale d'ajout dans le flow "Nouveau titre".
     // AddModal se charge de la suite (pick-project / upload selon le
     // nombre de projets). Plus d'écran isolé /nouveau.
@@ -3473,6 +3520,8 @@ function VersionsAppAuthed() {
     setScreen("welcome");
   };
   const handleAddVersionFromPicker = (track) => {
+    // Garde-fou crédits : même rationale que handleSidebarNewTrack.
+    if (!requireCredits()) return;
     // Pré-sélectionne le projet du titre pour que l'upload y atterrisse.
     // On ouvre la modale directement à l'étape upload, titre verrouillé.
     if (track?.projectId) setCurrentProjectId(track.projectId);
@@ -3926,6 +3975,20 @@ function VersionsAppAuthed() {
 
           {/* Ask Modal */}
           {askOpen && <AskModal onClose={() => setAskOpen(false)} />}
+
+          {/* Solde de crédits à zéro — bloque l'ajout de titre/version
+              et le lancement d'analyse, redirige vers la page tarifs. */}
+          <NoCreditsModal
+            open={noCreditsOpen}
+            onClose={() => setNoCreditsOpen(false)}
+            onGoPricing={() => {
+              setNoCreditsOpen(false);
+              setScreen('pricing');
+              if (typeof window !== 'undefined') {
+                window.history.pushState({ screen: 'pricing' }, '', '#/pricing');
+              }
+            }}
+          />
 
           {/* Réglages — modale globale, ouvrable depuis sidebar desktop
               ou menu avatar mobile */}
