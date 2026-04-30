@@ -293,7 +293,11 @@ export default function MockupStyles() {
      col-cover, etc.) ont des border-radius 14-18 px sur desktop, ce
      qui donne un rendu un peu carré sur 390 px. On bumpe à 20-24 px
      en mobile pour adoucir le visuel — cohérent avec les boutons
-     pill (border-radius 999) qu'on a déjà partout. */
+     pill (border-radius 999) qu'on a déjà partout.
+     !important pour battre les règles desktop qui suivent dans le
+     fichier (cascade : même spécificité = règle la plus tardive
+     gagne, et certaines des cibles ci-dessous sont définies bien
+     plus loin dans MockupStyles). */
   @media (max-width: 480px) {
     .wh-stat,
     .wh-acc-item,
@@ -306,18 +310,15 @@ export default function MockupStyles() {
     .pr-pack,
     .lp-card,
     .pr-card {
-      border-radius: 20px;
+      border-radius: 20px !important;
     }
     .col-cover,
     .col-cover-holder {
-      border-radius: 22px;
+      border-radius: 22px !important;
     }
     .pr-sub {
-      border-radius: 24px;
+      border-radius: 24px !important;
     }
-    /* Cards "EP / Anciens titres / Tests" en mode fermé : leur
-       border-radius est porté par .wh-acc-item — déjà ciblé ci-dessus.
-       En mode open, le head garde le radius parent — OK. */
   }
 
   /* ── EvolutionBanner — fix layout mobile ──────────────────────
