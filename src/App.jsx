@@ -842,6 +842,73 @@ function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricin
   );
 }
 
+/**
+ * AddPill — pill flottante "Ajouter" côté gauche, miroir statique du
+ * .chat-pill (qui flotte à droite avec animation peek). Différences :
+ *  - posée à gauche (.add-pill-wrap)
+ *  - PAS d'animation auto (pas de cycle qui s'ouvre tout seul) — David :
+ *    "il ne s'anime pas tout seul si on ne le survole pas"
+ *  - hover/focus : la pill s'étend pour révéler le label "Ajouter" + un
+ *    sous-titre type "Projet, titre, version…"
+ *  - click : ouvre la modale AddModal (qui se charge ensuite du flow
+ *    projet / titre / version)
+ *
+ * Visibilité gérée par le parent (gating sur user + !isMinimalScreen).
+ * Quand la modale est ouverte, on toggle body.add-modal-open pour cacher
+ * la pill (parité avec body.chat-open .chat-pill).
+ */
+function AddPill({ onOpen, isOpen, layoutWidth = 'fiche', label = 'Ajouter', placeholder = 'Projet, titre, version…' }) {
+  // Sync body class — permet au CSS de cacher la pill quand la modale
+  // est ouverte (par .add-modal-open .add-pill { opacity: 0; ... }).
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (isOpen) document.body.classList.add('add-modal-open');
+    else document.body.classList.remove('add-modal-open');
+    return () => { document.body.classList.remove('add-modal-open'); };
+  }, [isOpen]);
+
+  // Sync body class pour la largeur de contenu — pilote --app-content-w
+  // via CSS (cf. .add-pill-wrap qui calcule sa largeur sur cette var).
+  // Fiche = 920px, dashboard = 1080px (cf. maxWidth dans App.jsx).
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.body.classList.remove('app-layout-fiche', 'app-layout-dashboard');
+    document.body.classList.add(`app-layout-${layoutWidth}`);
+    return () => {
+      document.body.classList.remove('app-layout-fiche', 'app-layout-dashboard');
+    };
+  }, [layoutWidth]);
+
+  return (
+    <div className="add-pill-wrap" aria-hidden={isOpen ? 'true' : 'false'}>
+      <button
+        type="button"
+        className="add-pill"
+        onClick={onOpen}
+        aria-label={label}
+        title={label}
+      >
+        <span className="add-pill-icon" aria-hidden="true">
+          {/* Plus 16×16 — symbole d'ajout standard, simple et lisible. */}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </span>
+        {/* Label "Ajouter" toujours visible (état compact) — l'icône
+            seule n'était pas assez explicite. Au hover, le placeholder
+            (sous-titre) apparaît à côté pour préciser le scope. */}
+        <span className="add-pill-label">{label}</span>
+        <span className="add-pill-placeholder">{placeholder}</span>
+        <span className="add-pill-cta" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </button>
+    </div>
+  );
+}
+
 function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onAnalyze, onSelectVersion, onOpenFiche, onPlay, onToggle, onNext, playerState, projects = [], projectsLoaded = false, onMutate, addModalOpen, setAddModalOpen, addModalCtx = null, setAddModalCtx }) {
   const { lang, s } = useLang();
   const pool = (fr, en) => (lang === 'en' ? en : fr);
@@ -941,9 +1008,17 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const metaLine = (project) => {
     const nTracks = project.tracks?.length || 0;
     const tLabel = `${nTracks} ${nTracks > 1 ? s.home.trackPlural : s.home.trackSingular}`;
-    const ms = projectLastActivityMs(project);
-    const when = ms ? s.home.lastAnalysis.replace('{when}', formatRelative(ms)) : s.home.noAnalysisYet;
-    return `${tLabel} · ${when}`;
+    // Total de versions = somme des versions de chaque track du projet.
+    const nVersions = (project.tracks || []).reduce(
+      (sum, t) => sum + (t.versions?.length || 0),
+      0,
+    );
+    const vLabel = nVersions > 0
+      ? `${nVersions} ${nVersions > 1 ? s.home.versionPlural : s.home.versionSingular}`
+      : null;
+    // Pas de date de dernière analyse ici — chaque track row affiche
+    // déjà sa propre date à droite, ça ferait double emploi.
+    return [tLabel, vLabel].filter(Boolean).join(' · ');
   };
 
   const buildProjectPlaylist = (project) =>
@@ -1180,10 +1255,22 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   // ── Calculs pour la home desktop (hero + stats) ──
   // Ne servent qu'en version desktop ; mobile les ignore entièrement.
+  // Bug fix : `latest.date` est une chaîne FR lisible ("30 avr 2026")
+  // que new Date() ne sait pas parser → retombait sur NaN → metaLine
+  // affichait "aucune analyse" même quand des analyses existaient.
+  // On essaie createdAt (ISO) en priorité, puis fallback sur date.
+  const tryParseMs = (src) => {
+    if (!src) return 0;
+    const t = new Date(src).getTime();
+    return Number.isFinite(t) ? t : 0;
+  };
   const trackLastDateMs = (t) => {
     const latest = t?.versions?.[t.versions.length - 1];
-    const src = latest?.date || latest?.createdAt || t?.createdAt;
-    return src ? new Date(src).getTime() : 0;
+    return Math.max(
+      tryParseMs(latest?.createdAt),
+      tryParseMs(latest?.date),
+      tryParseMs(t?.createdAt),
+    );
   };
 
   const heroInfo = (() => {
@@ -1244,7 +1331,22 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       const last = t.versions?.[t.versions.length - 1];
       const fiche = last?.analysisResult?.fiche;
       if (!fiche) continue;
-      const ts = new Date(last?.date || last?.createdAt || 0).getTime();
+      // last.date est une chaîne FR lisible ("30 avr 2026") non parsable
+      // par new Date() — on tente d'abord createdAt (ISO), puis on
+      // fallback sur date au cas où une migration future le stocke en
+      // ISO. Avant ce fix, ts retombait à NaN et formatRelative
+      // retournait "—" → la card "Dernier titre analysé" affichait
+      // "74/100 · —" au lieu de "74/100 · il y a X jours".
+      let ts = NaN;
+      if (last?.createdAt) {
+        const t1 = new Date(last.createdAt).getTime();
+        if (!Number.isNaN(t1)) ts = t1;
+      }
+      if (Number.isNaN(ts) && last?.date) {
+        const t2 = new Date(last.date).getTime();
+        if (!Number.isNaN(t2)) ts = t2;
+      }
+      if (Number.isNaN(ts)) continue; // pas de date exploitable → skip
       if (!best || ts > best.ts) best = { track: t, version: last, fiche, ts };
     }
     return best;
@@ -1403,12 +1505,17 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 </div>
 
                 {/* Score projet — moyenne des dernières versions de chaque titre.
-                    Classe good/mid/low pour colorer selon les seuils 80/60. */}
+                    Classe good/mid/low pour colorer selon les seuils 80/60.
+                    Eyebrow "Score moyen" au-dessus du chiffre — sans le label
+                    on ne savait pas ce que désignait le 75/81 affiché à droite. */}
                 {(() => {
                   const pScore = projectScore(project);
                   return (
-                    <div className={`wh-acc-score ${scoreClass(pScore)}`}>
-                      {pScore != null ? pScore : s.home.relativeDash}
+                    <div className={`wh-acc-score-block ${scoreClass(pScore)}`}>
+                      <div className="wh-acc-score-eyebrow">{s.home.projectAvgScore || 'Score moyen'}</div>
+                      <div className={`wh-acc-score ${scoreClass(pScore)}`}>
+                        {pScore != null ? pScore : s.home.relativeDash}
+                      </div>
                     </div>
                   );
                 })()}
@@ -1904,12 +2011,18 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 : s.home.heroEyebrowActive.replace('{name}', displayName || '').replace('{n}', String(nTitres))}
             </div>
             {desktopStats}
-            <div className="wh-cols">
-              <div className="wh-col-left wh-anim" style={{ '--anim-d': '320ms' }}>{projectsAccordion}</div>
-              <div className="wh-col-right wh-anim" style={{ '--anim-d': '420ms' }}>
-                {userBlock}
-                {knowBlock}
-              </div>
+            {/* Refonte 2026-04-30bis : projets en pleine largeur en haut,
+                Recommandations + Le saviez-vous côte à côte en 50/50 en
+                dessous — même grammaire que la home des comptes neufs.
+                La colonne projets respire et les deux blocs secondaires
+                ne s'empilent plus en pile maigre à droite. */}
+            <div className="wh-anim" style={{ '--anim-d': '320ms' }}>{projectsAccordion}</div>
+            <div
+              className="wh-cols"
+              style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', marginTop: 32 }}
+            >
+              <div className="wh-col-left wh-anim" style={{ '--anim-d': '420ms' }}>{userBlock}</div>
+              <div className="wh-col-right wh-anim" style={{ '--anim-d': '500ms' }}>{knowBlock}</div>
             </div>
           </>
         ) : (
@@ -1945,13 +2058,22 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 <div className="wh-col-right wh-anim" style={{ '--anim-d': '240ms' }}>{knowBlock}</div>
               </div>
             ) : (
-              <div className="wh-cols">
-                <div className="wh-col-left wh-anim" style={{ '--anim-d': '160ms' }}>{projectsAccordion}</div>
-                <div className="wh-col-right wh-anim" style={{ '--anim-d': '240ms' }}>
-                  {userBlock}
-                  {knowBlock}
+              /* ≥1 projet (refonte 2026-04-30bis) : on remonte les projets
+                 en pleine largeur tout en haut, et on bascule Recommandations
+                 + Le saviez-vous en dessous, côte à côte en 50/50 — même
+                 grammaire de répartition que les comptes neufs. La colonne
+                 projets prend toute la place pour respirer, les blocs
+                 secondaires ne montent plus en pile maigre à droite. */
+              <>
+                <div className="wh-anim" style={{ '--anim-d': '160ms' }}>{projectsAccordion}</div>
+                <div
+                  className="wh-cols"
+                  style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', marginTop: 32 }}
+                >
+                  <div className="wh-col-left wh-anim" style={{ '--anim-d': '240ms' }}>{userBlock}</div>
+                  <div className="wh-col-right wh-anim" style={{ '--anim-d': '320ms' }}>{knowBlock}</div>
                 </div>
-              </div>
+              </>
             )}
           </>
         )
@@ -1994,7 +2116,12 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
   const durStr = dur ? `${Math.floor(dur / 60)}:${String(Math.floor(dur % 60)).padStart(2, '0')}` : null;
   const dateStr = latest?.date || null;
   const isThisPlaying = playerState?.trackTitle === track.title && !!playerState?.isPlaying;
-  const showDots = hover || menuOpen;
+  // Anciennement gated par hover — provoquait un decalage du bouton
+  // "Analyse" quand la souris arrivait sur la row (les ⋯ s'inseraient
+  // a droite et poussaient tout vers la gauche). On laisse maintenant
+  // les ⋯ toujours visibles ; couleur soft baissee pour qu'ils ne
+  // dominent pas en dehors du hover.
+  const showDots = true;
 
   return (
     <div
@@ -2089,11 +2216,14 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
         </span>
       </button>
 
-      {/* Info */}
+      {/* Info — durée à côté du titre ("Your Song · 3:54"), nb de
+          versions seul sur la ligne du dessous. */}
       <div className="wh-track-info">
-        <div className="wh-track-title">{track.title}</div>
+        <div className="wh-track-title">
+          <span>{track.title}</span>
+          {durStr && <span className="wh-track-title-dur"> · {durStr}</span>}
+        </div>
         <div className="wh-track-meta">
-          {durStr && <>{durStr} · </>}
           {track.versions?.length || 1} {(track.versions?.length || 1) > 1 ? s.home.versionPlural : s.home.versionSingular}
         </div>
       </div>
@@ -2108,7 +2238,9 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
         </button>
       )}
 
-      {/* Menu ⋯ */}
+      {/* Menu ⋯ — toujours visible (même hors hover), avec une opacité
+          basse au repos et bumpée sur hover row pour rester discret
+          sans provoquer de layout shift quand la souris arrive. */}
       {showDots && (
         <button
           ref={btnRef}
@@ -2117,9 +2249,12 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
           style={{
             width: 26, height: 26, borderRadius: 6,
             background: menuOpen ? 'rgba(245,176,86,.15)' : 'transparent',
-            border: 'none', color: '#c5c5c7', cursor: 'pointer',
+            border: 'none',
+            color: menuOpen ? '#f5b056' : (hover ? '#c5c5c7' : 'rgba(197,197,199,0.45)'),
+            cursor: 'pointer',
             padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 14, lineHeight: 1, marginLeft: 4,
+            transition: 'color .15s, background .15s',
           }}
         >⋯</button>
       )}
@@ -3311,8 +3446,12 @@ function VersionsAppAuthed() {
     if (track?.projectId) setCurrentProjectId(track.projectId);
     setPrefillTitle(track.title);
     setAutoSelectTrackTitle(track.title);
-    setAnalysisResult(null);
-    setConfig(null);
+    // IMPORTANT : on ne nettoie PAS analysisResult/config ici. Sinon,
+    // depuis une fiche d'analyse, cliquer "Nouvelle version" wipe la
+    // fiche courante AVANT que l'utilisateur ne valide l'upload — si
+    // on annule la modale, on retombe sur une fiche vide ("page
+    // factice"). Le nettoyage se fait naturellement quand handleAnalyze
+    // tourne (setConfig + setAnalysisResult avant setScreen('loading')).
     setAddModalCtx({ mode: 'add-version', trackId: track?.id });
     setHomeAddOpen(true);
   };
@@ -3821,7 +3960,7 @@ function VersionsAppAuthed() {
                  - fiche : 920px (un poil plus étroit pour laisser de
                    la place au chat anchored qui flotte à droite en
                    position:fixed sans être dans la colonne) */
-              <div style={{ width: "100%", maxWidth: screen === 'fiche' ? 920 : 1080, margin: "0 auto", padding: "0 24px", display: "flex", flexDirection: "column" }}>
+              <div style={{ width: "100%", maxWidth: 920, margin: "0 auto", padding: "0 24px", display: "flex", flexDirection: "column" }}>
                 {renderContent()}
               </div>
             ) : (
@@ -3849,6 +3988,23 @@ function VersionsAppAuthed() {
             playlist={playerState?.playlist}
             currentIdx={playerState?.currentIdx}
           />
+          )}
+
+          {/* Pill "Ajouter" — miroir gauche du chat pill, statique
+              (ne s'anime pas tout seul, ne réagit qu'au hover). Click
+              ouvre la modale d'ajout (projet / titre / version). Visible
+              sur tous les écrans authentifiés sauf MINIMAL_SCREENS.
+              Refonte 2026-04-30bis : tous les layouts authentifiés
+              partagent maintenant la largeur 920px (fiche + dashboard
+              + autres), donc layoutWidth fixé à 'fiche'. */}
+          {!isMinimalScreen && !!user && (
+            <AddPill
+              onOpen={() => setHomeAddOpen(true)}
+              isOpen={homeAddOpen}
+              layoutWidth="fiche"
+              label={s.common?.add || 'Ajouter'}
+              placeholder={s.common?.addPillPlaceholder || 'Projet, titre, version'}
+            />
           )}
 
           {/* BottomNav retiré — remplacé par le hamburger menu */}

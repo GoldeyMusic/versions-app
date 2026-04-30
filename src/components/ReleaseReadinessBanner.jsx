@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { computeReleaseReadiness } from '../lib/ficheHelpers.jsx';
 import useLang from '../hooks/useLang';
 
@@ -21,7 +20,7 @@ import useLang from '../hooks/useLang';
  * Si la fiche n'a pas de globalScore exploitable, le bandeau n'est pas
  * rendu (on ne veut pas bruiter une analyse encore en cours de stream).
  */
-export default function ReleaseReadinessBanner({ fiche, completedItems, open: openProp, onToggle, uploadType = 'master' }) {
+export default function ReleaseReadinessBanner({ fiche, completedItems, open: openProp, onToggle, uploadType = 'master', onOpenChat }) {
   const { s } = useLang();
   const r = computeReleaseReadiness(fiche, completedItems);
   // Lookup helpers : on bascule entre les deux familles de strings ("sortie"
@@ -82,40 +81,20 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
         : 'Score sous le seuil — encore du chemin avant la sortie.',
     );
   })();
-  // Mode contrôlé optionnel : si `open`/`onToggle` sont fournis (cf.
-  // SampleFicheScreen / accordéon strict), on s'aligne dessus. Sinon, état
-  // interne classique (vraie fiche : fermé par défaut, l'utilisateur déplie
-  // s'il veut voir les bloquants détaillés).
-  const [openInternal, setOpenInternal] = useState(false);
-  const isControlled = typeof openProp === 'boolean';
-  const open = isControlled ? openProp : openInternal;
-  // null safety : si la fiche n'a pas de score (stream partiel), on attend.
+  // Refonte 2026-04-30bis : le verdict de sortie est maintenant
+  // TOUJOURS déployé (plus de toggle collapsible). Les bloquants sont
+  // visibles d'office pour que l'utilisateur les voie sans avoir à
+  // cliquer. Les props `open`/`onToggle` sont ignorées (gardées dans
+  // la signature pour compat mais sans effet).
   if (!fiche || r.score == null) return null;
 
   const cfg = TIER_CONFIG[r.tier];
   const blockerCount = r.blockers.length;
   const hasBlockers = blockerCount > 0;
-  const showToggle = hasBlockers && r.tier !== 'ready';
-  const handleToggle = () => {
-    if (onToggle) onToggle();
-    if (!isControlled) setOpenInternal((v) => !v);
-  };
 
   return (
-    <section className={`release-readiness rr-${r.tier}`} aria-label={s.fiche?.releaseAriaLabel || 'État de sortie'}>
-      <div
-        className="rr-head"
-        role={showToggle ? 'button' : undefined}
-        tabIndex={showToggle ? 0 : -1}
-        onClick={showToggle ? handleToggle : undefined}
-        onKeyDown={showToggle ? (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleToggle();
-          }
-        } : undefined}
-        style={{ cursor: showToggle ? 'pointer' : 'default' }}
-      >
+    <section className={`release-readiness rr-${r.tier} is-always-open`} aria-label={s.fiche?.releaseAriaLabel || 'État de sortie'}>
+      <div className="rr-head">
         <span className="rr-icon" aria-hidden="true">
           <Icon kind={cfg.icon} />
         </span>
@@ -124,16 +103,9 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
           <span className="rr-label">{tierLabel}</span>
           <span className="rr-sub">{subText}</span>
         </span>
-        {showToggle && (
-          <span className={`rr-chev${open ? ' open' : ''}`} aria-hidden="true">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M3 4.5l3 3 3-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-        )}
       </div>
 
-      {open && hasBlockers && (
+      {hasBlockers && (
         <ul className="rr-blockers">
           {r.blockers.map((b, i) => (
             <li key={i} className={`rr-blocker rr-blocker-${b.kind}`}>
@@ -150,6 +122,33 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
             </li>
           ))}
         </ul>
+      )}
+
+      {/* CTA "Parlons-en dans le chat" — posé à l'intérieur du
+          bandeau verdict, sous la liste des bloquants quand il y en a.
+          Visible aussi en mode "ready" (pas de bloquants) pour inviter
+          à creuser même un mix qui passe le seuil. */}
+      {onOpenChat && (
+        <button
+          type="button"
+          className="rr-chat-cta"
+          onClick={onOpenChat}
+          aria-label={s.fiche?.diagChatCta || 'Parlons-en dans le chat'}
+        >
+          <span className="rr-chat-cta-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M21 12a8.5 8.5 0 0 1-12.39 7.55L4 21l1.45-4.61A8.5 8.5 0 1 1 21 12z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
+          <span className="rr-chat-cta-label">
+            {s.fiche?.diagChatCta || 'Parlons-en dans le chat'}
+          </span>
+          <span className="rr-chat-cta-arrow" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
+        </button>
       )}
 
       <Styles />
@@ -308,6 +307,46 @@ function Styles() {
         color: var(--muted, rgba(255,255,255,0.5));
       }
       .rr-blocker-score .rr-blocker-text { color: var(--rr-accent); }
+
+      /* CTA "Parlons-en dans le chat" — discret link-style, posé en
+         bas du bandeau verdict. Pas pleine largeur, pas de glow, juste
+         une icône bulle + label + flèche en amber soft. Hover : couleur
+         plus marquée et flèche qui glisse. */
+      .rr-chat-cta {
+        display: inline-flex; align-items: center;
+        gap: 8px;
+        margin: 12px 0 0 46px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        color: rgba(245,166,35,0.78);
+        font-family: var(--body);
+        font-size: 12.5px; font-weight: 500;
+        letter-spacing: 0;
+        cursor: pointer;
+        transition: color .15s;
+      }
+      .rr-chat-cta:hover {
+        color: var(--amber);
+      }
+      .rr-chat-cta-icon {
+        display: inline-flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        opacity: 0.85;
+        transition: opacity .15s;
+      }
+      .rr-chat-cta:hover .rr-chat-cta-icon { opacity: 1; }
+      .rr-chat-cta-label { line-height: 1; }
+      .rr-chat-cta-arrow {
+        display: inline-flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        opacity: 0.7;
+        transition: opacity .15s, transform .2s;
+      }
+      .rr-chat-cta:hover .rr-chat-cta-arrow {
+        opacity: 1;
+        transform: translateX(3px);
+      }
 
       @media (max-width: 768px) {
         .release-readiness { padding: 12px 14px; }

@@ -198,6 +198,11 @@ export default function MockupStyles() {
   .wh-anim.wh-anim-in {
     opacity: 1;
     transform: none;
+    /* Une fois l'animation passée, on libère will-change : il garde
+       sinon un stacking context permanent qui isole les z-index des
+       enfants (le menu 3-points d'un titre se faisait masquer par les
+       sections sœurs sous le bloc projets). */
+    will-change: auto;
   }
   @media (prefers-reduced-motion: reduce) {
     .wh-anim {
@@ -3982,6 +3987,63 @@ export default function MockupStyles() {
   .priority.collapsible:hover { border-color: var(--border); background: var(--s1); transform: none; }
   .priority.collapsible.open:hover { border-color: #f5b05655; background: var(--s1); }
 
+  /* ── CTA "Parlons-en dans le chat" — pill posée sous le diagnostic
+     pour inviter à creuser les recommandations dans le chat. Pleine
+     largeur de la colonne contenu, glow amber subtil + lift hover. */
+  .diag-chat-cta {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px;
+    width: 100%;
+    margin: 22px 0 8px;
+    padding: 18px 24px;
+    border-radius: 14px;
+    background: rgba(245,166,35,0.06);
+    border: 1px solid rgba(245,166,35,0.30);
+    color: var(--amber);
+    cursor: pointer;
+    font-family: var(--body);
+    font-size: 15px; font-weight: 500;
+    letter-spacing: -0.1px;
+    box-shadow: 0 16px 40px -22px rgba(245,166,35,0.45);
+    transition: background .2s, border-color .2s, box-shadow .2s, transform .15s;
+  }
+  .diag-chat-cta:hover {
+    background: rgba(245,166,35,0.12);
+    border-color: rgba(245,166,35,0.55);
+    box-shadow: 0 22px 48px -18px rgba(245,166,35,0.55);
+    transform: translateY(-1px);
+  }
+  .diag-chat-cta-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(245,166,35,0.14);
+    color: var(--amber);
+    flex-shrink: 0;
+  }
+  .diag-chat-cta:hover .diag-chat-cta-icon {
+    background: var(--amber);
+    color: var(--black, #0a0a0c);
+  }
+  .diag-chat-cta-label {
+    flex: 1;
+    text-align: left;
+  }
+  .diag-chat-cta-arrow {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    color: var(--muted);
+    flex-shrink: 0;
+    transition: background .2s, color .2s, transform .2s;
+  }
+  .diag-chat-cta:hover .diag-chat-cta-arrow {
+    background: var(--amber);
+    color: var(--black, #0a0a0c);
+    transform: translateX(3px);
+  }
+
   /* ── Notes perso (1 par fiche) — placées dans col-plan, à la suite du Plan d'action ── */
   .notes-section {
     margin-top: 22px;
@@ -5085,6 +5147,220 @@ export default function MockupStyles() {
   .chat-fab { display: none; }
   .chat-rail { display: none; }
 
+  /* ── Pill "Ajouter" (refonte 2026-04-30bis) ─────────────────────
+     Miroir gauche du .chat-pill : même grammaire visuelle (rond 56px
+     en collapsed, expand à 280px au hover, glassmorphism amber-tinted)
+     mais positionnée à GAUCHE et SANS animation auto. La pill ne
+     bouge que sur hover/focus ; pas de cycle peek qui s'ouvre tout
+     seul (David : "il ne s'anime pas tout seul si on ne le survole
+     pas"). Click ouvre la modale d'ajout (projet / titre / version). */
+  .add-pill-wrap {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    /* Largeur = moitié de l'espace libre à gauche du contenu centré.
+       --app-content-w est piloté par App.jsx via une classe sur body :
+       fiche → 920px, dashboard → 1080px. Sans ça, la pill paraissait
+       trop à droite sur le dashboard (qui a un contenu plus large
+       donc moins d'espace libre à gauche). */
+    width: max(0px, calc((100vw - var(--app-content-w, 920px)) / 2));
+    pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+    /* Padding-left décale la pill vers la DROITE (vers le contenu).
+       60 = sweet spot trouvé en alternant fiche/dashboard : sur la
+       fiche elle reste lisiblement vers le contenu, sur le dashboard
+       elle ne déborde plus à droite. */
+    padding-left: 60px;
+    z-index: 100;
+  }
+  .add-pill {
+    position: relative;
+    pointer-events: auto;
+    /* Compact = icône + label "Ajouter" tight, sans espace mort à
+       droite (la flèche cta est repliée à width:0 en compact). Hover
+       expand révèle le placeholder + déplie la flèche cta. */
+    width: 142px;
+    /* flex-shrink: 0 IMPORTANT — la pill est dans un wrap flex parfois
+       plus étroit qu'elle (dashboard avec contenu 1080 sur viewport
+       moyen), si on laisse le shrink par défaut elle se contracte au
+       lieu de s'ouvrir à 320px. La pill peut déborder visuellement du
+       wrap, c'est OK (cf. chat-pill qui fait pareil à droite). */
+    flex-shrink: 0;
+    display: inline-flex; align-items: center;
+    gap: 10px;
+    /* Padding asymétrique : 12 à gauche, 16 à droite pour que la
+       flèche cta ne colle pas la bordure quand elle apparaît au hover. */
+    padding: 12px 16px 12px 12px;
+    background: rgba(20, 20, 22, 0.78);
+    border: 1px solid rgba(245, 166, 35, 0.32);
+    border-radius: 999px;
+    color: var(--soft);
+    cursor: pointer;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 12px 40px -12px rgba(0,0,0,0.55), 0 0 0 0 rgba(245, 166, 35, 0);
+    overflow: hidden;
+    white-space: nowrap;
+    /* PAS d'animation auto — on n'a que la transition width au hover.
+       Easing standard non-bouncy (Material .4,0,.2,1) : pas d'overshoot
+       à la fermeture qui faisait paraître la flèche flasher trop vite
+       à gauche. Bouncy seulement à l'OUVERTURE via la règle :hover. */
+    transition:
+      width .35s cubic-bezier(.4, 0, .2, 1),
+      border-color .2s, box-shadow .2s, background .2s;
+  }
+  .add-pill:hover, .add-pill:focus-visible {
+    /* 290 = tout juste de quoi afficher "+ Ajouter Projet, titre, version"
+       sans ellipsis. Calé tight pour ne pas déborder inutilement. */
+    width: 290px;
+    border-color: rgba(245, 166, 35, 0.55);
+    box-shadow: 0 16px 48px -12px rgba(0,0,0,0.65), 0 0 32px -8px rgba(245, 166, 35, 0.32);
+    background: rgba(28, 24, 20, 0.85);
+    outline: none;
+    /* À l'ouverture : bouncy easing pour que la pill "pop" en place.
+       Ce transition prime sur celui de la base (vers la transition de
+       l'état entré, ici hover). À la fermeture, c'est la base qui
+       s'applique → pas de bounce. */
+    transition:
+      width .5s cubic-bezier(.34, 1.45, .64, 1),
+      border-color .2s, box-shadow .2s, background .2s;
+  }
+  .add-pill-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: 999px;
+    background: rgba(245, 166, 35, 0.14);
+    color: var(--amber);
+    flex-shrink: 0;
+    transition: background .2s, color .2s;
+  }
+  .add-pill:hover .add-pill-icon, .add-pill:focus-visible .add-pill-icon {
+    background: var(--amber);
+    color: var(--black);
+  }
+  /* Label "Ajouter" — visible en mode compact, ne se masque jamais.
+     Couleur amber pour le rendre identifiable comme action principale.
+     Évolue de amber soft à amber plein au hover. */
+  .add-pill-label {
+    flex-shrink: 0;
+    font-family: var(--body); font-size: 14px; font-weight: 500;
+    color: var(--amber);
+    letter-spacing: -0.1px;
+    transition: color .2s;
+  }
+  .add-pill:hover .add-pill-label,
+  .add-pill:focus-visible .add-pill-label {
+    color: #ffd07a;
+  }
+  /* Placeholder = sous-titre détaillé, repliée en compact (largeur 0 +
+     margin négative pour absorber le gap), se déploie au hover en flex:1
+     pour occuper l'espace libéré par l'expansion de la pill. Ce repli
+     évite l'espace mort à droite de "Ajouter" en compact. */
+  .add-pill-placeholder {
+    flex: 0 0 0;
+    width: 0;
+    margin-left: -10px;
+    font-family: var(--body); font-size: 13px; font-weight: 300;
+    color: var(--muted);
+    text-align: left;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    opacity: 0;
+    /* Pareil que .add-pill-cta : flex-basis / width / margin-left
+       changent instantanément, le clip de la pill s'occupe du visuel.
+       Seule l'opacité fait une transition smooth pour le fade. */
+    transition: opacity .35s cubic-bezier(.4, 0, .2, 1);
+  }
+  .add-pill:hover .add-pill-placeholder,
+  .add-pill:focus-visible .add-pill-placeholder {
+    flex: 1;
+    width: auto;
+    margin-left: 0;
+    opacity: 1;
+    /* Pareil que .add-pill-cta : bounce à l'ouverture seulement. */
+    transition:
+      flex-basis .45s cubic-bezier(.34, 1.45, .64, 1),
+      width .45s cubic-bezier(.34, 1.45, .64, 1),
+      margin-left .45s cubic-bezier(.34, 1.45, .64, 1),
+      opacity .35s cubic-bezier(.4, 0, .2, 1);
+  }
+  .add-pill-cta {
+    display: inline-flex; align-items: center; justify-content: center;
+    /* En compact : width 0 + margin négatif pour absorber le gap qui la
+       précédait. La flèche est complètement repliée → pas d'espace
+       mort à droite du label "Ajouter". Au hover, elle se déplie à
+       width 28 et regagne son gap.
+       width / margin-left : changement INSTANTANÉ (pas de transition) —
+       la pill qui s'élargit/rétrécit avec overflow:hidden gère le clip
+       visuel. Animer width+margin+opacity en parallèle créait un
+       effet "la flèche file à gauche" en fermeture, distinct du reste. */
+    width: 0; height: 28px;
+    margin-left: -10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.05);
+    color: var(--muted);
+    flex-shrink: 0;
+    opacity: 0;
+    transition:
+      opacity .35s cubic-bezier(.4, 0, .2, 1),
+      background .2s, color .2s;
+  }
+  .add-pill:hover .add-pill-cta, .add-pill:focus-visible .add-pill-cta {
+    width: 28px;
+    margin-left: 0;
+    background: var(--amber);
+    color: var(--black);
+    opacity: 1;
+    /* À l'OUVERTURE seulement : bounce subtle sur width/margin pour
+       que la flèche "pop" en place avec le reste de la pill. À la
+       fermeture, c'est la base qui s'applique → width/margin
+       instantanés, pas de bounce parasite. */
+    transition:
+      width .45s cubic-bezier(.34, 1.45, .64, 1),
+      margin-left .45s cubic-bezier(.34, 1.45, .64, 1),
+      opacity .35s cubic-bezier(.4, 0, .2, 1),
+      background .2s, color .2s;
+  }
+  /* Quand la modale d'ajout est ouverte, on cache la pill (parité
+     visuelle avec body.chat-open .chat-pill). */
+  body.add-modal-open .add-pill {
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+  }
+  /* Largeur de contenu adaptée par écran — pilote la position de la
+     pill via .add-pill-wrap. Fiche fait 920px, dashboard fait 1080px
+     (cf. App.jsx maxWidth des 2 layouts). Sans ça, la pill paraît
+     trop à droite sur le dashboard (ou trop à gauche sur la fiche
+     si on calait la formule sur 1080). */
+  body.app-layout-fiche { --app-content-w: 920px; }
+  body.app-layout-dashboard { --app-content-w: 1080px; }
+  /* Sous 1240px : pas d'espace libre à gauche → on rebascule en
+     bottom-strip pleine largeur (mais à gauche du chat pill qui est
+     aussi en bottom-strip via son @media). */
+  @media (max-width: 1240px) {
+    .add-pill-wrap {
+      top: auto;
+      bottom: 24px;
+      left: 16px;
+      width: auto;
+      height: auto;
+      padding-left: 0;
+      justify-content: flex-start;
+    }
+  }
+  @media (max-width: 480px) {
+    .add-pill {
+      gap: 8px;
+      padding: 8px;
+      width: 138px;
+    }
+    .add-pill:hover, .add-pill:focus-visible { width: calc(100vw - 24px); max-width: 320px; }
+    .add-pill-icon { width: 28px; height: 28px; }
+    .add-pill-label { font-size: 13px; }
+    .add-pill-placeholder { font-size: 12.5px; }
+  }
+
   /* ── Chat rail (variante B 2026-04-30) ─────────────────────────
      Strip fin collé au bord droit du viewport, vertical. Icône
      chat ambre + label "Demander" en texte vertical (writing-mode).
@@ -5373,6 +5649,9 @@ export default function MockupStyles() {
   /* Titre "Mes projets" en desktop — même recette eyebrow que les titres
      de section de la colonne droite (.wh-rcol-title) : mono 10.5px,
      letter-spacing 2.2px, uppercase, pastille amber en tête. */
+  /* Titre "Mes projets" — eyebrow mono uppercase au-dessus de la pile
+     de cards. Plus dans la grille (le panneau projects est maintenant
+     flex-column, pas grid). */
   .wh-desktop .wh-projects-title {
     display: flex; align-items: center; gap: 10px;
     font-family: var(--mono);
@@ -5382,9 +5661,9 @@ export default function MockupStyles() {
     line-height: 1;
     color: var(--text);
     text-transform: uppercase;
-    padding: 16px 18px 14px;
+    padding: 4px 4px 12px;
     margin: 0;
-    border-bottom: 1px solid var(--border);
+    border-bottom: none;
   }
   .wh-desktop .wh-projects-title::before {
     content: '';
@@ -5395,10 +5674,6 @@ export default function MockupStyles() {
     font-family: inherit; font-size: inherit; font-weight: inherit;
     letter-spacing: inherit; font-style: normal;
     color: inherit; text-transform: inherit;
-  }
-  /* La 1re row n'a plus besoin d'arrondis au sommet (le titre coiffe le panneau) */
-  .wh-desktop .wh-projects-title + .wh-acc-item:first-of-type {
-    border-top-left-radius: 0; border-top-right-radius: 0;
   }
   /* Colonne gauche sans cap : elle occupe toute la largeur disponible,
      les tips à droite s'étaleront moins en hauteur. */
@@ -5902,6 +6177,17 @@ export default function MockupStyles() {
     display: flex; flex-direction: column; gap: 12px;
     transition: border-color .25s, transform .25s;
   }
+  /* Refonte 2026-04-30bis : rotation subtile sur les 2 gros panneaux
+     Recommandations + Saviez-vous pour donner du caractère à la grille,
+     sans toucher aux cards internes (qui restent droites pour rester
+     lisibles). Hover : on redresse pour le petit effet de réaction et
+     pour ne pas faire bouger le contenu pendant l'interaction. */
+  .wh-col-left > .wh-rcol-section { transform: rotate(-1deg); }
+  .wh-col-right > .wh-rcol-section { transform: rotate(1deg); }
+  .wh-col-left > .wh-rcol-section:hover,
+  .wh-col-right > .wh-rcol-section:hover {
+    transform: rotate(0deg) translateY(-2px);
+  }
   /* Halo discret sur chaque panneau (amber pour "Toi", violet pour "Le saviez-vous").
      Bumpé pour être plus présent (0.06/0.07 → 0.10/0.12) et intensifié au hover. */
   .wh-rcol-section::after {
@@ -5941,9 +6227,25 @@ export default function MockupStyles() {
   }
   .wh-rcol-dot-violet { background: var(--violet); }
 
-  /* Stack des cartes à l'intérieur d'une section. */
+  /* Cartes à l'intérieur d'une section.
+     Refonte 2026-04-30bis : maintenant que les sections Recommandations
+     et Saviez-vous sont en 50/50 sous le bloc projets pleine largeur,
+     un simple stack vertical donnait deux colonnes hautes et creuses.
+     On bascule en grille 2-col asymétrique : les 2 premières cards en
+     haut côte à côte, la 3ᵉ s'étend sur toute la largeur en dessous.
+     Cards droites (pas de rotation) — seul le panneau parent
+     .wh-rcol-section reçoit une légère rotation pour donner le ton. */
   .wh-rcol-cards {
-    display: flex; flex-direction: column; gap: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .wh-rcol-cards > .wh-card:nth-child(3n) {
+    grid-column: 1 / -1;
+  }
+  @media (max-width: 980px) {
+    .wh-rcol-cards { grid-template-columns: 1fr; }
+    .wh-rcol-cards > .wh-card:nth-child(3n) { grid-column: auto; }
   }
 
   /* Titre cliquable (carte "Dernier titre analysé") : on neutralise
@@ -6304,6 +6606,13 @@ export default function MockupStyles() {
     font-family: var(--body); font-size: 14px; font-weight: 400;
     color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  /* Suffixe durée collé au titre — couleur muted pour discrétion,
+     même family/size pour rester aligné, pas de letter-spacing
+     particulier (le séparateur "·" donne déjà le rythme visuel). */
+  .wh-track-title .wh-track-title-dur {
+    color: var(--muted);
+    font-weight: 400;
+  }
   .wh-track-date {
     font-family: var(--mono); font-size: 12px; color: var(--muted);
     flex-shrink: 0; white-space: nowrap; letter-spacing: 0.3px;
@@ -6548,57 +6857,35 @@ export default function MockupStyles() {
      menu versions) déborder proprement. Le halo est intégré au background
      (radial-gradient) au lieu d'un ::before blur, pour que la lueur reste
      dans les limites du panneau sans clipping. */
+  /* "Mes projets" — pile de cards pleine largeur (refonte 2026-04-30ter).
+     Précédente version : grid auto-fill 2-col qui laissait des demi-colonnes
+     vides quand peu de projets et faisait swiper le drag-n-drop entre
+     colonnes (mental model "playlist" cassé). On repasse en stack vertical :
+     - 1 card par rangée, full width
+     - mono-open strict (1 seul ouvert à la fois)
+     - card ouverte : hero header (cover bigger + nom big + meta band)
+       + liste tracks en dessous, 1 par ligne. Inspiré du pattern Mixup
+       adapté au contexte Versions (pas de comments / download). */
   .wh-projects {
-    display: flex; flex-direction: column;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     width: 100%;
-    /* Fond uni — les halos sont appliqués via ::before / ::after pour rester
-       accrochés aux coins physiques du panneau (sinon, quand un projet est
-       déplié, le panneau s'allonge et un halo en % bave au milieu des rows). */
-    background: var(--s1);
-    border: 1px solid var(--border);
-    border-radius: 14px;
     padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
     position: relative;
-    transition: border-color .25s, transform .25s;
   }
-  /* Hover discret — léger lift, bordure plus visible. Pas de transform
-     trop marqué parce que le panneau est haut et ses items ont leurs
-     propres hover states. */
-  .wh-projects:hover {
-    border-color: rgba(255,255,255,0.16);
-    transform: translateY(-2px);
+  /* Quand un menu (projet ou titre) est ouvert dans la grille, on monte
+     toute la grille au-dessus des sections sœurs (Recommandations, Le
+     saviez-vous) — sinon la card .wh-rcol-section a son propre stacking
+     context (position: relative + descendants z-index:1) et masque le
+     dropdown qui dépasse de la card projet. */
+  .wh-projects:has(.wh-acc-item.menu-open),
+  .wh-projects:has(.wh-track-row.menu-open) {
+    z-index: 20;
   }
-  /* Halo ambre en bas-droite — taille fixe, accroché aux coins. Tient dans
-     la boîte donc pas besoin de overflow:hidden (les dropdowns restent OK).
-     Bumpé (0.09 → 0.13) pour s'aligner sur la nouvelle intensité des
-     panneaux droits, et légèrement intensifié au hover. */
-  .wh-projects::before {
-    content: '';
-    position: absolute;
-    right: 0; bottom: 0;
-    width: 280px; height: 200px;
-    background: radial-gradient(ellipse at bottom right,
-      rgba(245,166,35,0.13), transparent 70%);
-    border-bottom-right-radius: inherit;
-    pointer-events: none;
-    z-index: 0;
-    transition: opacity .25s, filter .25s;
-  }
-  .wh-projects:hover::before { filter: brightness(1.2); }
-  /* Halo cerulean en haut-gauche — plus doux, accroché au coin. */
-  .wh-projects::after {
-    content: '';
-    position: absolute;
-    left: 0; top: 0;
-    width: 240px; height: 160px;
-    background: radial-gradient(ellipse at top left,
-      rgba(92,184,204,0.06), transparent 70%);
-    border-top-left-radius: inherit;
-    pointer-events: none;
-    z-index: 0;
-  }
-  /* Les enfants passent au-dessus des halos. */
-  .wh-projects > * { position: relative; z-index: 1; }
   /* Teintes projet (valeurs RGB, alpha appliqué plus bas).
      Correspondent à la couleur claire du gradient de chaque teinte. */
   .wh-tint-0 { --project-tint: 198, 161, 91;  }  /* 0 ambre  */
@@ -6608,42 +6895,78 @@ export default function MockupStyles() {
   .wh-tint-4 { --project-tint: 198, 91, 91;   }  /* 4 rouge  */
   .wh-tint-5 { --project-tint: 140, 140, 160; }  /* 5 gris   */
 
-  /* Chaque projet est une LIGNE du panneau (v4-project-row) — pas de card
-     individuelle. Séparées par un border-bottom très discret. */
+  /* Card projet — chaque item est une cellule de la grille .wh-projects.
+     Refonte 2026-04-30bis : on quitte le pattern "row dans un panneau
+     unique" (l'ancien v4-project-row) pour une vraie grille de cards.
+     Chaque card a son propre fond + bordure + lift hover. */
   .wh-acc-item {
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    border-radius: 0;
-    transition: background 0.2s ease;
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+    transition: transform .2s ease, border-color .2s, box-shadow .2s, background .2s;
   }
-  .wh-acc-item:last-child { border-bottom: none; }
-  /* Coins arrondis sur la 1re et dernière row pour qu'elles épousent
-     le border-radius du panneau — évite le liseré plat au sommet/au bas
-     quand la row est tintée (mode ouvert). */
-  .wh-acc-item:first-child { border-top-left-radius: 13px; border-top-right-radius: 13px; }
-  .wh-acc-item:last-child { border-bottom-left-radius: 13px; border-bottom-right-radius: 13px; }
-  .wh-acc-item:hover { background: rgba(255,255,255,0.02); }
+  .wh-acc-item:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.18);
+    box-shadow: 0 14px 30px -18px rgba(0,0,0,0.6);
+  }
+  /* Mode ouvert — la card prend toute la largeur (déjà le cas en stack
+     vertical) et change d'allure pour signaler l'état actif. Le fond
+     passe en s2 (un poil plus clair) + bordure ambre légère + box-shadow
+     plus marquée pour donner de la profondeur. Le hero header prend
+     l'identité visuelle du projet (cover + name big), tracks en dessous. */
+  .wh-acc-item.open {
+    background:
+      linear-gradient(180deg, rgba(245,166,35,0.04), transparent 40%),
+      var(--s2, rgba(255,255,255,0.02));
+    border-color: rgba(245,166,35,0.28);
+    transform: none;
+    box-shadow: 0 18px 40px -22px rgba(0,0,0,0.7);
+  }
+  .wh-acc-item.open:hover {
+    transform: none; /* on ne lève pas la card ouverte (elle est posée) */
+    border-color: rgba(245,166,35,0.42);
+  }
+  /* Hero header — quand la card est ouverte, le head devient plus
+     généreux : cover passe à 64px, padding plus large, nom du projet
+     plus gros. Ressort visuellement la sélection sans casser la grille
+     verticale. Le score à droite reste à sa place habituelle. */
+  .wh-acc-item.open .wh-acc-head {
+    padding: 18px 20px;
+    grid-template-columns: 64px 1fr auto;
+    gap: 18px;
+  }
+  .wh-acc-item.open .wh-acc-cover {
+    width: 64px; height: 64px;
+    border-radius: 14px;
+  }
+  .wh-acc-item.open .wh-acc-name {
+    font-family: var(--body); font-size: 20px; font-weight: 600;
+    letter-spacing: -0.4px;
+  }
+  .wh-acc-item.open .wh-acc-meta {
+    font-size: 10.5px; letter-spacing: 1.4px;
+    margin-top: 6px;
+  }
+  /* Score plus gros aussi en mode ouvert pour rester proportionné. */
+  .wh-acc-item.open .wh-acc-score {
+    font-size: 32px;
+    letter-spacing: -1px;
+  }
   /* Quand le menu 3-points est ouvert sur un projet fermé, on laisse le
-     menu déborder hors de la ligne (sinon overflow:hidden le tronque et
-     on ne voit que la première option). */
+     menu déborder hors de la card (sinon overflow:hidden le tronque). */
   .wh-acc-item.menu-open {
     overflow: visible;
-    position: relative;
     z-index: 5;
   }
   /* Quand un menu 3-points de TITRE (à l'intérieur d'un projet ouvert)
      est ouvert, on élève le projet parent au-dessus des siblings suivants
-     pour que son popup ne passe pas derrière les scores /100 en dessous.
-     Les siblings ont eux aussi z-index:1 (via .wh-projects > *), ils
-     peindraient sinon par-dessus en source order. */
+     pour que son popup ne passe pas derrière les scores /100 en dessous. */
   .wh-acc-item:has(.wh-track-row.menu-open) {
     z-index: 6;
-  }
-  /* Mode ouvert : pas de surbrillance — le projet déplié reste sur le même
-     fond que les autres (éviter la démarcation en haut de ligne ouverte). */
-  .wh-acc-item.open {
-    background: transparent;
+    overflow: visible;
   }
   /* ── Ligne projet compacte (alignée sur v4-project-row de la maquette) ─
      Swatch 36x36 · body flex · score à droite. Le header reste identique
@@ -6678,13 +7001,34 @@ export default function MockupStyles() {
     text-transform: uppercase; margin-top: 4px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  /* Score à droite — même typo que la maquette (26px bold, coloré selon seuil) */
+  /* Wrapper score à droite — eyebrow "Score moyen" + chiffre.
+     L'eyebrow donne le contexte qui manquait avant. */
+  .wh-acc-score-block {
+    display: flex; flex-direction: column; align-items: flex-end;
+    gap: 2px;
+    margin-right: 26px; /* place pour le menu 3-points (cf .wh-acc-score précédent) */
+  }
+  .wh-acc-score-eyebrow {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    line-height: 1;
+    white-space: nowrap;
+  }
+  /* Tinte l'eyebrow avec la couleur du tier — discret rappel du score. */
+  .wh-acc-score-block.good .wh-acc-score-eyebrow { color: rgba(142,224,122,0.65); }
+  .wh-acc-score-block.mid .wh-acc-score-eyebrow { color: rgba(245,166,35,0.65); }
+  .wh-acc-score-block.low .wh-acc-score-eyebrow { color: rgba(255,93,93,0.65); }
+  /* Score à droite — même typo que la maquette (26px bold, coloré selon seuil).
+     Le margin-right est porté par .wh-acc-score-block maintenant, pas ici. */
   .wh-acc-score {
     font-family: var(--body); font-weight: 600;
     font-size: 26px; line-height: 1;
     letter-spacing: -0.8px;
     color: var(--muted2);
-    margin-right: 26px; /* place pour le menu 3-points (28px - 16 padding-head + 4 marge) */
   }
   .wh-acc-score.good { color: var(--mint); }
   .wh-acc-score.mid { color: var(--amber); }
@@ -6753,9 +7097,19 @@ export default function MockupStyles() {
   .wh-head-btn.ghost { color: var(--muted); }
   .wh-head-btn.danger:hover { color: var(--red); border-color: var(--red); }
 
+  /* Liste des titres — 1 titre par ligne, full width.
+     Le 2-col grid était joli pour absorber 12 titres mais cassait le
+     mental model "playlist = liste verticale ordonnée" et rendait le
+     drag-n-drop des titres confus (l'ordre serpente entre les colonnes
+     plutôt que descendre droit). On revient au stack vertical qui
+     est l'archétype playlist universel. L'espace gauche/droite vide
+     une fois la card projet ouverte est rempli par .wh-project-side
+     (panneau projet à droite). */
   .wh-acc-tracklist {
     margin-top: 16px;
-    display: flex; flex-direction: column; gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
   .wh-acc-empty {
     padding: 24px 0; color: var(--muted); font-size: 14px;
@@ -6997,23 +7351,32 @@ export default function MockupStyles() {
      Overlay fullscreen + panneau centré. Le contenu (ReglagesScreen)
      conserve ses propres styles ; on neutralise juste son padding haut
      et sa largeur max dans le contexte modale pour coller à la grille. */
-  /* Aligné sur .add-mini-backdrop : voile 45% + flou 5px. */
+  /* Aligné sur .add-mini-backdrop : voile 45% + flou 5px.
+     Refonte 2026-04-30bis : centrage vertical (align-items: center)
+     pour que la modale s'affiche au milieu de la page plutôt que
+     collée en haut. Si le contenu dépasse 90vh, max-height + overflow
+     interne sur le panel s'occupent du scroll. */
   .reglages-modal-overlay {
     position: fixed; inset: 0; z-index: 500;
     background: rgba(0,0,0,0.45);
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
-    display: flex; align-items: flex-start; justify-content: center;
-    padding: 5vh 20px 5vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 5vh 20px;
     box-sizing: border-box;
     overflow-y: auto;
     animation: fadein .18s ease;
   }
-  /* Aligné sur .add-mini-card : bordure 14% + halos amber/cerulean. */
+  /* Modale dark — fond éclairci pour créer du contraste avec la
+     page (--bg: #0a0b14). Ancien --s2 #16171e était trop proche du
+     fond et la modale "se confondait". On bump à #2a2d36 → ~3× plus
+     lumineux que le bg, le panneau décolle clairement, sans toucher
+     aux rows/inputs internes (qui restent nettement plus dark à
+     l'intérieur, donnant l'effet "puits inset"). */
   .reglages-modal-panel {
     position: relative; isolation: isolate;
     width: 100%; max-width: 620px;
-    background: var(--bg);
+    background: #2a2d36;
     border: 1px solid rgba(255,255,255,0.14);
     border-radius: 16px;
     box-shadow: 0 24px 60px rgba(0,0,0,0.5);
@@ -7222,10 +7585,17 @@ export default function MockupStyles() {
      la modale Ajouter). Le fond est assez foncé pour couvrir le halo score
      global qui peut se trouver derrière. */
   .reglages-modal-panel.mini-modal {
-    /* Fond volontairement plus sombre que les lignes : dans la maquette
-       les rows ressortent en étant légèrement plus clairs que le panel. */
-    background: #0a0b10;
-    border: 1px solid rgba(255,255,255,0.06);
+    /* Fond éclairci pour décoller du dark page background (#0a0b14).
+       Ancienne valeur #0a0b10 était quasi-identique au fond de page,
+       la modale s'y fondait. Maintenant à #2a2d36 → ~3× plus clair
+       que le bg, panneau qui flotte clairement.
+       Bordure accentuée (rgba 0.22) pour un trait franc qui dessine
+       le contour de la card. */
+    /* Teinte froide bleutée — pose le panneau dans un registre
+       légèrement différent du gris pur, avec une nuance fraîche qui
+       complémente les accents amber. */
+    background: #262b38;
+    border: 1px solid rgba(255,255,255,0.16);
     max-width: 560px;
     overflow: hidden;
   }
@@ -7236,27 +7606,44 @@ export default function MockupStyles() {
 
   .rg-mini {
     position: relative;
-    padding: 26px 28px 22px;
+    padding: 28px 28px 24px;
     display: flex; flex-direction: column; gap: 0;
+  }
+  /* Eyebrow chip pill — même grammaire que .rr-eyebrow / .score-eyebrow
+     de la fiche, .ap-eyebrow du loading. Mono amber, bg amber-tinted,
+     bordure amber subtile. Pas de rotation (règle no-eyebrow-rotation). */
+  .rg-mini .rg-mm-eyebrow {
+    align-self: flex-start;
+    display: inline-flex; align-items: center;
+    font-family: var(--mono);
+    font-size: 9.5px; font-weight: 500;
+    letter-spacing: 1.8px; text-transform: uppercase;
+    color: var(--amber);
+    padding: 4px 11px; border-radius: 999px;
+    background: rgba(245,166,35,0.10);
+    border: 1px solid rgba(245,166,35,0.38);
+    margin-bottom: 10px;
   }
   .rg-mini .rg-mm-head {
     font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px;
     text-transform: uppercase; color: var(--muted);
     margin-bottom: 4px;
   }
+  /* Titre — DM Sans 600 22px, em amber non-italique. */
   .rg-mini .rg-mm-title {
-    font-family: var(--body); font-weight: 600; font-size: 18px;
-    letter-spacing: -0.2px; color: var(--text);
-    margin-bottom: 18px;
+    font-family: var(--body); font-weight: 600; font-size: 22px;
+    letter-spacing: -0.4px; color: var(--text);
+    margin: 0 0 22px;
+    line-height: 1.15;
   }
   .rg-mini .rg-mm-title em {
     font-family: inherit; font-style: normal; font-weight: inherit; color: var(--amber);
   }
 
-  /* Row de réglage */
+  /* Row de réglage — restaure le look d'origine demandé par David :
+     row légèrement plus claire que le panel, avec un subtil highlight
+     haut pour l'effet "surélevé". */
   .rg-mini .rg-row {
-    /* Row légèrement plus claire que le panel, avec un subtil highlight
-       haut pour l'effet "surélevé" de la maquette. */
     display: flex; align-items: center; justify-content: space-between;
     gap: 14px; padding: 12px 14px;
     border-radius: 10px;
@@ -7274,15 +7661,24 @@ export default function MockupStyles() {
     flex-direction: column; align-items: stretch; gap: 10px;
   }
 
+  /* Label = eyebrow mono uppercase au-dessus du contenu de la row,
+     comme les eyebrows de section ailleurs sur le site. Plus
+     hiérarchisé que l'ancien label 13px medium.
+     Sur la modale crème, --rg-text bascule en dark warm. */
   .rg-mini .rg-label {
-    font-family: var(--body); font-size: 13px; font-weight: 500;
+    font-family: var(--mono);
+    font-size: 10.5px; font-weight: 500;
+    letter-spacing: 1.6px; text-transform: uppercase;
     color: var(--text);
     display: flex; align-items: center; gap: 8px;
+    line-height: 1.2;
   }
   .rg-mini .rg-hint {
-    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.5px;
-    color: var(--muted); margin-top: 3px;
-    max-width: 280px;
+    font-family: var(--body); font-size: 12px; font-weight: 300;
+    letter-spacing: 0; text-transform: none;
+    color: var(--muted); margin-top: 4px;
+    max-width: 320px;
+    line-height: 1.4;
   }
 
   /* Toggle pill (FR/EN + notifs) */
@@ -7310,6 +7706,84 @@ export default function MockupStyles() {
     color: var(--cerulean); flex-shrink: 0;
   }
   .rg-mini .rg-value.muted { color: var(--muted); }
+
+  /* Compte : layout 2 niveaux dans une row stack — top = label/email à
+     gauche + crédits/plan/renew à droite, bottom = CTA pleine largeur
+     "Acheter des crédits" (ou "Gérer mon abonnement" si déjà abonné). */
+  .rg-mini .rg-account-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+  }
+  /* Crédits + plan + renew, alignés à droite, en colonne pour
+     hiérarchiser. Crédits = ligne amber DM Sans 600 (action principale),
+     plan = pill outline (premium = amber rempli, free = neutral), renew =
+     ligne mono soft en dessous. */
+  .rg-mini .rg-account-meta {
+    display: flex; flex-direction: column; align-items: flex-end;
+    gap: 6px; flex-shrink: 0;
+    text-align: right;
+  }
+  .rg-mini .rg-account-credits {
+    font-family: var(--body); font-weight: 600; font-size: 14px;
+    color: var(--amber); letter-spacing: -0.1px;
+    line-height: 1;
+  }
+  .rg-mini .rg-account-plan {
+    font-family: var(--mono); font-size: 9.5px; font-weight: 500;
+    letter-spacing: 1.6px; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    line-height: 1;
+  }
+  .rg-mini .rg-account-plan.is-premium {
+    color: var(--amber);
+    background: rgba(245,166,35,0.10);
+    border-color: rgba(245,166,35,0.38);
+  }
+  .rg-mini .rg-account-renew {
+    font-family: var(--mono); font-size: 9px; font-weight: 500;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--muted);
+    line-height: 1.2;
+  }
+  /* CTA "+ Acheter des crédits" — pill amber sur fond dark. */
+  .rg-mini .rg-account-cta {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 11px 18px;
+    border-radius: 999px;
+    background: rgba(245,166,35,0.10);
+    border: 1px solid rgba(245,166,35,0.42);
+    color: var(--amber);
+    font-family: var(--mono);
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 1.6px; text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 12px 30px -16px rgba(245,166,35,0.4);
+    transition: background .18s, border-color .18s, box-shadow .18s, transform .15s;
+  }
+  .rg-mini .rg-account-cta:hover {
+    background: rgba(245,166,35,0.16);
+    border-color: var(--amber);
+    box-shadow: 0 16px 36px -14px rgba(245,166,35,0.55);
+    transform: translateY(-1px);
+  }
+  .rg-mini .rg-account-cta:active {
+    transform: translateY(0);
+  }
+  .rg-account-cta-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: rgba(245,166,35,0.20);
+    color: var(--amber);
+    font-size: 14px; font-weight: 600;
+    line-height: 1;
+  }
 
   /* Avatar compact à droite d'une row */
   .rg-mini .rg-avatar {
@@ -7395,7 +7869,7 @@ export default function MockupStyles() {
     color: var(--soft);
     font-family: var(--mono); font-size: 11px; font-weight: 500;
     letter-spacing: 1.2px; text-transform: uppercase;
-    line-height: 16px;       /* fixe en px → boîte stable pour tous les glyphs */
+    line-height: 16px;
     box-sizing: border-box;
     flex: 0 0 auto;
     cursor: pointer; transition: all .15s;
@@ -7455,14 +7929,18 @@ export default function MockupStyles() {
     display: flex; align-items: center; justify-content: center;
     padding: 16px; font-family: var(--body);
   }
-  /* Card standard : bordure plus marquée (14% blanc) pour détacher du backdrop
-     flouté + halos colorés façon .wh-stat (amber haut-droit, cerulean bas-gauche)
-     pour habiter l'intérieur. overflow-x: hidden contient les halos,
-     overflow-y: auto garde le scroll si le contenu dépasse. */
+  /* Card standard — UNIFIED MODAL TEMPLATE (refonte 2026-04-30bis).
+     Cette card est le modèle commun pour TOUTES les modales du site
+     (AddModal, RenameModal, ConfirmModal, ShareLinkModal, ExportPdfModal,
+     DspEditModal, ReglagesModal qui s'aligne via .reglages-modal-panel.mini-modal).
+     - Fond #262b38 : cool blue tinted, ~3× plus lumineux que --bg
+       (#0a0b14) → la modale décolle clairement de la page.
+     - Bordure 16% blanc : trait franc qui dessine le contour.
+     - Halos amber/cerulean conservés pour habiter l'intérieur. */
   .add-mini-card {
     position: relative; isolation: isolate;
-    background: #0a0b10;
-    border: 1px solid rgba(255,255,255,0.14);
+    background: #262b38;
+    border: 1px solid rgba(255,255,255,0.16);
     border-radius: 14px;
     box-shadow: 0 20px 60px rgba(0,0,0,.6);
     padding: 26px 28px 22px;
@@ -7490,7 +7968,129 @@ export default function MockupStyles() {
     z-index: 0;
   }
   .add-mini-card > * { position: relative; z-index: 1; }
-  .add-mini-card.is-upload { width: 520px; }
+
+  /* Variant UPLOAD — modale d'ajout titre/version (.is-upload).
+     Refonte 2026-04-30bis : on aère cette modale (cruciale pour le
+     onboarding) sans toucher aux autres (rename/confirm/share qui
+     restent compactes). Width bumpée + padding intérieur + tailles
+     typo/inputs revues à la hausse pour respiration et ergonomie. */
+  .add-mini-card.is-upload {
+    width: 600px;
+    padding: 32px 36px 28px;
+  }
+  .add-mini-card.is-upload .add-mini-title { margin-bottom: 22px; }
+  .add-mini-card.is-upload .add-mini-field { margin-bottom: 18px; }
+  .add-mini-card.is-upload .add-mini-field-label {
+    font-size: 11px;
+    letter-spacing: 1.8px;
+    margin-bottom: 9px;
+    /* Couleur amber soft pour que les titres de section ressortent
+       du gros bloc de gris uniforme — donne des "ancres visuelles"
+       qui hiérarchisent la modale sans crier. */
+    color: rgba(245,166,35,0.78);
+  }
+  .add-mini-card.is-upload .add-mini-input,
+  .add-mini-card.is-upload .add-mini-select {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+  .add-mini-card.is-upload .add-mini-select {
+    padding: 12px 36px 12px 14px;
+  }
+  .add-mini-card.is-upload .add-mini-drop {
+    padding: 18px 20px;
+    gap: 14px;
+  }
+  .add-mini-card.is-upload .add-mini-pill {
+    padding: 9px 16px;
+    font-size: 14px;
+  }
+  .add-mini-card.is-upload .add-mini-upload-banner {
+    padding: 12px 14px;
+    margin-bottom: 18px;
+  }
+  .add-mini-card.is-upload .add-mini-upload-banner-name {
+    font-size: 14px;
+  }
+  .add-mini-card.is-upload .add-mini-upload-banner-kicker {
+    font-size: 10px;
+    letter-spacing: 1.6px;
+  }
+  .add-mini-card.is-upload .add-mini-cta {
+    padding: 14px 18px;
+    font-size: 12px;
+    letter-spacing: 1.4px;
+    margin-top: 10px;
+  }
+  .add-mini-card.is-upload .add-mini-intent-toggle {
+    font-size: 14px;
+  }
+
+  /* ── Helpers homogénéisation modale upload ──────────────────────── */
+  /* Grid 2 colonnes (titre + version) */
+  .add-mini-grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  /* Row de pills (vocal type, mix/master, etc.) */
+  .add-mini-pill-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .add-mini-pill-row-sub { margin-top: 8px; }
+  /* Hint sous un champ — DM Sans 300 light, couleur muted, line-height aéré.
+     Utilisé sous le toggle Mix/Master pour expliquer l'impact, etc. */
+  .add-mini-field-hint {
+    margin-top: 10px;
+    font-family: var(--body);
+    font-size: 12.5px;
+    font-weight: 300;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+  /* Drop zone : icone amber/mint, texte body, formats mono */
+  .add-mini-drop-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .add-mini-drop-icon.is-amber { color: var(--amber); }
+  .add-mini-drop-icon.is-mint { color: var(--mint); }
+  .add-mini-drop-text-block { flex: 1; min-width: 0; }
+  .add-mini-drop-text {
+    flex: 1;
+    font-family: var(--body);
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .add-mini-drop-text.is-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .add-mini-drop-formats {
+    margin-top: 4px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  /* Banner projet verrouillé : dot amber + body 1fr + lock icon */
+  .add-mini-upload-banner-dot {
+    font-size: 12px;
+    color: var(--amber);
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .add-mini-upload-banner-body {
+    flex: 1;
+    min-width: 0;
+  }
 
   .add-mini-close {
     position: absolute; top: 14px; right: 14px;

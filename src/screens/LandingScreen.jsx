@@ -143,6 +143,17 @@ export default function LandingScreen({
           </div>
           <p className="lp-hero-sub">{lp.heroSub}</p>
 
+          {/* Badge "Première analyse offerte" — visiteurs non connectés
+              uniquement. Posé juste au-dessus du CTA primaire pour lever
+              la friction "ça coûte combien ?" avant le clic. Style chip
+              pill amber-tinted, mono uppercase, légère rotation -1.5° et
+              pulse subtil sur le dot pour attirer l'œil sans agresser. */}
+          {!isAuthenticated && (
+            <div className="lp-free-badge" role="status" aria-label={lp.freeFirstBadge}>
+              {lp.freeFirstBadge}
+            </div>
+          )}
+
           <div className="lp-cta-row">
             <button type="button" onClick={onStart} className="lp-cta-primary">
               {ctaPrimary}
@@ -541,6 +552,26 @@ function LandingStyles() {
         }
         .lp-slogan .lp-slogan-line { white-space: normal; }
       }
+
+      /* Badge "Première analyse offerte" — chip pill amber posée
+         au-dessus du CTA primary. Système chip cohérent avec .pr-chip
+         et .vside-chip (mono uppercase, bg amber-tinted, bordure amber).
+         Légère rotation -1.5° pour rester dans la grammaire chip
+         globale ; au hover, la chip se redresse. Pas de halo, pas de
+         dot — sobre et discrète. */
+      .lp-free-badge {
+        display: inline-flex; align-items: center;
+        margin: 4px 0 18px;
+        padding: 6px 14px; border-radius: 999px;
+        font-family: ${T.mono}; font-size: 10.5px; font-weight: 500;
+        letter-spacing: 1.8px; text-transform: uppercase;
+        color: ${T.amber};
+        background: rgba(245,166,35,0.10);
+        border: 1px solid rgba(245,166,35,0.42);
+        transform: rotate(-1.5deg);
+        transition: transform .2s ease;
+      }
+      .lp-free-badge:hover { transform: rotate(0deg); }
 
       /* CTA row : primary + optional secondary "Voir un exemple". */
       .lp-cta-row {

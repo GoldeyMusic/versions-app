@@ -87,9 +87,12 @@ export default function AskModal({ onClose }) {
           left: 0,
           right: 0,
           zIndex: 401,
-          background: `${T.s1}e0`,
+          // Aligné sur la modale type (refonte 2026-04-30bis) : fond
+          // #262b38 (cool blue tinted) avec alpha e0 = 88% pour garder
+          // le voile flouté sur l'écran derrière.
+          background: '#262b38e0',
           backdropFilter: 'blur(16px)',
-          borderTop: `1px solid ${T.border}`,
+          borderTop: '1px solid rgba(255,255,255,0.16)',
           borderRadius: '20px 20px 0 0',
           display: 'flex',
           flexDirection: 'column',

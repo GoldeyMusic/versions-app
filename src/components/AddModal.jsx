@@ -97,7 +97,7 @@ export default function AddModal({
   initialContext = null,
   defaultDaw = '',
 }) {
-  const { s } = useLang();
+  const { s, lang } = useLang();
 
   // ── Navigation ─────────────────────────────────────────────
   const [step, setStep] = useState('root');
@@ -142,6 +142,44 @@ export default function AddModal({
   // États du check durée audio (lecture/erreur). file ne devient non-null
   // que si la durée a été lue ET qu'elle est ≤ MAX_AUDIO_DURATION_SEC.
   const [fileChecking, setFileChecking] = useState(false);
+
+  // Placeholders rotatifs — donne du mouvement à la modale et suggère
+  // discrètement la diversité des entrées possibles (genres, versions, etc.).
+  // Cycle toutes les 3.5 s, ne tourne PAS quand le champ est rempli.
+  const TITLE_EXAMPLES = ['Lâcher prise', 'Comme un rêve', 'Living my dreams', 'Tout s’efface', 'Your song'];
+  const VERSION_EXAMPLES = ['v1', 'rough', 'rough mix', 'pre-master', 'master', 'v2 — voix témoins'];
+  const GENRE_EXAMPLES = lang === 'en'
+    ? ['indie pop', 'neo-soul', 'dub-techno', 'lo-fi hip-hop', 'french folk', 'electronic', 'r&b', 'ambient']
+    : ['indie pop', 'néo-soul', 'dub-techno', 'lo-fi hip-hop', 'folk français', 'électro', 'r&b', 'ambient'];
+  const [phRotIdx, setPhRotIdx] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setPhRotIdx((i) => i + 1), 3500);
+    return () => clearInterval(id);
+  }, []);
+  // L'opérateur modulo permet à chaque liste de tourner indépendamment
+  // selon sa propre longueur. On préfixe les version/genre avec leur
+  // amorce ("Ex : ..." pour le genre, etc.) pour rester cohérent.
+  const titlePh = TITLE_EXAMPLES[phRotIdx % TITLE_EXAMPLES.length];
+  const versionPh = VERSION_EXAMPLES[phRotIdx % VERSION_EXAMPLES.length];
+  const genrePh = (lang === 'en' ? 'e.g. ' : 'Ex : ') + GENRE_EXAMPLES[phRotIdx % GENRE_EXAMPLES.length];
+  // Intention artistique — placeholders narratifs qui inspirent l'artiste
+  // sur ce qu'il peut écrire (référence sonore, ambiance, contre-exemple,
+  // direction émotionnelle…). Chaque exemple commence par "Ex : " pour
+  // rester reconnaissable.
+  const INTENT_EXAMPLES = lang === 'en' ? [
+    'e.g. I’m aiming for a Frank Ocean — Blonde sound, not Channel Orange.',
+    'e.g. Warm and intimate, like a folk song recorded at home.',
+    'e.g. Energetic, club-ready, but with melodic vocals up front.',
+    'e.g. I want it to feel cinematic — sparse, wide, slow build.',
+    'e.g. Lo-fi vibe, vinyl crackle, vocals slightly buried.',
+  ] : [
+    'Ex : Je vise un son à la Frank Ocean — Blonde, pas Channel Orange.',
+    'Ex : Chaud et intime, comme un titre folk enregistré à la maison.',
+    'Ex : Énergique, clubby, mais avec la voix qui reste devant.',
+    'Ex : Je veux que ce soit cinématique — minimal, large, build lent.',
+    'Ex : Vibe lo-fi, crackle vinyle, voix légèrement enfouie.',
+  ];
+  const intentPh = INTENT_EXAMPLES[phRotIdx % INTENT_EXAMPLES.length];
   const [fileError, setFileError] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -582,8 +620,8 @@ export default function AddModal({
             </div>
             {/* Bandeau projet verrouillé */}
             <div className="add-mini-upload-banner">
-              <span style={{ fontSize: 12, color: 'var(--amber)' }}>●</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <span className="add-mini-upload-banner-dot" aria-hidden="true">●</span>
+              <div className="add-mini-upload-banner-body">
                 <div className="add-mini-upload-banner-kicker">
                   {uploadCtx.mode === 'add-version' ? s.addModal.uploadAddVersionTo : s.addModal.uploadInProject}
                 </div>
@@ -623,32 +661,26 @@ export default function AddModal({
                 />
                 {fileChecking ? (
                   <>
-                    <span style={{ color: 'var(--amber)', fontSize: 14 }} aria-hidden="true">⏳</span>
-                    <div style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>
+                    <span className="add-mini-drop-icon is-amber" aria-hidden="true">⏳</span>
+                    <div className="add-mini-drop-text">
                       {s.addModal.uploadDurationReading}
                     </div>
                   </>
                 ) : file ? (
                   <>
-                    <span style={{ color: 'var(--mint)', fontSize: 16 }} aria-hidden="true">✓</span>
-                    <div style={{
-                      flex: 1, fontSize: 13, color: 'var(--text)',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{file.name}</div>
+                    <span className="add-mini-drop-icon is-mint" aria-hidden="true">✓</span>
+                    <div className="add-mini-drop-text is-truncate">{file.name}</div>
                   </>
                 ) : (
                   <>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={drag ? 'var(--amber)' : fileError ? 'var(--red, #ff5d5d)' : 'var(--muted)'} strokeWidth="1.6" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={drag ? 'var(--amber)' : fileError ? 'var(--red, #ff5d5d)' : 'var(--muted)'} strokeWidth="1.6" aria-hidden="true">
                       <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
                       <path d="M8 8l4-4 4 4" />
                       <path d="M12 4v12" />
                     </svg>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, color: 'var(--text)' }}>{s.addModal.uploadDropText}</div>
-                      <div style={{
-                        fontSize: 9, letterSpacing: 1, color: 'var(--muted)',
-                        fontFamily: 'var(--mono)', marginTop: 2,
-                      }}>{s.addModal.uploadDropFormats}</div>
+                    <div className="add-mini-drop-text-block">
+                      <div className="add-mini-drop-text">{s.addModal.uploadDropText}</div>
+                      <div className="add-mini-drop-formats">{s.addModal.uploadDropFormats}</div>
                     </div>
                   </>
                 )}
@@ -669,14 +701,14 @@ export default function AddModal({
 
             {/* Titre + Version */}
             {file && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+              <div className="add-mini-grid-2col">
                 <div>
                   <div className="add-mini-field-label">{s.addModal.uploadTitleLabel}</div>
                   <input
                     className="add-mini-input"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder={s.addModal.uploadTitlePlaceholder}
+                    placeholder={titlePh}
                     disabled={!!uploadCtx.lockTitle}
                   />
                 </div>
@@ -686,7 +718,7 @@ export default function AddModal({
                     className="add-mini-input"
                     value={version}
                     onChange={(e) => setVersion(e.target.value)}
-                    placeholder={s.addModal.uploadVersionPlaceholder}
+                    placeholder={versionPh}
                   />
                 </div>
               </div>
@@ -696,7 +728,7 @@ export default function AddModal({
             {file && askVocal && (
               <div className="add-mini-field">
                 <div className="add-mini-field-label">{s.addModal.uploadVocalLabel}</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div className="add-mini-pill-row">
                   <button
                     type="button"
                     className={`add-mini-pill${vocalKind === 'vocal' ? ' on' : ''}`}
@@ -709,7 +741,7 @@ export default function AddModal({
                   >{s.addModal.uploadVocalInstrumental}</button>
                 </div>
                 {vocalKind === 'instrumental' && (
-                  <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                  <div className="add-mini-pill-row add-mini-pill-row-sub">
                     <button
                       type="button"
                       className={`add-mini-pill${finalInstru === false ? ' on' : ''}`}
@@ -735,7 +767,7 @@ export default function AddModal({
                 cohérent avec DAW/Genre qui s'affichent dès l'ouverture. */}
             <div className="add-mini-field">
               <div className="add-mini-field-label">{s.addModal.uploadTypeLabel}</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div className="add-mini-pill-row">
                 <button
                   type="button"
                   className={`add-mini-pill${uploadType === 'mix' ? ' on' : ''}`}
@@ -747,13 +779,7 @@ export default function AddModal({
                   onClick={() => setUploadType('master')}
                 >{s.addModal.uploadTypeMaster}</button>
               </div>
-              <div style={{
-                marginTop: 8,
-                fontSize: 11.5,
-                lineHeight: 1.45,
-                color: 'var(--muted)',
-                fontWeight: 300,
-              }}>
+              <div className="add-mini-field-hint">
                 {uploadType === 'mix'
                   ? s.addModal.uploadTypeMixHint
                   : s.addModal.uploadTypeMasterHint}
@@ -793,7 +819,7 @@ export default function AddModal({
                 type="text"
                 className="add-mini-input"
                 value={declaredGenre}
-                placeholder={s.addModal.uploadGenrePlaceholder}
+                placeholder={genrePh}
                 maxLength={60}
                 onChange={(e) => setDeclaredGenre(e.target.value)}
               />
@@ -829,7 +855,7 @@ export default function AddModal({
                     className="add-mini-input add-mini-textarea"
                     value={artisticIntent}
                     onChange={(e) => setArtisticIntent(e.target.value)}
-                    placeholder="Ex : Je vise un son à la Frank Ocean — Blonde, pas Channel Orange."
+                    placeholder={intentPh}
                     rows={3}
                     maxLength={600}
                   />

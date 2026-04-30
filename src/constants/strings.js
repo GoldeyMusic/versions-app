@@ -40,6 +40,9 @@ const STRINGS = {
       share: "Partager",
       edit: "Modifier",
       add: "Ajouter",
+      // Pill flottante "Ajouter" (côté gauche, miroir du chat pill).
+      // Sub-label visible quand la pill s'étend au hover.
+      addPillPlaceholder: "Projet, titre, version",
       or: "ou",
       of: "sur",
       and: "et",
@@ -139,6 +142,7 @@ const STRINGS = {
       fallbackUser: "utilisateur",
       projectKicker: "Projet",
       projectOptions: "Options du projet",
+      projectAvgScore: "Score moyen",
       myProjects: "Mes",
       myProjectsAccent: "projets",
       emptyProject: "Aucun titre pour l'instant.",
@@ -685,6 +689,9 @@ const STRINGS = {
       genreEditPlaceholder: "Ex : indie pop, néo-soul, dub-techno…",
       genreEditTooltip: "Cliquer pour modifier",
       genreAdd: "+ Ajouter un genre",
+      // CTA "Parlons-en dans le chat" — pill posée sous le diagnostic,
+      // ouvre le chat drawer pour discuter des recommandations.
+      diagChatCta: "Parlons-en dans le chat",
       // Release readiness banner — eyebrow + tier labels + subtitles
       releaseEyebrow: "VERDICT DE SORTIE",
       releaseAriaLabel: "État de sortie",
@@ -934,6 +941,13 @@ const STRINGS = {
       miniHead: "Modale · Réglages",
       miniTitleBefore: "Mes",
       miniTitleEm: "réglages",
+      miniEyebrow: "Mon compte",
+      miniAccountPlanFree: "Free",
+      creditSingular: "crédit",
+      creditsPlural: "crédits",
+      renewsOn: "Renouv. {date}",
+      buyCreditsCta: "Acheter des crédits",
+      manageSubscriptionCta: "Gérer mon abonnement",
       miniAvatarLabel: "Photo de profil",
       miniAvatarHint: "Clique pour changer",
       miniProfileLabel: "Nom complet",
@@ -1307,6 +1321,10 @@ const STRINGS = {
       ctaPrimary: "Analyser mon premier titre",
       ctaSample: "Voir un exemple",
       ctaFooter: "Analyser mon premier titre",
+      // Badge incitatif au-dessus du CTA hero — visible UNIQUEMENT pour les
+      // visiteurs non connectés (cf. isAuthenticated dans LandingScreen).
+      // Vise à lever la friction "ça coûte combien ?" avant le clic CTA.
+      freeFirstBadge: "Première analyse offerte",
 
       // Mockup carte 1 — Score global
       mockScoreEyebrow: "SCORE GLOBAL",
@@ -1435,6 +1453,7 @@ const STRINGS = {
       share: "Share",
       edit: "Edit",
       add: "Add",
+      addPillPlaceholder: "Project, track, version",
       or: "or",
       of: "of",
       and: "and",
@@ -1534,6 +1553,7 @@ const STRINGS = {
       fallbackUser: "user",
       projectKicker: "Project",
       projectOptions: "Project options",
+      projectAvgScore: "Avg. score",
       myProjects: "My",
       myProjectsAccent: "projects",
       emptyProject: "No tracks yet.",
@@ -2065,6 +2085,8 @@ const STRINGS = {
       genreEditPlaceholder: "e.g. indie pop, neo-soul, dub-techno…",
       genreEditTooltip: "Click to edit",
       genreAdd: "+ Add a genre",
+      // CTA "Let's talk in the chat"
+      diagChatCta: "Let's talk in the chat",
       // Release readiness banner
       releaseEyebrow: "RELEASE READINESS",
       releaseAriaLabel: "Release status",
@@ -2313,6 +2335,13 @@ const STRINGS = {
       miniHead: "Modal · Settings",
       miniTitleBefore: "My",
       miniTitleEm: "settings",
+      miniEyebrow: "My account",
+      miniAccountPlanFree: "Free",
+      creditSingular: "credit",
+      creditsPlural: "credits",
+      renewsOn: "Renews {date}",
+      buyCreditsCta: "Buy credits",
+      manageSubscriptionCta: "Manage subscription",
       miniAvatarLabel: "Profile photo",
       miniAvatarHint: "Click to change",
       miniProfileLabel: "Full name",
@@ -2677,6 +2706,8 @@ const STRINGS = {
     landing: {
       ctaPrimary: "Analyze my first track",
       ctaSample: "See an example",
+      // Free-first badge shown above hero CTA for disconnected visitors only.
+      freeFirstBadge: "First analysis on us",
       ctaFooter: "Analyze my first track",
 
       mockScoreEyebrow: "OVERALL SCORE",

@@ -4,6 +4,7 @@ import API from '../constants/api';
 // import CompareButton from '../components/CompareButton'; // mis en sommeil
 // VChip (carousel de chips V1/V2/V3) remplacé par VersionDropdown — import retiré.
 import ExportPdfModal from '../components/ExportPdfModal';
+import RenameModal from '../components/RenameModal';
 import ShareLinkModal from '../components/ShareLinkModal';
 import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
 import EvolutionBanner from '../components/EvolutionBanner';
@@ -1158,6 +1159,10 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
   // (en position absolute ancree sur la ligne), pas dans un second portal :
   // garantit qu'il est dans menuRef et evite les click-outside transitoires.
   const [actionFor, setActionFor] = useState(null);
+  // État pour la modale RenameModal stylisée — remplace window.prompt()
+  // qui était un prompt système (pop-up navigateur) hors charte.
+  const [renaming, setRenaming] = useState(null); // { v, value }
+  const renameInputRef = useRef(null);
   const ref = useRef(null);
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
@@ -1209,17 +1214,31 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
 
   const closeAll = () => { setActionFor(null); setOpen(false); };
 
-  const handleRename = async (v) => {
+  // Ouvre la modale de renommage stylisée. Le submit/cancel est géré par
+  // <RenameModal> rendu en bas du composant (cf. handleRenameSubmit).
+  const handleRename = (v) => {
     setActionFor(null);
-    const next = window.prompt(s.fiche.renamePrompt || `Nouveau nom pour "${v.name}" :`, v.name || '');
-    if (next == null) return; // annulé
-    const trimmed = next.trim();
-    if (!trimmed || trimmed === v.name) return;
+    setRenaming({ v, value: v.name || '' });
+    // Focus + select dans la même tick pour que l'utilisateur puisse
+    // taper directement le nouveau nom sans cliquer dans le champ.
+    setTimeout(() => {
+      const el = renameInputRef.current;
+      if (el) { el.focus(); el.select(); }
+    }, 0);
+  };
+
+  const handleRenameSubmit = async () => {
+    if (!renaming) return;
+    const trimmed = (renaming.value || '').trim();
+    const v = renaming.v;
+    if (!trimmed || trimmed === v.name) { setRenaming(null); return; }
     try {
       await renameVersion(track.id, v.id, trimmed);
       onRefresh?.();
     } catch (err) {
       console.warn('[VersionDropdown] renameVersion failed', err);
+    } finally {
+      setRenaming(null);
     }
   };
 
@@ -1417,6 +1436,23 @@ function VersionDropdown({ track, currentVersionName, versions, onSelectVersion,
           )}
         </div>,
         document.body
+      )}
+
+      {/* Modale de renommage stylisée — remplace l'ancien window.prompt()
+          (fenêtre système hors charte). RenameModal monte un portail dans
+          document.body donc pas besoin de placement particulier ici. */}
+      {renaming && (
+        <RenameModal
+          title={s.vchip?.renameVersionTitle || 'Renommer la version'}
+          placeholder={s.vchip?.renameVersionPlaceholder || 'Nom de la version'}
+          value={renaming.value}
+          originalValue={renaming.v.name || ''}
+          inputRef={renameInputRef}
+          onChange={(value) => setRenaming((r) => (r ? { ...r, value } : r))}
+          onCancel={() => setRenaming(null)}
+          onSubmit={handleRenameSubmit}
+          confirmLabel={s.vchip?.renameSubmit || s.common?.save || 'Renommer'}
+        />
       )}
     </div>
   );
@@ -4547,6 +4583,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                    que l'artiste a déclaré à l'upload. Default 'mix'
                    pour les anciennes versions sans colonne renseignée. */
                 uploadType={versionInDb?.uploadType || 'mix'}
+                /* CTA "Parlons-en dans le chat" rendu à l'intérieur du
+                   bandeau, ouvre le drawer chat quand cliqué. */
+                onOpenChat={chatAsDrawer ? () => setChatOpen(true) : undefined}
               />
             </div>
             {(() => {
@@ -5247,7 +5286,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           )}
 
           {/* Impression d'écoute — pleine largeur, après le diagnostic */}
-          <div className="wh-anim" style={{ '--anim-d': '320ms' }}>
+          <div className="wh-anim" style={{ '--anim-d': '360ms' }}>
             <QualitativeSection listening={listening} />
           </div>
 

@@ -28,6 +28,36 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
   const [saved, setSaved] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
+  // ── Crédits / abonnement ──
+  // Mirror du flow App.jsx (rail bas-gauche). On refetch au montage de
+  // la modale pour avoir les chiffres frais — pas de prop drilling.
+  // Schema (cf. RPC get_or_create_user_credits, migration 020) :
+  //   balance_remaining   : total restant (sub + pack)
+  //   subscription_balance: crédits du mois en cours (purgés à résiliation)
+  //   pack_balance        : crédits packs (cumulables, jamais purgés)
+  //   monthly_grant       : taille du grant mensuel (>0 = abonné)
+  //   monthly_renews_at   : date du prochain renew
+  const [creditsRow, setCreditsRow] = useState(null);
+  useEffect(() => {
+    if (!user?.id) { setCreditsRow(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_or_create_user_credits');
+        if (cancelled) return;
+        if (error) {
+          console.warn('[reglages] get_or_create_user_credits failed:', error.message);
+          return;
+        }
+        const row = Array.isArray(data) ? data[0] : data;
+        setCreditsRow(row || null);
+      } catch (e) {
+        console.warn('[reglages] credits fetch threw:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   // ── Load profile on mount ──
   useEffect(() => {
     if (!user) return;
@@ -126,34 +156,11 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
         <div className="rg-loading">{s.common.loading}</div>
       ) : (
         <>
-          {/* ── Avatar ── */}
-          <div className="rg-row">
-            <div>
-              <div className="rg-label">{s.reglages.miniAvatarLabel}</div>
-              <div className="rg-hint">{s.reglages.miniAvatarHint}</div>
-            </div>
-            <div
-              className="rg-avatar"
-              onClick={() => fileRef.current?.click()}
-              role="button"
-              tabIndex={0}
-              aria-label={s.reglages.miniAvatarLabel}
-            >
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="" />
-              ) : (
-                <span className="rg-avatar-initial">{initial}</span>
-              )}
-              <div className="rg-avatar-overlay">{uploading ? '…' : '✎'}</div>
-            </div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handleAvatarUpload}
-            />
-          </div>
+          {/* Section Photo de profil retirée (refonte modale 2026-04-30bis) :
+              elle alourdissait la modale sans usage clair (pas d'affichage
+              de l'avatar dans l'app au-delà de la sidebar). On garde le
+              code de upload côté logique au cas où on la réintroduit, mais
+              plus de UI ici. */}
 
           {/* ── Nom complet ── */}
           <div className="rg-row is-stack">
@@ -230,41 +237,73 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
             </div>
           </div>
 
-          {/* ── Coordonnées bancaires (Premium) ── */}
-          <div className="rg-row is-stack">
-            <div>
-              <div className="rg-label">
-                {s.reglages.miniBankLabel}
-                <span className="rg-premium-pill">{s.reglages.bankPremium}</span>
-              </div>
-              {s.reglages.miniBankHint ? (
-                <div className="rg-hint">{s.reglages.miniBankHint}</div>
-              ) : null}
-            </div>
-            <div className="rg-inputs">
-              <input
-                className="rg-input"
-                value={iban}
-                onChange={(e) => setIban(e.target.value)}
-                placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX"
-              />
-              <input
-                className="rg-input"
-                value={bic}
-                onChange={(e) => setBic(e.target.value)}
-                placeholder="BNPAFRPP"
-              />
-            </div>
-          </div>
+          {/* Section Coordonnées bancaires retirée (refonte modale 2026-04-30bis) :
+              les achats passent par /pricing → Stripe Checkout, pas par
+              une saisie IBAN directe dans l'app. Les states iban/bic
+              côté hook restent en mémoire pour ne pas casser un éventuel
+              ré-attach futur, mais plus de UI. */}
 
-          {/* ── Compte ── */}
-          <div className="rg-row">
-            <div>
-              <div className="rg-label">{s.reglages.miniAccountLabel}</div>
-              <div className="rg-hint">{user?.email || ''}</div>
-            </div>
-            <div className="rg-value muted">{planLabel}</div>
-          </div>
+          {/* ── Compte ── crédits restants + abonnement actif si applicable.
+              CTA "+ Acheter des crédits" pill amber posé à côté pour
+              que le user puisse top-up directement depuis la modale.
+              Click → navigue vers /pricing + ferme la modale (via
+              onClose). */}
+          {(() => {
+            const balance = creditsRow?.balance_remaining;
+            const monthly = Number(creditsRow?.monthly_grant || 0);
+            const isSubscribed = monthly > 0;
+            const credText = balance != null
+              ? `${balance} ${balance > 1 ? (s.reglages.creditsPlural || 'crédits') : (s.reglages.creditSingular || 'crédit')}`
+              : null;
+            const planText = isSubscribed
+              ? (s.reglages.miniAccountPlanPremium || 'Premium')
+              : (s.reglages.miniAccountPlanFree || 'Free');
+            const renewMs = creditsRow?.monthly_renews_at
+              ? new Date(creditsRow.monthly_renews_at).getTime()
+              : null;
+            const renewText = (isSubscribed && Number.isFinite(renewMs))
+              ? new Date(renewMs).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })
+              : null;
+            const goToPricing = () => {
+              // Hash routing — navigation directe + fermeture de la modale.
+              if (typeof window !== 'undefined') {
+                window.location.hash = '#/pricing';
+              }
+              if (onClose) onClose();
+              else if (onGoHome) onGoHome();
+            };
+            return (
+              <div className="rg-row is-stack">
+                <div className="rg-account-row">
+                  <div>
+                    <div className="rg-label">{s.reglages.miniAccountLabel}</div>
+                    <div className="rg-hint">{user?.email || ''}</div>
+                  </div>
+                  <div className="rg-account-meta">
+                    {credText && (
+                      <span className="rg-account-credits">{credText}</span>
+                    )}
+                    <span className={`rg-account-plan${isSubscribed ? ' is-premium' : ''}`}>
+                      {planText}
+                    </span>
+                    {renewText && (
+                      <span className="rg-account-renew">
+                        {(s.reglages.renewsOn || 'Renouvelle le {date}').replace('{date}', renewText)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="rg-account-cta"
+                  onClick={goToPricing}
+                >
+                  <span className="rg-account-cta-icon" aria-hidden="true">+</span>
+                  <span>{s.reglages.buyCreditsCta || (isSubscribed ? 'Gérer mon abonnement' : 'Acheter des crédits')}</span>
+                </button>
+              </div>
+            );
+          })()}
 
           {/* ── Revoir le guide d'utilisation ──
               Efface les flags localStorage des DEUX guides (home + fiche)
