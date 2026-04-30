@@ -3236,6 +3236,17 @@ function VersionChat({
     }
 
     setSeeding(true);
+    // Filet de sécurité : si rien ne s'est résolu après 90s, on force
+    // seeding=false ET on injecte le fallback statique. Couvre tous les
+    // bugs imaginables (fetch hung, promesse jamais résolue, etc.) pour
+    // que l'utilisateur ne reste jamais bloqué sur le placeholder.
+    const safetyTimeout = setTimeout(() => {
+      if (unmounted) return;
+      console.warn('[seed] safety timeout after 90s — falling back static');
+      inject(fallback);
+      setSeeding(false);
+    }, 90000);
+
     (async () => {
       try {
         const content = await fetcher();
@@ -3244,11 +3255,15 @@ function VersionChat({
         console.warn('[seed] fetcher failed, fallback static:', e?.message || e);
         inject(fallback);
       } finally {
+        clearTimeout(safetyTimeout);
         if (!unmounted) setSeeding(false);
       }
     })();
 
-    return () => { unmounted = true; };
+    return () => {
+      unmounted = true;
+      clearTimeout(safetyTimeout);
+    };
   }, [historyLoaded, seedKey, messages.length, versionId]);
 
   const send = async () => {
