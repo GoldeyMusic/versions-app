@@ -828,6 +828,12 @@ function PricingStyles() {
           transform: translateY(-3px);
         }
       }
+      /* Refonte 2026-04-30 : coins plus arrondis en mobile pour
+         adoucir le rendu (les 18 px paraissaient anguleux à 390 px). */
+      @media (max-width: 480px) {
+        .pr-sub { border-radius: 24px; padding: 24px 20px 20px; }
+        .pr-pack { border-radius: 22px; padding: 22px 18px 18px; }
+      }
       .pr-sub::before {
         content: '';
         position: absolute;

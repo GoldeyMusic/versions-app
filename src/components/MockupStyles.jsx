@@ -288,6 +288,38 @@ export default function MockupStyles() {
     background: rgba(245,166,35,0.08);
   }
 
+  /* ── Cards mobile — bump border-radius global ─────────────────
+     Les cards (wh-stat, diag-panel, notes-panel, rv-left, acc-item,
+     col-cover, etc.) ont des border-radius 14-18 px sur desktop, ce
+     qui donne un rendu un peu carré sur 390 px. On bumpe à 20-24 px
+     en mobile pour adoucir le visuel — cohérent avec les boutons
+     pill (border-radius 999) qu'on a déjà partout. */
+  @media (max-width: 480px) {
+    .wh-stat,
+    .wh-acc-item,
+    .fiche-v2 .diag-panel,
+    .fiche-v2 .notes-panel,
+    .fiche-v2 .row-verdict .rv-left,
+    .fiche-v2 .release-readiness,
+    .verdict-col-side,
+    .verdict-col-main,
+    .pr-pack,
+    .lp-card,
+    .pr-card {
+      border-radius: 20px;
+    }
+    .col-cover,
+    .col-cover-holder {
+      border-radius: 22px;
+    }
+    .pr-sub {
+      border-radius: 24px;
+    }
+    /* Cards "EP / Anciens titres / Tests" en mode fermé : leur
+       border-radius est porté par .wh-acc-item — déjà ciblé ci-dessus.
+       En mode open, le head garde le radius parent — OK. */
+  }
+
   /* ── EvolutionBanner — fix layout mobile ──────────────────────
      Sur mobile (≤480 px), les chips compactes (n↑ n↓ n→ +n) prennent
      trop de place sur la ligne du titre, ce qui réduit le résumé à
