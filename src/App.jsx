@@ -3640,14 +3640,22 @@ function VersionsAppAuthed() {
   // fiche. Les autres écrans authentifiés (admin, versions) la gardent
   // pour l'instant. Liste des écrans en layout topbar :
   const TOPBAR_SCREENS = new Set(['welcome', 'fiche']);
-  const showSidebar = isDesktop && !TOPBAR_SCREENS.has(screen);
+  // Refonte 2026-04-30 (suite) : pages d'analyse en mode "minimal" — pas
+  // de sidebar, pas de topbar nav, pas de rail. Juste un logo top-left
+  // rendu par l'écran lui-même + contenu centré. Cohérent avec le ton
+  // "page plus jeune" : moins de chrome pendant un moment qui doit
+  // capter toute l'attention de l'utilisateur (l'analyse en cours).
+  const MINIMAL_SCREENS = new Set(['loading']);
+  const isMinimalScreen = MINIMAL_SCREENS.has(screen);
+  const showSidebar = isDesktop && !TOPBAR_SCREENS.has(screen) && !isMinimalScreen;
   const contentMarginLeft = showSidebar ? SIDEBAR_WIDTH : 0;
   // Topbar dashboard — visible sur welcome ET fiche (desktop + mobile),
   // pour que le pattern soit identique à la landing/pricing : logo +
   // nav + FR/EN, sans avatar/menu déroulant. Sur les autres écrans
   // mobiles (admin, versions), c'est MobileMenu qui prend le relais
-  // (cf. condition !showWelcomeTopbar plus bas).
-  const showWelcomeTopbar = !showSidebar && TOPBAR_SCREENS.has(screen) && !!user;
+  // (cf. condition !showWelcomeTopbar plus bas). Masquée en mode
+  // MINIMAL_SCREENS — l'écran d'analyse rend son propre header.
+  const showWelcomeTopbar = !showSidebar && TOPBAR_SCREENS.has(screen) && !!user && !isMinimalScreen;
 
   return (
     <LangContext.Provider value={{ lang, s, setLang, t }}>
@@ -3703,7 +3711,7 @@ function VersionsAppAuthed() {
               gère le mobile aussi maintenant (parité visuelle avec
               landing/pricing). Reste affiché sur les autres écrans
               authentifiés (admin, fiche, versions, etc.). */}
-          {isMobile && !showWelcomeTopbar && (
+          {isMobile && !showWelcomeTopbar && !isMinimalScreen && (
             <MobileMenu
               onNavigate={(target) => {
                 setAskOpen(false);
@@ -3823,7 +3831,9 @@ function VersionsAppAuthed() {
 
           {/* Bottom Player — toujours présent (sticky), y compris sur la home.
               État "idle" quand aucune piste n'est lancée : transport grisé,
-              waveform placeholder, meta vide. */}
+              waveform placeholder, meta vide. Masqué en MINIMAL_SCREENS
+              (loading) pour garder l'écran d'analyse focalisé. */}
+          {!isMinimalScreen && (
           <BottomPlayer
             trackTitle={playerState?.trackTitle}
             versionName={playerState?.versionName}
@@ -3839,6 +3849,7 @@ function VersionsAppAuthed() {
             playlist={playerState?.playlist}
             currentIdx={playerState?.currentIdx}
           />
+          )}
 
           {/* BottomNav retiré — remplacé par le hamburger menu */}
         </div>

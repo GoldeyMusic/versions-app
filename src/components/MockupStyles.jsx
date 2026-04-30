@@ -7974,42 +7974,98 @@ export default function MockupStyles() {
   }
 
   /* ══════════════════════════════════════════════════════ */
-  /* ANALYSE EN COURS — v2 (radial + micro-steps)           */
+  /* ANALYSE EN COURS — v3 (refonte 2026-04-30, page focus) */
+  /*                                                          */
+  /* Pas de sidebar, pas de topbar nav : juste le brand mark  */
+  /* top-left + tout le reste centré au milieu de l'écran.    */
+  /* Typo : DM Sans body, Cormorant Garamond pour le titre    */
+  /* dramatique, JetBrains Mono pour les eyebrows / steps.    */
+  /* Système chip eyebrow cohérent avec la fiche.             */
   /* ══════════════════════════════════════════════════════ */
   .ap-scaffold {
-    width: 100%; min-height: 100%;
+    position: relative;
+    width: 100%; min-height: 100vh;
     display: flex; align-items: center; justify-content: center;
-    padding: 40px 20px; box-sizing: border-box;
+    padding: 120px 24px 80px; box-sizing: border-box;
     animation: fadeup .3s ease;
   }
   .ap-stack {
     display: flex; flex-direction: column; align-items: center;
-    gap: 24px; max-width: 520px; width: 100%;
+    gap: 22px; max-width: 560px; width: 100%;
   }
-  .ap-logo {
-    height: 60px; width: auto; display: block;
-    filter: drop-shadow(0 6px 22px rgba(245,166,35,0.28));
+
+  /* Brand mark top-left — calé sur .db-topbar-brand pour rester cohérent
+     avec le brand des autres écrans, mais positionné en absolute pour
+     ne pas forcer un layout topbar complet. */
+  .ap-brand {
+    position: absolute; top: 22px; left: 22px;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; border: 0; cursor: pointer;
+    padding: 0; border-radius: 8px;
+    transition: opacity .15s;
+    z-index: 5;
   }
+  .ap-brand:hover { opacity: 0.82; }
+  .ap-brand-logo {
+    height: 38px; width: auto;
+    filter: drop-shadow(0 0 16px rgba(245,166,35,0.18));
+  }
+  .ap-brand-wordmark {
+    font-family: var(--body);
+    font-weight: 700; font-size: 27px;
+    letter-spacing: -0.5px; color: var(--text); line-height: 1;
+  }
+  .ap-brand-wordmark .accent { color: var(--amber); font-style: normal; }
+
+  /* Eyebrow chip "Analyse en cours" — système chip pill cohérent avec
+     .rr-eyebrow / .score-eyebrow / .diag-eyebrow de la fiche : mono
+     amber, bg amber-tinted, sans rotation (cf. règle no-eyebrow-rotation). */
+  .ap-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono);
+    font-size: 9.5px; font-weight: 500;
+    letter-spacing: 1.8px; text-transform: uppercase;
+    color: var(--amber);
+    padding: 5px 12px; border-radius: 999px;
+    background: rgba(245,166,35,0.10);
+    border: 1px solid rgba(245,166,35,0.38);
+    box-shadow: 0 6px 18px -10px rgba(0,0,0,0.55);
+  }
+  .ap-eyebrow-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 8px rgba(245,166,35,0.6);
+    animation: ap-pulse 1.4s ease-in-out infinite;
+  }
+
+  /* Titre dramatique en Cormorant Garamond — raccord avec les verdicts
+     de la fiche. Le mot d'emphasis (em) reste en italique amber. */
   .ap-title {
-    font-family: var(--body); font-size: 30px; font-weight: 600;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 56px; font-weight: 500;
     letter-spacing: -0.4px; color: var(--text);
-    text-align: center; margin: 0;
+    text-align: center; margin: 4px 0 0;
+    line-height: 1.05;
   }
   .ap-title em {
-    font-style: normal; color: var(--amber);
+    font-style: italic; color: var(--amber); font-weight: 500;
   }
+
+  /* Sous-titre meta : titre + version courants en mono uppercase, look
+     eyebrow soft. */
   .ap-sub {
-    font-family: var(--mono); font-size: 10px; font-weight: 500;
-    letter-spacing: 1.6px; text-transform: uppercase;
+    font-family: var(--mono); font-size: 10.5px; font-weight: 500;
+    letter-spacing: 1.8px; text-transform: uppercase;
     color: var(--muted); text-align: center;
-    margin: -12px 0 4px;
+    margin: -6px 0 6px;
   }
   .ap-sub b { color: var(--soft); font-weight: 500; }
 
-  /* Radial */
+  /* Radial — bumpé à 240px pour donner plus d'impact visuel maintenant
+     qu'il est l'élément central de la page (pas de sidebar). */
   .ap-radial-wrap {
-    position: relative; width: 220px; height: 220px;
-    margin: 4px 0 2px;
+    position: relative; width: 240px; height: 240px;
+    margin: 8px 0 2px;
   }
   .ap-radial { width: 100%; height: 100%; transform: rotate(-90deg); display: block; }
   .ap-radial circle { fill: none; stroke-width: 3; }
@@ -8018,7 +8074,7 @@ export default function MockupStyles() {
     stroke: var(--amber);
     stroke-linecap: round;
     stroke-dasharray: 628;
-    filter: drop-shadow(0 0 6px rgba(245,166,35,0.5));
+    filter: drop-shadow(0 0 8px rgba(245,166,35,0.55));
     transition: stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1);
   }
   .ap-radial-inner {
@@ -8028,35 +8084,52 @@ export default function MockupStyles() {
     text-align: center;
   }
   .ap-pct {
-    font-family: var(--body); font-size: 46px; font-weight: 600;
-    letter-spacing: -1px; color: var(--text); line-height: 1;
+    font-family: var(--body); font-size: 56px; font-weight: 600;
+    letter-spacing: -1.2px; color: var(--text); line-height: 1;
   }
   .ap-pct em {
     font-style: normal; color: var(--amber);
-    font-size: 20px; margin-left: 2px;
+    font-size: 22px; margin-left: 3px;
     vertical-align: super; font-weight: 500;
   }
   .ap-status {
-    font-family: var(--mono); font-size: 10px; font-weight: 500;
-    letter-spacing: 1.4px; text-transform: uppercase;
-    color: var(--amber); margin-top: 8px;
-    max-width: 140px;
+    font-family: var(--mono); font-size: 9.5px; font-weight: 500;
+    letter-spacing: 1.6px; text-transform: uppercase;
+    color: var(--amber); margin-top: 12px;
+    max-width: 160px;
   }
 
-  /* Micro-steps horizontaux */
+  /* Micro-steps horizontaux — chips pill style cohérent avec le système
+     chip global (.pr-chip, .vside-chip). État done = mint, active = amber
+     pulsant, pending = muted. Pas de rotation (cf. règle eyebrows). */
   .ap-micro-steps {
     display: flex; justify-content: center;
-    gap: 16px; flex-wrap: wrap;
-    margin: 6px 0 2px;
+    gap: 10px; flex-wrap: wrap;
+    margin: 4px 0 2px;
   }
   .ap-micro {
     display: inline-flex; align-items: center; gap: 7px;
-    font-family: var(--mono); font-size: 10px; font-weight: 500;
-    letter-spacing: 1.2px; text-transform: uppercase;
+    font-family: var(--mono); font-size: 9.5px; font-weight: 500;
+    letter-spacing: 1.4px; text-transform: uppercase;
     color: var(--muted);
+    padding: 5px 11px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.02);
+    transition: color .2s, border-color .2s, background .2s;
   }
   .ap-micro b { font-weight: 500; }
+  .ap-micro.is-done {
+    color: var(--mint);
+    border-color: rgba(142,224,122,0.32);
+    background: rgba(142,224,122,0.06);
+  }
   .ap-micro.is-done b { color: var(--mint); }
+  .ap-micro.is-active {
+    color: var(--amber);
+    border-color: rgba(245,166,35,0.38);
+    background: rgba(245,166,35,0.08);
+    box-shadow: 0 6px 18px -10px rgba(245,166,35,0.45);
+  }
   .ap-micro.is-active b { color: var(--amber); }
   .ap-micro-bullet {
     width: 6px; height: 6px; border-radius: 50%;
@@ -8100,22 +8173,36 @@ export default function MockupStyles() {
   .ap-wave span:nth-child(11) { animation-delay: 0.80s; }
   .ap-wave span:nth-child(12) { animation-delay: 0.88s; }
 
-  /* Carte "Le saviez-vous" */
+  /* Carte "Le saviez-vous" — eyebrow chip pill + corps DM Sans, même
+     grammaire que les notes-card de la fiche. Bg légèrement plus chaud
+     (amber-tinted) pour différencier d'une card neutre. */
   .ap-tip {
     width: 100%;
-    background: #0e0f14; border: 1px solid var(--border);
-    border-radius: 14px; padding: 16px 18px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    background:
+      linear-gradient(180deg, rgba(245,166,35,0.04), rgba(245,166,35,0.015) 60%, transparent),
+      #0e0f14;
+    border: 1px solid rgba(245,166,35,0.16);
+    border-radius: 16px; padding: 18px 20px 20px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.02),
+      0 18px 36px -28px rgba(0,0,0,0.7);
   }
   .ap-tip-kicker {
     display: inline-flex; align-items: center; gap: 7px;
-    font-family: var(--mono); font-size: 10px; font-weight: 500;
-    letter-spacing: 1.4px; text-transform: uppercase;
-    color: var(--amber); margin-bottom: 6px;
+    font-family: var(--mono); font-size: 9.5px; font-weight: 500;
+    letter-spacing: 1.6px; text-transform: uppercase;
+    color: var(--amber);
+    padding: 4px 10px; border-radius: 999px;
+    background: rgba(245,166,35,0.10);
+    border: 1px solid rgba(245,166,35,0.32);
+    box-shadow: 0 6px 18px -10px rgba(0,0,0,0.55);
+    margin-bottom: 10px;
   }
   .ap-tip-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--amber); }
   .ap-tip-body {
+    font-family: var(--body);
     font-size: 14px; color: var(--soft); line-height: 1.55;
+    font-weight: 300;
     animation: fadein .4s ease;
   }
 
@@ -8145,13 +8232,13 @@ export default function MockupStyles() {
     background: rgba(245,166,35,0.06);
   }
 
-  /* ── Bouton "Annuler l'analyse" (pill outline amber discret) ─
+  /* ── Bouton "Annuler l'analyse" (pill outline discret) ─
      Posé en bas du ap-stack, pas une action principale : on atténue
      le contour pour qu'il ne concurrence pas le radial ni le statut. */
   .ap-cancel {
-    margin-top: 8px;
-    font-family: var(--mono); font-size: 11px; font-weight: 500;
-    letter-spacing: 1.2px; text-transform: uppercase;
+    margin-top: 12px;
+    font-family: var(--mono); font-size: 10.5px; font-weight: 500;
+    letter-spacing: 1.6px; text-transform: uppercase;
     padding: 10px 22px; border-radius: 999px;
     color: var(--muted); background: transparent;
     border: 1px solid rgba(255,255,255,0.10);
@@ -8161,6 +8248,21 @@ export default function MockupStyles() {
     color: var(--red);
     border-color: rgba(255,93,93,0.4);
     background: rgba(255,93,93,0.04);
+  }
+
+  /* Mobile : compact. Brand mark plus petit, padding réduit, titre
+     dégonflé pour rester lisible sur narrow viewport. */
+  @media (max-width: 720px) {
+    .ap-scaffold { padding: 96px 16px 60px; }
+    .ap-brand { top: 14px; left: 14px; gap: 6px; }
+    .ap-brand-logo { height: 30px; }
+    .ap-brand-wordmark { font-size: 21px; }
+    .ap-title { font-size: 38px; }
+    .ap-radial-wrap { width: 200px; height: 200px; }
+    .ap-pct { font-size: 44px; }
+    .ap-pct em { font-size: 18px; }
+    .ap-micro-steps { gap: 6px; }
+    .ap-micro { font-size: 9px; padding: 4px 9px; }
   }
 
   /* ── Variante "finalize" (widget compact pour FicheScreen AnalyzingState) ──
@@ -8177,7 +8279,15 @@ export default function MockupStyles() {
   .ap-finalize .ap-pct { font-size: 30px; }
   .ap-finalize .ap-pct em { font-size: 14px; }
   .ap-finalize .ap-status { font-size: 10px; letter-spacing: 1.5px; }
-  .ap-finalize .ap-title { font-size: 24px; }
+  /* Finalize = widget compact dans la fiche, on retombe en DM Sans pour
+     ne pas avoir un Cormorant 24px qui jure avec les titres de section
+     de la fiche en sans-serif. Le Cormorant ne sert qu'au gros titre
+     dramatique de l'écran d'analyse plein écran. */
+  .ap-finalize .ap-title {
+    font-family: var(--body); font-size: 24px; font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  .ap-finalize .ap-title em { font-style: normal; }
 
   /* ══════════════════════════════════════════════════════ */
   /* AUTH SCREEN — habillage v2                              */

@@ -522,6 +522,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   if (error) {
     return (
       <div className="ap-scaffold">
+        <ApBrandMark onGoHome={() => onBackToInput?.()} />
         <div className="ap-error">
           <div className="ap-error-body">⚠️ {error}</div>
           <button
@@ -568,33 +569,41 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
 
   return (
     <div className="ap-scaffold">
+      {/* Logo top-left (header minimal — l'écran d'analyse n'a ni
+          sidebar ni topbar nav, juste le brand mark cliquable qui ramène
+          au dashboard si on annule l'analyse). */}
+      <ApBrandMark onGoHome={() => {
+        canceledRef.current = true;
+        onBackToInput?.();
+      }} />
+
       <div className="ap-stack">
 
-        {/* Logo VERSIONS posé à plat (pas de cadre) */}
-        <img
-          src="/logo-versions-2.svg"
-          alt=""
-          aria-hidden="true"
-          className="ap-logo"
-        />
-
-        <h2 className="ap-title">
-          {s.loading.titleBefore}{' '}
+        {/* Titre dramatique en Cormorant Garamond — raccord avec le
+            verdict de la fiche. Le mot d'emphasis (titleEm) reste en
+            amber italique, pas de rotation (règle no-eyebrow-rotation). */}
+        <h1 className="ap-title">
+          <span>{s.loading.titleBefore}</span>{' '}
           <em>{s.loading.titleEm}</em>
-        </h2>
-        <p className="ap-sub">
-          {config?.title && <b>{config.title}</b>}
-          {config?.version ? <> · <b>{config.version}</b></> : null}
-        </p>
+        </h1>
+
+        {/* Sous-titre : titre + version courants en mono uppercase
+            (eyebrow soft, raccord avec les eyebrows de section fiche). */}
+        {(config?.title || config?.version) && (
+          <p className="ap-sub">
+            {config?.title && <b>{config.title}</b>}
+            {config?.version ? <> · <b>{config.version}</b></> : null}
+          </p>
+        )}
 
         {/* Anneau radial + % au centre + statut en mono amber */}
         <div className="ap-radial-wrap" aria-hidden="true">
-          <svg className="ap-radial" viewBox="0 0 220 220">
-            <circle className="track" cx="110" cy="110" r={radius} />
+          <svg className="ap-radial" viewBox="0 0 240 240">
+            <circle className="track" cx="120" cy="120" r={radius} />
             <circle
               className="bar"
-              cx="110"
-              cy="110"
+              cx="120"
+              cy="120"
               r={radius}
               style={{ strokeDashoffset: dashOffset }}
             />
@@ -607,7 +616,8 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           </div>
         </div>
 
-        {/* Micro-steps horizontaux */}
+        {/* Micro-steps horizontaux — chips pill style cohérent avec
+            le système chip global (mono uppercase, bg tinted selon état). */}
         <div className="ap-micro-steps" role="list">
           {microLabels.map((label, i) => (
             <span
@@ -628,7 +638,9 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           ))}
         </div>
 
-        {/* Carte "Le saviez-vous ?" (même moule que les mini-modales) */}
+        {/* Carte "Le saviez-vous ?" — eyebrow pill + corps DM Sans,
+            même grammaire que les cards info de la fiche (.notes-eyebrow
+            / .diag-eyebrow). */}
         {shuffledTips.length > 0 && (
           <div className="ap-tip" role="region" aria-label={s.loading.didYouKnow}>
             <div className="ap-tip-kicker">
@@ -661,5 +673,29 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
     </div>
   );
 };
+
+/**
+ * ApBrandMark — logo VERSIONS top-left de l'écran d'analyse.
+ * Calé sur .db-topbar-brand (DashboardTopbar) pour rester cohérent
+ * visuellement avec les autres écrans, mais positionné en absolute
+ * pour ne pas forcer un layout topbar complet (l'écran d'analyse
+ * n'a pas de nav / rail / FR-EN — juste le brand mark cliquable
+ * qui ramène au dashboard).
+ */
+function ApBrandMark({ onGoHome }) {
+  return (
+    <button
+      type="button"
+      className="ap-brand"
+      onClick={onGoHome}
+      aria-label="Retour au tableau de bord"
+    >
+      <img src="/logo-versions-2.svg" alt="" className="ap-brand-logo" />
+      <span className="ap-brand-wordmark">
+        VER<span className="accent">Si</span>ONS
+      </span>
+    </button>
+  );
+}
 
 export default LoadingScreen;
