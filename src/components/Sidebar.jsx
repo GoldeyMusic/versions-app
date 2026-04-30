@@ -34,6 +34,7 @@ export default function Sidebar({
   onGoLanding,
   onGoDashboard,
   onGoAdmin,
+  onSignOut,
   onAdd,
   onPlay,
   onToggle,
@@ -363,33 +364,8 @@ export default function Sidebar({
           </button>
         )}
 
-        {/* Lien Admin — visible UNIQUEMENT si l'email du user matche
-            VITE_ADMIN_EMAIL (config côté frontend). Permet à David
-            d'accéder au dashboard de coûts (#/admin) en un clic depuis
-            n'importe où dans l'app. Style aligné sur le bouton dashboard
-            ci-dessus, accent ambre pour le distinguer. */}
-        {onGoAdmin && (() => {
-          const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
-          const isAdmin = adminEmail && user?.email?.toLowerCase() === adminEmail;
-          if (!isAdmin) return null;
-          return (
-            <button
-              type="button"
-              onClick={onGoAdmin}
-              className="sidebar-dashboard-btn sidebar-admin-btn"
-              aria-label="Admin — coûts"
-              style={{
-                color: '#f5a623',
-                marginTop: 4,
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M12 2l3 7h7l-5.5 4 2 8L12 17l-6.5 4 2-8L2 9h7z" />
-              </svg>
-              <span>Admin</span>
-            </button>
-          );
-        })()}
+        {/* L'ancien lien Admin en haut a été déplacé dans le footer
+            sidebar (regroupé avec Réglages + Déconnexion). */}
 
         <div className="section-label">{s.sidebar.sectionMyProjects}</div>
 
@@ -440,6 +416,62 @@ export default function Sidebar({
 
       {/* "À propos" retiré du pied de sidebar (2026-04-28). L'accès à la
           landing publique se fait via le logo cliquable dans le header. */}
+
+      {/* Footer sidebar — Admin (admin only) + Réglages + Déconnexion.
+          Posé sous la liste des projets pour rester accessible depuis
+          n'importe où dans l'app. Admin est gated par VITE_ADMIN_EMAIL. */}
+      <div className="sidebar-footer">
+        {onGoAdmin && (() => {
+          const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
+          const isAdmin = adminEmail && user?.email?.toLowerCase() === adminEmail;
+          if (!isAdmin) return null;
+          return (
+            <button
+              type="button"
+              onClick={onGoAdmin}
+              className="sidebar-footer-btn sidebar-footer-admin"
+              aria-label="Admin — coûts"
+              title="Admin — coûts"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M12 2l3 7h7l-5.5 4 2 8L12 17l-6.5 4 2-8L2 9h7z" />
+              </svg>
+              <span>Admin</span>
+            </button>
+          );
+        })()}
+        {onGoReglages && (
+          <button
+            type="button"
+            onClick={onGoReglages}
+            className="sidebar-footer-btn"
+            aria-label={s.sidebar?.reglages || 'Réglages'}
+            title={s.sidebar?.reglages || 'Réglages'}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span>{s.sidebar?.reglages || 'Réglages'}</span>
+          </button>
+        )}
+        {onSignOut && (
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="sidebar-footer-btn"
+            aria-label={s.sidebar?.signOut || 'Se déconnecter'}
+            title={s.sidebar?.signOut || 'Se déconnecter'}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span>{s.sidebar?.signOut || 'Se déconnecter'}</span>
+          </button>
+        )}
+      </div>
 
       {/* Modale renommer titre */}
       {renameTrackTarget && (
