@@ -3775,8 +3775,10 @@ function VersionsAppAuthed() {
     );
   }
 
-  // (Note : #/admin est rendu dans le layout normal avec la sidebar
-  // — voir le case 'admin' du switch renderContent() plus bas.)
+  // (Note : #/admin est rendu en layout topbar — voir TOPBAR_SCREENS
+  // ci-dessous. Décision 2026-04-30 : cohérence avec home / pricing /
+  // welcome ; pas de sidebar sur la page admin, juste la topbar et le
+  // rail flottant pour les outils de compte.)
 
   // Deep-link fiche en cours de résolution : on affiche le même loader que
   // l'auth gate pour éviter un flash dashboard avant que le résolveur ne
@@ -3799,10 +3801,10 @@ function VersionsAppAuthed() {
   // écrans authentifiés (fiche, versions, admin) gardent la sidebar pour
   // l'instant. La sidebar pourrait à terme être réservée aux fiches
   // d'analyse uniquement.
-  // Refonte 2026-04-30 : la sidebar est maintenant retirée de welcome ET
-  // fiche. Les autres écrans authentifiés (admin, versions) la gardent
+  // Refonte 2026-04-30 : la sidebar est maintenant retirée de welcome,
+  // fiche ET admin. Les autres écrans authentifiés (versions) la gardent
   // pour l'instant. Liste des écrans en layout topbar :
-  const TOPBAR_SCREENS = new Set(['welcome', 'fiche']);
+  const TOPBAR_SCREENS = new Set(['welcome', 'fiche', 'admin']);
   // Refonte 2026-04-30 (suite) : pages d'analyse en mode "minimal" — pas
   // de sidebar, pas de topbar nav, pas de rail. Juste un logo top-left
   // rendu par l'écran lui-même + contenu centré. Cohérent avec le ton

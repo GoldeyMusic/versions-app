@@ -158,9 +158,12 @@ export default function AdminScreen() {
     <div className="cost-screen">
       <AdminStyles />
 
-      {/* Pas de topbar ici : on est rendu DANS le layout principal,
-          la sidebar à gauche fait office de navigation (lien Dashboard
-          + lien Admin doré déjà présents). */}
+      {/* Pas de topbar interne ici : la page admin tourne désormais
+          en layout topbar (refonte 2026-04-30, cf. TOPBAR_SCREENS dans
+          App.jsx). DashboardTopbar pose la nav (Accueil / Tarifs /
+          Tableau de bord) en haut, DashboardRail pose les outils
+          compte (crédits, Admin, Réglages, Déconnexion) en bas-gauche.
+          Plus de sidebar. */}
 
       {!authChecked && <GateMsg label="Vérification…" />}
       {authChecked && !isAdmin && (
