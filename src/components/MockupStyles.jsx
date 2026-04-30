@@ -8105,11 +8105,16 @@ export default function MockupStyles() {
 
   /* Micro-steps horizontaux — chips pill style cohérent avec le système
      chip global (.pr-chip, .vside-chip). État done = mint, active = amber
-     pulsant, pending = muted. Pas de rotation (cf. règle eyebrows). */
+     pulsant, pending = muted. Légères rotations -2°/+1.5°/-1°/+2° sur les
+     4 chips, raccord avec les chips de métadonnées de la fiche (.vside-chip,
+     deltas EvolutionBanner). Les eyebrows de TITRE restent sans rotation
+     (règle no-eyebrow-rotation), mais ces chips-ci sont des données d'état
+     séquentielles, donc rotations OK. */
   .ap-micro-steps {
     display: flex; justify-content: center;
-    gap: 10px; flex-wrap: wrap;
-    margin: 4px 0 2px;
+    gap: 12px; flex-wrap: wrap;
+    margin: 8px 0 2px;
+    padding: 4px 0;
   }
   .ap-micro {
     display: inline-flex; align-items: center; gap: 7px;
@@ -8119,8 +8124,16 @@ export default function MockupStyles() {
     padding: 5px 11px; border-radius: 999px;
     border: 1px solid rgba(255,255,255,0.08);
     background: rgba(255,255,255,0.02);
-    transition: color .2s, border-color .2s, background .2s;
+    transition: color .2s, border-color .2s, background .2s, transform .2s ease;
   }
+  /* Rotations subtiles, pattern alterné — même grammaire que .vside-chip /
+     EvolutionBanner deltas. Au hover, la chip se redresse pour donner un
+     petit effet de réaction. */
+  .ap-micro:nth-child(1) { transform: rotate(-2deg); }
+  .ap-micro:nth-child(2) { transform: rotate(1.5deg); }
+  .ap-micro:nth-child(3) { transform: rotate(-1deg); }
+  .ap-micro:nth-child(4) { transform: rotate(2deg); }
+  .ap-micro:hover { transform: rotate(0deg); }
   .ap-micro b { font-weight: 500; }
   .ap-micro.is-done {
     color: var(--mint);
@@ -8265,8 +8278,14 @@ export default function MockupStyles() {
     .ap-radial-wrap { width: 200px; height: 200px; }
     .ap-pct { font-size: 44px; }
     .ap-pct em { font-size: 18px; }
-    .ap-micro-steps { gap: 6px; }
+    .ap-micro-steps { gap: 8px; }
     .ap-micro { font-size: 9px; padding: 4px 9px; }
+    /* Mobile : on dégonfle les rotations pour éviter que ça déborde
+       sur narrow viewport. */
+    .ap-micro:nth-child(1) { transform: rotate(-1deg); }
+    .ap-micro:nth-child(2) { transform: rotate(0.8deg); }
+    .ap-micro:nth-child(3) { transform: rotate(-0.5deg); }
+    .ap-micro:nth-child(4) { transform: rotate(1deg); }
   }
 
   /* ── Variante "finalize" (widget compact pour FicheScreen AnalyzingState) ──
