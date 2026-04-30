@@ -78,15 +78,19 @@ Implémentée :
 - **Cormorant Garamond** pour les verdicts (titres dramatiques).
 - Pas d'italique sur les mots isolés en orange (règle visuelle d'emphasis).
 
+## Toggle Mix/Master (refonte 2026-04-30, livré)
+
+- **Toggle dans la modale d'upload** entre vocal et DAW (`uploadType` state dans `AddModal.jsx`). Default `mix`.
+- Persisté dans `versions.upload_type` (Supabase). Migration : `supabase/migrations/021_upload_type.sql` (la spec parlait de 010 mais 010 était pris par `010_dsp_metrics.sql`, on a pris 021).
+- Backend `decode-api/lib/claude.js` :
+  - `WEIGHTS.lufs` passe à `0.5` en mode mix (vs `2` en master) → la section Master & Loudness ne plombe plus le globalScore.
+  - Bloc `uploadTypeBlock` injecté dans le system prompt → recettes Master en checks pré-master (head-room, mono compat, clipping) et scores hauts par défaut en mode mix ; recettes streaming standards en mode master.
+- Front fiche : `ReleaseReadinessBanner` accepte `uploadType` → libellés "Prêt pour le mastering / Presque prêt à masteriser / Pas encore prêt" en mode mix, libellés historiques en master. Strings dans `strings.js` (FR + EN, clés `releaseMasteringReady*`).
+- RPC publique `get_public_fiche` non touchée pour ne pas casser la signature i18n vivante en prod : les liens publics affichent le verdict "mix" par défaut. À étendre dans une migration séparée si besoin.
+
 ## Points en suspens
 
 - Badge "EN COURS" tronqué sur mobile (premier chip V1).
 - Thème clair à finaliser (maquettes H explorées, pas encore implémenté).
 - Adapter vue mobile complète (commencé, reste à auditer).
-- **Toggle Mix/Master à l'upload** : ajouter un toggle dans la modale d'upload entre le type vocal et le DAW. Default `mix`.
-  - Si `mix` : section Master & Loudness évalue headroom/dynamique **sans pénaliser le score** (pondération `0.5` au lieu de `2`), verdict "Prêt pour le mastering".
-  - Si `master` : comportement actuel (LUFS / LRA / True Peak, pondération `2`, verdict "Prêt pour la sortie").
-  - Colonne Supabase : `versions.upload_type` (text, default `'mix'`). Migration : `supabase/migrations/010_upload_type.sql`.
-  - Backend : adapter `lib/claude.js` dans `~/decode-api/`.
-  - Front : modale, `storage.js`, `FicheScreen` (verdict), strings.
-  - Spec complète : voir mémoire Dispatch `project_versions_mix_master.md`.
+- Étendre la RPC `get_public_fiche` pour exposer `upload_type` (les liens publics servent le verdict "mix" par défaut tant que ce n'est pas fait).

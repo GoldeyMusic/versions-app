@@ -10,34 +10,77 @@ import useLang from '../hooks/useLang';
  * Props :
  *   - fiche : objet `analysisResult.fiche`
  *   - completedItems : Set<string> (clés items cochés via checklist 2.1)
+ *   - uploadType : 'mix' | 'master' (refonte 2026-04-30 — toggle Mix/Master)
+ *     • 'master' → libellés "Prêt à sortir / Presque prêt / Pas encore"
+ *       (verdict streaming, comportement historique)
+ *     • 'mix'    → libellés "Prêt pour le mastering / Presque prêt à
+ *       masteriser / Pas encore prêt" : on cap au mastering, pas à la
+ *       sortie streaming, parce que la pondération master & loudness
+ *       est neutralisée côté backend.
  *
  * Si la fiche n'a pas de globalScore exploitable, le bandeau n'est pas
  * rendu (on ne veut pas bruiter une analyse encore en cours de stream).
  */
-export default function ReleaseReadinessBanner({ fiche, completedItems, open: openProp, onToggle }) {
+export default function ReleaseReadinessBanner({ fiche, completedItems, open: openProp, onToggle, uploadType = 'master' }) {
   const { s } = useLang();
   const r = computeReleaseReadiness(fiche, completedItems);
-  // Libellés de tier (label + subtitle) tirés de i18n strings.js. Les
-  // subtitles utilisent {count}/{plural} pour gérer le pluriel selon la
-  // langue courante.
+  // Lookup helpers : on bascule entre les deux familles de strings ("sortie"
+  // vs "mastering") selon uploadType. Si une string mastering manque (ex.
+  // langue où elle n'a pas encore été ajoutée), on retombe gracieusement
+  // sur la version "sortie" historique.
+  const isMixUpload = uploadType === 'mix';
+  const pickStr = (mixKey, masterKey, defaultStr) =>
+    (isMixUpload ? (s.fiche?.[mixKey] || s.fiche?.[masterKey]) : s.fiche?.[masterKey]) || defaultStr;
+
   const tierLabel = (
-    r.tier === 'ready' ? s.fiche?.releaseReady
-      : r.tier === 'almost' ? s.fiche?.releaseAlmost
-      : s.fiche?.releaseNotYet
-  ) || (r.tier === 'ready' ? 'Prêt à sortir' : r.tier === 'almost' ? 'Presque prêt' : 'Pas encore');
+    r.tier === 'ready'
+      ? pickStr('releaseMasteringReady', 'releaseReady', isMixUpload ? 'Prêt pour le mastering' : 'Prêt à sortir')
+      : r.tier === 'almost'
+        ? pickStr('releaseMasteringAlmost', 'releaseAlmost', isMixUpload ? 'Presque prêt à masteriser' : 'Presque prêt')
+        : pickStr('releaseMasteringNotYet', 'releaseNotYet', isMixUpload ? 'Pas encore prêt' : 'Pas encore')
+  );
   const fmt = (tpl, count) => (tpl || '')
     .replace('{count}', String(count))
     .replace(/\{plural\}/g, count > 1 ? 's' : '');
   const subText = (() => {
-    if (r.tier === 'ready') return s.fiche?.releaseReadySub || 'Tu peux la sortir — aucun bloquant détecté.';
-    if (r.tier === 'almost') {
-      return r.uncompletedHigh > 0
-        ? fmt(s.fiche?.releaseAlmostSubAction, r.uncompletedHigh)
-        : (s.fiche?.releaseAlmostSubScore || 'Score à consolider avant la sortie.');
+    if (r.tier === 'ready') {
+      return pickStr(
+        'releaseMasteringReadySub', 'releaseReadySub',
+        isMixUpload
+          ? "Tu peux l'envoyer au mastering — aucun bloquant détecté."
+          : 'Tu peux la sortir — aucun bloquant détecté.',
+      );
     }
-    return r.uncompletedHigh > 0
-      ? fmt(s.fiche?.releaseNotYetSubAction, r.uncompletedHigh)
-      : (s.fiche?.releaseNotYetSubScore || 'Score sous le seuil — encore du chemin avant la sortie.');
+    if (r.tier === 'almost') {
+      if (r.uncompletedHigh > 0) {
+        return fmt(
+          pickStr('releaseMasteringAlmostSubAction', 'releaseAlmostSubAction',
+            isMixUpload
+              ? '{count} action{plural} prioritaire{plural} avant le mastering.'
+              : '{count} action{plural} prioritaire{plural} avant de sortir.'),
+          r.uncompletedHigh,
+        );
+      }
+      return pickStr(
+        'releaseMasteringAlmostSubScore', 'releaseAlmostSubScore',
+        isMixUpload ? 'Score à consolider avant le mastering.' : 'Score à consolider avant la sortie.',
+      );
+    }
+    if (r.uncompletedHigh > 0) {
+      return fmt(
+        pickStr('releaseMasteringNotYetSubAction', 'releaseNotYetSubAction',
+          isMixUpload
+            ? '{count} action{plural} prioritaire{plural} en attente.'
+            : '{count} action{plural} prioritaire{plural} en attente.'),
+        r.uncompletedHigh,
+      );
+    }
+    return pickStr(
+      'releaseMasteringNotYetSubScore', 'releaseNotYetSubScore',
+      isMixUpload
+        ? 'Score sous le seuil — encore du chemin avant le mastering.'
+        : 'Score sous le seuil — encore du chemin avant la sortie.',
+    );
   })();
   // Mode contrôlé optionnel : si `open`/`onToggle` sont fournis (cf.
   // SampleFicheScreen / accordéon strict), on s'aligne dessus. Sinon, état

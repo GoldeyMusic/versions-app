@@ -117,6 +117,15 @@ export default function AddModal({
   const [daw, setDaw] = useState(defaultDaw || '');
   const [vocalKind, setVocalKind] = useState('vocal');
   const [finalInstru, setFinalInstru] = useState(null);
+  // Mix / Master toggle (refonte 2026-04-30). Default 'mix' : on part du
+  // principe que la grande majorité des artistes envoient un mix en cours
+  // d'itération, pas un master prêt-à-publier. La valeur sera persistée
+  // dans versions.upload_type côté backend et conditionne :
+  //   - la pondération master & loudness dans le score (mix : 0.5 vs
+  //     master : 2) — cf. lib/claude.js
+  //   - le verdict de sortie ("Prêt pour le mastering" vs "Prêt pour la
+  //     sortie")
+  const [uploadType, setUploadType] = useState('mix');
   // Genre musical déclaré par l'artiste à l'upload. Texte libre court.
   // Refonte 2026-04-29 : si vide au lancement, le pipeline détecte
   // automatiquement (équivalent ancien "Choisir automatiquement"). Le
@@ -190,6 +199,9 @@ export default function AddModal({
       daw,
       projectId: uploadCtx.projectId,
       vocalType,
+      // Persisté en colonne versions.upload_type. Le backend (lib/claude.js)
+      // bascule la pondération master & loudness selon cette valeur.
+      uploadType,
       refFile: null,
       // Genre : si l'utilisateur a tapé quelque chose on le passe, sinon
       // on bascule en auto-détection (équivalent ancien "Choisir
@@ -220,6 +232,7 @@ export default function AddModal({
       setDaw(defaultDaw || '');
       setVocalKind('vocal');
       setFinalInstru(null);
+      setUploadType('mix');
       setDeclaredGenre('');
       setArtisticIntent('');
       setIntentExpanded(false);
@@ -709,6 +722,41 @@ export default function AddModal({
                     >{s.addModal.uploadVocalFinal}</button>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Mix / Master toggle — placé entre vocal et DAW (spec
+                CLAUDE.md "Toggle Mix/Master à l'upload"). Default 'mix'.
+                On garde la même grammaire que les pills vocal pour
+                rester cohérent visuellement. La hint sous le toggle
+                explique en clair l'impact sur le score, au cas où
+                l'utilisateur ne sait pas quoi cocher. */}
+            {file && (
+              <div className="add-mini-field">
+                <div className="add-mini-field-label">{s.addModal.uploadTypeLabel}</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className={`add-mini-pill${uploadType === 'mix' ? ' on' : ''}`}
+                    onClick={() => setUploadType('mix')}
+                  >{s.addModal.uploadTypeMix}</button>
+                  <button
+                    type="button"
+                    className={`add-mini-pill${uploadType === 'master' ? ' on' : ''}`}
+                    onClick={() => setUploadType('master')}
+                  >{s.addModal.uploadTypeMaster}</button>
+                </div>
+                <div style={{
+                  marginTop: 8,
+                  fontSize: 11.5,
+                  lineHeight: 1.45,
+                  color: 'var(--muted)',
+                  fontWeight: 300,
+                }}>
+                  {uploadType === 'mix'
+                    ? s.addModal.uploadTypeMixHint
+                    : s.addModal.uploadTypeMasterHint}
+                </div>
               </div>
             )}
 

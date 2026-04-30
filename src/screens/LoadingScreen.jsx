@@ -274,6 +274,11 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
             title: config.title || 'Titre inconnu',
             version: config.version || 'v1',
             vocalType: config.vocalType || 'vocal',
+            // Mix / Master (refonte 2026-04-30). Default 'mix' côté backend
+            // si absent, donc on n'envoie que si le toggle a une valeur
+            // explicite (pas de surprise pour les anciens flows qui ne
+            // remplissent pas config.uploadType).
+            uploadType: config.uploadType || 'mix',
             locale: lang || 'fr',
             userId,
           };
@@ -310,6 +315,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           formData.append("title", config.title || "Titre inconnu");
           formData.append("version", config.version || "v1");
           formData.append("vocalType", config.vocalType || "vocal");
+          formData.append("uploadType", config.uploadType || "mix");
           formData.append("locale", lang || 'fr');
           if (userId) formData.append("userId", userId);
           if (previousFiche) formData.append("previousFiche", JSON.stringify(previousFiche));

@@ -696,6 +696,20 @@ const STRINGS = {
       releaseAlmostSubScore: "Score à consolider avant la sortie.",
       releaseNotYetSubAction: "{count} action{plural} prioritaire{plural} en attente.",
       releaseNotYetSubScore: "Score sous le seuil — encore du chemin avant la sortie.",
+      // Variantes "Prêt pour le mastering" — affichées quand la version a
+      // été uploadée comme un MIX (toggle Mix/Master à l'upload). Le
+      // diagnostic master & loudness reste informatif et ne pénalise pas
+      // le score : on parle donc d'un cap "envoyable au mastering" plutôt
+      // que d'un cap "envoyable en streaming".
+      releaseMasteringEyebrow: "VERDICT DE SORTIE",
+      releaseMasteringReady: "Prêt pour le mastering",
+      releaseMasteringAlmost: "Presque prêt à masteriser",
+      releaseMasteringNotYet: "Pas encore prêt",
+      releaseMasteringReadySub: "Tu peux l'envoyer au mastering — aucun bloquant détecté.",
+      releaseMasteringAlmostSubAction: "{count} action{plural} prioritaire{plural} avant le mastering.",
+      releaseMasteringAlmostSubScore: "Score à consolider avant le mastering.",
+      releaseMasteringNotYetSubAction: "{count} action{plural} prioritaire{plural} en attente.",
+      releaseMasteringNotYetSubScore: "Score sous le seuil — encore du chemin avant le mastering.",
       // Evolution banner — title + section labels
       evolutionSince: "Évolution depuis {prev}",
       evolutionSinceLast: "Évolution depuis la dernière",
@@ -1005,6 +1019,14 @@ const STRINGS = {
       uploadVocalInstrumental: "Instrumental",
       uploadVocalComing: "Voix à venir",
       uploadVocalFinal: "Définitif",
+      // Toggle Mix / Master à l'upload (refonte 2026-04-30).
+      // Pilote la pondération de la section master & loudness dans le score
+      // (Mix : indulgent, Master : strict) + le verdict de sortie.
+      uploadTypeLabel: "Tu envoies un mix ou un master ?",
+      uploadTypeMix: "Mix",
+      uploadTypeMaster: "Master",
+      uploadTypeMixHint: "Pas encore masterisé — la section loudness reste informative et ne pénalise pas le score.",
+      uploadTypeMasterHint: "Master prêt à publier — la loudness, le LRA et le True Peak comptent à plein dans le score.",
       uploadDawLabel: "Ton DAW",
       uploadDawPlaceholder: "Sélectionne ton DAW…",
       uploadGenreLabel: "Genre musical",
@@ -2054,6 +2076,19 @@ const STRINGS = {
       releaseAlmostSubScore: "Score to consolidate before release.",
       releaseNotYetSubAction: "{count} priority action{plural} pending.",
       releaseNotYetSubScore: "Score below threshold — more work before release.",
+      // Mix mode variants ("Ready for mastering") — shown when the
+      // version was uploaded as a MIX. The master & loudness section
+      // stays informative and does not drag the score, so we frame the
+      // cap as "ready to send to mastering" rather than "ready to ship".
+      releaseMasteringEyebrow: "RELEASE READINESS",
+      releaseMasteringReady: "Ready for mastering",
+      releaseMasteringAlmost: "Almost ready to master",
+      releaseMasteringNotYet: "Not yet ready",
+      releaseMasteringReadySub: "You can send it to mastering — no blocker detected.",
+      releaseMasteringAlmostSubAction: "{count} priority action{plural} before mastering.",
+      releaseMasteringAlmostSubScore: "Score to consolidate before mastering.",
+      releaseMasteringNotYetSubAction: "{count} priority action{plural} pending.",
+      releaseMasteringNotYetSubScore: "Score below threshold — more work before mastering.",
       // Evolution banner
       evolutionSince: "Evolution since {prev}",
       evolutionSinceLast: "Evolution since last",
@@ -2363,6 +2398,14 @@ const STRINGS = {
       uploadVocalInstrumental: "Instrumental",
       uploadVocalComing: "Vocals to come",
       uploadVocalFinal: "Final",
+      // Mix / Master toggle on upload (2026-04-30 redesign).
+      // Drives the weighting of the master & loudness section in the
+      // overall score (Mix: lenient, Master: strict) + release verdict.
+      uploadTypeLabel: "Mix or master?",
+      uploadTypeMix: "Mix",
+      uploadTypeMaster: "Master",
+      uploadTypeMixHint: "Not mastered yet — the loudness section stays informative and won't drag the score.",
+      uploadTypeMasterHint: "Master ready to publish — loudness, LRA and True Peak count fully in the score.",
       uploadDawLabel: "Your DAW",
       uploadDawPlaceholder: "Pick your DAW…",
       uploadGenreLabel: "Musical genre",

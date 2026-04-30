@@ -22,7 +22,7 @@ export async function loadTracks() {
 
   const { data: tracks, error } = await supabase
     .from('tracks')
-    .select('id, title, project_id, vocal_type, artistic_intent, created_at, versions(id, name, date, bpm, key, lufs, is_main, is_final, analysis_result, version_intent, storage_path, declared_genre, genre_inferred_by_ai, inferred_genre, created_at)')
+    .select('id, title, project_id, vocal_type, artistic_intent, created_at, versions(id, name, date, bpm, key, lufs, is_main, is_final, analysis_result, version_intent, storage_path, declared_genre, genre_inferred_by_ai, inferred_genre, upload_type, created_at)')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -56,6 +56,9 @@ export async function loadTracks() {
         declaredGenre: v.declared_genre || null,
         genreInferredByAi: v.genre_inferred_by_ai === true,
         inferredGenre: v.inferred_genre || null,
+        // Mix / Master toggle (refonte 2026-04-30). Default 'mix' si la
+        // colonne n'a jamais été remplie (anciennes versions, fallback DB).
+        uploadType: v.upload_type || 'mix',
       })),
   }));
 }
@@ -201,6 +204,13 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
     }
   }
 
+  // Mix / Master (refonte 2026-04-30). On persiste tel que reçu de l'UI.
+  // Si absent (ancien flow / appel programmatique), on retombe sur 'mix'
+  // (cohérent avec le default DB de la migration 021).
+  const uploadType = (config?.uploadType === 'master' || config?.uploadType === 'mix')
+    ? config.uploadType
+    : 'mix';
+
   if (existing) {
     const updatePayload = {
       date: formatDate(),
@@ -210,6 +220,7 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
       // Nouvelle analyse = les anciennes traductions cachées sont obsolètes.
       analysis_translations: {},
       audio_hash: config?.audioHash || analysisResult?.audioHash || null,
+      upload_type: uploadType,
       ...dspPatch,
     };
     if (finalStoragePath) updatePayload.storage_path = finalStoragePath;
@@ -234,6 +245,7 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
         analysis_locale: localeToPersist,
         audio_hash: config?.audioHash || analysisResult?.audioHash || null,
         storage_path: finalStoragePath,
+        upload_type: uploadType,
         ...dspPatch,
       })
       .select()
@@ -595,6 +607,11 @@ export async function fetchPublicFiche(token) {
     createdAt: data.created_at || null,
     analysisResult: data.analysis_result || null,
     vocalType: data.vocal_type || 'vocal',
+    // upload_type non exposé par la RPC actuelle (on n'a pas étendu la
+    // signature pour rester compatible avec la migration i18n vivante en
+    // prod). Default 'mix' : verdict mastering plus permissif, ne casse
+    // rien sur les liens publics existants.
+    uploadType: data.upload_type || 'mix',
     analysisLocale: (data.analysis_locale || 'fr').toString().toLowerCase().slice(0, 2),
     analysisTranslations: data.analysis_translations || {},
   };
@@ -952,7 +969,7 @@ export async function loadProjects() {
         cover_image_url,
         created_at,
         position_in_project,
-        versions(id, name, date, bpm, key, lufs, is_main, analysis_result, storage_path, created_at)
+        versions(id, name, date, bpm, key, lufs, is_main, analysis_result, storage_path, upload_type, created_at)
       )
     `)
     .eq('user_id', user.id)
@@ -995,6 +1012,7 @@ export async function loadProjects() {
             main: v.is_main,
             analysisResult: v.analysis_result,
             storagePath: v.storage_path,
+            uploadType: v.upload_type || 'mix',
           })),
       })),
   }));

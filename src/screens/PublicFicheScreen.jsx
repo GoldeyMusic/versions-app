@@ -155,8 +155,14 @@ export default function PublicFicheScreen({ token }) {
           <div className="public-fiche-page">
             {/* Ticket 4.3 — bandeau "Prêt à sortir" (lecture seule, pas de
                 completedItems sur un partage public — le bandeau reflète
-                la fiche brute uniquement). */}
-            <ReleaseReadinessBanner fiche={rawFiche} completedItems={null} />
+                la fiche brute uniquement). uploadType vient de la RPC
+                publique : default 'mix' si la signature actuelle ne
+                renvoie pas encore le champ (cf. storage.fetchPublicFiche). */}
+            <ReleaseReadinessBanner
+              fiche={rawFiche}
+              completedItems={null}
+              uploadType={data.uploadType || 'mix'}
+            />
             {/* Verdict */}
             <section className="row-verdict">
               <div className="rv-left">

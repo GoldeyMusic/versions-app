@@ -4539,7 +4539,15 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               export. Ces éléments étaient avant dans le portail topbar. */}
           <div className="verdict-row-grid wh-anim" style={{ '--anim-d': '0ms' }}>
             <div className="verdict-col-main">
-              <ReleaseReadinessBanner fiche={rawFiche} completedItems={completedItems} />
+              <ReleaseReadinessBanner
+                fiche={rawFiche}
+                completedItems={completedItems}
+                /* Toggle Mix/Master (refonte 2026-04-30) — bascule
+                   "Prêt à sortir" ↔ "Prêt pour le mastering" selon ce
+                   que l'artiste a déclaré à l'upload. Default 'mix'
+                   pour les anciennes versions sans colonne renseignée. */
+                uploadType={versionInDb?.uploadType || 'mix'}
+              />
             </div>
             {(() => {
               const { bpm, key, lufs } = pickDspMetrics(versionInDb, analysisResult);
