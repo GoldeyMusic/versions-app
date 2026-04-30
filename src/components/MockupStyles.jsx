@@ -309,7 +309,12 @@ export default function MockupStyles() {
     .verdict-col-main,
     .pr-pack,
     .lp-card,
-    .pr-card {
+    .pr-card,
+    .cost-kpi,
+    .cost-card,
+    .cost-empty-card,
+    .cost-tier,
+    .cost-summary-card {
       border-radius: 20px !important;
     }
     .col-cover,

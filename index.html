@@ -3,7 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover : autorise le contenu à s'étendre derrière
+         le notch / la dynamic island et la barre d'URL Safari, sinon
+         iOS rend une bande de bg différent autour de la page. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- theme-color : couleur de la status bar mobile (notch, URL bar
+         Safari) — matchée au bg du body (rgb(10, 11, 20)) pour que la
+         couleur du fond couvre TOUT l'écran sans ligne de coupure. -->
+    <meta name="theme-color" content="#0a0b14" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>VERSIONS</title>
   </head>
   <body>
