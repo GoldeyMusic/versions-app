@@ -554,17 +554,16 @@ export default function SampleFicheScreen({
                 pas distraire avec une fausse sidebar. */}
             <div className="sample-sidebar-spacer" aria-hidden="true" />
             <div className="public-fiche-page page">
-            {/* Ticket 4.3 — bandeau "Prêt à sortir / Presque / Pas encore".
-                Avec 3 items high-prio (médium-haut voix, refrain, sibilances)
-                non cochés et un score 78, le verdict tombe sur "Pas encore"
-                — démontre la liste de bloquants exacts. Intégré à
-                l'accordéon strict : fermé par défaut, controlé via
-                openSection === 'release'. */}
+            {/* Bandeau "Verdict de sortie" — strictement aligné sur la
+                vraie fiche : toujours déployé, montre les bloquants
+                d'office, et CTA "Parlons-en dans le chat" qui sur la
+                page exemple route vers signup (la chat IA n'étant
+                accessible qu'aux utilisateurs connectés). */}
             <ReleaseReadinessBanner
               fiche={rawFiche}
               completedItems={null}
-              open={openSection === 'release'}
-              onToggle={() => toggleSection('release')}
+              uploadType="master"
+              onOpenChat={onSignup}
             />
 
             {/* Verdict — strictement aligné sur FicheScreen :
