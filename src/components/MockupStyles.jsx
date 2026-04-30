@@ -8038,17 +8038,21 @@ export default function MockupStyles() {
     animation: ap-pulse 1.4s ease-in-out infinite;
   }
 
-  /* Titre dramatique en Cormorant Garamond — raccord avec les verdicts
-     de la fiche. Le mot d'emphasis (em) reste en italique amber. */
+  /* Titre hero — même grammaire typo que .lp-slogan / .wh-slogan :
+     DM Sans 700, gros, line-height serré, letter-spacing négatif,
+     em amber non-italique. C'est la signature des grosses phrases
+     hero du produit. Cormorant Garamond, lui, reste réservé aux
+     verdicts de la fiche (italique). */
   .ap-title {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 56px; font-weight: 500;
-    letter-spacing: -0.4px; color: var(--text);
-    text-align: center; margin: 4px 0 0;
-    line-height: 1.05;
+    font-family: var(--body); font-weight: 700;
+    font-style: normal;
+    font-size: clamp(40px, 6vw, 72px);
+    line-height: 0.98; letter-spacing: -2px;
+    color: var(--text); text-align: center; margin: 4px 0 0;
   }
   .ap-title em {
-    font-style: italic; color: var(--amber); font-weight: 500;
+    font-family: inherit; font-style: normal; font-weight: inherit;
+    letter-spacing: inherit; color: var(--amber);
   }
 
   /* Sous-titre meta : titre + version courants en mono uppercase, look
