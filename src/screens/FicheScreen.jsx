@@ -3218,6 +3218,9 @@ function VersionChat({
     const fallback = staticSeedFallbackRef.current;
     if (!fetcher && !fallback) return;
     seedAttemptedRef.current = true;
+    // Logs runtime pour debug — visibles dans la console navigateur. À
+    // garder pour les versions pending/buggy ; supprimer une fois stable.
+    console.log('[seed] fire — versionId:', versionId, 'fetcher:', !!fetcher, 'fallback:', !!fallback);
 
     // unmounted ne bloque PAS l'inject/setSeeding parce que React 18
     // tolère setState sur composants unmount (warning seulement). Ce
@@ -3249,14 +3252,22 @@ function VersionChat({
 
     (async () => {
       try {
+        console.log('[seed] awaiting fetcher…');
         const content = await fetcher();
+        console.log('[seed] fetcher resolved — content len:', content ? content.length : 0, 'unmounted:', unmounted);
         inject(content || fallback);
+        console.log('[seed] inject called, will setSeeding(false) — unmounted:', unmounted);
       } catch (e) {
-        console.warn('[seed] fetcher failed, fallback static:', e?.message || e);
+        console.warn('[seed] fetcher threw:', e?.message || e);
         inject(fallback);
       } finally {
         clearTimeout(safetyTimeout);
-        if (!unmounted) setSeeding(false);
+        if (!unmounted) {
+          setSeeding(false);
+          console.log('[seed] setSeeding(false) called');
+        } else {
+          console.log('[seed] skipped setSeeding(false) — unmounted=true');
+        }
       }
     })();
 
