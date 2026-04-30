@@ -3149,10 +3149,14 @@ function VersionChat({
   /* Seed mastering charter — seedFetcher renvoie une Promise<string>
      (charte personnalisée générée par le backend) ; staticSeedFallback
      est utilisé si le fetcher échoue ou n'est pas fourni. seedKey est
-     stocké dans le message pour le marquer comme seed. */
+     stocké dans le message pour le marquer comme seed.
+     seedRequest est un compteur incrémenté par le parent au clic du
+     CTA "Conseils mastering ?". Tant qu'il vaut 0 (ou n'augmente pas),
+     aucun seed n'est déclenché (ouverture via pill chat = chat vierge). */
   seedFetcher = null,
   staticSeedFallback = null,
   seedKey = null,
+  seedRequest = 0,
 }) {
   const { lang, s } = useLang();
   const [messages, setMessages] = useState([]);
@@ -3174,8 +3178,14 @@ function VersionChat({
   const staticSeedFallbackRef = useRef(staticSeedFallback);
   useEffect(() => { seedFetcherRef.current = seedFetcher; }, [seedFetcher]);
   useEffect(() => { staticSeedFallbackRef.current = staticSeedFallback; }, [staticSeedFallback]);
-  // N'essaye le seed qu'une fois par versionId pour éviter les double-fires.
-  const seedAttemptedRef = useRef(false);
+  // Stocke la dernière valeur de seedRequest qu'on a traitée. À chaque
+  // clic du CTA, le parent incrémente seedRequest. Si la nouvelle valeur
+  // est strictement supérieure à seedProcessedRef.current, on déclenche
+  // un seed (à condition que le chat soit vide). Cela permet : (1) un
+  // seul seed par clic de CTA, (2) re-seed après clear si l'utilisateur
+  // re-clique le CTA, (3) aucun seed si l'utilisateur ouvre via la pill
+  // chat (qui n'incrémente pas seedRequest).
+  const seedProcessedRef = useRef(0);
 
   // Charge l'historique persisté quand la version change — chat scopé par versionId.
   // Si versionId n'est pas encore en DB (__pending_v__) le helper retourne []
@@ -3183,7 +3193,6 @@ function VersionChat({
   useEffect(() => {
     let alive = true;
     setHistoryLoaded(false);
-    seedAttemptedRef.current = false;
     if (!versionId) { setMessages([]); setHistoryLoaded(true); return; }
     loadChatHistory(versionId).then((hist) => {
       if (alive) {
@@ -3206,21 +3215,19 @@ function VersionChat({
     if (!historyLoaded) return;
     // On attend d'avoir un versionId réel (les tracks sont chargés async
     // depuis Supabase, donc versionInDb?.id est null sur les premiers
-    // renders). Sans ce gate, l'effet fire avec versionId=null ET avec
-    // le vrai versionId → 2 appels API + race sur l'inject. Les versions
-    // pending ont un id sentinelle ('__pending_v__') qui est truthy, donc
-    // elles passent le gate et bénéficient du seed local.
+    // renders). Les versions pending ont un id sentinelle ('__pending_v__')
+    // qui est truthy donc elles passent le gate.
     if (!versionId) return;
     if (!seedKey) return;
+    // seedRequest=0 : pas de demande de seed (pill chat ou état initial).
+    // seedProcessedRef >= seedRequest : on a déjà traité cette demande.
+    if (!seedRequest) return;
+    if (seedProcessedRef.current >= seedRequest) return;
     if (messages.length > 0) return;
-    if (seedAttemptedRef.current) return;
     const fetcher = seedFetcherRef.current;
     const fallback = staticSeedFallbackRef.current;
     if (!fetcher && !fallback) return;
-    seedAttemptedRef.current = true;
-    // Logs runtime pour debug — visibles dans la console navigateur. À
-    // garder pour les versions pending/buggy ; supprimer une fois stable.
-    console.log('[seed] fire — versionId:', versionId, 'fetcher:', !!fetcher, 'fallback:', !!fallback);
+    seedProcessedRef.current = seedRequest;
 
     // IMPORTANT : on ne gate PLUS inject/setSeeding sur un flag "unmounted".
     // Précédemment on observait que le cleanup React fire pendant les ~20s
@@ -3270,7 +3277,7 @@ function VersionChat({
       unmounted = true;
       clearTimeout(safetyTimeout);
     };
-  }, [historyLoaded, seedKey, messages.length, versionId]);
+  }, [historyLoaded, seedKey, messages.length, versionId, seedRequest]);
 
   const send = async () => {
     if (!input.trim() || loading) return;
@@ -3330,9 +3337,10 @@ function VersionChat({
     if (res !== 'confirm') return;
     setMessages([]);
     saveChatHistory(versionId, []);
-    // Reset le gate pour que le seed mastering puisse re-fire après clear
-    // (effet déclenché par le passage messages.length 1+ → 0).
-    seedAttemptedRef.current = false;
+    // Le seed ne se redéclenche PAS automatiquement après clear : il
+    // faut que l'utilisateur reclique le CTA "Conseils mastering ?" pour
+    // recevoir une nouvelle charte personnalisée. S'il veut juste un
+    // chat vierge, l'effacement suffit.
   };
 
   return (
@@ -4019,6 +4027,12 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   // Set<string>. Persisté dans Supabase (table mix_note_completions).
   const [completedItems, setCompletedItems] = useState(new Set());
   const [chatOpen, setChatOpen] = useState(false);
+  // Compteur incrémenté uniquement au clic du CTA "Conseils mastering ?".
+  // Le pill chat (icône bulle générique) n'y touche pas — d'où la
+  // distinction : ouverture via CTA → seed mastering ; ouverture via
+  // pill → chat vierge. VersionChat compare ce compteur à son
+  // seedProcessedRef interne pour décider de seeder ou pas.
+  const [chatSeedRequest, setChatSeedRequest] = useState(0);
   const [exportTarget, setExportTarget] = useState(null); // { track, version } ouverts dans la modale d'export PDF
   const [shareTarget, setShareTarget] = useState(null);   // { track, version } ouverts dans la modale de partage
   const [verdictExpanded, setVerdictExpanded] = useState(false); // verdict rétracté par défaut
@@ -4769,7 +4783,13 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 uploadType={versionInDb?.uploadType || 'mix'}
                 /* CTA "Parlons-en dans le chat" rendu à l'intérieur du
                    bandeau, ouvre le drawer chat quand cliqué. */
-                onOpenChat={chatAsDrawer ? () => setChatOpen(true) : undefined}
+                onOpenChat={chatAsDrawer ? () => {
+                  // CTA "Conseils mastering ?" : on incrémente le seed
+                  // request avant d'ouvrir le chat → VersionChat
+                  // déclenchera la génération de la charte personnalisée.
+                  setChatSeedRequest((n) => n + 1);
+                  setChatOpen(true);
+                } : undefined}
               />
             </div>
             {(() => {
@@ -5498,10 +5518,14 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               /* Seed dynamique : charte mastering générée par Claude
                  (backend /api/mastering-charter) qui croise charte de
                  référence + contexte du track + RAG PureMix. Fallback
-                 statique si l'API tombe. */
+                 statique si l'API tombe. seedRequest=0 par défaut →
+                 pas de seed automatique en mode anchored, l'utilisateur
+                 doit cliquer le CTA "Conseils mastering ?" pour
+                 déclencher. */
               seedFetcher={masteringSeedFetcher}
               staticSeedFallback={getMasteringCharter(lang)}
               seedKey={MASTERING_CHARTER_SEED_KEY}
+              seedRequest={chatSeedRequest}
             />
           </aside>
         )}
@@ -5623,16 +5647,18 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             analysisResult={displayAR}
             open={chatOpen}
             onClose={() => setChatOpen(false)}
-            /* Seed dynamique : la charte mastering est générée par Claude
-               à la première ouverture (croise charte de référence +
-               contexte du track + verdict + RAG PureMix). Si l'API tombe,
-               on retombe sur la charte statique FR/EN comme filet de
-               sécurité. Le CTA "Conseils mastering ?" et la pill chat
-               ouvrent tous deux le drawer — le seed sert de point de
-               départ commun adapté au track. */
+            /* Seed dynamique gated par seedRequest. Le CTA "Conseils
+               mastering ?" incrémente chatSeedRequest → VersionChat
+               déclenche la génération de la charte personnalisée
+               (croise charte de référence + contexte track + verdict
+               + RAG PureMix). Si l'API tombe, fallback statique FR/EN.
+               La pill chat (icône bulle) n'incrémente pas → ouverture
+               sans seed, chat vierge. Désiré : l'utilisateur choisit
+               explicitement quand il veut la charte mastering. */
             seedFetcher={masteringSeedFetcher}
             staticSeedFallback={getMasteringCharter(lang)}
             seedKey={MASTERING_CHARTER_SEED_KEY}
+            seedRequest={chatSeedRequest}
           />
         </>
       )}
