@@ -139,24 +139,11 @@ Pour le détail : `AUBIOMIX_PLAN.md` (clos en intégralité), `ADMIN_DASHBOARD.m
 
 ---
 
-## 🟡 Bloc 6 — Roadmap produit (post-monétisation)
-
-- [ ] **Détection "autre titre" à l'upload** — compare BPM / tonalité / durée vs version précédente, alerte si trop différent.
-- [ ] **Système de progression entre versions** — courbe trajectoire globale au-dessus de l'EvolutionBanner.
-- [ ] **Upload direct navigateur → Supabase** (réactivable, code dort dans `api/_storage.js`). Pré-requis : pousser la Global file size limit Supabase à ≥ 100 Mo (Settings → Storage), repointer `src/constants/api.js` sur Vercel, repointer le webhook Stripe. Détail : `UPLOAD_DIRECT_PLAN.md`.
-- [ ] **Drag-and-drop mobile** — porter les touch events sur la nouvelle archi.
-- [ ] **Audit pédagogie globale de la copy** — toute la copy user-facing au crible de la double cible : musicien isolé sans largage + pro non-snob (cf. `feedback_pedagogie_versions.md`).
-- [ ] **Migration Vercel-only** — déclencheur économique (couper Railway ~$10/mois). Bloqué tant que le pipeline d'analyse 3-5 min ne tient pas dans `maxDuration` 60 s. Cf. `UPLOAD_DIRECT_PLAN.md` § "Architecture cible court-terme".
-
----
-
 ## Conseil de séquence
 
 **Si 2-3 h dispos** → Bloc 2 entier (légales + OAuth Prod + URLs propres) puis allumer `MONETIZATION_ENABLED=true`. À ce moment-là, le produit est ouvert au paiement.
 
 **Si moins de temps** → juste **les pages légales** (indépendantes, déblocage immédiat pour Google OAuth Prod ensuite).
-
-**Si tu veux plutôt avancer côté produit** → Bloc 6 #1 ou #2 (détection autre titre / courbe trajectoire). Ça enrichit l'expérience sans bloquer la mise en prod.
 
 ---
 
