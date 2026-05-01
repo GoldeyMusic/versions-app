@@ -7,7 +7,6 @@ import useLang from "./hooks/useLang";
 import useMobile from "./hooks/useMobile";
 import GlobalStyles from "./components/GlobalStyles";
 import MockupStyles from "./components/MockupStyles";
-import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import WaveSurfer from 'wavesurfer.js';
 import BottomPlayer, { resolveAudio, VolumeControl } from "./components/BottomPlayer";
