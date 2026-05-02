@@ -9088,15 +9088,21 @@ export default function MockupStyles() {
     letter-spacing: 0.5px;
   }
 
-  /* Hint "au moins une réponse" en bas-gauche du footer. Mono small
-     muted ; visibility: hidden au lieu de display:none pour ne pas
-     faire sauter la hauteur du footer quand il disparaît. */
+  /* Hint "au moins une réponse" — sur sa PROPRE ligne au-dessus du
+     footer (auparavant en split-left du footer, mais ça débordait
+     quand la scrollbar verticale s'activait). visibility: hidden
+     pour préserver la hauteur quand l'utilisateur a au moins une
+     réponse → le layout ne saute pas. */
   .fb-required-hint {
     font-family: var(--mono); font-size: 10px;
     color: var(--muted2, #5a5a5e);
     letter-spacing: 0.5px; line-height: 16px;
   }
-  .fb-foot-actions { display: inline-flex; gap: 10px; }
+  .fb-required-hint-row {
+    text-align: right;
+    margin-top: 14px;
+    margin-bottom: -8px; /* compense le margin-top du .add-mini-foot suivant */
+  }
 
   /* États success / error — réutilisent .add-mini-title pour le titre
      (DM Sans 600 + em ambre) et un body en DM Sans. PAS de Cormorant

@@ -284,33 +284,38 @@ export default function FeedbackModal({ onClose, versionId = null, trackId = nul
               />
             </FbQuestion>
 
-            {/* Footer — .add-mini-foot.is-split pour aligner le hint à
-                gauche et les boutons à droite, comme les modales d'upload. */}
-            <div className="add-mini-foot is-split">
-              <div
-                className="fb-required-hint"
-                style={{ visibility: hasAnyAnswer ? 'hidden' : 'visible' }}
+            {/* Hint "au moins une réponse" sur SA propre ligne, au-dessus
+                du footer. Auparavant aligné à gauche du footer en split,
+                mais quand la scrollbar de la modale s'active (6 questions
+                empilées), elle mangeait les ~15px qui faisaient déborder
+                les boutons à droite. visibility:hidden conserve la hauteur
+                pour ne pas faire sauter le layout quand le hint disparaît. */}
+            <div
+              className="fb-required-hint fb-required-hint-row"
+              style={{ visibility: hasAnyAnswer ? 'hidden' : 'visible' }}
+            >
+              {t.requiredHint}
+            </div>
+            {/* Footer — .add-mini-foot par défaut (justify-content: flex-end).
+                Boutons collés au padding droit de la modale, plus aucun
+                risque de débordement. */}
+            <div className="add-mini-foot">
+              <button
+                type="button"
+                className="add-mini-btn"
+                onClick={onClose}
+                disabled={stage === 'submitting'}
               >
-                {t.requiredHint}
-              </div>
-              <div className="fb-foot-actions">
-                <button
-                  type="button"
-                  className="add-mini-btn"
-                  onClick={onClose}
-                  disabled={stage === 'submitting'}
-                >
-                  {t.cancel}
-                </button>
-                <button
-                  type="button"
-                  className="add-mini-btn is-primary"
-                  onClick={handleSubmit}
-                  disabled={!hasAnyAnswer || stage === 'submitting'}
-                >
-                  {stage === 'submitting' ? t.submitting : t.submit}
-                </button>
-              </div>
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                className="add-mini-btn is-primary"
+                onClick={handleSubmit}
+                disabled={!hasAnyAnswer || stage === 'submitting'}
+              >
+                {stage === 'submitting' ? t.submitting : t.submit}
+              </button>
             </div>
           </>
         )}
