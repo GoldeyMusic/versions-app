@@ -803,6 +803,50 @@ const STRINGS = {
       ],
     },
 
+    /* ─────────────── FEEDBACK (questionnaire testeurs) ─────── */
+    // Modale 6 questions, déclenchée depuis la sidebar (bouton
+    // "Ton avis ?") ou la fiche. Volontairement courte pour qu'un
+    // testeur la remplisse en moins de 3 min après 2-3 analyses.
+    feedback: {
+      triggerLabel: "Ton avis ?",
+      triggerTitle: "Donner ton avis sur Versions",
+      title: "TON AVIS",
+      sub: "6 questions courtes — moins de 3 minutes",
+      intro: "Tes retours nous aident à calibrer Versions. Tout est anonyme côté testeur, et tu peux laisser une question vide si tu n'as rien à dire dessus.",
+      // Q1 : NPS
+      q1Label: "Sur 0 à 10, recommanderais-tu Versions à un autre artiste qui se mixe seul ?",
+      q1Hint: "0 = jamais — 10 = absolument",
+      q1Low: "Pas du tout",
+      q1High: "Carrément",
+      // Q2 : surprise positive
+      q2Label: "Qu'est-ce qui t'a le plus surpris dans le diagnostic ?",
+      q2Placeholder: "Un point que tu ne soupçonnais pas, une formulation qui a fait mouche…",
+      // Q3 : friction
+      q3Label: "Y a-t-il un moment où tu t'es dit \"ça je comprends pas\" ou \"ça me sert à rien\" ?",
+      q3Placeholder: "Un mot trop technique, un score qui t'a paru injuste, une zone d'ombre…",
+      // Q4 : willingness to pay
+      q4Label: "Aurais-tu payé pour avoir cette analyse ? À quel prix ça t'aurait paru juste ?",
+      q4Placeholder: "Oui / non, et un ordre de prix par analyse ou par mois si tu en as un en tête.",
+      // Q5 : verbatim landing
+      q5Label: "Si tu devais décrire Versions en une phrase à un pote musicien, tu dirais quoi ?",
+      q5Placeholder: "Une phrase, comme tu la dirais à voix haute.",
+      // Q6 : priorité
+      q6Label: "Une chose à changer ou à ajouter en priorité ?",
+      q6Placeholder: "Bug, fonctionnalité manquante, formulation, tarif… ce qui te vient en premier.",
+      // Footer
+      cancel: "Plus tard",
+      submit: "Envoyer mon avis",
+      submitting: "Envoi…",
+      successTitle: "Reçu — merci.",
+      successBody: "C'est précieux. Tes mots vont nourrir la prochaine version.",
+      successClose: "Fermer",
+      errorTitle: "Envoi impossible",
+      errorBody: "Réessaie dans un instant. Si ça persiste, écris-nous à contact@versions.studio.",
+      errorRetry: "Réessayer",
+      requiredHint: "Au moins une réponse est nécessaire pour envoyer.",
+      mustBeSignedIn: "Connecte-toi pour envoyer ton retour.",
+    },
+
     /* ─────────────── VERSIONS SCREEN ─────────────── */
     versions: {
       title: "VERSIONS",
@@ -2207,6 +2251,50 @@ const STRINGS = {
         "Plate reverb vs hall reverb",
         "Best master bus chain",
       ],
+    },
+
+    /* ─────────────── FEEDBACK (tester questionnaire) ─────── */
+    // 6-question modal, triggered from the sidebar ("Got feedback?")
+    // or from the fiche. Deliberately short so testers can complete
+    // it in under 3 minutes after 2-3 analyses.
+    feedback: {
+      triggerLabel: "Got feedback?",
+      triggerTitle: "Share feedback on Versions",
+      title: "YOUR FEEDBACK",
+      sub: "6 short questions — under 3 minutes",
+      intro: "Your feedback helps us calibrate Versions. Skip any question you don't have an answer to.",
+      // Q1: NPS
+      q1Label: "On a 0 to 10 scale, would you recommend Versions to another artist mixing on their own?",
+      q1Hint: "0 = never — 10 = absolutely",
+      q1Low: "Not at all",
+      q1High: "Absolutely",
+      // Q2: positive surprise
+      q2Label: "What surprised you most in the analysis?",
+      q2Placeholder: "Something you didn't expect, a phrase that hit home…",
+      // Q3: friction
+      q3Label: "Was there a moment where you thought \"I don't get this\" or \"this isn't useful\"?",
+      q3Placeholder: "A word that was too technical, a score that felt unfair, a blind spot…",
+      // Q4: willingness to pay
+      q4Label: "Would you have paid for this analysis? What price would have felt fair?",
+      q4Placeholder: "Yes / no, and a rough number per analysis or per month if you have one in mind.",
+      // Q5: verbatim landing
+      q5Label: "If you had to describe Versions in one sentence to a musician friend, what would you say?",
+      q5Placeholder: "One sentence, the way you'd say it out loud.",
+      // Q6: priority
+      q6Label: "One thing to change or add as a priority?",
+      q6Placeholder: "Bug, missing feature, wording, pricing… whatever comes first.",
+      // Footer
+      cancel: "Later",
+      submit: "Send my feedback",
+      submitting: "Sending…",
+      successTitle: "Got it — thank you.",
+      successBody: "This is valuable. Your words will shape the next version.",
+      successClose: "Close",
+      errorTitle: "Couldn't send",
+      errorBody: "Try again in a moment. If it persists, email us at contact@versions.studio.",
+      errorRetry: "Try again",
+      requiredHint: "At least one answer is needed to send.",
+      mustBeSignedIn: "Sign in to send your feedback.",
     },
 
     /* ─────────────── VERSIONS SCREEN ─────────────── */

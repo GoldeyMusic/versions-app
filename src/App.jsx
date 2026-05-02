@@ -36,6 +36,7 @@ import ReglagesModal from "./components/ReglagesModal";
 import RenameModal from "./components/RenameModal";
 import AddModal from "./components/AddModal";
 import NoCreditsModal from "./components/NoCreditsModal";
+import FeedbackModal from "./components/FeedbackModal";
 import { confirmDialog } from "./lib/confirm.jsx";
 
 /* ── Font loader ────────────────────────────────────────── */
@@ -603,7 +604,7 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0, onFinish }) {
  * accès rapide à son solde + ses actions de compte.
  * CSS vit dans MockupStyles (.db-utility-*).
  */
-function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut, onGoAdmin, user }) {
+function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut, onGoAdmin, onGoFeedback, user }) {
   const { s } = useLang();
   // Admin gated par VITE_ADMIN_EMAIL — visible uniquement sur le compte
   // de David. Permet d'atteindre #/admin en un clic depuis n'importe
@@ -622,6 +623,23 @@ function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut, onGoAdmi
           {credits === 1
             ? (s.sidebar?.creditsSingular || '1 crédit')
             : (s.sidebar?.creditsPlural || '{count} crédits').replace('{count}', String(credits))}
+        </button>
+      )}
+      {/* Feedback testeur — phase beta. Pill mono distincte des picto
+          ronds pour rester repérable mais discrète. Conditionnée à
+          onGoFeedback (la prop n'est passée que pour les utilisateurs
+          authentifiés, cf. table feedback en RLS authenticated only). */}
+      {onGoFeedback && (
+        <button
+          type="button"
+          className="db-utility-btn db-utility-btn-feedback"
+          onClick={onGoFeedback}
+          aria-label={s.feedback?.triggerTitle || 'Donner ton avis sur Versions'}
+          title={s.feedback?.triggerTitle || 'Donner ton avis sur Versions'}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+          </svg>
         </button>
       )}
       {isAdmin && onGoAdmin && (
@@ -677,7 +695,7 @@ function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut, onGoAdmi
  * écrans (admin, versions...), ça vaudra le coup d'extraire le CSS dans
  * MockupStyles ou un fichier shared.
  */
-function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricing, onGoReglages, onSignOut, onGoAdmin, user, lang, setLang, credits, planLabel = null }) {
+function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricing, onGoReglages, onSignOut, onGoAdmin, onGoFeedback, user, lang, setLang, credits, planLabel = null }) {
   const { s } = useLang();
   // Admin gated par VITE_ADMIN_EMAIL — visible uniquement sur le compte
   // de David. Permet d'atteindre #/admin en un clic depuis le menu
@@ -686,6 +704,7 @@ function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricin
   const isAdmin = adminEmail && user?.email?.toLowerCase() === adminEmail;
   const utilityItems = [
     ...(isAdmin && onGoAdmin ? [{ key: 'admin', label: 'Admin', icon: NavIcons.admin, onSelect: onGoAdmin }] : []),
+    ...(onGoFeedback ? [{ key: 'feedback', label: s.feedback?.triggerLabel || 'Ton avis ?', icon: NavIcons.chat || NavIcons.settings, onSelect: onGoFeedback }] : []),
     ...(onGoReglages ? [{ key: 'reglages', label: s.sidebar?.reglages || 'Réglages', icon: NavIcons.settings, onSelect: onGoReglages }] : []),
     ...(onSignOut ? [{ key: 'signout', label: s.sidebar?.signOut || 'Se déconnecter', icon: NavIcons.signOut, onSelect: onSignOut, danger: true }] : []),
   ];
@@ -763,6 +782,7 @@ function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricin
         onGoReglages={onGoReglages}
         onSignOut={onSignOut}
         onGoAdmin={onGoAdmin}
+        onGoFeedback={onGoFeedback}
         user={user}
       />
 
@@ -2692,6 +2712,9 @@ function VersionsAppAuthed() {
   const [askOpen, setAskOpen] = useState(false);
   // Les réglages s'ouvrent en modale (plus de page dédiée)
   const [reglagesOpen, setReglagesOpen] = useState(false);
+  // Modale feedback testeurs (questionnaire 6Q, cf. FeedbackModal.jsx +
+  // migration 024_feedback.sql). Ouverte depuis le DashboardRail.
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   // When adding a new version from an existing track, we prefill the title
   // and, after analysis completes, auto-open that track's folder in Versions tab
   const [prefillTitle, setPrefillTitle] = useState("");
@@ -3790,6 +3813,7 @@ function VersionsAppAuthed() {
             onGoReglages={() => setReglagesOpen(true)}
             onSignOut={handleSignOut}
             onGoAdmin={() => setScreen('admin')}
+            onGoFeedback={() => setFeedbackOpen(true)}
             user={user}
           />
         )}
@@ -3800,6 +3824,14 @@ function VersionsAppAuthed() {
           onSignOut={handleSignOut}
           onProfileUpdate={setUserProfile}
         />
+        {/* Feedback testeurs — modale globale ouvrable depuis le rail */}
+        {feedbackOpen && (
+          <FeedbackModal
+            onClose={() => setFeedbackOpen(false)}
+            versionId={config?.versionId || null}
+            trackId={config?.trackId || null}
+          />
+        )}
       </LangContext.Provider>
     );
   }
@@ -3852,6 +3884,7 @@ function VersionsAppAuthed() {
             onGoReglages={() => setReglagesOpen(true)}
             onSignOut={handleSignOut}
             onGoAdmin={() => setScreen('admin')}
+            onGoFeedback={() => setFeedbackOpen(true)}
             user={user}
           />
         )}
@@ -3861,6 +3894,13 @@ function VersionsAppAuthed() {
           onSignOut={handleSignOut}
           onProfileUpdate={setUserProfile}
         />
+        {feedbackOpen && (
+          <FeedbackModal
+            onClose={() => setFeedbackOpen(false)}
+            versionId={config?.versionId || null}
+            trackId={config?.trackId || null}
+          />
+        )}
       </LangContext.Provider>
     );
   }
@@ -3943,6 +3983,7 @@ function VersionsAppAuthed() {
             onNewTrack={handleSidebarNewTrack}
             onGoReglages={() => setReglagesOpen(true)}
             onGoPricing={() => setScreen('pricing')}
+            onGoFeedback={() => setFeedbackOpen(true)}
             onAskOpen={() => setAskOpen(true)}
             onAdd={() => setHomeAddOpen(true)}
             onPlay={play}
@@ -3995,6 +4036,7 @@ function VersionsAppAuthed() {
               onGoReglages={() => setReglagesOpen(true)}
               onSignOut={handleSignOut}
               onGoAdmin={() => setScreen('admin')}
+              onGoFeedback={() => setFeedbackOpen(true)}
               user={user}
               lang={lang}
               setLang={setLang}
@@ -4027,6 +4069,18 @@ function VersionsAppAuthed() {
             onSignOut={handleSignOut}
             onProfileUpdate={setUserProfile}
           />
+
+          {/* Feedback — modale questionnaire testeurs, ouvrable depuis
+              la sidebar (desktop) ou le DashboardTopbar (welcome).
+              Capte version/track courant si disponibles dans config
+              (utile quand l'utilisateur soumet depuis une fiche). */}
+          {feedbackOpen && (
+            <FeedbackModal
+              onClose={() => setFeedbackOpen(false)}
+              versionId={config?.versionId || null}
+              trackId={config?.trackId || null}
+            />
+          )}
 
           {/* AddModal accessible depuis la sidebar sur n'importe quel
               écran autre que la Home (la Home garde ses propres instances
