@@ -627,8 +627,8 @@ function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut, onGoAdmi
           aria-label={s.feedback?.triggerTitle || 'Donne ton avis sur Versions'}
           title={s.feedback?.triggerTitle || 'Donne ton avis sur Versions'}
         >
-          <svg className="db-utility-feedback-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M19.5 13.572L12 21l-7.5-7.428A5 5 0 1 1 12 6.572a5 5 0 1 1 7.5 7z" />
+          <svg className="db-utility-feedback-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
           </svg>
           <span>{s.feedback?.triggerLabel || 'Ton avis compte'}</span>
         </button>
@@ -2378,7 +2378,7 @@ function WhMenuItem({ label, onClick, danger }) {
 const SIDEBAR_WIDTH = 260;
 
 /* ── Mobile Menu — hamburger (plus d'avatar/photo) ──────────── */
-function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd }) {
+function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd, onGoFeedback }) {
   const [open, setOpen] = useState(false);
   const go = (target) => { setOpen(false); onNavigate(target); };
   const displayName = userProfile?.prenom || (user?.email ? user.email.split('@')[0] : 'utilisateur');
@@ -2414,6 +2414,28 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd }) {
                   <div className="mobile-avatar-popover-who">{displayName}</div>
                   {user?.email && <div className="mobile-avatar-popover-mail">{user.email}</div>}
                 </div>
+                {/* Feedback testeur — phase beta. EN PREMIER dans le
+                    popover (au-dessus de "+ Ajouter" et de tout le
+                    reste) pour qu'il soit l'item le plus visible quand
+                    un testeur ouvre le hamburger. Item teinté ambre
+                    pour ressortir des entrées neutres et compenser
+                    l'absence de pill pulsante (réservée au rail
+                    desktop, caché sur mobile). */}
+                {onGoFeedback && (
+                  <button
+                    className="mobile-avatar-popover-item mobile-avatar-popover-feedback"
+                    onClick={() => { setOpen(false); onGoFeedback(); }}
+                  >
+                    <span className="mobile-menu-icon">
+                      {/* Cœur Lucide canonique (rempli) — reconnaissable
+                          au premier coup d'œil même à 16px. */}
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                      </svg>
+                    </span>
+                    Ton avis compte
+                  </button>
+                )}
                 {onAdd && (
                   <button
                     className="mobile-avatar-popover-item mobile-avatar-popover-add"
@@ -4028,6 +4050,7 @@ function VersionsAppAuthed() {
               user={user}
               userProfile={userProfile}
               onAdd={() => setHomeAddOpen(true)}
+              onGoFeedback={() => setFeedbackOpen(true)}
             />
           )}
 

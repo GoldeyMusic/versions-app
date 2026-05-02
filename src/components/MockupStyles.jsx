@@ -9059,12 +9059,22 @@ export default function MockupStyles() {
     font-size: 14px;
   }
 
-  /* NPS scale — 11 boutons compacts qui se colorent selon segment.
-     Valeur sélectionnée : couleur amber/red/mint inline (cf. JSX). */
+  /* NPS scale — 11 boutons (0..10) coloriés selon segment.
+     Desktop : grid 11 colonnes (une rangée plate). Mobile : grid 6
+     colonnes pour avoir 2 rangées (0-5 / 6-10) avec largeurs égales,
+     au lieu du flex-wrap qui donnait des boutons inégaux quand 8/9/10
+     passaient à la ligne et occupaient toute la largeur restante. */
   .fb-nps-wrap { display: flex; flex-direction: column; gap: 6px; }
-  .fb-nps-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .fb-nps-row {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 6px;
+  }
   .fb-nps-btn {
-    flex: 1 1 0; min-width: 36px;
+    /* Plus de flex/min-width — c'est le grid parent qui distribue
+       les colonnes. Width: 100% pour que chaque bouton remplisse sa
+       cellule de grid. */
+    width: 100%;
     height: 36px; padding: 0 4px;
     border-radius: 8px;
     border: 1px solid rgba(255,255,255,0.10);
@@ -9073,6 +9083,13 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 13px; font-weight: 500;
     line-height: 1; cursor: pointer;
     transition: border-color .15s, background .15s, color .15s, transform .12s;
+  }
+  /* Mobile : 6 colonnes → 2 rangées propres (rangée 1 : 0-5, rangée 2 :
+     6-10 + 1 cellule vide à droite, mais comme c'est un grid auto-flow
+     row, l'espace est juste vide visuellement, parfaitement aligné). */
+  @media (max-width: 540px) {
+    .fb-nps-row { grid-template-columns: repeat(6, 1fr); }
+    .fb-nps-btn { font-size: 14px; height: 40px; }
   }
   .fb-nps-btn:hover:not(:disabled) {
     border-color: rgba(245,176,86,0.35);
@@ -9863,16 +9880,29 @@ export default function MockupStyles() {
     background: rgba(245, 166, 35, 0.08);
   }
 
+  /* Backdrop + popover : on les passe en z-index TRÈS haut (9999/10000)
+     pour éviter qu'ils soient dominés par d'autres stacking contexts
+     dans la page (fiche-topbar sticky, .timeline sticky, ambient-halo,
+     etc.). Sur la fiche en mobile, le chipset de version du titre
+     passait devant le menu — c'était dû à la combinaison sticky +
+     backdrop-filter qui crée des stacking contexts difficiles à
+     hiérarchiser. La nuke option (z 10000) est la plus fiable. */
   .mobile-avatar-backdrop {
-    position: fixed; inset: 0; z-index: 110;
+    position: fixed; inset: 0; z-index: 9999;
     background: transparent;
   }
 
+  /* Popover : passé en position FIXED ancré sous la mobile-topbar,
+     plus en absolute relatif à .mobile-avatar-wrap. Comme ça il vit
+     dans le stacking context racine et son z-index 10000 le pose
+     vraiment au-dessus de tout le reste. Top 60px = hauteur de la
+     mobile-topbar (padding 14×2 + bouton 36 ≈ 64px), right 18px =
+     padding horizontal de la topbar. */
   .mobile-avatar-popover {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    z-index: 120;
+    position: fixed;
+    top: 60px;
+    right: 18px;
+    z-index: 10000;
     min-width: 220px;
     background: var(--s1);
     border: 1px solid var(--border);
@@ -9915,6 +9945,18 @@ export default function MockupStyles() {
   .mobile-avatar-popover-item.danger {
     color: var(--red);
   }
+  /* Item Feedback — teinté ambre pour se distinguer des entrées
+     neutres et attirer l'œil sur mobile (où il n'y a pas la pill
+     pulsante du rail desktop). */
+  .mobile-avatar-popover-feedback {
+    color: var(--amber);
+    background: rgba(245,166,35,0.04);
+  }
+  .mobile-avatar-popover-feedback:hover,
+  .mobile-avatar-popover-feedback:active {
+    background: rgba(245,166,35,0.10);
+  }
+  .mobile-avatar-popover-feedback .mobile-menu-icon { opacity: 1; }
   .mobile-avatar-popover-item .mobile-menu-icon {
     width: 18px; display: inline-flex; align-items: center; justify-content: center;
     color: inherit; opacity: 0.85;

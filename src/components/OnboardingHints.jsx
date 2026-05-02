@@ -36,6 +36,14 @@ export default function OnboardingHints({
   // Au mount : si jamais vu, on démarre sur l'étape 1.
   // Bypass possible via ?onboarding=show dans l'URL (utile en dev/test
   // pour forcer l'affichage sans toucher à localStorage).
+  //
+  // IMPORTANT (2026-05-03) : on pose le flag "vu" DÈS l'affichage,
+  // pas seulement quand l'utilisateur clique Compris ! ou X. Sinon,
+  // un hard refresh (ou une navigation vers un autre écran avant
+  // d'avoir cliqué) re-déclenchait le guide à chaque session — ce
+  // qui était insupportable. Maintenant : guide affiché 1 fois par
+  // installation, et "Revoir le guide" dans Réglages reste le seul
+  // moyen de le rejouer (clique → efface le flag → reaffichage).
   useEffect(() => {
     try {
       const url = new URL(window.location.href);
@@ -48,7 +56,13 @@ export default function OnboardingHints({
         return;
       }
       const done = window.localStorage.getItem(STORAGE_KEY);
-      if (!done) setStep(0);
+      if (!done) {
+        setStep(0);
+        // Pose le flag immédiatement → un reload pendant le guide ne
+        // le re-déclenchera pas. Si l'utilisateur veut revoir, il
+        // dispatch 'versions:replay-onboarding' depuis Réglages.
+        try { window.localStorage.setItem(STORAGE_KEY, '1'); } catch {}
+      }
     } catch {
       // localStorage indisponible (mode privé navigateur, SSR…) : on n'affiche pas
     }
