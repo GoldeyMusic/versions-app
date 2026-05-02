@@ -812,7 +812,7 @@ const STRINGS = {
       triggerTitle: "Donne ton avis sur Versions — 3 min, 6 questions",
       title: "TON AVIS",
       sub: "6 questions courtes — moins de 3 minutes",
-      intro: "Tes retours nous aident à calibrer Versions. Tout est anonyme côté testeur, et tu peux laisser une question vide si tu n'as rien à dire dessus.",
+      intro: "Tes retours nous aident à calibrer Versions. Tu peux laisser une question vide si tu n'as rien à dire dessus.",
       // Q1 : NPS
       q1Label: "Sur 0 à 10, recommanderais-tu Versions à un autre artiste qui se mixe seul ?",
       q1Hint: "0 = jamais — 10 = absolument",
