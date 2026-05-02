@@ -225,7 +225,20 @@ export default function MockupStyles() {
     left: 18px;
     bottom: 92px;
     z-index: 10;
-    display: inline-flex; align-items: center; gap: 8px;
+    /* COLUMN — la pill feedback (large) prend SA PROPRE LIGNE en haut,
+       la rangée crédits + utilitaires (compacte) reste en flex row dessous
+       via .db-utility-row. Auparavant tout était en row, ce qui rendait le
+       rail trop large quand la pill feedback s'élargissait avec son label. */
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  /* Sous-rangée horizontale : crédits + admin + réglages + déconnexion. */
+  .db-utility-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
   }
   /* Pill crédits — mono uppercase ambre, click → /pricing.
      Visuellement parente des .pr-chip (langage néon, interactive). */

@@ -613,24 +613,12 @@ function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut, onGoAdmi
   const isAdmin = adminEmail && user?.email?.toLowerCase() === adminEmail;
   return (
     <div className="db-utility-rail" aria-label="Outils du compte">
-      {credits != null && (
-        <button
-          type="button"
-          className="db-utility-credits"
-          onClick={onGoPricing}
-          title="Acheter des crédits"
-        >
-          {credits === 1
-            ? (s.sidebar?.creditsSingular || '1 crédit')
-            : (s.sidebar?.creditsPlural || '{count} crédits').replace('{count}', String(credits))}
-        </button>
-      )}
       {/* Feedback testeur — phase beta. Pill complète (icône + label
           visible) avec animation pulse + wiggle périodique pour attirer
-          l'œil sans devenir gimmick. Couleur ambre brand pour distinguer
-          du chat (bulle floutée à droite, fiche only) avec qui on la
-          confondait. Conditionnée à onGoFeedback (la prop n'est passée
-          que pour les utilisateurs authentifiés). */}
+          l'œil. Posée sur SA PROPRE LIGNE au-dessus de la rangée
+          crédits/admin/réglages/déconnexion (le rail est en
+          flex-direction: column). Pré-positionnée tout en haut pour
+          rester ce qui ressort en premier visuellement. */}
       {onGoFeedback && (
         <button
           type="button"
@@ -645,44 +633,61 @@ function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut, onGoAdmi
           <span>{s.feedback?.triggerLabel || 'Ton avis compte'}</span>
         </button>
       )}
-      {isAdmin && onGoAdmin && (
+      {/* Ligne crédits + utilitaires (admin / réglages / déconnexion).
+          Sortie dans son propre wrapper pour rester en flex row tandis
+          que le rail englobant est en column (cf. .db-utility-row CSS). */}
+      <div className="db-utility-row">
+        {credits != null && (
+          <button
+            type="button"
+            className="db-utility-credits"
+            onClick={onGoPricing}
+            title="Acheter des crédits"
+          >
+            {credits === 1
+              ? (s.sidebar?.creditsSingular || '1 crédit')
+              : (s.sidebar?.creditsPlural || '{count} crédits').replace('{count}', String(credits))}
+          </button>
+        )}
+        {isAdmin && onGoAdmin && (
+          <button
+            type="button"
+            className="db-utility-btn db-utility-btn-admin"
+            onClick={onGoAdmin}
+            aria-label="Admin — coûts"
+            title="Admin — coûts"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 2l3 7h7l-5.5 4 2 8L12 17l-6.5 4 2-8L2 9h7z" />
+            </svg>
+          </button>
+        )}
         <button
           type="button"
-          className="db-utility-btn db-utility-btn-admin"
-          onClick={onGoAdmin}
-          aria-label="Admin — coûts"
-          title="Admin — coûts"
+          className="db-utility-btn"
+          onClick={onGoReglages}
+          aria-label={s.sidebar?.reglages || 'Réglages'}
+          title={s.sidebar?.reglages || 'Réglages'}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M12 2l3 7h7l-5.5 4 2 8L12 17l-6.5 4 2-8L2 9h7z" />
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
         </button>
-      )}
-      <button
-        type="button"
-        className="db-utility-btn"
-        onClick={onGoReglages}
-        aria-label={s.sidebar?.reglages || 'Réglages'}
-        title={s.sidebar?.reglages || 'Réglages'}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-      </button>
-      <button
-        type="button"
-        className="db-utility-btn"
-        onClick={onSignOut}
-        aria-label={s.sidebar?.signOut || 'Se déconnecter'}
-        title={s.sidebar?.signOut || 'Se déconnecter'}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-          <polyline points="16 17 21 12 16 7"/>
-          <line x1="21" y1="12" x2="9" y2="12"/>
-        </svg>
-      </button>
+        <button
+          type="button"
+          className="db-utility-btn"
+          onClick={onSignOut}
+          aria-label={s.sidebar?.signOut || 'Se déconnecter'}
+          title={s.sidebar?.signOut || 'Se déconnecter'}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
