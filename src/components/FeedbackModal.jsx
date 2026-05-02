@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import T from '../constants/theme';
 import useLang from '../hooks/useLang';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
-import { IconX } from './Icons';
 
 /**
  * FeedbackModal — questionnaire 6 questions pour capter les retours
@@ -15,22 +14,22 @@ import { IconX } from './Icons';
  * automatiquement (version_id, track_id, route, user_agent) sans le
  * demander au testeur, et on veut centraliser ces retours dans Supabase
  * à côté des autres signaux d'observabilité (analysis_cost_logs,
- * chat_cost_logs). Un onglet Feedback dans #/admin viendra plus tard.
+ * chat_cost_logs).
  *
- * Déclenché depuis le DashboardRail (bouton bulle "Ton avis ?"). La
- * route courante (window.location.hash) est capturée à la soumission.
- * Si on est sur une fiche, version_id/track_id sont passés en props.
+ * Déclenché depuis le DashboardRail (pill "Ton avis compte" en bas-gauche)
+ * ou la sidebar. Si on est sur une fiche, version_id/track_id sont passés
+ * en props pour enrichir le retour avec le contexte.
  *
- * Comportement :
- *   - 6 champs optionnels mais au moins UN doit être renseigné (NPS
- *     ou un verbatim non vide), sinon le bouton submit reste disabled.
- *   - Trois états visuels : form (par défaut) → submitting → success
- *     ou error (avec retry).
- *   - Esc ferme uniquement quand pas en cours d'envoi.
+ * Grammaire visuelle : on suit RIGOUREUSEMENT le template unifié des
+ * modales du site (.add-mini-card.is-upload + .add-mini-eyebrow + .add-mini-title
+ * + .add-mini-input + .add-mini-foot + .add-mini-btn).
  *
- * Grammaire visuelle : on suit le template unifié des modales du site
- * (.add-mini-backdrop / .add-mini-card.is-upload) pour garder l'identité
- * cohérente avec AddModal / RenameModal / ExportPdfModal.
+ * IMPORTANT TYPOGRAPHIE :
+ *   - PAS de Bebas Neue (T.display) — bannie de la charte courante
+ *   - PAS de Cormorant Garamond (T.serif) — réservée aux verdicts
+ *   - Tout en DM Sans (var(--body)) ou JetBrains Mono (var(--mono))
+ *   - Les <em> dans .add-mini-title sont automatiquement coloriés ambre
+ *     (cf. .add-mini-title em dans MockupStyles)
  */
 export default function FeedbackModal({ onClose, versionId = null, trackId = null }) {
   const { s, lang } = useLang();
@@ -49,7 +48,6 @@ export default function FeedbackModal({ onClose, versionId = null, trackId = nul
   // 'form' | 'submitting' | 'success' | 'error'
   const [stage, setStage] = useState('form');
   const [errorMsg, setErrorMsg] = useState('');
-  const cardRef = useRef(null);
 
   // Au moins une réponse pour activer le submit. On considère le NPS
   // comme une réponse à part entière (même 0 = info utile).
@@ -104,8 +102,6 @@ export default function FeedbackModal({ onClose, versionId = null, trackId = nul
 
       setStage('success');
     } catch (err) {
-      // Pas de console.error en prod : on log via Supabase si besoin
-      // mais on garde la fenêtre console propre côté testeur.
       setErrorMsg(err?.message || '');
       setStage('error');
     }
@@ -117,97 +113,69 @@ export default function FeedbackModal({ onClose, versionId = null, trackId = nul
   };
 
   // ── Rendu ──────────────────────────────────────────────────────────
+  // On utilise la grammaire .add-mini-card.is-upload (600px, padding
+  // confortable, halos ambre/cerulean intégrés). Le close button et
+  // tous les états passent par les classes existantes.
   return createPortal((
     <div className="add-mini-backdrop" onClick={handleBackdropClick}>
       <div
-        ref={cardRef}
-        className="add-mini-card is-upload"
+        className="add-mini-card is-upload fb-card"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label={t.title || 'Feedback'}
-        style={{ width: 620 }}
       >
-        {/* Croix de fermeture */}
+        {/* Bouton fermeture — petit cercle haut-droite, classe .add-mini-back
+            réutilisée (link-style discret) plutôt que de réinventer. */}
         <button
           type="button"
           onClick={() => stage !== 'submitting' && onClose?.()}
-          aria-label="Close"
-          style={{
-            position: 'absolute',
-            top: 14,
-            right: 14,
-            width: 30,
-            height: 30,
-            borderRadius: 8,
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.10)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: stage === 'submitting' ? 'not-allowed' : 'pointer',
-            color: T.muted,
-            zIndex: 2,
-          }}
+          className="fb-close"
+          aria-label="Fermer"
+          disabled={stage === 'submitting'}
         >
-          <IconX c={T.muted} />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
         </button>
 
-        {/* Eyebrow + titre + intro */}
-        <div className="add-mini-eyebrow" style={{
-          fontFamily: T.mono,
-          fontSize: 11,
-          letterSpacing: 1.8,
-          color: T.amber,
-          textTransform: 'uppercase',
-          marginBottom: 6,
-        }}>
-          BETA · {t.sub}
-        </div>
-        <div className="add-mini-title" style={{
-          fontFamily: T.display,
-          fontSize: 24,
-          letterSpacing: 2.4,
-          color: T.text,
-          marginBottom: 8,
-        }}>
-          {t.title}
+        {/* Eyebrow + titre — grammaire canonique. Le .add-mini-eyebrow
+            ajoute automatiquement un point ambre devant. */}
+        <div className="add-mini-eyebrow">{t.sub}</div>
+        <div className="add-mini-title">
+          {/* On colore "avis" en ambre via <em> — cf. .add-mini-title em
+              dans MockupStyles (font-style: normal, color: amber). */}
+          {(() => {
+            // Stratégie : on prend le titre traduit (FR "TON AVIS",
+            // EN "YOUR FEEDBACK"), on emphasie le dernier mot pour rester
+            // raccord avec la convention des autres modales (qui colorent
+            // le dernier mot du titre).
+            const title = (t.title || 'Ton avis').toString();
+            const idx = title.lastIndexOf(' ');
+            if (idx < 0) return <em>{title}</em>;
+            return <>{title.slice(0, idx)} <em>{title.slice(idx + 1)}</em></>;
+          })()}
         </div>
 
+        {/* Intro descriptive — masquée sur les états success/error. */}
         {stage !== 'success' && stage !== 'error' && (
-          <div style={{
-            fontFamily: T.body,
-            fontSize: 14,
-            color: T.muted,
-            lineHeight: 1.55,
-            marginBottom: 22,
-          }}>
-            {t.intro}
-          </div>
+          <div className="fb-intro">{t.intro}</div>
         )}
 
         {/* ────────── ÉTAT : success ────────── */}
         {stage === 'success' && (
-          <div style={{ paddingTop: 8, paddingBottom: 6 }}>
-            <div style={{
-              fontFamily: T.serif,
-              fontSize: 22,
-              color: T.amber,
-              lineHeight: 1.3,
-              marginBottom: 10,
-            }}>
-              {t.successTitle}
+          <div className="fb-result">
+            <div className="add-mini-title fb-result-title">
+              {(() => {
+                const tt = (t.successTitle || 'Reçu — merci.').toString();
+                const idx = tt.lastIndexOf(' ');
+                if (idx < 0) return <em>{tt}</em>;
+                return <>{tt.slice(0, idx)} <em>{tt.slice(idx + 1)}</em></>;
+              })()}
             </div>
-            <div style={{
-              fontFamily: T.body,
-              fontSize: 15,
-              color: T.textSoft,
-              lineHeight: 1.6,
-              marginBottom: 22,
-            }}>
-              {t.successBody}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div className="fb-result-body">{t.successBody}</div>
+            <div className="add-mini-foot">
               <button
                 type="button"
                 className="add-mini-btn is-primary"
@@ -221,27 +189,13 @@ export default function FeedbackModal({ onClose, versionId = null, trackId = nul
 
         {/* ────────── ÉTAT : error ────────── */}
         {stage === 'error' && (
-          <div style={{ paddingTop: 8, paddingBottom: 6 }}>
-            <div style={{
-              fontFamily: T.body,
-              fontWeight: 700,
-              fontSize: 16,
-              color: T.red,
-              marginBottom: 8,
-            }}>
-              {t.errorTitle}
-            </div>
-            <div style={{
-              fontFamily: T.body,
-              fontSize: 14,
-              color: T.textSoft,
-              lineHeight: 1.55,
-              marginBottom: 18,
-            }}>
+          <div className="fb-result">
+            <div className="fb-result-error-title">{t.errorTitle}</div>
+            <div className="fb-result-body">
               {t.errorBody}
-              {errorMsg ? <div style={{ color: T.muted2, fontSize: 12, marginTop: 6 }}>{errorMsg}</div> : null}
+              {errorMsg ? <div className="fb-result-error-detail">{errorMsg}</div> : null}
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <div className="add-mini-foot">
               <button type="button" className="add-mini-btn" onClick={onClose}>
                 {t.cancel}
               </button>
@@ -260,7 +214,7 @@ export default function FeedbackModal({ onClose, versionId = null, trackId = nul
         {(stage === 'form' || stage === 'submitting') && (
           <>
             {/* Q1 — NPS */}
-            <Field label={t.q1Label} hint={t.q1Hint}>
+            <FbQuestion label={t.q1Label} hint={t.q1Hint}>
               <NpsScale
                 value={nps}
                 onChange={setNps}
@@ -268,92 +222,78 @@ export default function FeedbackModal({ onClose, versionId = null, trackId = nul
                 highLabel={t.q1High}
                 disabled={stage === 'submitting'}
               />
-            </Field>
+            </FbQuestion>
 
             {/* Q2 — Surprise */}
-            <Field label={t.q2Label}>
+            <FbQuestion label={t.q2Label}>
               <textarea
-                className="add-mini-input"
+                className="add-mini-input add-mini-textarea fb-textarea"
                 value={surprise}
                 onChange={(e) => setSurprise(e.target.value)}
                 placeholder={t.q2Placeholder}
                 disabled={stage === 'submitting'}
                 rows={2}
-                style={textareaStyle}
               />
-            </Field>
+            </FbQuestion>
 
             {/* Q3 — Friction */}
-            <Field label={t.q3Label}>
+            <FbQuestion label={t.q3Label}>
               <textarea
-                className="add-mini-input"
+                className="add-mini-input add-mini-textarea fb-textarea"
                 value={friction}
                 onChange={(e) => setFriction(e.target.value)}
                 placeholder={t.q3Placeholder}
                 disabled={stage === 'submitting'}
                 rows={2}
-                style={textareaStyle}
               />
-            </Field>
+            </FbQuestion>
 
             {/* Q4 — Pay willingness */}
-            <Field label={t.q4Label}>
+            <FbQuestion label={t.q4Label}>
               <textarea
-                className="add-mini-input"
+                className="add-mini-input add-mini-textarea fb-textarea"
                 value={paywill}
                 onChange={(e) => setPaywill(e.target.value)}
                 placeholder={t.q4Placeholder}
                 disabled={stage === 'submitting'}
                 rows={2}
-                style={textareaStyle}
               />
-            </Field>
+            </FbQuestion>
 
             {/* Q5 — Verbatim landing */}
-            <Field label={t.q5Label}>
+            <FbQuestion label={t.q5Label}>
               <textarea
-                className="add-mini-input"
+                className="add-mini-input add-mini-textarea fb-textarea"
                 value={oneliner}
                 onChange={(e) => setOneliner(e.target.value)}
                 placeholder={t.q5Placeholder}
                 disabled={stage === 'submitting'}
                 rows={2}
-                style={textareaStyle}
               />
-            </Field>
+            </FbQuestion>
 
             {/* Q6 — Priorité */}
-            <Field label={t.q6Label}>
+            <FbQuestion label={t.q6Label}>
               <textarea
-                className="add-mini-input"
+                className="add-mini-input add-mini-textarea fb-textarea"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
                 placeholder={t.q6Placeholder}
                 disabled={stage === 'submitting'}
                 rows={2}
-                style={textareaStyle}
               />
-            </Field>
+            </FbQuestion>
 
-            {/* Footer */}
-            <div className="add-mini-foot" style={{
-              marginTop: 10,
-              display: 'flex',
-              gap: 10,
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-              <div style={{
-                fontFamily: T.mono,
-                fontSize: 11,
-                color: T.muted2,
-                letterSpacing: 0.5,
-                opacity: hasAnyAnswer ? 0 : 1,
-                transition: 'opacity .2s',
-              }}>
+            {/* Footer — .add-mini-foot.is-split pour aligner le hint à
+                gauche et les boutons à droite, comme les modales d'upload. */}
+            <div className="add-mini-foot is-split">
+              <div
+                className="fb-required-hint"
+                style={{ visibility: hasAnyAnswer ? 'hidden' : 'visible' }}
+              >
                 {t.requiredHint}
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div className="fb-foot-actions">
                 <button
                   type="button"
                   className="add-mini-btn"
@@ -380,41 +320,19 @@ export default function FeedbackModal({ onClose, versionId = null, trackId = nul
 }
 
 /* ──────────────────────────────────────────────────────────────────────
-   Sous-composants privés (champ + échelle NPS).
-   On garde tout dans le même fichier pour ne pas multiplier les fichiers
-   pour une feature utilisée à un seul endroit (cf. AskModal qui suit la
-   même logique).
+   Sous-composants privés.
    ────────────────────────────────────────────────────────────────────── */
 
-function Field({ label, hint, children }) {
+/**
+ * FbQuestion — wrapper d'une question. Rend le label en DM Sans normal-case
+ * (pas mono uppercase comme .add-mini-field-label, qui rendrait une question
+ * complète illisible) + un hint mono optionnel sous le label.
+ */
+function FbQuestion({ label, hint, children }) {
   return (
-    <div className="add-mini-field" style={{ marginBottom: 18 }}>
-      <div
-        className="add-mini-field-label"
-        style={{
-          fontFamily: T.body,
-          fontWeight: 500,
-          fontSize: 14,
-          color: T.textSoft,
-          letterSpacing: 0,
-          textTransform: 'none',
-          lineHeight: 1.45,
-          marginBottom: 8,
-        }}
-      >
-        {label}
-      </div>
-      {hint && (
-        <div style={{
-          fontFamily: T.mono,
-          fontSize: 11,
-          color: T.muted2,
-          letterSpacing: 0.5,
-          marginBottom: 8,
-        }}>
-          {hint}
-        </div>
-      )}
+    <div className="add-mini-field fb-q">
+      <div className="fb-q-label">{label}</div>
+      {hint && <div className="fb-q-hint">{hint}</div>}
       {children}
     </div>
   );
@@ -423,7 +341,7 @@ function Field({ label, hint, children }) {
 /**
  * NpsScale — 11 boutons (0..10) qui se colorent selon le segment NPS :
  *   0..6 = rouge (détracteur), 7..8 = ambre (passif), 9..10 = mint (promoteur).
- * Affiche le label sélectionné + ancres "low / high" sous l'échelle.
+ * Cliquer sur la valeur déjà sélectionnée la déselectionne.
  */
 function NpsScale({ value, onChange, lowLabel, highLabel, disabled }) {
   const colorFor = (n) => {
@@ -432,8 +350,8 @@ function NpsScale({ value, onChange, lowLabel, highLabel, disabled }) {
     return T.mint;
   };
   return (
-    <div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+    <div className="fb-nps-wrap">
+      <div className="fb-nps-row">
         {Array.from({ length: 11 }, (_, n) => {
           const active = value === n;
           const c = colorFor(n);
@@ -443,49 +361,24 @@ function NpsScale({ value, onChange, lowLabel, highLabel, disabled }) {
               type="button"
               onClick={() => !disabled && onChange(active ? null : n)}
               disabled={disabled}
-              style={{
-                flex: '1 1 0',
-                minWidth: 36,
-                height: 36,
-                borderRadius: 8,
-                border: `1px solid ${active ? c : 'rgba(255,255,255,0.10)'}`,
-                background: active ? `${c}26` : 'rgba(255,255,255,0.03)',
-                color: active ? c : T.textSoft,
-                fontFamily: T.mono,
-                fontSize: 13,
-                fontWeight: active ? 700 : 500,
-                cursor: disabled ? 'not-allowed' : 'pointer',
-                transition: 'all .15s',
-              }}
+              className={`fb-nps-btn${active ? ' is-active' : ''}`}
+              style={active ? {
+                borderColor: c,
+                background: `${c}26`,
+                color: c,
+              } : undefined}
+              aria-pressed={active}
+              aria-label={`Note ${n} sur 10`}
             >
               {n}
             </button>
           );
         })}
       </div>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        marginTop: 6,
-        fontFamily: T.mono,
-        fontSize: 11,
-        color: T.muted2,
-        letterSpacing: 0.5,
-      }}>
+      <div className="fb-nps-anchors">
         <span>{lowLabel}</span>
         <span>{highLabel}</span>
       </div>
     </div>
   );
 }
-
-const textareaStyle = {
-  width: '100%',
-  minHeight: 60,
-  resize: 'vertical',
-  fontFamily: T.body,
-  fontSize: 14,
-  lineHeight: 1.5,
-  padding: '12px 14px',
-  boxSizing: 'border-box',
-};

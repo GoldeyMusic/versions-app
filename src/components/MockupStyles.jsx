@@ -8997,6 +8997,132 @@ export default function MockupStyles() {
   }
   .add-mini-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+  /* ── FEEDBACK MODAL — questionnaire 6 questions ──────────────────
+     Tout en DM Sans (var(--body)) + JetBrains Mono (var(--mono))
+     pour les labels/hints. ZÉRO Bebas Neue, ZÉRO Cormorant. La
+     grammaire s'aligne sur .add-mini-card.is-upload (modale upload). */
+  .fb-card {
+    /* Width un cran au-dessus de l'upload (600 → 620) pour laisser
+       respirer les questions complètes dans les labels. */
+    width: 620px;
+  }
+  /* Croix de fermeture haut-droite, posée en absolute. Petit cercle
+     discret aligné sur le langage des autres modales (hover ambre). */
+  .fb-close {
+    position: absolute; top: 14px; right: 14px;
+    width: 30px; height: 30px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 8px;
+    color: var(--muted); cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+    z-index: 2;
+  }
+  .fb-close:hover:not(:disabled) {
+    color: var(--amber);
+    border-color: rgba(245,176,86,0.45);
+    background: rgba(245,176,86,0.06);
+  }
+  .fb-close:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Intro descriptive sous le titre — DM Sans, color muted. */
+  .fb-intro {
+    font-family: var(--body); font-size: 14px;
+    color: var(--muted); line-height: 1.55;
+    margin-bottom: 22px;
+  }
+
+  /* Une question = .add-mini-field + label DM Sans + hint mono optionnel. */
+  .fb-q { margin-bottom: 18px; }
+  .fb-q-label {
+    /* Volontairement DM Sans normal-case — les questions sont des
+       phrases complètes ("Sur 0 à 10, recommanderais-tu..."), donc
+       le mono uppercase serait illisible. On reste en DM Sans 500
+       pour qu'elles aient un poids de label sans crier. */
+    font-family: var(--body); font-weight: 500; font-size: 14px;
+    color: var(--soft, #c5c5c7); line-height: 1.45;
+    letter-spacing: 0;
+    margin-bottom: 8px;
+  }
+  .fb-q-hint {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--muted2, #5a5a5e);
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .fb-textarea {
+    /* Override la taille minimale par défaut (.add-mini-textarea = 80)
+       pour laisser les textareas plus tassés au repos — l'utilisateur
+       les agrandit via le resize si besoin. */
+    min-height: 60px;
+    font-size: 14px;
+  }
+
+  /* NPS scale — 11 boutons compacts qui se colorent selon segment.
+     Valeur sélectionnée : couleur amber/red/mint inline (cf. JSX). */
+  .fb-nps-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .fb-nps-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .fb-nps-btn {
+    flex: 1 1 0; min-width: 36px;
+    height: 36px; padding: 0 4px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.03);
+    color: var(--soft, #c5c5c7);
+    font-family: var(--mono); font-size: 13px; font-weight: 500;
+    line-height: 1; cursor: pointer;
+    transition: border-color .15s, background .15s, color .15s, transform .12s;
+  }
+  .fb-nps-btn:hover:not(:disabled) {
+    border-color: rgba(245,176,86,0.35);
+    color: var(--text);
+  }
+  .fb-nps-btn.is-active { font-weight: 700; }
+  .fb-nps-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .fb-nps-anchors {
+    display: flex; justify-content: space-between;
+    margin-top: 4px;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--muted2, #5a5a5e);
+    letter-spacing: 0.5px;
+  }
+
+  /* Hint "au moins une réponse" en bas-gauche du footer. Mono small
+     muted ; visibility: hidden au lieu de display:none pour ne pas
+     faire sauter la hauteur du footer quand il disparaît. */
+  .fb-required-hint {
+    font-family: var(--mono); font-size: 10px;
+    color: var(--muted2, #5a5a5e);
+    letter-spacing: 0.5px; line-height: 16px;
+  }
+  .fb-foot-actions { display: inline-flex; gap: 10px; }
+
+  /* États success / error — réutilisent .add-mini-title pour le titre
+     (DM Sans 600 + em ambre) et un body en DM Sans. PAS de Cormorant
+     (réservée aux verdicts d'analyse). */
+  .fb-result { padding-top: 6px; }
+  .fb-result-title {
+    /* On override juste la taille pour que ça respire un peu plus
+       que le titre normal (qui partage la modale avec une intro). */
+    font-size: 22px; margin-bottom: 12px;
+  }
+  .fb-result-body {
+    font-family: var(--body); font-size: 15px;
+    color: var(--soft, #c5c5c7);
+    line-height: 1.6; margin-bottom: 22px;
+  }
+  .fb-result-error-title {
+    font-family: var(--body); font-weight: 600; font-size: 18px;
+    color: var(--red, #ff5d5d); letter-spacing: -0.2px;
+    margin-bottom: 8px;
+  }
+  .fb-result-error-detail {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--muted2, #5a5a5e); margin-top: 6px;
+    letter-spacing: 0.3px;
+  }
+
   /* CTA large (upload) */
   .add-mini-cta {
     width: 100%; padding: 12px 16px; border-radius: 999px;
