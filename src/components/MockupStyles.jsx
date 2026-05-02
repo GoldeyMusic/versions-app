@@ -288,6 +288,82 @@ export default function MockupStyles() {
     background: rgba(245,166,35,0.08);
   }
 
+  /* ── Pill FEEDBACK testeurs (phase beta) ─────────────────────
+     Pill complète (icône cœur + label visible) plutôt qu'un
+     simple picto rond — historiquement c'était une bulle ronde
+     avec icône speech-bubble qu'on confondait avec le chat de
+     fiche. Maintenant : cœur ambre rempli + texte "Ton avis
+     compte" toujours lisible + 2 animations qui se succèdent
+     (pulse glow lent + wiggle court toutes les 6s) pour attirer
+     l'œil sans spam.
+     Désactivé si l'utilisateur préfère prefers-reduced-motion. */
+  .db-utility-feedback {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    padding: 9px 14px 9px 12px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(245,166,35,0.22), rgba(224,123,57,0.18));
+    border: 1px solid rgba(245,166,35,0.45);
+    color: var(--amber, #f5a623);
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    white-space: nowrap;
+    transition: background .2s, border-color .2s, transform .2s, box-shadow .2s;
+    /* Pulse glow continu (lent) qui respire, et wiggle court tous
+       les 6s pour faire un "salut discret" au testeur. Les deux
+       animations sont composées sur des propriétés différentes
+       (box-shadow vs transform) pour ne pas se cannibaliser. */
+    animation:
+      db-feedback-pulse 3.2s ease-in-out infinite,
+      db-feedback-wiggle 6s ease-in-out infinite;
+    box-shadow: 0 0 0 0 rgba(245,166,35,0.0);
+  }
+  .db-utility-feedback:hover {
+    background: linear-gradient(135deg, rgba(245,166,35,0.32), rgba(224,123,57,0.26));
+    border-color: rgba(245,166,35,0.7);
+    transform: translateY(-1px);
+    /* On stoppe les animations au hover pour laisser le hover
+       prendre la main visuellement (sinon ça fight). */
+    animation: none;
+    box-shadow: 0 6px 18px rgba(245,166,35,0.18);
+  }
+  .db-utility-feedback:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  .db-utility-feedback-icon {
+    flex-shrink: 0;
+    /* On laisse l'icône hériter de la couleur (currentColor) du
+       parent pour rester cohérente quel que soit le hover state. */
+  }
+
+  @keyframes db-feedback-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(245,166,35,0.45),
+                  0 4px 14px rgba(0,0,0,0.25);
+    }
+    50% {
+      box-shadow: 0 0 0 6px rgba(245,166,35,0.0),
+                  0 4px 14px rgba(0,0,0,0.25);
+    }
+  }
+  @keyframes db-feedback-wiggle {
+    /* La wiggle ne s'exprime que sur ~10% du cycle (6s) — discret
+       comme un clignement d'œil rapide toutes les 6s plutôt qu'un
+       mouvement permanent. Le reste du temps : transform: none. */
+    0%, 88%, 100% { transform: none; }
+    91% { transform: rotate(-4deg) translateY(-1px); }
+    94% { transform: rotate(4deg) translateY(-1px); }
+    97% { transform: rotate(-2deg); }
+  }
+  /* Accessibilité — on respecte le réglage utilisateur si motion
+     gêne. La pill reste visible (couleur + bord), juste sans danse. */
+  @media (prefers-reduced-motion: reduce) {
+    .db-utility-feedback { animation: none; }
+  }
+
   /* ── Cards mobile — bump border-radius global ─────────────────
      Les cards (wh-stat, diag-panel, notes-panel, rv-left, acc-item,
      col-cover, etc.) ont des border-radius 14-18 px sur desktop, ce

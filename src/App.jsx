@@ -625,21 +625,24 @@ function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut, onGoAdmi
             : (s.sidebar?.creditsPlural || '{count} crédits').replace('{count}', String(credits))}
         </button>
       )}
-      {/* Feedback testeur — phase beta. Pill mono distincte des picto
-          ronds pour rester repérable mais discrète. Conditionnée à
-          onGoFeedback (la prop n'est passée que pour les utilisateurs
-          authentifiés, cf. table feedback en RLS authenticated only). */}
+      {/* Feedback testeur — phase beta. Pill complète (icône + label
+          visible) avec animation pulse + wiggle périodique pour attirer
+          l'œil sans devenir gimmick. Couleur ambre brand pour distinguer
+          du chat (bulle floutée à droite, fiche only) avec qui on la
+          confondait. Conditionnée à onGoFeedback (la prop n'est passée
+          que pour les utilisateurs authentifiés). */}
       {onGoFeedback && (
         <button
           type="button"
-          className="db-utility-btn db-utility-btn-feedback"
+          className="db-utility-feedback"
           onClick={onGoFeedback}
-          aria-label={s.feedback?.triggerTitle || 'Donner ton avis sur Versions'}
-          title={s.feedback?.triggerTitle || 'Donner ton avis sur Versions'}
+          aria-label={s.feedback?.triggerTitle || 'Donne ton avis sur Versions'}
+          title={s.feedback?.triggerTitle || 'Donne ton avis sur Versions'}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+          <svg className="db-utility-feedback-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M19.5 13.572L12 21l-7.5-7.428A5 5 0 1 1 12 6.572a5 5 0 1 1 7.5 7z" />
           </svg>
+          <span>{s.feedback?.triggerLabel || 'Ton avis compte'}</span>
         </button>
       )}
       {isAdmin && onGoAdmin && (

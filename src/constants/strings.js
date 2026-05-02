@@ -808,8 +808,8 @@ const STRINGS = {
     // "Ton avis ?") ou la fiche. Volontairement courte pour qu'un
     // testeur la remplisse en moins de 3 min après 2-3 analyses.
     feedback: {
-      triggerLabel: "Ton avis ?",
-      triggerTitle: "Donner ton avis sur Versions",
+      triggerLabel: "Ton avis compte",
+      triggerTitle: "Donne ton avis sur Versions — 3 min, 6 questions",
       title: "TON AVIS",
       sub: "6 questions courtes — moins de 3 minutes",
       intro: "Tes retours nous aident à calibrer Versions. Tout est anonyme côté testeur, et tu peux laisser une question vide si tu n'as rien à dire dessus.",
@@ -2258,8 +2258,8 @@ const STRINGS = {
     // or from the fiche. Deliberately short so testers can complete
     // it in under 3 minutes after 2-3 analyses.
     feedback: {
-      triggerLabel: "Got feedback?",
-      triggerTitle: "Share feedback on Versions",
+      triggerLabel: "Your feedback matters",
+      triggerTitle: "Share your feedback on Versions — 3 min, 6 questions",
       title: "YOUR FEEDBACK",
       sub: "6 short questions — under 3 minutes",
       intro: "Your feedback helps us calibrate Versions. Skip any question you don't have an answer to.",

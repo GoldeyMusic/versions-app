@@ -395,22 +395,25 @@ export default function Sidebar({
           );
         })()}
 
-        {/* Bouton Feedback — phase beta. Style aligné sur les autres
-            entrées utilitaires (Dashboard / Admin) pour rester discret
-            mais accessible depuis toutes les vues sidebar. */}
+        {/* Bouton Feedback — phase beta. Icône cœur (vs chat-bubble
+            initiale qui prêtait confusion avec le chat de fiche).
+            Style aligné sur les autres entrées utilitaires (Dashboard /
+            Admin) pour rester discret mais accessible depuis toutes
+            les vues sidebar — la pill colorée en bas du rail est elle
+            la version "attire-l'œil". */}
         {onGoFeedback && (
           <button
             type="button"
             onClick={onGoFeedback}
             className="sidebar-dashboard-btn"
-            aria-label={s.feedback?.triggerTitle || 'Donner ton avis sur Versions'}
-            title={s.feedback?.triggerTitle || 'Donner ton avis sur Versions'}
-            style={{ marginTop: 4 }}
+            aria-label={s.feedback?.triggerTitle || 'Donne ton avis sur Versions'}
+            title={s.feedback?.triggerTitle || 'Donne ton avis sur Versions'}
+            style={{ marginTop: 4, color: '#f5a623' }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M19.5 13.572L12 21l-7.5-7.428A5 5 0 1 1 12 6.572a5 5 0 1 1 7.5 7z" />
             </svg>
-            <span>{s.feedback?.triggerLabel || 'Ton avis ?'}</span>
+            <span>{s.feedback?.triggerLabel || 'Ton avis compte'}</span>
           </button>
         )}
 
