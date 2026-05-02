@@ -68,10 +68,17 @@ export default function AdminScreen() {
   const [globalStats, setGlobalStats] = useState(null);
   const [userStats, setUserStats] = useState([]);
   const [revenue, setRevenue] = useState([]);
+  // Retours testeurs — table public.feedback (migration 024). Comme
+  // chat_cost_logs, on tolère l'erreur pour le cas où la migration n'a
+  // pas encore été appliquée.
+  const [feedbackRows, setFeedbackRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   // Pour l'expand inline d'un user : null ou { userId, loading, items }
   const [expanded, setExpanded] = useState(null);
+  // Pour l'expand inline d'un feedback : id de la ligne ouverte (string)
+  // ou null si rien d'ouvert. Permet de lire les verbatims complets.
+  const [expandedFeedback, setExpandedFeedback] = useState(null);
 
   // ── Auth check + fetch toutes les données ───────────
   useEffect(() => {
@@ -92,7 +99,7 @@ export default function AdminScreen() {
         // 2 RPC, revenue_logs.
         const since = new Date();
         since.setDate(since.getDate() - 30);
-        const [logsRes, chatLogsRes, globalRes, usersRes, revRes] = await Promise.all([
+        const [logsRes, chatLogsRes, globalRes, usersRes, revRes, feedbackRes] = await Promise.all([
           supabase
             .from('analysis_cost_logs')
             .select('*')
@@ -117,6 +124,15 @@ export default function AdminScreen() {
             .select('*')
             .order('created_at', { ascending: false })
             .limit(50),
+          // feedback : table créée par migration 024, RLS admin-only sur
+          // SELECT. Même tolérance que chat_cost_logs si la migration
+          // n'a pas encore été appliquée. On charge tout l'historique
+          // (limité à 1000) — volumes faibles tant qu'on est en beta.
+          supabase
+            .from('feedback')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1000),
         ]);
 
         if (cancelled) return;
@@ -129,6 +145,10 @@ export default function AdminScreen() {
         if (globalRes.error) throw globalRes.error;
         if (usersRes.error) throw usersRes.error;
         if (revRes.error) throw revRes.error;
+        // Tolérance feedback (même rationale que chat_cost_logs).
+        if (feedbackRes.error) {
+          console.warn('[admin] feedback unavailable (migration 024 not applied?):', feedbackRes.error.message);
+        }
 
         setLogs(logsRes.data || []);
         setChatLogs(chatLogsRes.data || []);
@@ -136,6 +156,7 @@ export default function AdminScreen() {
         setGlobalStats(globalRes.data?.[0] || null);
         setUserStats(usersRes.data || []);
         setRevenue(revRes.data || []);
+        setFeedbackRows(feedbackRes.data || []);
       } catch (e) {
         if (!cancelled) setErr(e.message || 'Erreur de chargement');
       } finally {
@@ -152,6 +173,11 @@ export default function AdminScreen() {
   const fadrMonth = useMemo(() => computeFadrMonth(logs), [logs]);
   const stripeStats = useMemo(() => computeStripeStats(revenue, 30), [revenue]);
   const chatStats = useMemo(() => computeChatStats(chatLogs), [chatLogs]);
+  // Feedback : on calcule deux fenêtres — "all" (depuis le début) et
+  // "30d" (les 30 derniers jours). Les KPIs s'affichent pour 30j, le
+  // total cumulé est rappelé en sub-label.
+  const feedbackStats30d = useMemo(() => computeFeedbackStats(feedbackRows, 30), [feedbackRows]);
+  const feedbackStatsAll = useMemo(() => computeFeedbackStats(feedbackRows, null), [feedbackRows]);
 
   const isAdmin = !!ADMIN_EMAIL && user?.email?.toLowerCase() === ADMIN_EMAIL;
 
@@ -463,6 +489,71 @@ export default function AdminScreen() {
             </div>
           </section>
 
+          {/* SECTION FEEDBACK TESTEURS — alimentée par public.feedback (mig 024).
+              Présentée juste après les coûts pour qu'elle soit visible "à hauteur
+              d'œil" : c'est l'autre indicateur clé en phase beta (l'argent et
+              les retours utilisateurs). */}
+          <section className="cost-section">
+            <div className="cost-section-eyebrow">Retours testeurs — 30 derniers jours</div>
+            <h2 className="cost-section-title">
+              Ce que les testeurs <em>pensent</em> de Versions.
+            </h2>
+            <div className="cost-kpi-grid">
+              <KpiCard
+                label="Score NPS (30j)"
+                value={feedbackStats30d.npsCount > 0 ? (feedbackStats30d.npsScore > 0 ? '+' + feedbackStats30d.npsScore : String(feedbackStats30d.npsScore)) : '—'}
+                sub={feedbackStats30d.npsCount > 0
+                  ? `${feedbackStats30d.promoters} promoteur${feedbackStats30d.promoters > 1 ? 's' : ''} · ${feedbackStats30d.passives} passif${feedbackStats30d.passives > 1 ? 's' : ''} · ${feedbackStats30d.detractors} détracteur${feedbackStats30d.detractors > 1 ? 's' : ''}`
+                  : 'aucune note NPS reçue'}
+                tone={feedbackStats30d.npsScore >= 30 ? 'mint' : feedbackStats30d.npsScore >= 0 ? 'amber' : 'red'}
+              />
+              <KpiCard
+                label="Retours reçus 30j"
+                value={feedbackStats30d.count.toString()}
+                sub={feedbackStatsAll.count > feedbackStats30d.count
+                  ? `${feedbackStatsAll.count} au total depuis le lancement`
+                  : 'depuis le lancement'}
+                tone="cerulean"
+              />
+              <KpiCard
+                label="NPS moyen brut"
+                value={feedbackStats30d.npsCount > 0 ? feedbackStats30d.npsAvg.toFixed(1) + ' / 10' : '—'}
+                sub={feedbackStats30d.npsCount > 0
+                  ? `sur ${feedbackStats30d.npsCount} note${feedbackStats30d.npsCount > 1 ? 's' : ''}`
+                  : 'aucune note'}
+                tone={feedbackStats30d.npsAvg >= 8 ? 'mint' : feedbackStats30d.npsAvg >= 6 ? 'amber' : 'red'}
+              />
+              <KpiCard
+                label="Taux de verbatims"
+                value={feedbackStats30d.count > 0 ? Math.round(feedbackStats30d.verbatimRate * 100) + ' %' : '—'}
+                sub={feedbackStats30d.count > 0
+                  ? 'des retours contiennent un texte libre'
+                  : 'pas encore de retour'}
+                tone={feedbackStats30d.verbatimRate >= 0.7 ? 'mint' : feedbackStats30d.verbatimRate >= 0.4 ? 'amber' : 'violet'}
+              />
+            </div>
+            <div className="cost-fadr-note">
+              {feedbackStatsAll.count === 0 && (
+                <>Aucun retour pour l'instant — la table est peut-être encore vide ou la migration 024 pas encore appliquée.</>
+              )}
+              {feedbackStatsAll.count > 0 && (
+                <>
+                  NPS lecture rapide : <strong style={{color: T.mint}}>{'>'} +30</strong> = excellent · <strong style={{color: T.amber}}>0 à +30</strong> = correct · <strong style={{color: T.red}}>{'<'} 0</strong> = signal d'alarme.
+                  Promoteur = note 9-10, Passif = 7-8, Détracteur = 0-6.
+                </>
+              )}
+            </div>
+
+            {feedbackStatsAll.count > 0 && (
+              <FeedbackTable
+                rows={feedbackRows}
+                userStats={userStats}
+                expandedId={expandedFeedback}
+                onToggleExpand={(id) => setExpandedFeedback(expandedFeedback === id ? null : id)}
+              />
+            )}
+          </section>
+
           {/* SECTION TOUS LES USERS */}
           <section className="cost-section">
             <div className="cost-section-eyebrow">Tous les utilisateurs</div>
@@ -739,6 +830,156 @@ function UserDetail({ data }) {
   );
 }
 
+/**
+ * FeedbackTable — table des retours testeurs (les plus récents en haut).
+ *
+ * Une ligne par retour, cliquable pour expand inline et révéler les
+ * verbatims complets. La ligne "header" résume : date, email tronqué,
+ * NPS chip coloré, et un aperçu du verbatim le plus parlant
+ * (oneliner > priority > friction > surprise > paywill).
+ */
+function FeedbackTable({ rows, userStats, expandedId, onToggleExpand }) {
+  // Map user_id → email pour pouvoir afficher d'où vient chaque retour.
+  const emailByUid = new Map((userStats || []).map((u) => [u.user_id, u.email]));
+  // On affiche au maximum 50 retours dans le tableau (les plus récents).
+  // Au-delà, on suppose que David exportera depuis Supabase Studio.
+  const visible = (rows || []).slice(0, 50);
+
+  if (visible.length === 0) return null;
+
+  const verbatimPreview = (r) => {
+    const candidates = ['oneliner', 'priority', 'friction', 'surprise', 'paywill'];
+    for (const k of candidates) {
+      const v = (r[k] || '').toString().trim();
+      if (v) return v;
+    }
+    return '';
+  };
+
+  return (
+    <div className="cost-table-wrap" style={{ marginTop: 18 }}>
+      <table className="cost-table">
+        <thead>
+          <tr>
+            <th style={{ width: 110 }}>Date</th>
+            <th style={{ width: 70, textAlign: 'center' }}>NPS</th>
+            <th>Email</th>
+            <th>Aperçu verbatim</th>
+            <th style={{ width: 60 }} aria-label=""></th>
+          </tr>
+        </thead>
+        <tbody>
+          {visible.map((r) => {
+            const isOpen = expandedId === r.id;
+            const email = emailByUid.get(r.user_id) || (r.user_id ? r.user_id.slice(0, 8) + '…' : 'anonyme');
+            const preview = verbatimPreview(r);
+            return (
+              <FbRows
+                key={r.id}
+                row={r}
+                email={email}
+                preview={preview}
+                isOpen={isOpen}
+                onToggle={() => onToggleExpand(r.id)}
+              />
+            );
+          })}
+        </tbody>
+      </table>
+      {rows.length > visible.length && (
+        <div className="cost-fadr-note" style={{ marginTop: 8 }}>
+          Les {visible.length} retours les plus récents sont affichés ici (sur {rows.length} au total).
+          Pour explorer plus loin, ouvre la table <code>feedback</code> dans Supabase Studio.
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * FbRows — wrapper qui rend la ligne header + la ligne expand
+ * éventuelle. Sorti pour ne pas embrouiller le map de FeedbackTable
+ * avec un fragment React.
+ */
+function FbRows({ row, email, preview, isOpen, onToggle }) {
+  const npsTone =
+    row.nps == null ? 'muted'
+    : row.nps >= 9 ? 'mint'
+    : row.nps >= 7 ? 'amber'
+    : 'red';
+  return (
+    <>
+      <tr
+        onClick={onToggle}
+        style={{ cursor: 'pointer' }}
+        className={isOpen ? 'cost-row-active' : undefined}
+      >
+        <td className="cost-muted">{fmtDate(row.created_at, true)}</td>
+        <td style={{ textAlign: 'center' }}>
+          {row.nps == null ? (
+            <span className="cost-anon">—</span>
+          ) : (
+            <span className={`fb-nps-chip fb-nps-${npsTone}`}>{row.nps}</span>
+          )}
+        </td>
+        <td className="cost-email">{email}</td>
+        <td className="cost-feedback-preview">
+          {preview ? (
+            <span title={preview}>{preview.length > 90 ? preview.slice(0, 90) + '…' : preview}</span>
+          ) : (
+            <span className="cost-anon">— pas de verbatim —</span>
+          )}
+        </td>
+        <td style={{ textAlign: 'right' }} className="cost-muted">
+          {isOpen ? '▾' : '▸'}
+        </td>
+      </tr>
+      {isOpen && (
+        <tr className="cost-row-detail">
+          <td colSpan={5}>
+            <FeedbackDetail row={row} />
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+/**
+ * FeedbackDetail — vue dépliée d'un feedback. Affiche les 5 verbatims
+ * en clair (vides masqués) + métadonnées de contexte (route, locale,
+ * version_id si présent).
+ */
+function FeedbackDetail({ row }) {
+  const fields = [
+    { key: 'oneliner', label: 'Versions en une phrase' },
+    { key: 'surprise', label: 'Surprise positive' },
+    { key: 'friction', label: 'Friction / incompréhension' },
+    { key: 'paywill', label: 'Prix juste / volonté de payer' },
+    { key: 'priority', label: 'À changer en priorité' },
+  ];
+  const filled = fields.filter((f) => (row[f.key] || '').toString().trim().length > 0);
+  return (
+    <div className="cost-feedback-detail">
+      {filled.length === 0 && (
+        <div className="cost-detail-state">— aucun verbatim sur cette soumission —</div>
+      )}
+      {filled.map((f) => (
+        <div key={f.key} className="cost-feedback-item">
+          <div className="cost-feedback-item-label">{f.label}</div>
+          <div className="cost-feedback-item-value">{row[f.key]}</div>
+        </div>
+      ))}
+      <div className="cost-feedback-meta">
+        {row.locale && <span>Langue : <strong>{row.locale}</strong></span>}
+        {row.route && <span>Route : <code>{row.route}</code></span>}
+        {row.version_id && <span>Version : <code>{String(row.version_id).slice(0, 8)}…</code></span>}
+        {row.app_version && <span>App : <code>{row.app_version}</code></span>}
+      </div>
+    </div>
+  );
+}
+
 function DailyChart({ series }) {
   const maxCost = Math.max(0.01, ...series.map((d) => d.total));
   const W = 1000, H = 200, PAD = 24;
@@ -926,6 +1167,71 @@ function computeChatStats(chatLogs) {
     savings_eur,
     rag_hits,
     rag_rate: rag_hits / chatLogs.length,
+  };
+}
+
+// computeFeedbackStats — agrège les retours testeurs sur la fenêtre
+// fournie (windowDays = nombre de jours, ou null pour tout l'historique).
+//
+// Calcule :
+//   - count           : nombre total de soumissions
+//   - npsCount        : nombre qui ont répondu à la question NPS (0..10)
+//   - npsAvg          : moyenne arithmétique du NPS sur npsCount (sur 10)
+//   - promoters       : nombre de NPS 9-10
+//   - passives        : nombre de NPS 7-8
+//   - detractors      : nombre de NPS 0-6
+//   - npsScore        : score NPS classique = %promoters - %detractors
+//                       (échelle -100..+100, viser > 0 puis > 30 puis > 50)
+//   - verbatimRate    : % de soumissions ayant au moins UN verbatim non vide
+function computeFeedbackStats(rows, windowDays = 30) {
+  if (!rows || rows.length === 0) {
+    return {
+      count: 0, npsCount: 0, npsAvg: 0,
+      promoters: 0, passives: 0, detractors: 0,
+      npsScore: 0, verbatimRate: 0,
+    };
+  }
+  let scoped = rows;
+  if (windowDays != null) {
+    const since = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+    scoped = rows.filter((r) => r.created_at && new Date(r.created_at).getTime() >= since);
+  }
+  if (scoped.length === 0) {
+    return {
+      count: 0, npsCount: 0, npsAvg: 0,
+      promoters: 0, passives: 0, detractors: 0,
+      npsScore: 0, verbatimRate: 0,
+    };
+  }
+  let npsSum = 0, npsCount = 0;
+  let promoters = 0, passives = 0, detractors = 0;
+  let withVerbatim = 0;
+  for (const r of scoped) {
+    const n = (r.nps !== null && r.nps !== undefined) ? Number(r.nps) : null;
+    if (n !== null && Number.isFinite(n) && n >= 0 && n <= 10) {
+      npsSum += n;
+      npsCount += 1;
+      if (n >= 9) promoters += 1;
+      else if (n >= 7) passives += 1;
+      else detractors += 1;
+    }
+    const hasVerbatim = ['surprise', 'friction', 'paywill', 'oneliner', 'priority']
+      .some((k) => (r[k] || '').toString().trim().length > 0);
+    if (hasVerbatim) withVerbatim += 1;
+  }
+  const npsAvg = npsCount > 0 ? (npsSum / npsCount) : 0;
+  const npsScore = npsCount > 0
+    ? Math.round(((promoters / npsCount) - (detractors / npsCount)) * 100)
+    : 0;
+  return {
+    count: scoped.length,
+    npsCount,
+    npsAvg,
+    promoters,
+    passives,
+    detractors,
+    npsScore,
+    verbatimRate: withVerbatim / scoped.length,
   };
 }
 
@@ -1220,6 +1526,63 @@ function AdminStyles() {
       .cost-row-clickable:hover { background: rgba(245,166,35,0.04) !important; }
       .cost-row-open { background: rgba(245,166,35,0.06) !important; }
       .cost-row-detail td { padding: 0 !important; background: rgba(0,0,0,0.18); border-top: none !important; }
+      /* Ligne feedback active (cliquée pour expand). Hover discret aussi. */
+      .cost-row-active { background: rgba(92,184,204,0.05) !important; }
+      .cost-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+
+      /* NPS chip — pill mono compact, couleur selon segment. */
+      .fb-nps-chip {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 30px; height: 24px;
+        padding: 0 8px; border-radius: 6px;
+        font-family: ${T.mono}; font-size: 13px; font-weight: 600;
+        line-height: 1;
+        border: 1px solid currentColor;
+      }
+      .fb-nps-mint  { color: ${T.mint};  background: rgba(142,224,122,0.12); }
+      .fb-nps-amber { color: ${T.amber}; background: rgba(245,166,35,0.10); }
+      .fb-nps-red   { color: ${T.red};   background: rgba(255,93,93,0.10); }
+      .fb-nps-muted { color: ${T.muted2}; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.10); }
+
+      /* Aperçu verbatim — laisse passer le wrap normal mais n'étire pas
+         la cellule. truncation sur l'aperçu textuel via JS (90 chars). */
+      .cost-feedback-preview {
+        white-space: normal !important;
+        max-width: 520px;
+        font-family: ${T.body}; font-size: 13px;
+        color: ${T.textSoft}; line-height: 1.45;
+      }
+
+      /* Détail expand d'un feedback : grid de 5 verbatims max + meta. */
+      .cost-feedback-detail {
+        padding: 18px 20px 20px;
+        display: flex; flex-direction: column; gap: 14px;
+      }
+      .cost-feedback-item {
+        display: flex; flex-direction: column; gap: 4px;
+      }
+      .cost-feedback-item-label {
+        font-family: ${T.mono}; font-size: 11px; letter-spacing: 1.5px;
+        text-transform: uppercase; color: ${T.amber}; opacity: 0.85;
+      }
+      .cost-feedback-item-value {
+        font-family: ${T.body}; font-size: 14px; color: ${T.text};
+        line-height: 1.55; white-space: pre-wrap;
+      }
+      .cost-feedback-meta {
+        display: flex; flex-wrap: wrap; gap: 14px;
+        margin-top: 6px; padding-top: 12px;
+        border-top: 1px solid rgba(255,255,255,0.06);
+        font-family: ${T.mono}; font-size: 11px; color: ${T.muted};
+        letter-spacing: 0.3px;
+      }
+      .cost-feedback-meta code {
+        font-family: ${T.mono}; font-size: 11px;
+        color: ${T.textSoft};
+        background: rgba(255,255,255,0.04);
+        padding: 1px 6px; border-radius: 4px;
+      }
+      .cost-feedback-meta strong { color: ${T.text}; font-weight: 600; }
 
       .cost-rank { font-family: ${T.mono}; font-weight: 500; color: ${T.amber}; }
       .cost-userid, .cost-email {
