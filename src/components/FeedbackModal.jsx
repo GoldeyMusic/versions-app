@@ -140,9 +140,9 @@ export default function FeedbackModal({ onClose, versionId = null, trackId = nul
           </svg>
         </button>
 
-        {/* Eyebrow + titre — grammaire canonique. Le .add-mini-eyebrow
-            ajoute automatiquement un point ambre devant. */}
-        <div className="add-mini-eyebrow">{t.sub}</div>
+        {/* Titre seul (eyebrow retiré 2026-05-03 sur retour David —
+            l'info de durée est déjà donnée dans l'intro descriptive
+            juste en dessous, pas la peine de la dupliquer en eyebrow). */}
         <div className="add-mini-title">
           {/* On colore "avis" en ambre via <em> — cf. .add-mini-title em
               dans MockupStyles (font-style: normal, color: amber). */}
