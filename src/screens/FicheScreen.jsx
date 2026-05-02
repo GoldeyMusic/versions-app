@@ -11,6 +11,7 @@ import EvolutionBanner from '../components/EvolutionBanner';
 import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
 import PlateauBanner from '../components/PlateauBanner';
 import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion, updateVersionDspMetrics, updateVersionGenre } from '../lib/storage';
+import { supabase } from '../lib/supabase';
 import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { exportFicheToPdf } from '../lib/exportPdf';
@@ -3229,6 +3230,12 @@ function VersionChat({
       const controller = new AbortController();
       controllerRef.current = controller;
       const timeout = setTimeout(() => controller.abort(), 45000);
+      // userId / versionId envoyés au backend pour tracker le coût du
+      // chat dans chat_cost_logs (alimente le dashboard #/admin).
+      // Si pas de session (anonymous), userId = null et la ligne sera
+      // loggée sans rattachement utilisateur.
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id || null;
       const res = await fetch(`${API}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3243,6 +3250,8 @@ function VersionChat({
           daw: config?.daw || 'Logic Pro',
           listening: analysisResult?.listening || null,
           fiche: analysisResult?.fiche || null,
+          userId,
+          versionId: versionId || null,
         }),
       });
       clearTimeout(timeout);

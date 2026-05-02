@@ -64,6 +64,7 @@ export default function AdminScreen() {
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [logs, setLogs] = useState([]);
+  const [chatLogs, setChatLogs] = useState([]);
   const [globalStats, setGlobalStats] = useState(null);
   const [userStats, setUserStats] = useState([]);
   const [revenue, setRevenue] = useState([]);
@@ -87,16 +88,28 @@ export default function AdminScreen() {
           return;
         }
 
-        // Fetch en parallèle : analysis_cost_logs (30j), 2 RPC, revenue_logs
+        // Fetch en parallèle : analysis_cost_logs (30j), chat_cost_logs (30j),
+        // 2 RPC, revenue_logs.
         const since = new Date();
         since.setDate(since.getDate() - 30);
-        const [logsRes, globalRes, usersRes, revRes] = await Promise.all([
+        const [logsRes, chatLogsRes, globalRes, usersRes, revRes] = await Promise.all([
           supabase
             .from('analysis_cost_logs')
             .select('*')
             .gte('created_at', since.toISOString())
             .order('created_at', { ascending: false })
             .limit(2000),
+          // chat_cost_logs : créée par migration 023, RLS admin-only.
+          // Si la migration n'a pas encore été appliquée, on récupère un
+          // tableau vide (PostgreSQL renvoie une erreur "relation does
+          // not exist" qu'on attrape silencieusement pour ne pas planter
+          // le dashboard tant que la migration n'est pas faite).
+          supabase
+            .from('chat_cost_logs')
+            .select('*')
+            .gte('created_at', since.toISOString())
+            .order('created_at', { ascending: false })
+            .limit(5000),
           supabase.rpc('admin_get_global_stats'),
           supabase.rpc('admin_get_user_stats'),
           supabase
@@ -108,11 +121,17 @@ export default function AdminScreen() {
 
         if (cancelled) return;
         if (logsRes.error) throw logsRes.error;
+        // On tolère l'erreur sur chat_cost_logs (table peut ne pas exister
+        // avant que la migration 023 soit appliquée). On warn et on continue.
+        if (chatLogsRes.error) {
+          console.warn('[admin] chat_cost_logs unavailable (migration 023 not applied?):', chatLogsRes.error.message);
+        }
         if (globalRes.error) throw globalRes.error;
         if (usersRes.error) throw usersRes.error;
         if (revRes.error) throw revRes.error;
 
         setLogs(logsRes.data || []);
+        setChatLogs(chatLogsRes.data || []);
         // RPC TABLE retourne un array, on prend la 1ère ligne pour global
         setGlobalStats(globalRes.data?.[0] || null);
         setUserStats(usersRes.data || []);
@@ -132,6 +151,7 @@ export default function AdminScreen() {
   const topUsers = useMemo(() => computeTopUsers(logs, 10, userStats), [logs, userStats]);
   const fadrMonth = useMemo(() => computeFadrMonth(logs), [logs]);
   const stripeStats = useMemo(() => computeStripeStats(revenue, 30), [revenue]);
+  const chatStats = useMemo(() => computeChatStats(chatLogs), [chatLogs]);
 
   const isAdmin = !!ADMIN_EMAIL && user?.email?.toLowerCase() === ADMIN_EMAIL;
 
@@ -392,6 +412,53 @@ export default function AdminScreen() {
               Au-delà, chaque minute supplémentaire est facturée au même tarif.
               {fadrMonth.eurOver > 0 && (
                 <> <strong>Dépassement ce mois : +{fmtEur(fadrMonth.eurOver)}.</strong></>
+              )}
+            </div>
+          </section>
+
+          {/* SECTION COÛTS DU CHAT — alimentée par chat_cost_logs (mig 023). */}
+          <section className="cost-section">
+            <div className="cost-section-eyebrow">Chat — 30 derniers jours</div>
+            <h2 className="cost-section-title">
+              Combien me coûte le <em>chat de fiche</em>.
+            </h2>
+            <div className="cost-kpi-grid">
+              <KpiCard
+                label="Coût total chat 30j"
+                value={fmtEur(chatStats.total)}
+                sub={`${chatStats.count} tour${chatStats.count > 1 ? 's' : ''} loggé${chatStats.count > 1 ? 's' : ''}`}
+                tone="amber"
+              />
+              <KpiCard
+                label="Coût moyen / tour"
+                value={fmtEur(chatStats.avg)}
+                sub={chatStats.count > 0
+                  ? `~${Math.round((chatStats.total_in + chatStats.total_cache_w + chatStats.total_cache_r) / chatStats.count)} input tokens / tour`
+                  : 'aucun tour loggé'}
+                tone="cerulean"
+              />
+              <KpiCard
+                label="Cache hit rate"
+                value={`${Math.round(chatStats.cache_hit_rate * 100)} %`}
+                sub={`${chatStats.total_cache_r.toLocaleString('fr-FR')} tokens lus / ${chatStats.total_cache_w.toLocaleString('fr-FR')} écrits`}
+                tone={chatStats.cache_hit_rate >= 0.6 ? 'mint' : chatStats.cache_hit_rate >= 0.3 ? 'amber' : 'red'}
+              />
+              <KpiCard
+                label="Économies prompt caching"
+                value={chatStats.savings_eur > 0 ? `+ ${fmtEur(chatStats.savings_eur)}` : fmtEur(chatStats.savings_eur)}
+                sub={chatStats.savings_eur > 0
+                  ? 'sauvés vs sans caching'
+                  : 'cache pas encore amorti'}
+                tone={chatStats.savings_eur > 0 ? 'mint' : 'violet'}
+              />
+            </div>
+            <div className="cost-fadr-note">
+              Tarification Sonnet 4.6 : input plein {fmtEur(2.76 / 1000)}/k tokens · cache write ×1.25 · cache read ×0.10 · output {fmtEur(13.80 / 1000)}/k tokens.
+              {chatStats.count > 0 && (
+                <> RAG PureMix mobilisé sur <strong>{Math.round(chatStats.rag_rate * 100)} %</strong> des tours ({chatStats.rag_hits}/{chatStats.count}).</>
+              )}
+              {chatStats.count === 0 && (
+                <> Aucun tour de chat sur les 30 derniers jours — la table est peut-être encore vide ou la migration 023 pas encore appliquée.</>
               )}
             </div>
           </section>
@@ -807,6 +874,59 @@ function computeFadrMonth(logs) {
   const eurOver = Math.max(0, eurUsed - FADR_PLAN_EUR);
   const pctUsed = Math.min(1, minutesUsed / FADR_PLAN_MINUTES);
   return { minutesUsed, eurUsed, count, avgDurationMin, minutesLeft, analysesLeft, eurOver, pctUsed };
+}
+
+// computeChatStats — agrège les stats du chat sur la fenêtre fournie :
+// nombre de tours, total €, moyenne par tour, et METRIQUES DE CACHING :
+//   - cache_hit_rate : tokens lus depuis le cache / (lus + standard input)
+//     → mesure l'efficacité du prompt caching (proche de 1 = très efficace).
+//   - savings_eur    : économie estimée vs scénario "tout au tarif input plein"
+//     → permet de chiffrer le gain réel du caching.
+//
+// Sur le tarif Sonnet 4.6 (2,76 €/M input) :
+//   sans cache : (in + cache_w + cache_r) × 1.00
+//   avec cache : in × 1.00 + cache_w × 1.25 + cache_r × 0.10
+//   savings    = (cache_r × 0.90 - cache_w × 0.25) × tarif
+function computeChatStats(chatLogs) {
+  if (!chatLogs || chatLogs.length === 0) {
+    return {
+      count: 0, total: 0, avg: 0,
+      total_in: 0, total_cache_w: 0, total_cache_r: 0, total_out: 0,
+      cache_hit_rate: 0, savings_eur: 0,
+      rag_hits: 0, rag_rate: 0,
+    };
+  }
+  let total = 0;
+  let total_in = 0;
+  let total_cache_w = 0;
+  let total_cache_r = 0;
+  let total_out = 0;
+  let rag_hits = 0;
+  for (const l of chatLogs) {
+    total += Number(l.total_eur || 0);
+    total_in += Number(l.claude_in_tokens || 0);
+    total_cache_w += Number(l.claude_cache_creation_tokens || 0);
+    total_cache_r += Number(l.claude_cache_read_tokens || 0);
+    total_out += Number(l.claude_out_tokens || 0);
+    if (l.rag_used) rag_hits += 1;
+  }
+  const total_input_eq = total_in + total_cache_w + total_cache_r;
+  const cache_hit_rate = total_input_eq > 0 ? (total_cache_r / total_input_eq) : 0;
+  // Economie : par token caché lu, on paie 0.10 au lieu de 1.00 → 0.90 sauvé.
+  // Mais l'écriture en cache coûte 1.25 au lieu de 1.00 → 0.25 surcoût (one-shot).
+  // Tarif input Sonnet 4.6 = 2,76 €/M.
+  const CLAUDE_IN_RATE = 2.76 / 1_000_000;
+  const savings_eur = (total_cache_r * 0.90 - total_cache_w * 0.25) * CLAUDE_IN_RATE;
+  return {
+    count: chatLogs.length,
+    total,
+    avg: total / chatLogs.length,
+    total_in, total_cache_w, total_cache_r, total_out,
+    cache_hit_rate,
+    savings_eur,
+    rag_hits,
+    rag_rate: rag_hits / chatLogs.length,
+  };
 }
 
 /* ── Helpers format ───────────────────────────────────── */
