@@ -567,15 +567,15 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   ];
   const microState = (i) => (i < phase ? 'is-done' : i === phase ? 'is-active' : '');
 
-  // RAMPE LINÉAIRE UNIQUE 4 → 99 sur 90 s, sans aucun cap intermédiaire.
-  // 90 s correspond à la durée moyenne totale d'une analyse en prod
-  // (upload + Gemini + Claude). Calibré pour qu'on atteigne 99 % JUSTE
-  // au moment où la fiche apparaît, donc plus de stagnation longue à 99.
-  // Pente : 1.06 pt/s, parfaitement constante de A à Z.
-  // Aucun cap intermédiaire (les anciens caps par phase provoquaient un
-  // "blocage à 60 puis saut à 80" à la bascule phase 1 → 2). Le pct
-  // dépend uniquement du temps écoulé.
-  const linearPct = 4 + (totalElapsed / 90) * 95;
+  // RAMPE LINÉAIRE UNIQUE 4 → 99 sur 180 s, sans aucun cap intermédiaire.
+  // 180 s = 3 min, calibré sur les analyses longues que David observe en
+  // pratique (Claude peut mettre plusieurs minutes sur des morceaux
+  // costauds ou en période chargée côté Anthropic). Pente : 0.528 pt/s
+  // — plus douce qu'avant mais reste parfaitement régulière, et plus
+  // de stagnation prolongée à 99 % avant l'apparition de la fiche.
+  // Aucun cap intermédiaire (la phase backend n'influence plus du tout
+  // le pct : seul le temps écoulé compte).
+  const linearPct = 4 + (totalElapsed / 180) * 95;
   const pct = Math.round(Math.max(4, Math.min(99, linearPct)));
   const radius = 100;
   const circumference = 2 * Math.PI * radius; // ≈ 628.32

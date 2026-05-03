@@ -1017,10 +1017,9 @@ function AnalyzingState({ stage }) {
     const id = setInterval(tick, 120);
     return () => clearInterval(id);
   }, []);
-  // RAMPE LINÉAIRE UNIQUE 62 → 99 sur 50 s. Calibré sur la durée moyenne
-  // de la rédaction Claude pour atteindre 99 % juste avant l'apparition
-  // de la fiche complète. Pas de cap intermédiaire.
-  const linearPct = 62 + (elapsed / 50) * 37;
+  // RAMPE LINÉAIRE UNIQUE 62 → 99 sur 120 s. Calibré sur les rédactions
+  // Claude longues (cf. LoadingScreen.jsx). Pas de cap intermédiaire.
+  const linearPct = 62 + (elapsed / 120) * 37;
   const pct = Math.round(Math.max(62, Math.min(99, linearPct)));
   const radius = 100;
   const circumference = 2 * Math.PI * radius;
