@@ -1001,47 +1001,34 @@ function AnalyzingState({ stage }) {
   // détaillés là-bas). Sur FicheScreen on arrive presque toujours en phase 2
   // (rédaction Claude) ; sans ramp, l'anneau restait figé à 68 % pendant 30
   // à 60 s, donnant l'impression que ça avait planté juste après la bascule.
-  const [phaseRamp, setPhaseRamp] = useState(0);
-  const phaseStartRef = useRef(null);
+  // Rampe linéaire globale (4ème itération — cf. LoadingScreen.jsx pour
+  // l'historique). Sur FicheScreen on entre presque exclusivement en phase 2
+  // (l'upload et l'écoute ont déjà tourné dans LoadingScreen), donc on rampe
+  // linéairement de 62 → 88 sur 45 s, puis queue patience douce vers 90.
+  const elapsedStartRef = useRef(null);
+  const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
-    phaseStartRef.current = Date.now();
-    setPhaseRamp(0);
+    if (elapsedStartRef.current === null) elapsedStartRef.current = Date.now();
     const tick = () => {
-      if (phaseStartRef.current == null) return;
-      const elapsed = (Date.now() - phaseStartRef.current) / 1000;
-      // Rampe linéaire pure + queue asymptotique douce — cf. commentaires
-      // détaillés dans LoadingScreen.jsx. Vitesse perçue constante pendant
-      // toute la durée typique de la phase, plus de sensation "rapide au
-      // début / lent en fin". Sur FicheScreen on est presque toujours en
-      // phase 2 (rédaction Claude), donc c'est ELLE qui doit avoir une
-      // pente régulière — d'où expected=50 calé sur la durée moyenne réelle.
-      const expected =
-        phase === 0 ? 5  :
-        phase === 1 ? 32 :
-        phase === 2 ? 50 :
-                      3;
-      const x = elapsed / expected;
-      let ramp;
-      if (x <= 1) {
-        ramp = x * 0.80;
-      } else {
-        const tail = x - 1;
-        ramp = 0.80 + 0.17 * (tail / (tail + 0.6));
-      }
-      setPhaseRamp(Math.min(0.97, ramp));
+      if (elapsedStartRef.current == null) return;
+      setElapsed((Date.now() - elapsedStartRef.current) / 1000);
     };
     tick();
     const id = setInterval(tick, 120);
     return () => clearInterval(id);
-  }, [phase]);
-  const PHASE_RANGES = [
-    [4, 32],   // upload
-    [32, 62],  // écoute
-    [62, 92],  // écriture
-    [92, 96],  // handoff final
-  ];
-  const [pStart, pEnd] = PHASE_RANGES[Math.max(0, Math.min(phase, 3))];
-  const pct = Math.round(pStart + (pEnd - pStart) * phaseRamp);
+  }, []);
+  const PHASE_CAPS = [30, 60, 90, 96];
+  const phaseCap = PHASE_CAPS[Math.max(0, Math.min(phase, 3))];
+  let linearPct;
+  if (elapsed <= 45) {
+    // Linéaire 62 → 88 sur 45 s (~0.58 pt/s constants)
+    linearPct = 62 + (elapsed / 45) * 26;
+  } else {
+    // Queue patience : 88 → 96 doucement
+    const tail = elapsed - 45;
+    linearPct = 88 + 8 * (tail / (tail + 60));
+  }
+  const pct = Math.round(Math.max(62, Math.min(phaseCap, linearPct)));
   const radius = 100;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference * (1 - pct / 100);

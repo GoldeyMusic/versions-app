@@ -505,54 +505,36 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   // confirmé la fin réelle (sinon on bondirait à 100 % puis on rebasculerait).
   // Tick 120 ms → l'anneau se met à jour ~8 fois/s, mouvement visible en
   // permanence même quand le backend ne polle qu'une fois toutes les 3 s.
-  const [phaseRamp, setPhaseRamp] = useState(0);
-  const phaseStartRef = useRef(null);
+  // Itérations 2026-05-03 — historique des essais sur la rampe pct :
+  //   1) exp(-t/τ) par phase     → "les 20 derniers % sont très longs"
+  //   2) t/(c + t) par phase     → "vite à 50 puis très lent"
+  //   3) linéaire par phase      → "fuse jusqu'à 30 puis lent"
+  //   4) LINÉAIRE GLOBALE (ce patch)
+  //
+  // Tant qu'on calcule la pente par phase, on a forcément un changement
+  // de vitesse à chaque transition (phase 0 dure ~5 s vs phase 1+2
+  // ~80 s, donc la pente phase 0 est mécaniquement 5-15× plus forte).
+  // Stratégie : on bascule sur un timer GLOBAL (depuis le démarrage de
+  // l'analyse, pas depuis le démarrage de la phase). Une seule rampe
+  // linéaire 4 % → 90 % sur 80 s ≈ 1.07 pt/s constants de bout en bout,
+  // peu importe les transitions de phase. La phase backend ne sert plus
+  // qu'à BORNER le pct par le haut (cf. PHASE_CAPS plus bas) : si le
+  // backend traîne sur l'upload, on cape à la borne haute de la phase 0
+  // jusqu'à ce qu'il confirme la bascule.
+  const totalStartRef = useRef(null);
+  const [totalElapsed, setTotalElapsed] = useState(0);
   useEffect(() => {
-    phaseStartRef.current = Date.now();
-    setPhaseRamp(0);
+    if (totalStartRef.current === null) {
+      totalStartRef.current = Date.now();
+    }
     const tick = () => {
-      if (phaseStartRef.current == null) return;
-      const elapsed = (Date.now() - phaseStartRef.current) / 1000;
-      // Itérations 2026-05-03 — historique des essais :
-      //  1) exp(-t/τ) : freinage très net en fin → "les 20 derniers % sont
-      //     très longs".
-      //  2) t/(c + t) (rationnelle) : démarrage trop rapide → "on arrive
-      //     super vite à 50 puis c'est très long".
-      //  3) RAMPE LINÉAIRE PURE (ce patch) : pente CONSTANTE pendant la
-      //     durée typique de la phase, donc plus aucune sensation de
-      //     démarrage rapide / freinage lent — l'anneau monte comme une
-      //     vraie barre de progression à vitesse fixe. Si la phase dépasse
-      //     sa durée typique, une queue asymptotique très douce prend le
-      //     relais pour ne jamais geler exactement (montée minime mais
-      //     toujours visible).
-      //
-      // `expected` = durée typique observée en prod (s). Au-delà, on
-      // bascule sur la queue.
-      const expected =
-        phase === 0 ? 5  :   // upload (2-10 s)
-        phase === 1 ? 32 :   // écoute Gemini (25-50 s)
-        phase === 2 ? 50 :   // écriture Claude (30-90 s)
-                      3;     // handoff final
-      const x = elapsed / expected;
-      let ramp;
-      if (x <= 1) {
-        // Linéaire de 0 à 0.80 sur la durée typique. 0.80 plutôt que 1
-        // pour réserver les 20 % restants à la "queue patience" — qui
-        // continue à monter même si le backend traîne.
-        ramp = x * 0.80;
-      } else {
-        // Queue : on continue de 0.80 vers le cap 0.97 via asymptote
-        // douce. Le paramètre 0.6 règle la vitesse de la queue (plus
-        // petit = remonte plus vite vers le cap).
-        const tail = x - 1;
-        ramp = 0.80 + 0.17 * (tail / (tail + 0.6));
-      }
-      setPhaseRamp(Math.min(0.97, ramp));
+      if (totalStartRef.current == null) return;
+      setTotalElapsed((Date.now() - totalStartRef.current) / 1000);
     };
     tick();
     const id = setInterval(tick, 120);
     return () => clearInterval(id);
-  }, [phase]);
+  }, []);
 
   // Error state — habillage v2 (pill mono + carte soft red).
   // Ce return doit IMPÉRATIVEMENT venir après tous les hooks ci-dessus.
@@ -585,25 +567,25 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   ];
   const microState = (i) => (i < phase ? 'is-done' : i === phase ? 'is-active' : '');
 
-  // Bornes de pct par phase. Au lieu de figer l'anneau à un palier discret
-  // par phase (ancien `pctByPhase = [8, 38, 68, 94]` qui sautait de 30 points
-  // à chaque transition), on parcourt continûment de pStart vers pEnd en
-  // suivant `phaseRamp`. Chaque phase progresse ~30 points de manière régulière,
-  // sans plateau ni saut brutal. Borne basse à 4 % pour que l'anneau ne
-  // soit pas vide au démarrage ; borne haute à 96 % pour réserver le 100 %
-  // au vrai all_done.
-  const PHASE_RANGES = [
-    [4, 32],   // upload
-    [32, 62],  // écoute
-    [62, 92],  // écriture
-    [92, 96],  // handoff final
-  ];
-  const [pStart, pEnd] = PHASE_RANGES[Math.max(0, Math.min(phase, 3))];
-  // Sécurité monotone : pct(t) ne doit jamais reculer (les transitions de
-  // phase remettent phaseRamp à 0, donc target = pStart de la nouvelle phase
-  // = pEnd de l'ancienne, mais l'ancienne pouvait être à 60.5 quand la
-  // nouvelle commence à 62 — la bascule reste donc strictement croissante).
-  const pct = Math.round(pStart + (pEnd - pStart) * phaseRamp);
+  // Borne haute par phase backend : tant que le backend n'a pas confirmé
+  // la bascule, on ne dépasse pas le palier de la phase courante. Sert à
+  // matérialiser visuellement les "checkpoints" (upload terminé, écoute
+  // terminée, etc.) sans casser la régularité de la rampe linéaire globale.
+  const PHASE_CAPS = [30, 60, 90, 96];
+  const phaseCap = PHASE_CAPS[Math.max(0, Math.min(phase, 3))];
+
+  // Rampe linéaire globale 4 → 90 sur 80 s, puis queue patience douce
+  // 90 → 96 si l'analyse traîne au-delà. ~1.07 pt/s pendant la majorité
+  // de l'analyse, perçue parfaitement constante. La queue (>80 s) ralentit
+  // mais continue à monter pour ne jamais geler exactement à un entier.
+  let linearPct;
+  if (totalElapsed <= 80) {
+    linearPct = 4 + (totalElapsed / 80) * 86;
+  } else {
+    const tail = totalElapsed - 80;
+    linearPct = 90 + 6 * (tail / (tail + 60));
+  }
+  const pct = Math.round(Math.max(4, Math.min(phaseCap, linearPct)));
   const radius = 100;
   const circumference = 2 * Math.PI * radius; // ≈ 628.32
   const dashOffset = circumference * (1 - pct / 100);
