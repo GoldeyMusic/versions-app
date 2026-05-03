@@ -1017,16 +1017,21 @@ function AnalyzingState({ stage }) {
     const id = setInterval(tick, 120);
     return () => clearInterval(id);
   }, []);
-  const PHASE_CAPS = [30, 60, 90, 96];
+  // Phase 2 cap = 95 (au lieu de 90) — laisse la queue patience monter
+  // pendant les longues attentes Claude (cf. LoadingScreen.jsx pour le
+  // détail). Avant ce fix, l'anneau gelait à 90 sur cet écran pendant
+  // plusieurs minutes puis sautait direct sur la fiche complète.
+  const PHASE_CAPS = [30, 60, 95, 96];
   const phaseCap = PHASE_CAPS[Math.max(0, Math.min(phase, 3))];
   let linearPct;
   if (elapsed <= 45) {
     // Linéaire 62 → 88 sur 45 s (~0.58 pt/s constants)
     linearPct = 62 + (elapsed / 45) * 26;
   } else {
-    // Queue patience : 88 → 96 doucement
+    // Queue patience accélérée : 88 → 96 visiblement (atteint ~92 à 30 s
+    // post, ~93.3 à 60 s post, ~94.4 à 2 min post). Plus de gel à 90.
     const tail = elapsed - 45;
-    linearPct = 88 + 8 * (tail / (tail + 60));
+    linearPct = 88 + 8 * (tail / (tail + 30));
   }
   const pct = Math.round(Math.max(62, Math.min(phaseCap, linearPct)));
   const radius = 100;

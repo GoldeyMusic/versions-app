@@ -571,19 +571,26 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   // la bascule, on ne dépasse pas le palier de la phase courante. Sert à
   // matérialiser visuellement les "checkpoints" (upload terminé, écoute
   // terminée, etc.) sans casser la régularité de la rampe linéaire globale.
-  const PHASE_CAPS = [30, 60, 90, 96];
+  // Phase 2 cap = 95 (et plus 90) : laisse la queue patience monter pendant
+  // les analyses qui traînent (Claude peut prendre plusieurs minutes en
+  // période chargée). Avant ce cap, l'anneau gelait à 90 dès t=80 s puis
+  // sautait direct sur la fiche — désormais il continue à grappiller
+  // visiblement vers 95.
+  const PHASE_CAPS = [30, 60, 95, 96];
   const phaseCap = PHASE_CAPS[Math.max(0, Math.min(phase, 3))];
 
   // Rampe linéaire globale 4 → 90 sur 80 s, puis queue patience douce
   // 90 → 96 si l'analyse traîne au-delà. ~1.07 pt/s pendant la majorité
-  // de l'analyse, perçue parfaitement constante. La queue (>80 s) ralentit
-  // mais continue à monter pour ne jamais geler exactement à un entier.
+  // de l'analyse, perçue parfaitement constante. La queue accélérée
+  // (paramètre 25) couvre 90 → 94 sur la première minute après t=80 s,
+  // 90 → 95 sur 2 min — montée toujours visible même quand Claude
+  // prend du retard, plus de gel à 90.
   let linearPct;
   if (totalElapsed <= 80) {
     linearPct = 4 + (totalElapsed / 80) * 86;
   } else {
     const tail = totalElapsed - 80;
-    linearPct = 90 + 6 * (tail / (tail + 60));
+    linearPct = 90 + 6 * (tail / (tail + 25));
   }
   const pct = Math.round(Math.max(4, Math.min(phaseCap, linearPct)));
   const radius = 100;
