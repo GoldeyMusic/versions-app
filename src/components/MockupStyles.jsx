@@ -5597,10 +5597,18 @@ export default function MockupStyles() {
       width 0.5s cubic-bezier(.34, 1.45, .64, 1),
       border-color .2s, box-shadow .2s, background .2s;
   }
-  /* État "peek auto" — exactement comme :hover côté width, pour que
-     l ouverture programmée passe par la même transition bouncy. */
+  /* État "peek auto" — calque l état :hover (width + halo + bordure
+     amber + bg renforcé) pour que l ouverture programmée soit
+     visuellement identique à un hover. */
   .chat-pill.is-peeking {
     width: 280px;
+    border-color: rgba(245, 166, 35, 0.55);
+    box-shadow: 0 16px 48px -12px rgba(0,0,0,0.65), 0 0 32px -8px rgba(245, 166, 35, 0.32);
+    background: rgba(28, 24, 20, 0.85);
+  }
+  .chat-pill.is-peeking .chat-pill-cta {
+    background: var(--amber);
+    color: var(--black);
   }
   .chat-pill:hover {
     width: 280px;
