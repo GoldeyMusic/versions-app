@@ -586,12 +586,17 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
         if (s >= 99) return 99;
         const t = targetRef.current;
         const gap = t - s;
-        // Vitesse de rattrapage proportionnelle au gap (rejoint en ~2 s)
-        const catchUp = Math.max(0, gap) / 2;
+        // Vitesse de rattrapage proportionnelle au gap (rejoint en ~4 s).
+        // Itération précédente : gap/2 → David remontait une "grosse
+        // accélération entre 20 et 60" quand le backend rapportait un
+        // palier en avance. gap/4 étire le rattrapage à ~4 s, donc
+        // l'accélération est plus douce et moins visible.
+        const catchUp = Math.max(0, gap) / 4;
         // Plancher : on avance toujours, même si gap nul ou négatif
         const minSpeed = 0.5;
-        // Plafond : pas plus rapide que 25 pt/s, sinon trop "fuse"
-        const maxSpeed = 25;
+        // Plafond : 12 pt/s max (au lieu de 25) → bornes l'accélération
+        // visible quand le backend rapporte un gros palier.
+        const maxSpeed = 12;
         const speed = Math.min(maxSpeed, Math.max(minSpeed, catchUp));
         const next = s + speed * dt;
         return Math.min(99, next);
