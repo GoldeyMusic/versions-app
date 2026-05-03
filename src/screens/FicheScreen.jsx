@@ -1017,15 +1017,11 @@ function AnalyzingState({ stage }) {
     const id = setInterval(tick, 120);
     return () => clearInterval(id);
   }, []);
-  // Cap phase 2 = 99 (cf. LoadingScreen.jsx).
-  const PHASE_CAPS = [30, 60, 99, 99];
-  const phaseCap = PHASE_CAPS[Math.max(0, Math.min(phase, 3))];
-
-  // RAMPE LINÉAIRE UNIQUE 62 → 99 sur 35 s. Pente parfaitement constante
-  // (~1.06 pt/s), pas de segments, pas de freinage en fin. Calibré pour
-  // atteindre 99 % avant la durée moyenne de la rédaction Claude (~40 s).
-  const linearPct = 62 + (elapsed / 35) * 37;
-  const pct = Math.round(Math.max(62, Math.min(phaseCap, linearPct)));
+  // RAMPE LINÉAIRE UNIQUE 62 → 99 sur 50 s. Calibré sur la durée moyenne
+  // de la rédaction Claude pour atteindre 99 % juste avant l'apparition
+  // de la fiche complète. Pas de cap intermédiaire.
+  const linearPct = 62 + (elapsed / 50) * 37;
+  const pct = Math.round(Math.max(62, Math.min(99, linearPct)));
   const radius = 100;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference * (1 - pct / 100);

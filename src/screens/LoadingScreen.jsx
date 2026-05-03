@@ -567,18 +567,16 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   ];
   const microState = (i) => (i < phase ? 'is-done' : i === phase ? 'is-active' : '');
 
-  // Borne haute par phase backend : tant que le backend n'a pas confirmé
-  // la bascule, on ne dépasse pas le palier de la phase courante.
-  const PHASE_CAPS = [30, 60, 99, 99];
-  const phaseCap = PHASE_CAPS[Math.max(0, Math.min(phase, 3))];
-
-  // RAMPE LINÉAIRE UNIQUE 4 → 99 sur 75 s. Pente parfaitement constante
-  // (~1.27 pt/s) du tout début jusqu'à 99 %. Calibré pour atteindre 99 %
-  // avant la durée moyenne d'analyse (~80 s) — la fiche apparaît juste
-  // après donc plus de "fin trop longue" perçue. Si l'analyse dépasse
-  // 75 s, l'anneau cape à 99 (un seul point d'attente, tolérable).
-  const linearPct = 4 + (totalElapsed / 75) * 95;
-  const pct = Math.round(Math.max(4, Math.min(phaseCap, linearPct)));
+  // RAMPE LINÉAIRE UNIQUE 4 → 99 sur 90 s, sans aucun cap intermédiaire.
+  // 90 s correspond à la durée moyenne totale d'une analyse en prod
+  // (upload + Gemini + Claude). Calibré pour qu'on atteigne 99 % JUSTE
+  // au moment où la fiche apparaît, donc plus de stagnation longue à 99.
+  // Pente : 1.06 pt/s, parfaitement constante de A à Z.
+  // Aucun cap intermédiaire (les anciens caps par phase provoquaient un
+  // "blocage à 60 puis saut à 80" à la bascule phase 1 → 2). Le pct
+  // dépend uniquement du temps écoulé.
+  const linearPct = 4 + (totalElapsed / 90) * 95;
+  const pct = Math.round(Math.max(4, Math.min(99, linearPct)));
   const radius = 100;
   const circumference = 2 * Math.PI * radius; // ≈ 628.32
   const dashOffset = circumference * (1 - pct / 100);
