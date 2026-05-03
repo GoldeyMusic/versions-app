@@ -1017,25 +1017,14 @@ function AnalyzingState({ stage }) {
     const id = setInterval(tick, 120);
     return () => clearInterval(id);
   }, []);
-  // Cap phase 2 = 99 (cf. LoadingScreen.jsx pour le détail). La cible
-  // est de monter visiblement jusqu'à 99 % avant l'apparition de la
-  // fiche complète, plus jamais de gel.
+  // Cap phase 2 = 99 (cf. LoadingScreen.jsx).
   const PHASE_CAPS = [30, 60, 99, 99];
   const phaseCap = PHASE_CAPS[Math.max(0, Math.min(phase, 3))];
 
-  // Rampe en TROIS segments calibrée pour aller jusqu'à 99 % :
-  //   1) 62 → 88 sur 45 s linéaire pure (~0.58 pt/s) — la pente régulière.
-  //   2) 88 → 95 sur 20 s linéaire ralentie (~0.35 pt/s).
-  //   3) 95 → 99 queue asymptotique douce, jamais saturée.
-  let linearPct;
-  if (elapsed <= 45) {
-    linearPct = 62 + (elapsed / 45) * 26;
-  } else if (elapsed <= 65) {
-    linearPct = 88 + ((elapsed - 45) / 20) * 7;
-  } else {
-    const tail = elapsed - 65;
-    linearPct = 95 + 4 * (tail / (tail + 60));
-  }
+  // RAMPE LINÉAIRE UNIQUE 62 → 99 sur 35 s. Pente parfaitement constante
+  // (~1.06 pt/s), pas de segments, pas de freinage en fin. Calibré pour
+  // atteindre 99 % avant la durée moyenne de la rédaction Claude (~40 s).
+  const linearPct = 62 + (elapsed / 35) * 37;
   const pct = Math.round(Math.max(62, Math.min(phaseCap, linearPct)));
   const radius = 100;
   const circumference = 2 * Math.PI * radius;

@@ -568,32 +568,16 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   const microState = (i) => (i < phase ? 'is-done' : i === phase ? 'is-active' : '');
 
   // Borne haute par phase backend : tant que le backend n'a pas confirmé
-  // la bascule, on ne dépasse pas le palier de la phase courante. Sert à
-  // matérialiser visuellement les "checkpoints" (upload terminé, écoute
-  // terminée, etc.) sans casser la régularité de la rampe linéaire globale.
-  // Cap phase 2 = 99 (au lieu de 95) : la cible est désormais d'aller
-  // visiblement jusqu'à 99 % avant l'apparition de la fiche, pour ne plus
-  // jamais avoir de gel perçu en fin d'analyse.
+  // la bascule, on ne dépasse pas le palier de la phase courante.
   const PHASE_CAPS = [30, 60, 99, 99];
   const phaseCap = PHASE_CAPS[Math.max(0, Math.min(phase, 3))];
 
-  // Rampe progressive en TROIS segments, calibrée pour aller jusqu'à 99 % :
-  //   1) 4 → 90 sur 80 s linéaire pure (~1.07 pt/s) — la pente que David
-  //      validait comme "régulière du début à la fin".
-  //   2) 90 → 95 sur 25 s linéaire ralentie (~0.20 pt/s) — micro-décélération
-  //      pour signaler "on est presque là", sans gel.
-  //   3) 95 → 99 queue asymptotique — atteint 97 à +60 s, 97.7 à +2 min,
-  //      98.3 à +5 min. Continue à monter sans jamais saturer, donc plus
-  //      jamais de gel visible avant la fiche.
-  let linearPct;
-  if (totalElapsed <= 80) {
-    linearPct = 4 + (totalElapsed / 80) * 86;
-  } else if (totalElapsed <= 105) {
-    linearPct = 90 + ((totalElapsed - 80) / 25) * 5;
-  } else {
-    const tail = totalElapsed - 105;
-    linearPct = 95 + 4 * (tail / (tail + 60));
-  }
+  // RAMPE LINÉAIRE UNIQUE 4 → 99 sur 75 s. Pente parfaitement constante
+  // (~1.27 pt/s) du tout début jusqu'à 99 %. Calibré pour atteindre 99 %
+  // avant la durée moyenne d'analyse (~80 s) — la fiche apparaît juste
+  // après donc plus de "fin trop longue" perçue. Si l'analyse dépasse
+  // 75 s, l'anneau cape à 99 (un seul point d'attente, tolérable).
+  const linearPct = 4 + (totalElapsed / 75) * 95;
   const pct = Math.round(Math.max(4, Math.min(phaseCap, linearPct)));
   const radius = 100;
   const circumference = 2 * Math.PI * radius; // ≈ 628.32
