@@ -1009,8 +1009,17 @@ function AnalyzingState({ stage }) {
     const tick = () => {
       if (phaseStartRef.current == null) return;
       const elapsed = (Date.now() - phaseStartRef.current) / 1000;
-      const tau = phase === 0 ? 6 : phase === 1 ? 28 : phase === 2 ? 38 : 3;
-      const ramp = Math.min(0.95, 1 - Math.exp(-elapsed / tau));
+      // Asymptote rationnelle t/(c + t) — cf. LoadingScreen.jsx pour le
+      // détail. Sur FicheScreen on est presque toujours en phase 2
+      // (rédaction Claude) qui est précisément le segment "derniers 20 %
+      // trop longs" que David remontait — d'où le c=5 calé court pour
+      // démarrer rapidement et grappiller en continu jusqu'au cap.
+      const c =
+        phase === 0 ? 1.0 :
+        phase === 1 ? 4.0 :
+        phase === 2 ? 5.0 :
+                      0.3;
+      const ramp = Math.min(0.97, elapsed / (c + elapsed));
       setPhaseRamp(ramp);
     };
     tick();

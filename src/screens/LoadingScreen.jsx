@@ -513,15 +513,25 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
     const tick = () => {
       if (phaseStartRef.current == null) return;
       const elapsed = (Date.now() - phaseStartRef.current) / 1000;
-      // τ par phase (sec). Plus τ est grand, plus la phase met de temps à
-      // s'approcher de sa borne haute — visuellement, mouvement plus lent
-      // mais toujours présent.
-      //   phase 0 (upload)         : τ=6   → ~70 % atteint en 7 s
-      //   phase 1 (écoute Gemini)  : τ=28  → ~70 % atteint en 33 s
-      //   phase 2 (écriture Claude): τ=38  → ~70 % atteint en 45 s
-      //   phase 3 (handoff)        : τ=3   → quasi instantané
-      const tau = phase === 0 ? 6 : phase === 1 ? 28 : phase === 2 ? 38 : 3;
-      const ramp = Math.min(0.95, 1 - Math.exp(-elapsed / tau));
+      // Asymptote rationnelle t/(c + t). Démarrage QUASI INSTANTANÉ après
+      // chaque transition de phase, ralentissement TRÈS progressif en fin
+      // (toujours en mouvement, pas de plateau visible avant le cap 0.97).
+      // Le `c` règle la vitesse de démarrage : plus c est petit, plus on
+      // monte vite au début. Itérations 2026-05-03 :
+      //   - τ=12 / τ=20 (1ʳᵉ tentative) : David remontait que la phase 1
+      //     était "très lente" et que les derniers 20 % traînaient. La
+      //     forme exp(-t/τ) freinait trop tôt après une montée initiale
+      //     trop molle.
+      //   - c≈4-5 (forme rationnelle) : démarre 3-4× plus vite sur la
+      //     pente initiale, et continue à grappiller des points jusqu'au
+      //     cap au lieu de stagner — montée perçue régulière de bout en
+      //     bout, plus de "trou" en milieu/fin de phase.
+      const c =
+        phase === 0 ? 1.0 :   // upload : montée éclair (durée 2-8 s)
+        phase === 1 ? 4.0 :   // écoute Gemini (durée 25-50 s)
+        phase === 2 ? 5.0 :   // écriture Claude (durée 30-90 s)
+                      0.3;    // handoff final
+      const ramp = Math.min(0.97, elapsed / (c + elapsed));
       setPhaseRamp(ramp);
     };
     tick();
