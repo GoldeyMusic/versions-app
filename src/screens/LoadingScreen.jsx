@@ -14,6 +14,18 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   const { s, lang } = useLang();
   const [phase, setPhase] = useState(0);
   const [error, setError] = useState(null);
+  // Durée du fichier audio (sec). Utilisée pour CALIBRER la rampe pct
+  // sur la durée typique d'analyse. Heuristique observée : analyse ≈
+  // 0.65 × durée audio. Calibrer la rampe sur ce ratio fait que l'anneau
+  // atteint 99 % juste avant l'apparition de la fiche, peu importe la
+  // longueur du morceau (un morceau court = analyse courte = rampe
+  // courte ; long = long).
+  const [audioDur, setAudioDur] = useState(null);
+  // Ratchet pct : la valeur affichée ne doit JAMAIS reculer. Quand
+  // audioDur arrive ~2 s après le mount, expectedDuration peut changer
+  // — sans ce ratchet, l'anneau pourrait visiblement reculer d'un point
+  // ou deux. Le ref garde le max atteint et le rendu utilise cette valeur.
+  const pctRef = useRef(4);
   const jobIdRef = useRef(null);
   const sentFadr = useRef(false);
   // canceledRef : quand l'utilisateur clique "Annuler l'analyse", on lève ce
@@ -157,6 +169,10 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
             audio.onerror = () => resolve(null);
             audio.src = URL.createObjectURL(config.file);
           });
+          // Expose la durée audio au composant : la rampe pct s'y calibre
+          // pour atteindre 99 % juste avant l'apparition de la fiche
+          // (cf. commentaire au top du composant).
+          if (durationSeconds) setAudioDur(durationSeconds);
         }
 
         // Récupérer la fiche de la version précédente du même titre (calibrage)
@@ -567,16 +583,23 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   ];
   const microState = (i) => (i < phase ? 'is-done' : i === phase ? 'is-active' : '');
 
-  // RAMPE LINÉAIRE UNIQUE 4 → 99 sur 180 s, sans aucun cap intermédiaire.
-  // 180 s = 3 min, calibré sur les analyses longues que David observe en
-  // pratique (Claude peut mettre plusieurs minutes sur des morceaux
-  // costauds ou en période chargée côté Anthropic). Pente : 0.528 pt/s
-  // — plus douce qu'avant mais reste parfaitement régulière, et plus
-  // de stagnation prolongée à 99 % avant l'apparition de la fiche.
-  // Aucun cap intermédiaire (la phase backend n'influence plus du tout
-  // le pct : seul le temps écoulé compte).
-  const linearPct = 4 + (totalElapsed / 180) * 95;
-  const pct = Math.round(Math.max(4, Math.min(99, linearPct)));
+  // RAMPE LINÉAIRE UNIQUE 4 → 99 calibrée DYNAMIQUEMENT sur la durée
+  // du morceau audio. Heuristique observée : durée d'analyse ≈ 0.65 ×
+  // durée audio. Bornes 90-300 s pour gérer les extrêmes (très court /
+  // très long). Tant qu'on n'a pas la durée audio (premières secondes
+  // du run + mode resume), fallback prudent à 150 s.
+  // Aucun cap intermédiaire — la phase backend n'influence plus le pct.
+  const expectedDuration = audioDur
+    ? Math.max(90, Math.min(300, 0.65 * audioDur))
+    : 150;
+  const linearPct = 4 + (totalElapsed / expectedDuration) * 95;
+  // Ratchet : pct ne doit JAMAIS reculer (cf. déclaration de pctRef
+  // au top du composant). Quand audioDur arrive ~2 s après le mount,
+  // expectedDuration peut sauter — on garde la valeur la plus haute
+  // déjà atteinte pour éviter une régression visible de l'anneau.
+  const candidate = Math.round(Math.max(4, Math.min(99, linearPct)));
+  if (candidate > pctRef.current) pctRef.current = candidate;
+  const pct = pctRef.current;
   const radius = 100;
   const circumference = 2 * Math.PI * radius; // ≈ 628.32
   const dashOffset = circumference * (1 - pct / 100);
