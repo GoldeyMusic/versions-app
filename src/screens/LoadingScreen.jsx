@@ -494,28 +494,38 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   // vs path erreur) → React jette l'erreur #300 (page blanche). Même
   // classe de bug que le mode resume vu en avril 2026.
 
-  // Ramp progressif pendant la phase 2 (writing / Claude) : sans ça, l'anneau
-  // restait bloqué à 68 % pendant 30-60 s, donnant l'impression que le
-  // processus était figé. Courbe asymptotique 1-e^(-t/20) qui monte vite
-  // au début puis ralentit, capée à 0.95 pour ne jamais dépasser 90 % avant
-  // le vrai all_done (qui bascule phase=3 → 94 %).
-  const [writingRamp, setWritingRamp] = useState(0);
-  const writingStartRef = useRef(null);
+  // Ramp continu sur TOUTES les phases (et plus seulement la 2). Avant ce
+  // patch l'anneau restait figé à 38 % pendant toute l'écoute Gemini, puis
+  // sautait brutalement à 68 % avant de ralentir asymptotiquement vers
+  // 90 % — ces plateaux + le freinage final donnaient l'impression que
+  // l'analyse avait planté. On modélise désormais chaque phase comme une
+  // courbe régulière 1-e^(-t/τ) avec un τ calé sur la durée observée en
+  // prod, et on interpole continûment entre les bornes de chaque phase.
+  // Cap 0.95 pour ne jamais "remplir" la phase tant que le backend n'a pas
+  // confirmé la fin réelle (sinon on bondirait à 100 % puis on rebasculerait).
+  // Tick 120 ms → l'anneau se met à jour ~8 fois/s, mouvement visible en
+  // permanence même quand le backend ne polle qu'une fois toutes les 3 s.
+  const [phaseRamp, setPhaseRamp] = useState(0);
+  const phaseStartRef = useRef(null);
   useEffect(() => {
-    if (phase !== 2) {
-      writingStartRef.current = null;
-      setWritingRamp(0);
-      return;
-    }
-    writingStartRef.current = Date.now();
+    phaseStartRef.current = Date.now();
+    setPhaseRamp(0);
     const tick = () => {
-      if (writingStartRef.current == null) return;
-      const elapsed = (Date.now() - writingStartRef.current) / 1000;
-      const ramp = Math.min(0.95, 1 - Math.exp(-elapsed / 20));
-      setWritingRamp(ramp);
+      if (phaseStartRef.current == null) return;
+      const elapsed = (Date.now() - phaseStartRef.current) / 1000;
+      // τ par phase (sec). Plus τ est grand, plus la phase met de temps à
+      // s'approcher de sa borne haute — visuellement, mouvement plus lent
+      // mais toujours présent.
+      //   phase 0 (upload)         : τ=6   → ~70 % atteint en 7 s
+      //   phase 1 (écoute Gemini)  : τ=28  → ~70 % atteint en 33 s
+      //   phase 2 (écriture Claude): τ=38  → ~70 % atteint en 45 s
+      //   phase 3 (handoff)        : τ=3   → quasi instantané
+      const tau = phase === 0 ? 6 : phase === 1 ? 28 : phase === 2 ? 38 : 3;
+      const ramp = Math.min(0.95, 1 - Math.exp(-elapsed / tau));
+      setPhaseRamp(ramp);
     };
     tick();
-    const id = setInterval(tick, 250);
+    const id = setInterval(tick, 120);
     return () => clearInterval(id);
   }, [phase]);
 
@@ -550,17 +560,25 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   ];
   const microState = (i) => (i < phase ? 'is-done' : i === phase ? 'is-active' : '');
 
-  // Mapping percentage pour l'anneau radial. Les paliers sont calés au
-  // milieu de chaque étape — visuellement on ne veut pas partir de 0%
-  // (sinon l'anneau est vide pendant l'upload), ni atteindre 100% tant
-  // que `onDone` n'a pas été appelé (sinon l'utilisateur croit que c'est
-  // fini mais on attend encore Claude).
-  const pctByPhase = [8, 38, 68, 94];
-
-  const basePct = pctByPhase[Math.max(0, Math.min(phase, 3))];
-  const pct = phase === 2
-    ? Math.round(basePct + (90 - basePct) * writingRamp)
-    : basePct;
+  // Bornes de pct par phase. Au lieu de figer l'anneau à un palier discret
+  // par phase (ancien `pctByPhase = [8, 38, 68, 94]` qui sautait de 30 points
+  // à chaque transition), on parcourt continûment de pStart vers pEnd en
+  // suivant `phaseRamp`. Chaque phase progresse ~30 points de manière régulière,
+  // sans plateau ni saut brutal. Borne basse à 4 % pour que l'anneau ne
+  // soit pas vide au démarrage ; borne haute à 96 % pour réserver le 100 %
+  // au vrai all_done.
+  const PHASE_RANGES = [
+    [4, 32],   // upload
+    [32, 62],  // écoute
+    [62, 92],  // écriture
+    [92, 96],  // handoff final
+  ];
+  const [pStart, pEnd] = PHASE_RANGES[Math.max(0, Math.min(phase, 3))];
+  // Sécurité monotone : pct(t) ne doit jamais reculer (les transitions de
+  // phase remettent phaseRamp à 0, donc target = pStart de la nouvelle phase
+  // = pEnd de l'ancienne, mais l'ancienne pouvait être à 60.5 quand la
+  // nouvelle commence à 62 — la bascule reste donc strictement croissante).
+  const pct = Math.round(pStart + (pEnd - pStart) * phaseRamp);
   const radius = 100;
   const circumference = 2 * Math.PI * radius; // ≈ 628.32
   const dashOffset = circumference * (1 - pct / 100);

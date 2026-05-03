@@ -997,9 +997,34 @@ function AnalyzingState({ stage }) {
   const phase = Math.max(maxIdx, rawIdx);
   const microState = (i) => (i < phase ? 'is-done' : i === phase ? 'is-active' : '');
 
-  // Anneau radial (cohérent avec LoadingScreen : 8 / 38 / 68 / 94).
-  const pctByPhase = [8, 38, 68, 94];
-  const pct = pctByPhase[Math.max(0, Math.min(phase, 3))];
+  // Anneau radial — ramp continu cohérent avec LoadingScreen (cf. commentaires
+  // détaillés là-bas). Sur FicheScreen on arrive presque toujours en phase 2
+  // (rédaction Claude) ; sans ramp, l'anneau restait figé à 68 % pendant 30
+  // à 60 s, donnant l'impression que ça avait planté juste après la bascule.
+  const [phaseRamp, setPhaseRamp] = useState(0);
+  const phaseStartRef = useRef(null);
+  useEffect(() => {
+    phaseStartRef.current = Date.now();
+    setPhaseRamp(0);
+    const tick = () => {
+      if (phaseStartRef.current == null) return;
+      const elapsed = (Date.now() - phaseStartRef.current) / 1000;
+      const tau = phase === 0 ? 6 : phase === 1 ? 28 : phase === 2 ? 38 : 3;
+      const ramp = Math.min(0.95, 1 - Math.exp(-elapsed / tau));
+      setPhaseRamp(ramp);
+    };
+    tick();
+    const id = setInterval(tick, 120);
+    return () => clearInterval(id);
+  }, [phase]);
+  const PHASE_RANGES = [
+    [4, 32],   // upload
+    [32, 62],  // écoute
+    [62, 92],  // écriture
+    [92, 96],  // handoff final
+  ];
+  const [pStart, pEnd] = PHASE_RANGES[Math.max(0, Math.min(phase, 3))];
+  const pct = Math.round(pStart + (pEnd - pStart) * phaseRamp);
   const radius = 100;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference * (1 - pct / 100);
