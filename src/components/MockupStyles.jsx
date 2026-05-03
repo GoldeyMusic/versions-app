@@ -5598,17 +5598,34 @@ export default function MockupStyles() {
     transition:
       width 0.5s cubic-bezier(.34, 1.45, .64, 1),
       border-color .2s, box-shadow .2s, background .2s;
-    animation: chat-pill-peek 30s ease-in-out 3s infinite;
+    /* timing-function: linear au global → on pilote chaque segment
+       via animation-timing-function dans les keyframes pour matcher
+       exactement la sensation du hover (snap rapide + petit bounce). */
+    animation: chat-pill-peek 30s linear 3s infinite;
   }
-  /* Cycle 30s : peek tôt (4-15s) puis 15s fermée. Largeur identique
-     au :hover (280) pour cohérence visuelle. */
+  /* Cycle 30s avec segments à durée fixe (≈ hover 0.5s) :
+       0–7.5s    fermée
+       7.5–8s    expand 56→280, courbe bouncy (même que :hover)
+       8–17s     hold 280
+       17–17.5s  close 280→56, courbe smooth
+       17.5–30s  fermée                                          */
   @keyframes chat-pill-peek {
-    0%, 13%   { width: 56px; }
-    17%       { width: 295px; }
-    20%       { width: 280px; }
-    47%       { width: 280px; }
-    50%       { width: 56px; }
-    100%      { width: 56px; }
+    0%, 25% {
+      width: 56px;
+      animation-timing-function: cubic-bezier(.34, 1.45, .64, 1);
+    }
+    26.67% {
+      width: 280px;
+      animation-timing-function: linear;
+    }
+    56.67% {
+      width: 280px;
+      animation-timing-function: cubic-bezier(.4, 0, .2, 1);
+    }
+    58.33% {
+      width: 56px;
+    }
+    100% { width: 56px; }
   }
   /* Override hover/focus : animation off pour que l ouverture
      manuelle prenne le pas (sinon le keyframe rebascule la width). */
