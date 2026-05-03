@@ -5591,22 +5591,23 @@ export default function MockupStyles() {
     white-space: nowrap;
     /* Refonte 2026-05-03 : on remet l animation peek. Après l avoir
        retirée le 2026-04-30, la pill est devenue trop discrète sur
-       fiche → personne ne pense à cliquer. Elle s ouvre 10s toutes
-       les 60s pour signaler sa présence, puis se referme. Délai
-       initial 6s pour laisser la fiche s afficher avant. Le hover
-       override (animation: none) garde le comportement instant. */
+       fiche → personne ne pense à cliquer. Cycle 30s, premier peek
+       vers ~8s pour que le user voie tout de suite que c est
+       interactif. Délai initial 3s pour laisser la fiche s afficher.
+       Le hover override (animation: none) garde l ouverture instant. */
     transition:
       width 0.5s cubic-bezier(.34, 1.45, .64, 1),
       border-color .2s, box-shadow .2s, background .2s;
-    animation: chat-pill-peek 60s ease-in-out 6s infinite;
+    animation: chat-pill-peek 30s ease-in-out 3s infinite;
   }
-  /* Cycle 60s : 50s fermée → overshoot 295 → settle 280 → hold ~10s
-     → re-ferme. Largeur identique au :hover (280) pour cohérence. */
+  /* Cycle 30s : peek tôt (4-15s) puis 15s fermée. Largeur identique
+     au :hover (280) pour cohérence visuelle. */
   @keyframes chat-pill-peek {
-    0%, 83%   { width: 56px; }
-    85%       { width: 295px; }
-    87%       { width: 280px; }
-    98%       { width: 280px; }
+    0%, 13%   { width: 56px; }
+    17%       { width: 295px; }
+    20%       { width: 280px; }
+    47%       { width: 280px; }
+    50%       { width: 56px; }
     100%      { width: 56px; }
   }
   /* Override hover/focus : animation off pour que l ouverture
