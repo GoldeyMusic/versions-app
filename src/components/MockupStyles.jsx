@@ -5601,28 +5601,28 @@ export default function MockupStyles() {
     /* timing-function: linear au global → on pilote chaque segment
        via animation-timing-function dans les keyframes pour matcher
        exactement la sensation du hover (snap rapide + petit bounce). */
-    animation: chat-pill-peek 30s linear 3s infinite;
+    animation: chat-pill-peek 30s linear 0s infinite;
   }
   /* Cycle 30s avec segments à durée fixe (≈ hover 0.5s) :
-       0–7.5s    fermée
-       7.5–8s    expand 56→280, courbe bouncy (même que :hover)
-       8–17s     hold 280
-       17–17.5s  close 280→56, courbe smooth
-       17.5–30s  fermée                                          */
+       0–3s      fermée (premier peek au bout de 3s)
+       3–3.5s    expand 56→280, courbe bouncy (même que :hover)
+       3.5–11.5s hold 280
+       11.5–12s  close 280→56, courbe smooth
+       12–30s    fermée                                           */
   @keyframes chat-pill-peek {
-    0%, 25% {
+    0%, 10% {
       width: 56px;
       animation-timing-function: cubic-bezier(.34, 1.45, .64, 1);
     }
-    26.67% {
+    11.67% {
       width: 280px;
       animation-timing-function: linear;
     }
-    56.67% {
+    38.33% {
       width: 280px;
       animation-timing-function: cubic-bezier(.4, 0, .2, 1);
     }
-    58.33% {
+    40% {
       width: 56px;
     }
     100% { width: 56px; }
