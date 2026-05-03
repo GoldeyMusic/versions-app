@@ -513,26 +513,41 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
     const tick = () => {
       if (phaseStartRef.current == null) return;
       const elapsed = (Date.now() - phaseStartRef.current) / 1000;
-      // Asymptote rationnelle t/(c + t). Démarrage QUASI INSTANTANÉ après
-      // chaque transition de phase, ralentissement TRÈS progressif en fin
-      // (toujours en mouvement, pas de plateau visible avant le cap 0.97).
-      // Le `c` règle la vitesse de démarrage : plus c est petit, plus on
-      // monte vite au début. Itérations 2026-05-03 :
-      //   - τ=12 / τ=20 (1ʳᵉ tentative) : David remontait que la phase 1
-      //     était "très lente" et que les derniers 20 % traînaient. La
-      //     forme exp(-t/τ) freinait trop tôt après une montée initiale
-      //     trop molle.
-      //   - c≈4-5 (forme rationnelle) : démarre 3-4× plus vite sur la
-      //     pente initiale, et continue à grappiller des points jusqu'au
-      //     cap au lieu de stagner — montée perçue régulière de bout en
-      //     bout, plus de "trou" en milieu/fin de phase.
-      const c =
-        phase === 0 ? 1.0 :   // upload : montée éclair (durée 2-8 s)
-        phase === 1 ? 4.0 :   // écoute Gemini (durée 25-50 s)
-        phase === 2 ? 5.0 :   // écriture Claude (durée 30-90 s)
-                      0.3;    // handoff final
-      const ramp = Math.min(0.97, elapsed / (c + elapsed));
-      setPhaseRamp(ramp);
+      // Itérations 2026-05-03 — historique des essais :
+      //  1) exp(-t/τ) : freinage très net en fin → "les 20 derniers % sont
+      //     très longs".
+      //  2) t/(c + t) (rationnelle) : démarrage trop rapide → "on arrive
+      //     super vite à 50 puis c'est très long".
+      //  3) RAMPE LINÉAIRE PURE (ce patch) : pente CONSTANTE pendant la
+      //     durée typique de la phase, donc plus aucune sensation de
+      //     démarrage rapide / freinage lent — l'anneau monte comme une
+      //     vraie barre de progression à vitesse fixe. Si la phase dépasse
+      //     sa durée typique, une queue asymptotique très douce prend le
+      //     relais pour ne jamais geler exactement (montée minime mais
+      //     toujours visible).
+      //
+      // `expected` = durée typique observée en prod (s). Au-delà, on
+      // bascule sur la queue.
+      const expected =
+        phase === 0 ? 5  :   // upload (2-10 s)
+        phase === 1 ? 32 :   // écoute Gemini (25-50 s)
+        phase === 2 ? 50 :   // écriture Claude (30-90 s)
+                      3;     // handoff final
+      const x = elapsed / expected;
+      let ramp;
+      if (x <= 1) {
+        // Linéaire de 0 à 0.80 sur la durée typique. 0.80 plutôt que 1
+        // pour réserver les 20 % restants à la "queue patience" — qui
+        // continue à monter même si le backend traîne.
+        ramp = x * 0.80;
+      } else {
+        // Queue : on continue de 0.80 vers le cap 0.97 via asymptote
+        // douce. Le paramètre 0.6 règle la vitesse de la queue (plus
+        // petit = remonte plus vite vers le cap).
+        const tail = x - 1;
+        ramp = 0.80 + 0.17 * (tail / (tail + 0.6));
+      }
+      setPhaseRamp(Math.min(0.97, ramp));
     };
     tick();
     const id = setInterval(tick, 120);

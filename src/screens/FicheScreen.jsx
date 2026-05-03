@@ -1009,18 +1009,26 @@ function AnalyzingState({ stage }) {
     const tick = () => {
       if (phaseStartRef.current == null) return;
       const elapsed = (Date.now() - phaseStartRef.current) / 1000;
-      // Asymptote rationnelle t/(c + t) — cf. LoadingScreen.jsx pour le
-      // détail. Sur FicheScreen on est presque toujours en phase 2
-      // (rédaction Claude) qui est précisément le segment "derniers 20 %
-      // trop longs" que David remontait — d'où le c=5 calé court pour
-      // démarrer rapidement et grappiller en continu jusqu'au cap.
-      const c =
-        phase === 0 ? 1.0 :
-        phase === 1 ? 4.0 :
-        phase === 2 ? 5.0 :
-                      0.3;
-      const ramp = Math.min(0.97, elapsed / (c + elapsed));
-      setPhaseRamp(ramp);
+      // Rampe linéaire pure + queue asymptotique douce — cf. commentaires
+      // détaillés dans LoadingScreen.jsx. Vitesse perçue constante pendant
+      // toute la durée typique de la phase, plus de sensation "rapide au
+      // début / lent en fin". Sur FicheScreen on est presque toujours en
+      // phase 2 (rédaction Claude), donc c'est ELLE qui doit avoir une
+      // pente régulière — d'où expected=50 calé sur la durée moyenne réelle.
+      const expected =
+        phase === 0 ? 5  :
+        phase === 1 ? 32 :
+        phase === 2 ? 50 :
+                      3;
+      const x = elapsed / expected;
+      let ramp;
+      if (x <= 1) {
+        ramp = x * 0.80;
+      } else {
+        const tail = x - 1;
+        ramp = 0.80 + 0.17 * (tail / (tail + 0.6));
+      }
+      setPhaseRamp(Math.min(0.97, ramp));
     };
     tick();
     const id = setInterval(tick, 120);
