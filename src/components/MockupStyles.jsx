@@ -596,6 +596,16 @@ export default function MockupStyles() {
     min-width: 220px;
     overflow: hidden;
   }
+  /* Variante portalisée (rendue dans <body>) : on force position: fixed
+     et un z-index très haut pour battre n'importe quel autre stacking
+     context (notamment le chip VersionDropdown sur fiche mobile, qui
+     passait devant le menu en absolute classique). top/right viennent
+     du style inline calculé via getBoundingClientRect du trigger. */
+  .hb-menu-pop-portal {
+    position: fixed;
+    top: auto; right: auto; /* écrasés par le style inline */
+    z-index: 10000;
+  }
   .hb-section {
     display: flex; flex-direction: column;
     gap: 2px;

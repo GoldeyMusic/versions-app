@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * HamburgerMenu — bouton hamburger compact (32x32) qui ouvre un menu
@@ -34,22 +35,54 @@ export default function HamburgerMenu({
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const triggerRef = useRef(null);
+  const popRef = useRef(null);
+  // Position calculée pour le popover en mode portal (top + right depuis
+  // le viewport, recomputée à chaque ouverture / resize). Sans ça, on
+  // reste sur le mode "absolute relatif au trigger" qui marche tant que
+  // le popover vit dans le même DOM tree.
+  const [popPos, setPopPos] = useState(null);
+
+  // Recompute la position du popover : sous le trigger, aligné à droite
+  // sur le bord droit du trigger. Top = bottom du trigger + 6px de gap.
+  // En portal dans <body>, on utilise getBoundingClientRect du trigger
+  // (coordonnées viewport, ce que veut position: fixed).
+  const recomputePosition = () => {
+    if (!triggerRef.current) return;
+    const r = triggerRef.current.getBoundingClientRect();
+    setPopPos({
+      top: Math.round(r.bottom + 6),
+      // right = distance entre le bord droit du viewport et le bord
+      // droit du trigger (pour aligner le popover à droite du trigger).
+      right: Math.round(window.innerWidth - r.right),
+    });
+  };
 
   useEffect(() => {
     if (!open) return;
+    recomputePosition();
     const onDown = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
-        setOpen(false);
-      }
+      // Le popover est en portal dans <body> donc !wrapRef.current.contains
+      // ne suffit plus. On vérifie aussi si le clic est dans le popover.
+      const inWrap = wrapRef.current && wrapRef.current.contains(e.target);
+      const inPop = popRef.current && popRef.current.contains(e.target);
+      if (!inWrap && !inPop) setOpen(false);
     };
     const onKey = (e) => {
       if (e.key === 'Escape') setOpen(false);
     };
+    const onResize = () => recomputePosition();
     document.addEventListener('mousedown', onDown);
+    document.addEventListener('touchstart', onDown);
     document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onResize, true);
     return () => {
       document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('touchstart', onDown);
       document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', onResize, true);
     };
   }, [open]);
 
@@ -82,6 +115,7 @@ export default function HamburgerMenu({
   return (
     <div className={`hb-menu ${className}`} ref={wrapRef}>
       <button
+        ref={triggerRef}
         type="button"
         className={`hb-trigger ${open ? 'is-open' : ''}`}
         onClick={() => setOpen((v) => !v)}
@@ -93,8 +127,19 @@ export default function HamburgerMenu({
           <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </button>
-      {open && (
-        <div className="hb-menu-pop" role="menu">
+      {/* Popover monté EN PORTAL dans <body> pour échapper au stacking
+          context du .db-topbar (z-index 2). Sur fiche mobile, sans ça
+          le chip "MIX SANS LIMITER" du VersionDropdown passait devant
+          le menu — parce qu'il vit dans un parent avec un stacking
+          context plus haut. En portal, le popover s'assoit dans le
+          stacking context racine, plus rien ne le domine. */}
+      {open && popPos && createPortal((
+        <div
+          ref={popRef}
+          className="hb-menu-pop hb-menu-pop-portal"
+          role="menu"
+          style={{ top: popPos.top, right: popPos.right }}
+        >
           <div className="hb-section">
             {items.map(renderItem)}
           </div>
@@ -133,7 +178,7 @@ export default function HamburgerMenu({
             </>
           )}
         </div>
-      )}
+      ), document.body)}
     </div>
   );
 }
