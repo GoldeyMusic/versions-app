@@ -26,8 +26,14 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   // la rampe, l'anneau s'y aligne — c'est le signal le plus précis qu'on
   // ait sur l'avancement réel de l'analyse.
   const [backendPct, setBackendPct] = useState(0);
-  // Ratchet pct : la valeur affichée ne doit JAMAIS reculer.
-  const pctRef = useRef(4);
+  // Smoothing pct (6ème itération) : l'anneau anime sa progression vers
+  // une cible mouvante, sans saut ni arrêt.
+  //   - displayedPct : valeur affichée, avance UNIQUEMENT (jamais de retour)
+  //   - targetRef    : cible courante (max rampe-secours et backend)
+  //   - lastTickRef  : timestamp dernier tick (pour calculer dt)
+  const [displayedPct, setDisplayedPct] = useState(4);
+  const targetRef = useRef(4);
+  const lastTickRef = useRef(Date.now());
   const jobIdRef = useRef(null);
   const sentFadr = useRef(false);
   // canceledRef : quand l'utilisateur clique "Annuler l'analyse", on lève ce
@@ -564,6 +570,38 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
     return () => clearInterval(id);
   }, []);
 
+  // Tween du pct affiché vers la cible (cf. commentaire au-dessus de
+  // displayedPct). Le tick anime displayedPct via une vitesse adaptative :
+  //   - mouvement min garanti 0.5 pt/s (jamais d'arrêt)
+  //   - rattrapage du gap avec target en ~2 s (jamais de saut brutal)
+  //   - plafond 25 pt/s (sécurité, bornes l'accélération en cas de gros saut)
+  // Sortie : displayedPct ne descend JAMAIS (ratchet implicite dans la logique).
+  useEffect(() => {
+    lastTickRef.current = Date.now();
+    const tick = () => {
+      const now = Date.now();
+      const dt = (now - lastTickRef.current) / 1000;
+      lastTickRef.current = now;
+      setDisplayedPct((s) => {
+        if (s >= 99) return 99;
+        const t = targetRef.current;
+        const gap = t - s;
+        // Vitesse de rattrapage proportionnelle au gap (rejoint en ~2 s)
+        const catchUp = Math.max(0, gap) / 2;
+        // Plancher : on avance toujours, même si gap nul ou négatif
+        const minSpeed = 0.5;
+        // Plafond : pas plus rapide que 25 pt/s, sinon trop "fuse"
+        const maxSpeed = 25;
+        const speed = Math.min(maxSpeed, Math.max(minSpeed, catchUp));
+        const next = s + speed * dt;
+        return Math.min(99, next);
+      });
+    };
+    tick();
+    const id = setInterval(tick, 100);
+    return () => clearInterval(id);
+  }, []);
+
   // Error state — habillage v2 (pill mono + carte soft red).
   // Ce return doit IMPÉRATIVEMENT venir après tous les hooks ci-dessus.
   if (error) {
@@ -595,35 +633,30 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   ];
   const microState = (i) => (i < phase ? 'is-done' : i === phase ? 'is-active' : '');
 
-  // STRATÉGIE pct (5ème itération) :
-  // David accepte les variations de vitesse, accélérations et arrêts —
-  // ce qui compte c'est qu'on arrive TOUJOURS à 99 % avant l'apparition
-  // de la fiche.
+  // STRATÉGIE pct (6ème itération) — smoothing à vitesse adaptative.
   //
-  // Le backend rapporte job.pct par paliers fixes (0, 10, 55, 65, 70,
-  // 80, 100), pas une progression continue. En particulier, il reste
-  // bloqué à 80 pendant toute la rédaction Claude. Donc on combine :
-  //   1) Rampe asymptotique douce 4 → 99 calibrée sur la durée audio.
-  //      Ne sature jamais à 99, donc l'anneau bouge toujours, même quand
-  //      le backend stagne à 80 pendant que Claude écrit.
-  //   2) Backend pct comme PLANCHER, capé à 99 (le passage backend
-  //      0 → 100 ne doit pas afficher 100 avant la fiche).
+  // Itérations précédentes : (1) rampe par phase → freinage perçu,
+  // (2-4) rampe linéaire calibrée → soit trop courte (saut à la fiche),
+  // soit trop longue (stagnation à 99), (5) rampe + backendPct comme
+  // plancher → sauts visibles aux paliers backend (22 → 65 brutalement).
   //
-  // En pratique : rampe pilote la majorité du temps, sauts visibles
-  // aux paliers backend (10 puis 55 puis 80) qui RACCROCHENT l'anneau
-  // au vrai progrès, puis l'anneau termine pile à 99 juste avant la
-  // fiche (parce que all_done backend = pct=100 = capé à 99 chez nous).
-  // τ exp calibré sur la durée audio (long morceau = analyse longue = τ
-  // grand, montée plus douce). Bornes 60-180 s.
-  const tau = audioDur
-    ? Math.max(60, Math.min(180, 0.4 * audioDur))
-    : 100;
-  const linearPct = 4 + 95 * (1 - Math.exp(-totalElapsed / tau));
-  const target = Math.max(linearPct, Math.min(99, backendPct));
-  // Ratchet (cf. pctRef au top) : ne jamais reculer.
-  const candidate = Math.round(Math.max(4, Math.min(99, target)));
-  if (candidate > pctRef.current) pctRef.current = candidate;
-  const pct = pctRef.current;
+  // Cette fois : l'anneau anime sa progression vers une CIBLE mouvante.
+  // La cible = max(rampe-secours-lente, backendPct capé 99). Quand la
+  // cible avance vite (backend rapporte un palier), l'anneau ACCÉLÈRE
+  // pour la rattraper en ~2 s — pas de saut, juste une montée plus
+  // rapide. Quand la cible stagne, l'anneau continue à 0.5 pt/s mini —
+  // pas d'arrêt. Le tween se fait dans un useEffect séparé (cf. plus bas).
+  //
+  // Rampe-secours : très large (240 s) pour rester en arrière du backend
+  // la plupart du temps. C'est juste un "fond" pour que l'anneau bouge
+  // entre les polls (1 toutes les 3 s).
+  const fallbackDuration = audioDur
+    ? Math.max(120, Math.min(360, 0.7 * audioDur))
+    : 200;
+  const linearFallback = 4 + (totalElapsed / fallbackDuration) * 95;
+  const target = Math.max(linearFallback, Math.min(99, backendPct));
+  targetRef.current = target;
+  const pct = Math.round(displayedPct);
   const radius = 100;
   const circumference = 2 * Math.PI * radius; // ≈ 628.32
   const dashOffset = circumference * (1 - pct / 100);
