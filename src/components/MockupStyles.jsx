@@ -5589,49 +5589,18 @@ export default function MockupStyles() {
     box-shadow: 0 12px 40px -12px rgba(0,0,0,0.55), 0 0 0 0 rgba(245, 166, 35, 0);
     overflow: hidden;
     white-space: nowrap;
-    /* Refonte 2026-05-03 : on remet l animation peek. Après l avoir
-       retirée le 2026-04-30, la pill est devenue trop discrète sur
-       fiche → personne ne pense à cliquer. Cycle 30s, premier peek
-       vers ~8s pour que le user voie tout de suite que c est
-       interactif. Délai initial 3s pour laisser la fiche s afficher.
-       Le hover override (animation: none) garde l ouverture instant. */
+    /* Refonte 2026-05-03 : peek auto piloté par JS (FicheScreen
+       ajoute/retire .is-peeking toutes les 30s, premier peek à 3s).
+       Avantage vs keyframe CSS : la transition width hover ET peek
+       partage la même courbe bouncy, donc même feeling. */
     transition:
       width 0.5s cubic-bezier(.34, 1.45, .64, 1),
       border-color .2s, box-shadow .2s, background .2s;
-    /* timing-function: linear au global → on pilote chaque segment
-       via animation-timing-function dans les keyframes pour matcher
-       exactement la sensation du hover (snap rapide + petit bounce). */
-    animation: chat-pill-peek 30s linear 0s infinite;
   }
-  /* Cycle 30s avec segments à durée fixe (≈ hover 0.5s) :
-       0–3s      fermée (premier peek au bout de 3s)
-       3–3.5s    expand 56→280, courbe bouncy (même que :hover)
-       3.5–11.5s hold 280
-       11.5–12s  close 280→56, courbe smooth
-       12–30s    fermée                                           */
-  @keyframes chat-pill-peek {
-    0%, 10% {
-      width: 56px;
-      animation-timing-function: cubic-bezier(.34, 1.45, .64, 1);
-    }
-    11.67% {
-      width: 280px;
-      animation-timing-function: linear;
-    }
-    38.33% {
-      width: 280px;
-      animation-timing-function: cubic-bezier(.4, 0, .2, 1);
-    }
-    40% {
-      width: 56px;
-    }
-    100% { width: 56px; }
-  }
-  /* Override hover/focus : animation off pour que l ouverture
-     manuelle prenne le pas (sinon le keyframe rebascule la width). */
-  .chat-pill:hover,
-  .chat-pill:focus-visible {
-    animation: none;
+  /* État "peek auto" — exactement comme :hover côté width, pour que
+     l ouverture programmée passe par la même transition bouncy. */
+  .chat-pill.is-peeking {
+    width: 280px;
   }
   .chat-pill:hover {
     width: 280px;
@@ -5678,7 +5647,6 @@ export default function MockupStyles() {
     opacity: 0;
     transform: translateY(8px);
     pointer-events: none;
-    animation: none;
   }
   /* Sous 1240px : pas d'espace libre à droite — on rebascule le
      wrapper en bottom-strip pleine largeur. La pill reste centrée
@@ -5693,9 +5661,9 @@ export default function MockupStyles() {
     }
     /* En bottom-strip la pill est déjà bien visible (centrée bas
        écran) → pas besoin du peek auto, qui en plus pourrait
-       déborder horizontalement sur mobile. */
-    .chat-pill {
-      animation: none;
+       déborder horizontalement sur mobile. JS check également. */
+    .chat-pill.is-peeking {
+      width: 56px;
     }
   }
   @media (max-width: 480px) {
@@ -5721,12 +5689,13 @@ export default function MockupStyles() {
     .chat-pill-icon { width: 28px; height: 28px; }
     .chat-pill-placeholder { font-size: 13px; }
   }
-  /* prefers-reduced-motion : on coupe le peek auto et le bounce du
-     transform au hover. La pill reste accessible (clic / focus
+  /* prefers-reduced-motion : on coupe la transition width et le
+     bounce du transform au hover. JS check aussi : pas de peek auto
+     si reduce-motion. La pill reste accessible (clic / focus
      déploient toujours) mais ne s anime plus toute seule. */
   @media (prefers-reduced-motion: reduce) {
     .chat-pill {
-      animation: none;
+      transition: border-color .2s, box-shadow .2s, background .2s;
     }
     .chat-pill:hover {
       transform: none;

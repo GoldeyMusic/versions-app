@@ -4026,6 +4026,47 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   // contenu et n'était pas cohérent avec la nav globale).
   const chatAsDrawer = true;
   const planRefs = useRef({});
+  const chatPillRef = useRef(null);
+
+  // Peek auto de la chat-pill (refonte 2026-05-03) :
+  // pour utiliser EXACTEMENT la même transition bouncy que :hover, on
+  // pilote l ouverture via un toggle de classe JS plutôt qu un keyframe
+  // CSS (qui interfère avec la transition). 1er peek 3s après mount,
+  // hold 8s, puis cycle 30s. Désactivé si chat ouvert, viewport < 1241,
+  // ou prefers-reduced-motion.
+  useEffect(() => {
+    if (!chatAsDrawer || chatOpen) return undefined;
+    if (typeof window === 'undefined') return undefined;
+    const desktopMq = window.matchMedia('(min-width: 1241px)');
+    const reduceMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (!desktopMq.matches || reduceMq.matches) return undefined;
+
+    let openT = null;
+    let closeT = null;
+    let intervalId = null;
+
+    const peek = () => {
+      const el = chatPillRef.current;
+      if (!el) return;
+      el.classList.add('is-peeking');
+      closeT = setTimeout(() => {
+        el.classList.remove('is-peeking');
+      }, 8000);
+    };
+
+    openT = setTimeout(() => {
+      peek();
+      intervalId = setInterval(peek, 30000);
+    }, 3000);
+
+    return () => {
+      if (openT) clearTimeout(openT);
+      if (closeT) clearTimeout(closeT);
+      if (intervalId) clearInterval(intervalId);
+      const el = chatPillRef.current;
+      if (el) el.classList.remove('is-peeking');
+    };
+  }, [chatAsDrawer, chatOpen]);
 
   // Scroll doux vers l'item Plan d'action ouvert
   useEffect(() => {
@@ -5608,6 +5649,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
         <>
           <div className="chat-pill-wrap" aria-hidden="true">
             <button
+              ref={chatPillRef}
               type="button"
               className="chat-pill"
               onClick={() => setChatOpen(true)}
