@@ -21,10 +21,12 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   // longueur du morceau (un morceau court = analyse courte = rampe
   // courte ; long = long).
   const [audioDur, setAudioDur] = useState(null);
-  // Ratchet pct : la valeur affichée ne doit JAMAIS reculer. Quand
-  // audioDur arrive ~2 s après le mount, expectedDuration peut changer
-  // — sans ce ratchet, l'anneau pourrait visiblement reculer d'un point
-  // ou deux. Le ref garde le max atteint et le rendu utilise cette valeur.
+  // Vrai progrès rapporté par le backend (poll toutes les 3 s). Sert de
+  // cible alternative à la rampe linéaire locale : si le backend a dépassé
+  // la rampe, l'anneau s'y aligne — c'est le signal le plus précis qu'on
+  // ait sur l'avancement réel de l'analyse.
+  const [backendPct, setBackendPct] = useState(0);
+  // Ratchet pct : la valeur affichée ne doit JAMAIS reculer.
   const pctRef = useRef(4);
   const jobIdRef = useRef(null);
   const sentFadr = useRef(false);
@@ -95,6 +97,12 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
             const pollRes = await fetch(`${API}/api/analyze/status/${jobId}`);
             const job = await pollRes.json();
             console.log("🔄 Poll (resume)", attempts, "— status:", job.status, "stage:", job.stage, "pct:", job.pct, "hasFiche:", !!job.fiche, "keys:", Object.keys(job).join(","));
+            // Propage le vrai pct backend à l'anneau (cf. backendPct au top
+            // du composant). Le backend connaît la progression réelle, on
+            // s'aligne dessus.
+            if (typeof job.pct === 'number') {
+              setBackendPct((p) => Math.max(p, job.pct));
+            }
             if (canceledRef.current) return;
             if (job.status === "error") {
               throw new Error(job.error || s.loading.errorFailed);
@@ -400,6 +408,10 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           const pollRes = await fetch(`${API}/api/analyze/status/${jobId}`);
           const job = await pollRes.json();
           console.log("🔄 Poll", attempts, "— status:", job.status, "stage:", job.stage, "pct:", job.pct);
+          // Propage le vrai pct backend à l'anneau (cf. backendPct au top).
+          if (typeof job.pct === 'number') {
+            setBackendPct((p) => Math.max(p, job.pct));
+          }
 
           if (canceledRef.current) return;
 
@@ -583,21 +595,33 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   ];
   const microState = (i) => (i < phase ? 'is-done' : i === phase ? 'is-active' : '');
 
-  // RAMPE LINÉAIRE UNIQUE 4 → 99 calibrée DYNAMIQUEMENT sur la durée
-  // du morceau audio. Heuristique observée : durée d'analyse ≈ 0.65 ×
-  // durée audio. Bornes 90-300 s pour gérer les extrêmes (très court /
-  // très long). Tant qu'on n'a pas la durée audio (premières secondes
-  // du run + mode resume), fallback prudent à 150 s.
-  // Aucun cap intermédiaire — la phase backend n'influence plus le pct.
-  const expectedDuration = audioDur
-    ? Math.max(90, Math.min(300, 0.65 * audioDur))
-    : 150;
-  const linearPct = 4 + (totalElapsed / expectedDuration) * 95;
-  // Ratchet : pct ne doit JAMAIS reculer (cf. déclaration de pctRef
-  // au top du composant). Quand audioDur arrive ~2 s après le mount,
-  // expectedDuration peut sauter — on garde la valeur la plus haute
-  // déjà atteinte pour éviter une régression visible de l'anneau.
-  const candidate = Math.round(Math.max(4, Math.min(99, linearPct)));
+  // STRATÉGIE pct (5ème itération) :
+  // David accepte les variations de vitesse, accélérations et arrêts —
+  // ce qui compte c'est qu'on arrive TOUJOURS à 99 % avant l'apparition
+  // de la fiche.
+  //
+  // Le backend rapporte job.pct par paliers fixes (0, 10, 55, 65, 70,
+  // 80, 100), pas une progression continue. En particulier, il reste
+  // bloqué à 80 pendant toute la rédaction Claude. Donc on combine :
+  //   1) Rampe asymptotique douce 4 → 99 calibrée sur la durée audio.
+  //      Ne sature jamais à 99, donc l'anneau bouge toujours, même quand
+  //      le backend stagne à 80 pendant que Claude écrit.
+  //   2) Backend pct comme PLANCHER, capé à 99 (le passage backend
+  //      0 → 100 ne doit pas afficher 100 avant la fiche).
+  //
+  // En pratique : rampe pilote la majorité du temps, sauts visibles
+  // aux paliers backend (10 puis 55 puis 80) qui RACCROCHENT l'anneau
+  // au vrai progrès, puis l'anneau termine pile à 99 juste avant la
+  // fiche (parce que all_done backend = pct=100 = capé à 99 chez nous).
+  // τ exp calibré sur la durée audio (long morceau = analyse longue = τ
+  // grand, montée plus douce). Bornes 60-180 s.
+  const tau = audioDur
+    ? Math.max(60, Math.min(180, 0.4 * audioDur))
+    : 100;
+  const linearPct = 4 + 95 * (1 - Math.exp(-totalElapsed / tau));
+  const target = Math.max(linearPct, Math.min(99, backendPct));
+  // Ratchet (cf. pctRef au top) : ne jamais reculer.
+  const candidate = Math.round(Math.max(4, Math.min(99, target)));
   if (candidate > pctRef.current) pctRef.current = candidate;
   const pct = pctRef.current;
   const radius = 100;
