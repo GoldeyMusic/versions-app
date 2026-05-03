@@ -1017,21 +1017,24 @@ function AnalyzingState({ stage }) {
     const id = setInterval(tick, 120);
     return () => clearInterval(id);
   }, []);
-  // Phase 2 cap = 95 (au lieu de 90) — laisse la queue patience monter
-  // pendant les longues attentes Claude (cf. LoadingScreen.jsx pour le
-  // détail). Avant ce fix, l'anneau gelait à 90 sur cet écran pendant
-  // plusieurs minutes puis sautait direct sur la fiche complète.
-  const PHASE_CAPS = [30, 60, 95, 96];
+  // Cap phase 2 = 99 (cf. LoadingScreen.jsx pour le détail). La cible
+  // est de monter visiblement jusqu'à 99 % avant l'apparition de la
+  // fiche complète, plus jamais de gel.
+  const PHASE_CAPS = [30, 60, 99, 99];
   const phaseCap = PHASE_CAPS[Math.max(0, Math.min(phase, 3))];
+
+  // Rampe en TROIS segments calibrée pour aller jusqu'à 99 % :
+  //   1) 62 → 88 sur 45 s linéaire pure (~0.58 pt/s) — la pente régulière.
+  //   2) 88 → 95 sur 20 s linéaire ralentie (~0.35 pt/s).
+  //   3) 95 → 99 queue asymptotique douce, jamais saturée.
   let linearPct;
   if (elapsed <= 45) {
-    // Linéaire 62 → 88 sur 45 s (~0.58 pt/s constants)
     linearPct = 62 + (elapsed / 45) * 26;
+  } else if (elapsed <= 65) {
+    linearPct = 88 + ((elapsed - 45) / 20) * 7;
   } else {
-    // Queue patience accélérée : 88 → 96 visiblement (atteint ~92 à 30 s
-    // post, ~93.3 à 60 s post, ~94.4 à 2 min post). Plus de gel à 90.
-    const tail = elapsed - 45;
-    linearPct = 88 + 8 * (tail / (tail + 30));
+    const tail = elapsed - 65;
+    linearPct = 95 + 4 * (tail / (tail + 60));
   }
   const pct = Math.round(Math.max(62, Math.min(phaseCap, linearPct)));
   const radius = 100;

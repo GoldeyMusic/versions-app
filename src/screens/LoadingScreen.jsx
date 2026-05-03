@@ -571,26 +571,28 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   // la bascule, on ne dépasse pas le palier de la phase courante. Sert à
   // matérialiser visuellement les "checkpoints" (upload terminé, écoute
   // terminée, etc.) sans casser la régularité de la rampe linéaire globale.
-  // Phase 2 cap = 95 (et plus 90) : laisse la queue patience monter pendant
-  // les analyses qui traînent (Claude peut prendre plusieurs minutes en
-  // période chargée). Avant ce cap, l'anneau gelait à 90 dès t=80 s puis
-  // sautait direct sur la fiche — désormais il continue à grappiller
-  // visiblement vers 95.
-  const PHASE_CAPS = [30, 60, 95, 96];
+  // Cap phase 2 = 99 (au lieu de 95) : la cible est désormais d'aller
+  // visiblement jusqu'à 99 % avant l'apparition de la fiche, pour ne plus
+  // jamais avoir de gel perçu en fin d'analyse.
+  const PHASE_CAPS = [30, 60, 99, 99];
   const phaseCap = PHASE_CAPS[Math.max(0, Math.min(phase, 3))];
 
-  // Rampe linéaire globale 4 → 90 sur 80 s, puis queue patience douce
-  // 90 → 96 si l'analyse traîne au-delà. ~1.07 pt/s pendant la majorité
-  // de l'analyse, perçue parfaitement constante. La queue accélérée
-  // (paramètre 25) couvre 90 → 94 sur la première minute après t=80 s,
-  // 90 → 95 sur 2 min — montée toujours visible même quand Claude
-  // prend du retard, plus de gel à 90.
+  // Rampe progressive en TROIS segments, calibrée pour aller jusqu'à 99 % :
+  //   1) 4 → 90 sur 80 s linéaire pure (~1.07 pt/s) — la pente que David
+  //      validait comme "régulière du début à la fin".
+  //   2) 90 → 95 sur 25 s linéaire ralentie (~0.20 pt/s) — micro-décélération
+  //      pour signaler "on est presque là", sans gel.
+  //   3) 95 → 99 queue asymptotique — atteint 97 à +60 s, 97.7 à +2 min,
+  //      98.3 à +5 min. Continue à monter sans jamais saturer, donc plus
+  //      jamais de gel visible avant la fiche.
   let linearPct;
   if (totalElapsed <= 80) {
     linearPct = 4 + (totalElapsed / 80) * 86;
+  } else if (totalElapsed <= 105) {
+    linearPct = 90 + ((totalElapsed - 80) / 25) * 5;
   } else {
-    const tail = totalElapsed - 80;
-    linearPct = 90 + 6 * (tail / (tail + 25));
+    const tail = totalElapsed - 105;
+    linearPct = 95 + 4 * (tail / (tail + 60));
   }
   const pct = Math.round(Math.max(4, Math.min(phaseCap, linearPct)));
   const radius = 100;
