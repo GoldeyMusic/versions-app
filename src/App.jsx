@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import STRINGS, { pick } from "./constants/strings";
 import T from "./constants/theme";
 import API from "./constants/api";
@@ -712,7 +713,7 @@ function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricin
   const isAdmin = adminEmail && user?.email?.toLowerCase() === adminEmail;
   const utilityItems = [
     ...(isAdmin && onGoAdmin ? [{ key: 'admin', label: 'Admin', icon: NavIcons.admin, onSelect: onGoAdmin }] : []),
-    ...(onGoFeedback ? [{ key: 'feedback', label: s.feedback?.triggerLabel || 'Ton avis ?', icon: NavIcons.chat || NavIcons.settings, onSelect: onGoFeedback }] : []),
+    ...(onGoFeedback ? [{ key: 'feedback', label: s.feedback?.triggerLabel || 'Ton avis compte', icon: NavIcons.feedback, onSelect: onGoFeedback }] : []),
     ...(onGoReglages ? [{ key: 'reglages', label: s.sidebar?.reglages || 'Réglages', icon: NavIcons.settings, onSelect: onGoReglages }] : []),
     ...(onSignOut ? [{ key: 'signout', label: s.sidebar?.signOut || 'Se déconnecter', icon: NavIcons.signOut, onSelect: onSignOut, danger: true }] : []),
   ];
@@ -2406,8 +2407,14 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd, onGoFeedb
             </svg>
           </button>
 
-          {open && (
+          {open && createPortal((
             <>
+              {/* Backdrop + popover montés VIA PORTAL dans document.body
+                  pour échapper au stacking context du .mobile-topbar
+                  (qui a backdrop-filter → containing block des fixed
+                  descendants → iOS Safari empile mal les chips de version
+                  par-dessus). En portail dans le body, le popover vit
+                  dans le stacking context racine, son z-index est absolu. */}
               <div className="mobile-avatar-backdrop" onClick={() => setOpen(false)} />
               <div className="mobile-avatar-popover">
                 <div className="mobile-avatar-popover-user">
@@ -2483,7 +2490,7 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd, onGoFeedb
                 </button>
               </div>
             </>
-          )}
+          ), document.body)}
         </div>
       </div>
     </>
