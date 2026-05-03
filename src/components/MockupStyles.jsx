@@ -5589,13 +5589,31 @@ export default function MockupStyles() {
     box-shadow: 0 12px 40px -12px rgba(0,0,0,0.55), 0 0 0 0 rgba(245, 166, 35, 0);
     overflow: hidden;
     white-space: nowrap;
-    /* Refonte 2026-04-30 : retiré l animation peek (qui ouvrait
-       automatiquement la pill toutes les 60s pendant 10s) — David
-       préfère que la pill reste fermée tant qu on ne la survole pas
-       / clique pas. La pill ne s anime plus que sur hover/focus. */
+    /* Refonte 2026-05-03 : on remet l animation peek. Après l avoir
+       retirée le 2026-04-30, la pill est devenue trop discrète sur
+       fiche → personne ne pense à cliquer. Elle s ouvre 10s toutes
+       les 60s pour signaler sa présence, puis se referme. Délai
+       initial 6s pour laisser la fiche s afficher avant. Le hover
+       override (animation: none) garde le comportement instant. */
     transition:
       width 0.5s cubic-bezier(.34, 1.45, .64, 1),
       border-color .2s, box-shadow .2s, background .2s;
+    animation: chat-pill-peek 60s ease-in-out 6s infinite;
+  }
+  /* Cycle 60s : 50s fermée → overshoot 295 → settle 280 → hold ~10s
+     → re-ferme. Largeur identique au :hover (280) pour cohérence. */
+  @keyframes chat-pill-peek {
+    0%, 83%   { width: 56px; }
+    85%       { width: 295px; }
+    87%       { width: 280px; }
+    98%       { width: 280px; }
+    100%      { width: 56px; }
+  }
+  /* Override hover/focus : animation off pour que l ouverture
+     manuelle prenne le pas (sinon le keyframe rebascule la width). */
+  .chat-pill:hover,
+  .chat-pill:focus-visible {
+    animation: none;
   }
   .chat-pill:hover {
     width: 280px;
@@ -5655,6 +5673,12 @@ export default function MockupStyles() {
       width: 100vw;
       height: auto;
     }
+    /* En bottom-strip la pill est déjà bien visible (centrée bas
+       écran) → pas besoin du peek auto, qui en plus pourrait
+       déborder horizontalement sur mobile. */
+    .chat-pill {
+      animation: none;
+    }
   }
   @media (max-width: 480px) {
     /* Fix mobile 2026-04-30 : la chat-pill remonte juste au-dessus du
@@ -5679,10 +5703,13 @@ export default function MockupStyles() {
     .chat-pill-icon { width: 28px; height: 28px; }
     .chat-pill-placeholder { font-size: 13px; }
   }
-  /* prefers-reduced-motion : keyframe peek désormais retiré, plus
-     besoin de l override pour neutraliser l animation. La règle
-     reste pour neutraliser le bounce du transform au hover. */
+  /* prefers-reduced-motion : on coupe le peek auto et le bounce du
+     transform au hover. La pill reste accessible (clic / focus
+     déploient toujours) mais ne s anime plus toute seule. */
   @media (prefers-reduced-motion: reduce) {
+    .chat-pill {
+      animation: none;
+    }
     .chat-pill:hover {
       transform: none;
     }
