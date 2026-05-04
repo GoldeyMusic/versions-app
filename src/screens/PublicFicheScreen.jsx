@@ -110,7 +110,7 @@ export default function PublicFicheScreen({ token }) {
             <div className="pfx-kicker">VERSIONS</div>
             <h1>{s.publicFiche.notFoundTitle}</h1>
             <p>{s.publicFiche.notFoundBody}</p>
-            <a href="#/" className="pfx-home">{s.publicFiche.notFoundHome}</a>
+            <a href="/" className="pfx-home">{s.publicFiche.notFoundHome}</a>
           </div>
         </div>
       </>
@@ -147,7 +147,7 @@ export default function PublicFicheScreen({ token }) {
             <span className="pft-subbrand">{s.publicFiche.headerShared}</span>
           </div>
           <div className="pft-right">
-            <a href="#/" className="pft-cta">{s.publicFiche.topbarCta}</a>
+            <a href="/" className="pft-cta">{s.publicFiche.topbarCta}</a>
           </div>
         </header>
 

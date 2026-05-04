@@ -36,7 +36,10 @@ export function AuthProvider({ children }) {
   const signInWithOAuth = async (provider) => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: window.location.origin },
+      // En PKCE, Supabase pose le `?code=...` sur cette URL puis on l'échange
+      // contre une session via `exchangeCodeForSession`. La page /auth/callback
+      // gère cet échange et renvoie l'utilisateur vers le dashboard (cf. App.jsx).
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
     return { data, error };
   };

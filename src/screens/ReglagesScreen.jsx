@@ -208,13 +208,13 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
       // ramène à la landing publique. Le signOut déclenche déjà la
       // bascule via le hook useAuth, mais on appelle explicitement
       // l'override App-level (handleSignOut) qui force aussi le
-      // hash routing vers `#/`.
+      // routing vers `/`.
       try { await supabase.auth.signOut(); } catch { /* ignore */ }
       if (onSignOut) {
         try { await onSignOut(); } catch { /* ignore */ }
       }
       if (typeof window !== 'undefined') {
-        try { window.location.hash = '#/'; } catch { /* ignore */ }
+        try { window.history.replaceState(null, '', '/'); } catch { /* ignore */ }
       }
       if (onClose) onClose();
     } catch (e) {
@@ -355,9 +355,11 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
               ? new Date(renewMs).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })
               : null;
             const goToPricing = () => {
-              // Hash routing — navigation directe + fermeture de la modale.
+              // Navigation via History API + dispatch d'un popstate pour que
+              // le routeur d'App.jsx se réaligne sur la nouvelle URL.
               if (typeof window !== 'undefined') {
-                window.location.hash = '#/pricing';
+                window.history.pushState({ screen: 'pricing' }, '', '/pricing');
+                window.dispatchEvent(new PopStateEvent('popstate'));
               }
               if (onClose) onClose();
               else if (onGoHome) onGoHome();

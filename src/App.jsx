@@ -2499,43 +2499,65 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd, onGoFeedb
   );
 }
 
-/* ── Hash routing (permet "Précédent/Suivant" navigateur) ──
-   On utilise des hashs (#/…) : un reload retombe toujours sur index.html
-   et Vercel n'a pas besoin de règle de rewrite côté serveur. */
-// `home` = landing publique, ancrée à la racine `#/`. Accessible aux
+/* ── Routing (permet "Précédent/Suivant" navigateur) ──
+   URLs propres via History API. Vercel renvoie tout sur index.html via
+   le rewrite défini dans vercel.json (sinon refresh = 404). Avant la
+   refonte, on utilisait un hash router (`#/...`) ; les anciens liens
+   sont migrés à la volée par `migrateHashToPath()` (cf. plus bas). */
+// `home` = landing publique, ancrée à la racine `/`. Accessible aux
 // visiteurs comme aux connectés (logo, lien "À propos").
-// `welcome` = dashboard (WelcomeHome — projets/titres), sur `#/dashboard`.
-// Cold start sans fragment (`location.hash === ''`) → redirection vers
-// le dashboard pour les connectés ; visiter explicitement `#/` affiche
-// la landing même connecté (cf. routeInit + lazy init de `screen`).
-// `#/home` est gardé en alias rétro-compat de `#/`.
-const SCREEN_HASH = {
-  welcome: '#/dashboard',
-  home: '#/',
-  sample: '#/exemple',
-  pricing: '#/pricing',
-  admin: '#/admin',
-  loading: '#/analyse',
-  fiche: '#/fiche',
-  versions: '#/versions',
-  privacy: '#/privacy',
-  terms: '#/terms',
+// `welcome` = dashboard (WelcomeHome — projets/titres), sur `/dashboard`.
+// Cold start sans pathname (`/`) côté connecté → reste sur la landing,
+// le routeInit ci-dessous le routera ensuite si besoin.
+// `/home` est gardé en alias rétro-compat de `/`.
+const SCREEN_PATH = {
+  welcome: '/dashboard',
+  home: '/',
+  sample: '/exemple',
+  pricing: '/pricing',
+  admin: '/admin',
+  loading: '/analyse',
+  fiche: '/fiche',
+  versions: '/versions',
+  privacy: '/privacy',
+  terms: '/terms',
 };
-const HASH_SCREEN = {
-  '#/': 'home',
-  '#/home': 'home',
-  '#/exemple': 'sample',
-  '#/sample-report': 'sample',
-  '#/pricing': 'pricing',
-  '#/tarifs': 'pricing',
-  '#/admin': 'admin',
-  '#/dashboard': 'welcome',
-  '#/analyse': 'loading',
-  '#/fiche': 'fiche',
-  '#/versions': 'versions',
-  '#/privacy': 'privacy',
-  '#/terms': 'terms',
+const PATH_SCREEN = {
+  '/': 'home',
+  '/home': 'home',
+  '/exemple': 'sample',
+  '/sample-report': 'sample',
+  '/pricing': 'pricing',
+  '/tarifs': 'pricing',
+  '/admin': 'admin',
+  '/dashboard': 'welcome',
+  '/analyse': 'loading',
+  '/fiche': 'fiche',
+  '/versions': 'versions',
+  '/privacy': 'privacy',
+  '/terms': 'terms',
 };
+
+// Migration silencieuse des anciennes URLs en `#/...` vers le nouveau
+// schéma sans hash. Appelée le plus tôt possible (avant tout useState
+// qui lit `location.pathname`), pour qu'un visiteur arrivant sur un
+// vieux lien (`/#/fiche/...`) atterrisse sur la bonne page sans flash.
+function migrateHashToPath() {
+  if (typeof window === 'undefined') return;
+  const hash = window.location.hash || '';
+  if (!hash.startsWith('#/')) return;
+  // Filet de sécurité historique : si jamais Supabase repassait en flow
+  // implicit (tokens dans le fragment), on n'écraserait pas le hash
+  // avant qu'il ait été parsé. En PKCE c'est inutile mais ça ne coûte rien.
+  if (hash.includes('access_token=') || hash.includes('refresh_token=')) return;
+  const newPath = hash.slice(1) || '/';
+  try {
+    window.history.replaceState(null, '', newPath + window.location.search);
+  } catch { /* ignore */ }
+}
+// Migration synchrone au chargement du module — garantit que le 1ᵉʳ
+// useState lazy de App lira un pathname propre.
+migrateHashToPath();
 
 // Slugifie un nom (titre, version) pour produire un segment d'URL lisible.
 // Décompose les accents, met en minuscules, remplace les non-alphanumériques
@@ -2551,48 +2573,48 @@ function slugify(name) {
     .slice(0, 80);
 }
 
-// Parse une URL hash en { screen, trackId, versionId }.
-// Reconnaît `#/fiche/{seg}` et `#/fiche/{seg}/{versionSeg}` en plus des
-// routes statiques de HASH_SCREEN. Les segments peuvent être soit un slug
+// Parse un pathname en { screen, trackId, versionId }.
+// Reconnaît `/fiche/{seg}` et `/fiche/{seg}/{versionSeg}` en plus des
+// routes statiques de PATH_SCREEN. Les segments peuvent être soit un slug
 // (nouveau format : `comme-un-reve/v2`), soit un UUID (ancien format,
 // rétrocompat). Le résolveur tranche au moment du matching.
-function parseHash(hash) {
-  const h = hash || '';
-  const m = h.match(/^#\/fiche\/([^/?#]+)(?:\/([^/?#]+))?$/);
+function parsePath(pathname) {
+  const p = pathname || '/';
+  const m = p.match(/^\/fiche\/([^/?#]+)(?:\/([^/?#]+))?$/);
   if (m) {
     return { screen: 'fiche', trackId: m[1], versionId: m[2] || null };
   }
-  return { screen: HASH_SCREEN[h] || null, trackId: null, versionId: null };
+  return { screen: PATH_SCREEN[p] || null, trackId: null, versionId: null };
 }
 
-// Construit l'URL hash pour un screen donné. La fiche utilise le slug du
+// Construit le pathname pour un screen donné. La fiche utilise le slug du
 // titre (et de la version si dispo) pour produire des URLs lisibles —
-// ex: `#/fiche/comme-un-reve/v2`. Fallback UUIDs si le titre manque.
-function buildHash(screen, cfg) {
+// ex: `/fiche/comme-un-reve/v2`. Fallback UUIDs si le titre manque.
+function buildPath(screen, cfg) {
   if (screen === 'fiche') {
     const titleSlug = slugify(cfg?.title || '');
     const versionSlug = slugify(cfg?.version || '');
     if (titleSlug) {
-      return versionSlug ? `#/fiche/${titleSlug}/${versionSlug}` : `#/fiche/${titleSlug}`;
+      return versionSlug ? `/fiche/${titleSlug}/${versionSlug}` : `/fiche/${titleSlug}`;
     }
     if (cfg?.trackId) {
       return cfg.versionId
-        ? `#/fiche/${cfg.trackId}/${cfg.versionId}`
-        : `#/fiche/${cfg.trackId}`;
+        ? `/fiche/${cfg.trackId}/${cfg.versionId}`
+        : `/fiche/${cfg.trackId}`;
     }
   }
-  return SCREEN_HASH[screen] || '#/';
+  return SCREEN_PATH[screen] || '/';
 }
 
 /* ═══════════════════════════════════════════════════════════ */
 /* APP                                                        */
 /* ═══════════════════════════════════════════════════════════ */
-// Extrait un éventuel token de partage (#/p/<token>) de l'URL courante.
+// Extrait un éventuel token de partage (`/p/<token>`) de l'URL courante.
 // Retourne null si on n'est pas sur une route publique.
 function extractPublicToken() {
   if (typeof window === 'undefined') return null;
-  const h = window.location.hash || '';
-  const m = h.match(/^#\/p\/([A-Za-z0-9_-]+)$/);
+  const p = window.location.pathname || '/';
+  const m = p.match(/^\/p\/([A-Za-z0-9_-]+)$/);
   return m ? m[1] : null;
 }
 
@@ -2602,10 +2624,8 @@ export default function VersionsApp() {
   const [publicToken, setPublicToken] = useState(() => extractPublicToken());
   useEffect(() => {
     const onPop = () => setPublicToken(extractPublicToken());
-    window.addEventListener('hashchange', onPop);
     window.addEventListener('popstate', onPop);
     return () => {
-      window.removeEventListener('hashchange', onPop);
       window.removeEventListener('popstate', onPop);
     };
   }, []);
@@ -2629,26 +2649,28 @@ function VersionsAppAuthed() {
   const handleSignOut = useCallback(async () => {
     try { await signOut?.(); } catch { /* ignore */ }
     if (typeof window !== 'undefined') {
-      try { window.history.replaceState({ screen: 'home' }, '', '#/'); } catch { /* ignore */ }
+      try { window.history.replaceState({ screen: 'home' }, '', '/'); } catch { /* ignore */ }
     }
-    // setScreen via la route hash : l'effet "user null → réaligne le screen"
+    // setScreen via la route : l'effet "user null → réaligne le screen"
     // s'occupera de tomber sur 'welcome' (auth-gated → landing publique).
     // On ne fait pas setScreen('home') directement parce que 'home' est
     // déjà le rendu autorisé pour un visiteur (cf. block plus bas).
   }, [signOut]);
   // Initial screen aligné sur l'URL pour éviter un flash dashboard→landing
-  // au cold start quand le hash demande explicitement `#/` ou `#/home`.
+  // au cold start quand le pathname demande explicitement `/` ou `/home`.
   // Les écrans qui dépendent d'un state volatil (fiche, loading) retombent
   // sur welcome dans routeInit ci-dessous.
   const [screen, setScreen] = useState(() => {
     if (typeof window === 'undefined') return 'welcome';
-    const h = window.location.hash;
-    if (h === '#/' || h === '#/home') return 'home';
-    if (h === '#/exemple' || h === '#/sample-report') return 'sample';
-    if (h === '#/pricing' || h === '#/tarifs') return 'pricing';
-    if (h === '#/admin') return 'admin';
-    if (h === '#/privacy') return 'privacy';
-    if (h === '#/terms') return 'terms';
+    const p = window.location.pathname;
+    if (p === '/' || p === '/home') return 'home';
+    if (p === '/exemple' || p === '/sample-report') return 'sample';
+    if (p === '/pricing' || p === '/tarifs') return 'pricing';
+    if (p === '/admin') return 'admin';
+    if (p === '/privacy') return 'privacy';
+    if (p === '/terms') return 'terms';
+    // /auth/callback → on reste sur welcome, l'auth gate affiche son spinner
+    // pendant que Supabase échange le code, puis on redirige vers /dashboard.
     return 'welcome';
   });
   // Visiteurs non connectés : landing page par défaut, AuthScreen sur clic CTA.
@@ -2888,40 +2910,40 @@ function VersionsAppAuthed() {
   // ── Logout : reset de la route + forçage retour Home ──────
   // Après un signOut, on veut que le prochain login arrive toujours sur la
   // Home, même si la dernière page visitée avant déconnexion était une fiche
-  // (#/fiche). Sans ça, routeInitRef reste à true et le hash reste sur
-  // #/fiche → au relogin, on voit soit la fiche figée, soit welcome avec un
-  // hash incohérent. On neutralise tout ici pour repartir propre.
+  // (`/fiche/...`). Sans ça, routeInitRef reste à true et le pathname reste
+  // sur la fiche → au relogin, on voit soit la fiche figée, soit welcome avec
+  // une URL incohérente. On neutralise tout ici pour repartir propre.
   //
   // IMPORTANT : on ne touche à rien pendant `authLoading`. Au cold start, `user`
   // est null le temps que Supabase résolve la session — sans ce guard, on
-  // efface le hash (`#/dashboard`, `#/fiche/...`) avant même que l'auth ne
+  // efface le pathname (`/dashboard`, `/fiche/...`) avant même que l'auth ne
   // confirme que l'utilisateur est connecté, et il atterrit sur la landing au
   // lieu de la page qu'il rafraîchissait.
   useEffect(() => {
     if (authLoading) return;
     if (user) return;
     routeInitRef.current = false;
-    if (typeof window !== 'undefined' && window.location.hash) {
-      // Ne pas effacer un hash de retour OAuth (Supabase doit pouvoir parser
-      // les tokens posés par Google/autres providers dans #access_token=...).
-      const h = window.location.hash;
-      const isOAuthReturn = h.includes('access_token=') || h.includes('refresh_token=') || h.includes('error=') || h.includes('error_code=');
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      const p = window.location.pathname;
       // Routes publiques accessibles aux visiteurs : on les laisse intactes
       // pour ne pas casser un deep-link landing/sample/privacy/terms.
-      const isPublicRoute = h === '#/' || h === '#/home' || h === '#/exemple' || h === '#/sample-report' || h === '#/privacy' || h === '#/terms';
-      if (!isOAuthReturn && !isPublicRoute) {
-        window.history.replaceState({ screen: 'welcome' }, '', '#/');
+      const isPublicRoute = p === '/home' || p === '/exemple' || p === '/sample-report' || p === '/privacy' || p === '/terms';
+      // /auth/callback : on laisse Supabase finir d'échanger le code, le
+      // useEffect ci-dessous redirigera dès que `user` sera hydraté.
+      const isAuthCallback = p === '/auth/callback';
+      if (!isPublicRoute && !isAuthCallback) {
+        window.history.replaceState({ screen: 'welcome' }, '', '/');
       }
     }
     // Pour les visiteurs, on aligne `screen` sur la route publique courante :
     // sample/privacy/terms gardent leur écran (rendus plein écran), tout
     // le reste tombe sur 'welcome' (l'auth gate rendra la landing à sa place).
     if (typeof window !== 'undefined') {
-      const h = window.location.hash;
+      const p = window.location.pathname;
       let targetScreen = 'welcome';
-      if (h === '#/exemple' || h === '#/sample-report') targetScreen = 'sample';
-      else if (h === '#/privacy') targetScreen = 'privacy';
-      else if (h === '#/terms') targetScreen = 'terms';
+      if (p === '/exemple' || p === '/sample-report') targetScreen = 'sample';
+      else if (p === '/privacy') targetScreen = 'privacy';
+      else if (p === '/terms') targetScreen = 'terms';
       if (screen !== targetScreen) {
         isHashSyncRef.current = true;
         setScreen(targetScreen);
@@ -2933,38 +2955,39 @@ function VersionsAppAuthed() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading]);
 
-  // ── Hash routing : lecture initiale de l'URL ─────────────
-  // Quand l'utilisateur est connecté, on aligne l'écran sur le hash courant.
+  // ── Routing : lecture initiale de l'URL ─────────────────
+  // Quand l'utilisateur est connecté, on aligne l'écran sur le pathname courant.
   // Les écrans qui dépendent d'un state en mémoire (loading, fiche) retombent
   // sur welcome si on y arrive directement (refresh, lien entrant).
   useEffect(() => {
     if (!user || routeInitRef.current) return;
     routeInitRef.current = true;
-    const rawHash = window.location.hash;
-    // Compat : #/reglages ouvre désormais la modale et renvoie sur le dashboard.
-    if (rawHash === '#/reglages') {
+    const rawPath = window.location.pathname;
+    // Retour OAuth en flow PKCE : Supabase a déjà échangé le `?code=...` au
+    // mount du client. Au moment où `user` est posé, on peut nettoyer l'URL
+    // et atterrir sur le dashboard.
+    if (rawPath === '/auth/callback') {
+      const targetPath = SCREEN_PATH['welcome'];
+      window.history.replaceState({ screen: 'welcome' }, '', targetPath);
+      if (screen !== 'welcome') {
+        isHashSyncRef.current = true;
+        setScreen('welcome');
+      }
+      return;
+    }
+    // Compat : /reglages ouvre désormais la modale et renvoie sur le dashboard.
+    if (rawPath === '/reglages') {
       setReglagesOpen(true);
-      window.history.replaceState({ screen: 'welcome' }, '', '#/dashboard');
+      window.history.replaceState({ screen: 'welcome' }, '', '/dashboard');
       if (screen !== 'welcome') {
         isHashSyncRef.current = true;
         setScreen('welcome');
       }
       return;
     }
-    // Cold start sans fragment ('') → dashboard pour un connecté.
-    // `#/` explicite (logo, lien direct) → landing.
-    if (rawHash === '') {
-      const targetHash = SCREEN_HASH['welcome'];
-      if (window.location.hash !== targetHash) {
-        window.history.replaceState({ screen: 'welcome' }, '', targetHash);
-      }
-      if (screen !== 'welcome') {
-        isHashSyncRef.current = true;
-        setScreen('welcome');
-      }
-      return;
-    }
-    const parsed = parseHash(rawHash);
+    // `/` explicite (logo, lien direct) → landing même connecté. On laisse
+    // tel quel — c'était l'ancien comportement avec `#/`.
+    const parsed = parsePath(rawPath);
     // Deep-link fiche : on stocke les IDs et on laisse le résolveur ci-dessous
     // matérialiser config + analysisResult quand `projects` sera chargé.
     if (parsed.screen === 'fiche' && parsed.trackId) {
@@ -2974,9 +2997,9 @@ function VersionsAppAuthed() {
     const target = parsed.screen || 'welcome';
     // Fiche sans IDs / loading sans state → fallback dashboard.
     const safe = (target === 'fiche' || target === 'loading') ? 'welcome' : target;
-    const targetHash = SCREEN_HASH[safe];
-    if (window.location.hash !== targetHash) {
-      window.history.replaceState({ screen: safe }, '', targetHash);
+    const targetPath = SCREEN_PATH[safe];
+    if (window.location.pathname !== targetPath) {
+      window.history.replaceState({ screen: safe }, '', targetPath);
     }
     if (safe !== screen) {
       isHashSyncRef.current = true;
@@ -2985,7 +3008,7 @@ function VersionsAppAuthed() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // ── Hash routing : screen → URL ──────────────────────────
+  // ── Routing : screen → URL ──────────────────────────────
   // Chaque changement d'écran pousse une nouvelle entrée dans l'historique,
   // sauf quand c'est nous-mêmes qui venons de le setter en réaction à popstate.
   // La fiche encode son trackId/versionId pour permettre un reload propre.
@@ -2996,8 +3019,8 @@ function VersionsAppAuthed() {
       prevScreenRef.current = screen;
       return;
     }
-    const nextHash = buildHash(screen, config);
-    if (window.location.hash !== nextHash) {
+    const nextPath = buildPath(screen, config);
+    if (window.location.pathname !== nextPath) {
       // loading → fiche : on remplace l'entrée "loading" par "fiche" pour que
       // "Précédent" depuis la fiche saute directement avant l'analyse au lieu
       // de repasser sur l'écran de chargement.
@@ -3007,19 +3030,19 @@ function VersionsAppAuthed() {
         (prevScreenRef.current === 'loading' && screen === 'fiche') ||
         (prevScreenRef.current === 'fiche' && screen === 'fiche');
       if (shouldReplace) {
-        window.history.replaceState({ screen }, '', nextHash);
+        window.history.replaceState({ screen }, '', nextPath);
       } else {
-        window.history.pushState({ screen }, '', nextHash);
+        window.history.pushState({ screen }, '', nextPath);
       }
     }
     prevScreenRef.current = screen;
   }, [screen, user, config]);
 
-  // ── Hash routing : URL → screen (Précédent/Suivant) ──────
+  // ── Routing : URL → screen (Précédent/Suivant) ───────────
   useEffect(() => {
     const onPop = () => {
-      const current = window.location.hash || '#/';
-      const parsed = parseHash(current);
+      const current = window.location.pathname || '/';
+      const parsed = parsePath(current);
       // Deep-link fiche via Back/Forward : si le state actuel ne correspond
       // pas, on délègue au résolveur via setPendingFiche.
       if (parsed.screen === 'fiche' && parsed.trackId) {
@@ -3050,7 +3073,7 @@ function VersionsAppAuthed() {
         : (target === 'loading' && !config) ? 'welcome'
         : target;
       if (safe !== target) {
-        window.history.replaceState({ screen: safe }, '', SCREEN_HASH[safe]);
+        window.history.replaceState({ screen: safe }, '', SCREEN_PATH[safe]);
       }
       isHashSyncRef.current = true;
       setScreen(safe);
@@ -3085,7 +3108,7 @@ function VersionsAppAuthed() {
         setPendingFiche(null);
         isHashSyncRef.current = true;
         setScreen('welcome');
-        window.history.replaceState({ screen: 'welcome' }, '', SCREEN_HASH['welcome']);
+        window.history.replaceState({ screen: 'welcome' }, '', SCREEN_PATH['welcome']);
         return;
       }
       let v = null;
@@ -3102,7 +3125,7 @@ function VersionsAppAuthed() {
         setPendingFiche(null);
         isHashSyncRef.current = true;
         setScreen('welcome');
-        window.history.replaceState({ screen: 'welcome' }, '', SCREEN_HASH['welcome']);
+        window.history.replaceState({ screen: 'welcome' }, '', SCREEN_PATH['welcome']);
         return;
       }
       const saved = await getAnalysis(track.id, v.id);
@@ -3128,14 +3151,14 @@ function VersionsAppAuthed() {
       isHashSyncRef.current = true;
       setScreen('fiche');
       // Normalise l'URL en slug si on était arrivé en UUID ou sans version.
-      const targetHash = buildHash('fiche', {
+      const targetPath = buildPath('fiche', {
         title: track.title,
         version: v.name,
         trackId: track.id,
         versionId: v.id,
       });
-      if (window.location.hash !== targetHash) {
-        window.history.replaceState({ screen: 'fiche' }, '', targetHash);
+      if (window.location.pathname !== targetPath) {
+        window.history.replaceState({ screen: 'fiche' }, '', targetPath);
       }
     })();
     return () => { alive = false; };
@@ -3783,47 +3806,47 @@ function VersionsAppAuthed() {
   if (!user) {
     // Quand l'utilisateur clique le CTA de la landing pour s'inscrire/se
     // connecter, on aligne l'URL sur le dashboard. Comme ça, après login,
-    // routeInit lit `#/dashboard` et renvoie sur le bon écran (au lieu de
-    // re-rendre la landing parce que l'URL était restée à `#/`).
+    // routeInit lit `/dashboard` et renvoie sur le bon écran (au lieu de
+    // re-rendre la landing parce que l'URL était restée à `/`).
     const goAuth = () => {
       setShowAuth(true);
       if (typeof window !== 'undefined') {
-        window.history.replaceState({}, '', '#/dashboard');
+        window.history.replaceState({}, '', '/dashboard');
       }
     };
     const goSample = () => {
       setShowAuth(false);
       setScreen('sample');
       if (typeof window !== 'undefined') {
-        window.history.pushState({ screen: 'sample' }, '', '#/exemple');
+        window.history.pushState({ screen: 'sample' }, '', '/exemple');
       }
     };
     const goLanding = () => {
       setShowAuth(false);
       setScreen('welcome');
       if (typeof window !== 'undefined') {
-        window.history.pushState({ screen: 'welcome' }, '', '#/');
+        window.history.pushState({ screen: 'welcome' }, '', '/');
       }
     };
     const goPricing = () => {
       setShowAuth(false);
       setScreen('pricing');
       if (typeof window !== 'undefined') {
-        window.history.pushState({ screen: 'pricing' }, '', '#/pricing');
+        window.history.pushState({ screen: 'pricing' }, '', '/pricing');
       }
     };
     const goPrivacy = () => {
       setShowAuth(false);
       setScreen('privacy');
       if (typeof window !== 'undefined') {
-        window.history.pushState({ screen: 'privacy' }, '', '#/privacy');
+        window.history.pushState({ screen: 'privacy' }, '', '/privacy');
       }
     };
     const goTerms = () => {
       setShowAuth(false);
       setScreen('terms');
       if (typeof window !== 'undefined') {
-        window.history.pushState({ screen: 'terms' }, '', '#/terms');
+        window.history.pushState({ screen: 'terms' }, '', '/terms');
       }
     };
     let view;
@@ -4152,7 +4175,7 @@ function VersionsAppAuthed() {
               setNoCreditsOpen(false);
               setScreen('pricing');
               if (typeof window !== 'undefined') {
-                window.history.pushState({ screen: 'pricing' }, '', '#/pricing');
+                window.history.pushState({ screen: 'pricing' }, '', '/pricing');
               }
             }}
           />

@@ -44,9 +44,9 @@ export default function ShareLinkModal({ versionId, trackTitle, versionName, onC
     };
   }, [onClose, busy]);
 
-  // URL construite à partir de l'origine courante + hash route #/p/<token>
+  // URL publique propre : `/p/<token>` sur l'origine courante.
   const shareUrl = token
-    ? `${window.location.origin}${window.location.pathname}#/p/${token}`
+    ? `${window.location.origin}/p/${token}`
     : '';
 
   const handleEnable = async () => {
