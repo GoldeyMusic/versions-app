@@ -9,21 +9,27 @@ Récap pour reprendre proprement le projet depuis Cowork.
 - **Deploy** : `git push` sur `main` → Vercel auto (front) et redeploy backend.
 - **Ne PAS utiliser** `~/Desktop/Versions/` ni `deploy.sh` (legacy).
 
-## Routing (hash-based)
+## Routing (URLs propres, History API)
+
+Bascule du hash router vers History API livrée 2026-05-04 (cf. section "Livré récemment"). Vercel sert tout via le rewrite SPA dans `vercel.json` (`/* → /index.html`).
 
 | Route | Écran |
 |---|---|
-| `#/` | Landing publique (accessible connecté ou pas) |
-| `#/dashboard` | Dashboard utilisateur (projets, titres) |
-| `#/fiche/{slug}/{vN}` | Fiche d'analyse — URLs lisibles avec slug du titre |
-| `#/exemple` | Page exemple avec données fictives |
-| `#/analyse` | Nouvelle analyse |
-| `#/reglages` | Réglages |
-| `#/privacy` | Politique de confidentialité (FR/EN) |
-| `#/terms` | Conditions générales d'utilisation (FR/EN) |
+| `/` | Landing publique (accessible connecté ou pas) |
+| `/dashboard` | Dashboard utilisateur (projets, titres) |
+| `/fiche/{slug}/{vN}` | Fiche d'analyse — URLs lisibles avec slug du titre |
+| `/p/{token}` | Fiche publique partagée (lecture seule, pas d'auth) |
+| `/exemple` | Page exemple avec données fictives |
+| `/analyse` | Nouvelle analyse |
+| `/auth/callback` | Callback OAuth (PKCE) — Supabase échange le `?code=`, puis redirect vers `/dashboard` |
+| `/pricing` | Page tarifs |
+| `/admin` | Dashboard admin (gaté `VITE_ADMIN_EMAIL`) |
+| `/privacy` | Politique de confidentialité (FR/EN) |
+| `/terms` | Conditions générales d'utilisation (FR/EN) |
 
 - Logo cliquable → pointe vers la landing.
 - "À propos" dans la sidebar → landing.
+- `migrateHashToPath()` exécutée au top de `App.jsx` convertit silencieusement tout vieux lien `/#/...` en `/...` à la volée (filet de sécurité même si rien n'a été partagé en `#`).
 
 ## Refonte récente des fiches d'analyse
 
@@ -105,9 +111,11 @@ Snapshot des chantiers fermés sur la sprint en cours — pour comprendre vite c
 - **Pochette + Score global sur la même ligne** — restauré depuis git history après une régression de la refonte.
 - **Sections refermables sur page exemple** — accordéon strict (un seul ouvert à la fois) sur `SampleFicheScreen.jsx`.
 - **Chat fictif sur page exemple** — démo UX du chat fiche sans appels API, pour les visiteurs.
-- **URLs lisibles** — `#/fiche/{slug}/{vN}` (cf. routing) avec rétrocompat UUID dans `parseHash`/`buildHash`.
-- **Fix refresh routing** — guard sur `authLoading` dans le routeInit (deep-link `#/fiche/...` n'écrase plus l'écran avant que la session soit hydratée).
+- **URLs lisibles** — `/fiche/{slug}/{vN}` (cf. routing) avec rétrocompat UUID dans `parsePath`/`buildPath`.
+- **Fix refresh routing** — guard sur `authLoading` dans le routeInit (deep-link `/fiche/...` n'écrase plus l'écran avant que la session soit hydratée).
 - **Bloc 6 roadmap supprimé** — tous les tiers AubioMix sont clos, le bloc statut a été retiré (cf. section Roadmap AubioMix).
+- **URLs propres (sans `#`)** — bascule du hash router vers History API livrée 2026-05-04. `vercel.json` ajoute le rewrite SPA `/* → /index.html`. Supabase OAuth bascule en flow PKCE (`flowType: 'pkce'` + `redirectTo: ${origin}/auth/callback`) pour ne plus laisser de tokens dans le fragment d'URL. Tous les liens internes (`href="#/..."`, `window.location.hash = ...`) migrés. `migrateHashToPath()` au top de `App.jsx` convertit les vieux liens `/#/...` à la volée. Branding Google Cloud Console (logo Versions + nom + privacy/terms) configuré dans la foulée — visible sur le consent screen pour les nouveaux utilisateurs.
+- **Branding OAuth Google** — logo `Logo-Versions-web.png` + nom "Versions" + liens privacy/terms posés dans Google Cloud Console (Auth Platform → Branding) le 2026-05-04. App Google reste en mode Test, validation Google non requise tant qu'on n'est pas en Production.
 
 ## Points en suspens
 
@@ -117,3 +125,5 @@ Snapshot des chantiers fermés sur la sprint en cours — pour comprendre vite c
 - Étendre la RPC `get_public_fiche` pour exposer `upload_type` (les liens publics servent le verdict "mix" par défaut tant que ce n'est pas fait).
 - Brancher Stripe (webhook + RPC `cancel_subscription`) — la résiliation passe pour l'instant par mailto vers le support.
 - Job batch de nettoyage Storage des fichiers orphelins après suppression de compte (audio, avatars, covers).
+- **Vérification Google OAuth pour passage en Production** — l'app Google est en mode Test (max 100 testeurs whitelistés). Avant launch public, soumettre le formulaire de vérification Google (logo, scopes justifiés, domaines vérifiés via Search Console). Délai 1-4 semaines. Sans ça, login Google bloqué pour les utilisateurs hors liste.
+- **Custom Domain Supabase** (optionnel, ~$10/mo) — pour remplacer `uyeswtjisbzfyribnywt.supabase.co` par `auth.versions.studio` sur l'écran Google ("Accéder à l'application X"). Pas un blocker, à activer si on veut le polish premium avant le launch grand public.
