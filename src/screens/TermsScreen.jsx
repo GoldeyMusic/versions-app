@@ -61,11 +61,11 @@ export default function TermsScreen({ onBackToLanding, onGoPrivacy }) {
           <p>
             Le service est édité par David Berdugo, exerçant en
             auto-entreprise sous la dénomination <strong>Multicolorz</strong>,
-            immatriculée en France.
+            immatriculée en France sous le SIRET 819 747 296.
           </p>
           <p>
             Contact :{' '}
-            <a href="mailto:berdugo.david@gmail.com">berdugo.david@gmail.com</a>
+            <a href="mailto:contact@versions.studio">contact@versions.studio</a>
           </p>
         </section>
 
@@ -85,7 +85,7 @@ export default function TermsScreen({ onBackToLanding, onGoPrivacy }) {
           <p>
             Vous pouvez supprimer votre compte à tout moment depuis vos
             réglages ou en nous contactant à{' '}
-            <a href="mailto:berdugo.david@gmail.com">berdugo.david@gmail.com</a>.
+            <a href="mailto:contact@versions.studio">contact@versions.studio</a>.
           </p>
         </section>
 
@@ -265,7 +265,7 @@ export default function TermsScreen({ onBackToLanding, onGoPrivacy }) {
           <h2>12. Contact</h2>
           <p>
             Pour toute question relative aux présentes CGU :{' '}
-            <a href="mailto:berdugo.david@gmail.com">berdugo.david@gmail.com</a>.
+            <a href="mailto:contact@versions.studio">contact@versions.studio</a>.
           </p>
         </section>
 

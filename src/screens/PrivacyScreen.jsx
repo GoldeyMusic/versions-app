@@ -42,10 +42,10 @@ export default function PrivacyScreen({ onBackToLanding, onGoTerms }) {
           <p>
             Le service Versions est édité par David Berdugo, exerçant en
             auto-entreprise sous la dénomination <strong>Multicolorz</strong>,
-            immatriculée en France.
+            immatriculée en France sous le SIRET 819 747 296.
           </p>
           <p>
-            Contact : <a href="mailto:berdugo.david@gmail.com">berdugo.david@gmail.com</a>
+            Contact : <a href="mailto:contact@versions.studio">contact@versions.studio</a>
           </p>
         </section>
 
@@ -115,29 +115,24 @@ export default function PrivacyScreen({ onBackToLanding, onGoTerms }) {
           </p>
           <ul>
             <li>
-              <strong>Vercel Inc.</strong> — hébergement de l'application
-              front-end (États-Unis, transferts encadrés par les clauses
-              contractuelles types de la Commission européenne).
+              <strong>Vercel</strong> — hébergement de l'application front-end.
             </li>
             <li>
               <strong>Railway</strong> — hébergement du backend d'analyse.
             </li>
             <li>
               <strong>Supabase</strong> — base de données et stockage des
-              fichiers audio. Nos données sont hébergées sur des serveurs
-              localisés dans l'Union européenne.
+              fichiers audio.
             </li>
             <li>
-              <strong>Stripe Payments Europe Ltd.</strong> — traitement des
-              paiements (Irlande, Union européenne).
+              <strong>Stripe</strong> — traitement des paiements.
             </li>
             <li>
-              <strong>Google LLC</strong> — fournisseur d'identité OAuth
-              utilisé pour la connexion (transferts encadrés par les
-              clauses contractuelles types).
+              <strong>Google</strong> — fournisseur d'identité OAuth utilisé
+              pour la connexion.
             </li>
             <li>
-              <strong>Anthropic PBC</strong> — fournisseur du modèle Claude
+              <strong>Anthropic</strong> — fournisseur du modèle Claude
               utilisé pour générer les analyses textuelles. Les fichiers
               audio ne sont pas envoyés à Anthropic ; seuls les indicateurs
               extraits par notre moteur d'analyse interne sont transmis.
@@ -149,15 +144,11 @@ export default function PrivacyScreen({ onBackToLanding, onGoTerms }) {
           <h2>5. Durée de conservation</h2>
           <ul>
             <li>
-              <strong>Compte utilisateur</strong> — conservé tant que votre
-              compte est actif. À la suppression du compte, les données
-              associées sont effacées sous 30 jours.
-            </li>
-            <li>
-              <strong>Fichiers audio et analyses</strong> — conservés tant
-              que vous ne les supprimez pas vous-même ou que votre compte
-              reste actif. Vous pouvez supprimer chaque titre depuis votre
-              tableau de bord à tout moment.
+              <strong>Compte utilisateur, fichiers audio et analyses</strong>{' '}
+              — conservés tant que votre compte est actif, puis 30 jours
+              après la suppression du compte. Vous pouvez supprimer chaque
+              titre individuellement depuis votre tableau de bord à tout
+              moment.
             </li>
             <li>
               <strong>Données de facturation</strong> — conservées 10 ans
@@ -187,7 +178,7 @@ export default function PrivacyScreen({ onBackToLanding, onGoTerms }) {
           </ul>
           <p>
             Pour exercer ces droits, écrivez-nous à{' '}
-            <a href="mailto:berdugo.david@gmail.com">berdugo.david@gmail.com</a>.
+            <a href="mailto:contact@versions.studio">contact@versions.studio</a>.
             Vous disposez également du droit d'introduire une réclamation
             auprès de la CNIL (www.cnil.fr).
           </p>
@@ -237,7 +228,7 @@ export default function PrivacyScreen({ onBackToLanding, onGoTerms }) {
           <p>
             Pour toute question relative à vos données personnelles ou à
             la présente politique :{' '}
-            <a href="mailto:berdugo.david@gmail.com">berdugo.david@gmail.com</a>.
+            <a href="mailto:contact@versions.studio">contact@versions.studio</a>.
           </p>
         </section>
 
