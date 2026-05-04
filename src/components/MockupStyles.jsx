@@ -8260,22 +8260,23 @@ export default function MockupStyles() {
     font-family: inherit; font-style: normal; font-weight: inherit; color: var(--amber);
   }
 
-  /* Row de réglage — restaure le look d'origine demandé par David :
-     row légèrement plus claire que le panel, avec un subtil highlight
-     haut pour l'effet "surélevé". */
+  /* Row de réglage — transparent dark overlay aligné sur la grammaire
+     des inputs/drop zones de .add-mini-card.is-upload (rgba(0,0,0,0.30-0.40)).
+     Évite le trou noir #111216 qui paraissait trop sombre sur la card
+     #262b38 et cassait l'unification visuelle avec AddModal. */
   .rg-mini .rg-row {
     display: flex; align-items: center; justify-content: space-between;
     gap: 14px; padding: 12px 14px;
     border-radius: 10px;
-    background: #111216;
-    border: 1px solid rgba(255,255,255,0.05);
+    background: rgba(0,0,0,0.30);
+    border: 1px solid rgba(255,255,255,0.08);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
     margin-bottom: 7px;
     transition: border-color .15s, background .15s;
   }
   .rg-mini .rg-row:hover {
     border-color: rgba(245,176,86,0.22);
-    background: #13141a;
+    background: rgba(0,0,0,0.20);
   }
   .rg-mini .rg-row.is-stack {
     flex-direction: column; align-items: stretch; gap: 10px;
@@ -8783,8 +8784,11 @@ export default function MockupStyles() {
     display: flex; align-items: center; gap: 14px;
     width: 100%; text-align: left;
     padding: 14px 16px; border-radius: 12px;
-    background: #111216;
-    border: 1px solid rgba(255,255,255,0.05);
+    /* Transparent dark overlay (cohérent avec la grammaire des inputs
+       et drop zones de .add-mini-card.is-upload : rgba(0,0,0,0.30-0.40)).
+       Évite le trou noir #111216 qui paraît trop foncé sur la card #262b38. */
+    background: rgba(0,0,0,0.30);
+    border: 1px solid rgba(255,255,255,0.08);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
     color: var(--text); cursor: pointer;
     font-family: var(--body);
@@ -8792,7 +8796,7 @@ export default function MockupStyles() {
   }
   .add-mini-choice:hover:not(:disabled) {
     border-color: rgba(245,176,86,0.28);
-    background: #13141a;
+    background: rgba(0,0,0,0.20);
   }
   .add-mini-choice:disabled {
     opacity: 0.45; cursor: not-allowed;
@@ -8834,8 +8838,10 @@ export default function MockupStyles() {
     display: flex; align-items: center; justify-content: space-between;
     gap: 12px; width: 100%; text-align: left;
     padding: 12px 14px; border-radius: 10px;
-    background: #111216;
-    border: 1px solid rgba(255,255,255,0.05);
+    /* Cf. note .add-mini-choice : transparent dark overlay au lieu
+       de #111216 pour respirer sur la card #262b38. */
+    background: rgba(0,0,0,0.30);
+    border: 1px solid rgba(255,255,255,0.08);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
     color: var(--text); cursor: pointer;
     font-family: var(--body); font-size: 13px;
@@ -8844,7 +8850,7 @@ export default function MockupStyles() {
   }
   .add-mini-pick:hover {
     border-color: rgba(245,176,86,0.28);
-    background: #13141a;
+    background: rgba(0,0,0,0.20);
     color: var(--amber);
   }
   .add-mini-pick-count {
