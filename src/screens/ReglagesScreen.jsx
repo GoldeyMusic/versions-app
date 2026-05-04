@@ -184,11 +184,14 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
   };
 
   // ── Suppression de compte ──────────────────────────────────
-  // Côté Supabase, la suppression de auth.users nécessite la service-
-  // role key (ou une RPC SECURITY DEFINER ad hoc) qu'on n'a pas
-  // exposée. Tant que la RPC n'existe pas, on demande à l'utilisateur
-  // d'écrire au support pour que la suppression soit effectuée
-  // manuellement (avec sa cascade : tracks, versions, fichiers Storage).
+  // Branché sur la RPC `delete_my_account` (SECURITY DEFINER, supprime
+  // en cascade : mix_note_completions, comparisons, versions, tracks,
+  // projects, credit_events, user_credits, analysis_cost_logs,
+  // chat_cost_logs, feedback, user_profiles, revenue_logs, puis
+  // auth.users). Les fichiers Storage (audio, avatars, project-covers,
+  // track-covers) ne sont pas purgés par la RPC — ils deviennent
+  // orphelins (plus aucun row pour les référencer côté DB) et seront
+  // nettoyés via un job batch ultérieur si besoin.
   const handleDeleteAccount = async () => {
     const ok = await confirmDialog({
       title: s.reglages.deleteAccountModalTitle,
@@ -198,11 +201,34 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
       danger: true,
     });
     if (ok !== 'confirm') return;
-    const subject = s.reglages.mailtoDeleteAccountSubject;
-    const body = (s.reglages.mailtoDeleteAccountBody || '')
-      .replace('{email}', user?.email || '');
-    if (typeof window !== 'undefined') {
-      window.location.href = buildMailto(subject, body);
+    try {
+      const { error } = await supabase.rpc('delete_my_account');
+      if (error) throw error;
+      // Compte purgé en base — on déconnecte l'utilisateur et on le
+      // ramène à la landing publique. Le signOut déclenche déjà la
+      // bascule via le hook useAuth, mais on appelle explicitement
+      // l'override App-level (handleSignOut) qui force aussi le
+      // hash routing vers `#/`.
+      try { await supabase.auth.signOut(); } catch { /* ignore */ }
+      if (onSignOut) {
+        try { await onSignOut(); } catch { /* ignore */ }
+      }
+      if (typeof window !== 'undefined') {
+        try { window.location.hash = '#/'; } catch { /* ignore */ }
+      }
+      if (onClose) onClose();
+    } catch (e) {
+      console.warn('[reglages] delete_my_account failed:', e?.message || e);
+      // Ré-affiche une modale d'erreur (ConfirmModal en mode "alert"
+      // sans bouton annuler) pour que l'utilisateur voie clairement
+      // que l'opération a échoué et qu'il peut nous écrire.
+      await confirmDialog({
+        title: s.reglages.deleteAccountErrorTitle,
+        message: s.reglages.deleteAccountErrorMessage,
+        confirmLabel: s.common.ok,
+        cancelLabel: '',
+        danger: true,
+      });
     }
   };
 
