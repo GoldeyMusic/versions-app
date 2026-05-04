@@ -1479,6 +1479,230 @@ const STRINGS = {
       footerQuoteEm: "Votre vision.",
       footerQuoteEnd: "Notre accompagnement.",
     },
+
+    /* ─────────────────────── PAGES LÉGALES ───────────────────
+     * Sections de prose pour PrivacyScreen et TermsScreen.
+     * Chaque bloc est { type: 'p', text } ou { type: 'ul', items[] }.
+     * Markup inline supporté dans `text` / `items[i]` :
+     *   - **gras** → <strong>
+     *   - {email}  → mailto vers contact@versions.studio
+     * (cf. `renderLegalInline` dans components/LegalLayout.jsx)
+     * ─────────────────────────────────────────────────────── */
+    legal: {
+      common: {
+        backToHome: "Retour à l'accueil",
+        privacyLink: "Politique de confidentialité",
+        termsLink: "Conditions générales d'utilisation",
+        navAria: "Pages légales",
+      },
+      privacy: {
+        eyebrow: "CONFIDENTIALITÉ",
+        title: "Politique de",
+        titleEm: "confidentialité",
+        updated: "Dernière mise à jour : 4 mai 2026",
+        lede: "La présente politique décrit comment Versions collecte, utilise et protège vos données personnelles lorsque vous utilisez le service accessible à l'adresse www.versions.studio.",
+        sections: [
+          {
+            title: "1. Identité de l'éditeur",
+            blocks: [
+              { type: 'p', text: "Le service Versions est édité par David Berdugo, exerçant en auto-entreprise sous la dénomination **Multicolorz**, immatriculée en France sous le SIRET 819 747 296." },
+              { type: 'p', text: "Contact : {email}" },
+            ],
+          },
+          {
+            title: "2. Données collectées et finalités",
+            blocks: [
+              { type: 'p', text: "Nous collectons uniquement les données nécessaires au fonctionnement du service :" },
+              { type: 'ul', items: [
+                "**Adresse e-mail** — transmise par Google lors de l'authentification OAuth, utilisée pour identifier votre compte et vous envoyer les communications relatives au service.",
+                "**Fichiers audio** — les pistes que vous importez pour analyse (mix ou master) sont stockées sur Supabase Storage afin de permettre leur lecture, leur analyse par notre moteur et l'affichage de vos fiches d'analyse.",
+                "**Données d'analyse** — résultats produits par le moteur d'analyse (scores, diagnostics, métriques DSP), conservés pour vous permettre de consulter et comparer vos versions dans le temps.",
+                "**Préférences utilisateur** — DAW utilisé, langue d'interface, intentions artistiques, paramètres de votre profil.",
+                "**Données de paiement** — gérées intégralement par Stripe ; nous ne stockons aucune donnée bancaire sur nos serveurs. Stripe nous communique uniquement le statut des transactions (réussite, échec, abonnement actif).",
+              ]},
+            ],
+          },
+          {
+            title: "3. Base légale du traitement",
+            blocks: [
+              { type: 'p', text: "Les traitements sont fondés sur :" },
+              { type: 'ul', items: [
+                "**L'exécution du contrat** qui vous lie à Versions lorsque vous créez un compte et utilisez le service (article 6.1.b du RGPD) — c'est la base légale principale pour la gestion du compte, le stockage des fichiers audio et la génération des analyses.",
+                "**Votre consentement** (article 6.1.a du RGPD) pour l'authentification via Google, recueilli au moment de la connexion OAuth.",
+                "**Les obligations légales** applicables à l'éditeur (article 6.1.c), notamment en matière comptable et fiscale pour les transactions Stripe.",
+              ]},
+            ],
+          },
+          {
+            title: "4. Hébergement et sous-traitants",
+            blocks: [
+              { type: 'p', text: "Vos données peuvent être traitées par nos prestataires techniques : hébergement (Union européenne et États-Unis), paiement, authentification et analyse. La liste détaillée est disponible sur demande à {email}." },
+            ],
+          },
+          {
+            title: "5. Durée de conservation",
+            blocks: [
+              { type: 'ul', items: [
+                "**Compte utilisateur, fichiers audio et analyses** — conservés tant que votre compte est actif, puis 30 jours après la suppression du compte. Vous pouvez supprimer chaque titre individuellement depuis votre tableau de bord à tout moment.",
+                "**Données de facturation** — conservées 10 ans conformément aux obligations comptables françaises.",
+                "**Logs techniques** — conservés au maximum 12 mois à des fins de sécurité et de débogage.",
+              ]},
+            ],
+          },
+          {
+            title: "6. Vos droits",
+            blocks: [
+              { type: 'p', text: "Conformément au Règlement Général sur la Protection des Données (RGPD) et à la loi Informatique et Libertés, vous disposez des droits suivants sur vos données personnelles :" },
+              { type: 'ul', items: [
+                "**Droit d'accès** — obtenir une copie des données que nous détenons sur vous.",
+                "**Droit de rectification** — corriger toute donnée inexacte ou incomplète.",
+                "**Droit à l'effacement** — demander la suppression de vos données.",
+                "**Droit à la portabilité** — récupérer vos données dans un format structuré et lisible par machine.",
+                "**Droit d'opposition** — vous opposer à un traitement spécifique.",
+                "**Droit de retirer votre consentement** à tout moment, sans que cela compromette la licéité des traitements antérieurs.",
+              ]},
+              { type: 'p', text: "Pour exercer ces droits, écrivez-nous à {email}. Vous disposez également du droit d'introduire une réclamation auprès de la CNIL (www.cnil.fr)." },
+            ],
+          },
+          {
+            title: "7. Cookies",
+            blocks: [
+              { type: 'p', text: "Versions n'utilise **pas de cookies de tracking ni de publicité**. Seuls des cookies strictement nécessaires au fonctionnement du service sont déposés sur votre appareil :" },
+              { type: 'ul', items: [
+                "Un cookie de session lié à votre authentification.",
+                "Des éléments de stockage local (localStorage) pour mémoriser vos préférences (langue, DAW, paramètres d'interface).",
+              ]},
+              { type: 'p', text: "Ces traceurs étant strictement nécessaires à la fourniture du service, ils ne requièrent pas de consentement préalable conformément aux recommandations de la CNIL." },
+            ],
+          },
+          {
+            title: "8. Sécurité",
+            blocks: [
+              { type: 'p', text: "Toutes les communications entre votre navigateur et nos serveurs sont chiffrées via HTTPS. L'accès à vos fichiers audio est protégé par les politiques de sécurité (Row Level Security) de Supabase, qui garantissent que seul le propriétaire d'un fichier peut y accéder." },
+            ],
+          },
+          {
+            title: "9. Modifications",
+            blocks: [
+              { type: 'p', text: "Nous pouvons être amenés à modifier la présente politique pour l'adapter à des évolutions légales ou techniques. Toute modification substantielle vous sera notifiée par e-mail ou via une bannière dans l'application." },
+            ],
+          },
+          {
+            title: "10. Contact",
+            blocks: [
+              { type: 'p', text: "Pour toute question relative à vos données personnelles ou à la présente politique : {email}." },
+            ],
+          },
+        ],
+      },
+      terms: {
+        eyebrow: "CGU",
+        title: "Conditions générales",
+        titleEm: "d'utilisation",
+        updated: "Dernière mise à jour : 4 mai 2026",
+        lede: "Les présentes conditions générales d'utilisation (« CGU ») régissent l'accès et l'utilisation du service Versions, accessible à l'adresse www.versions.studio. En créant un compte ou en utilisant le service, vous acceptez sans réserve les présentes CGU.",
+        sections: [
+          {
+            title: "1. Objet du service",
+            blocks: [
+              { type: 'p', text: "Versions est un service en ligne d'analyse de mix audio par intelligence artificielle. Il permet à un utilisateur d'importer une piste audio (mix ou master), d'obtenir une analyse détaillée — équilibre fréquentiel, dynamique, stéréo, qualité d'écoute — sous forme d'une fiche, et de comparer les versions successives d'un même titre." },
+              { type: 'p', text: "Le service est destiné à un usage professionnel ou personnel dans le cadre du processus créatif et technique de production musicale. Il ne constitue pas une prestation de mastering ni un avis d'ingénieur du son certifié." },
+            ],
+          },
+          {
+            title: "2. Éditeur",
+            blocks: [
+              { type: 'p', text: "Le service est édité par David Berdugo, exerçant en auto-entreprise sous la dénomination **Multicolorz**, immatriculée en France sous le SIRET 819 747 296." },
+              { type: 'p', text: "Contact : {email}" },
+            ],
+          },
+          {
+            title: "3. Inscription et compte utilisateur",
+            blocks: [
+              { type: 'p', text: "L'accès au service nécessite la création d'un compte via l'authentification Google OAuth. Vous garantissez l'exactitude des informations transmises et vous engagez à maintenir la confidentialité de vos identifiants." },
+              { type: 'p', text: "Le compte est strictement personnel. Vous êtes seul responsable de toute activité réalisée depuis votre compte. Vous devez nous informer immédiatement de toute utilisation non autorisée." },
+              { type: 'p', text: "Vous pouvez supprimer votre compte à tout moment depuis vos réglages ou en nous contactant à {email}." },
+            ],
+          },
+          {
+            title: "4. Crédits, abonnement et facturation",
+            blocks: [
+              { type: 'p', text: "Le service fonctionne sur un système de crédits. Chaque analyse consomme un crédit. Les crédits peuvent être obtenus :" },
+              { type: 'ul', items: [
+                "**Via un abonnement mensuel** — un nombre de crédits est attribué chaque mois et expire à la fin de la période d'abonnement.",
+                "**Via l'achat de packs ponctuels** — les crédits packs sont cumulables et n'expirent pas tant que votre compte reste actif.",
+              ]},
+              { type: 'p', text: "Les paiements sont traités par Stripe. Aucune donnée bancaire n'est stockée sur nos serveurs. Les prix indiqués sont en euros, toutes taxes comprises lorsque applicables." },
+              { type: 'p', text: "Conformément à l'article L221-28 du Code de la consommation, vous renoncez à votre droit de rétractation pour les services numériques fournis immédiatement après votre commande. Cette renonciation est expressément acceptée au moment de la souscription." },
+              { type: 'p', text: "Vous pouvez résilier votre abonnement à tout moment depuis vos réglages. La résiliation prend effet à la fin de la période en cours ; aucun remboursement prorata temporis n'est effectué." },
+            ],
+          },
+          {
+            title: "5. Propriété intellectuelle",
+            blocks: [
+              { type: 'p', text: "**Vos fichiers audio restent votre propriété exclusive.** Vous conservez l'ensemble des droits d'auteur, droits voisins et droits sur les masters relatifs aux pistes que vous importez. Versions ne revendique aucun droit sur vos œuvres." },
+              { type: 'p', text: "En important une piste, vous nous accordez uniquement la licence limitée, non exclusive et révocable nécessaire au stockage, à la lecture et à l'analyse technique du fichier dans le cadre du service. Cette licence prend fin lorsque vous supprimez la piste ou votre compte." },
+              { type: 'p', text: "Les fiches d'analyse générées par Versions, ainsi que les éléments de l'interface (textes, graphismes, logos, code), sont la propriété de l'éditeur et protégés par le droit de la propriété intellectuelle. Vous pouvez librement utiliser le contenu des fiches pour vos propres besoins de production, mais vous ne pouvez pas reproduire ou distribuer publiquement l'interface ou le service sans autorisation." },
+              { type: 'p', text: "Vous garantissez détenir l'ensemble des droits nécessaires sur les fichiers que vous importez et vous engagez à ne pas soumettre de contenu portant atteinte aux droits de tiers." },
+            ],
+          },
+          {
+            title: "6. Disponibilité et responsabilité",
+            blocks: [
+              { type: 'p', text: "Nous mettons tout en œuvre pour garantir la disponibilité du service, sans toutefois pouvoir l'assurer sans interruption. Des opérations de maintenance, des incidents techniques ou des facteurs externes peuvent entraîner des indisponibilités temporaires." },
+              { type: 'p', text: "Les analyses produites par Versions sont fournies à titre indicatif. Elles ne sauraient se substituer à l'avis d'un ingénieur du son et n'engagent pas l'éditeur sur le résultat final d'une production. La décision artistique et technique finale vous appartient." },
+              { type: 'p', text: "La responsabilité de l'éditeur ne saurait être engagée pour les dommages indirects (perte de données, perte de chance, manque à gagner) résultant de l'utilisation du service. La responsabilité globale de l'éditeur est en tout état de cause limitée au montant payé par l'utilisateur au cours des douze (12) derniers mois." },
+            ],
+          },
+          {
+            title: "7. Usage acceptable",
+            blocks: [
+              { type: 'p', text: "Vous vous engagez à ne pas :" },
+              { type: 'ul', items: [
+                "importer de contenu illicite, contrefaisant ou portant atteinte aux droits de tiers ;",
+                "tenter d'accéder à des comptes ou ressources qui ne vous appartiennent pas ;",
+                "perturber le fonctionnement du service ou d'en contourner les protections techniques ;",
+                "extraire massivement ou automatiquement le contenu du service à des fins commerciales sans autorisation ;",
+                "utiliser le service pour entraîner des modèles d'intelligence artificielle tiers.",
+              ]},
+              { type: 'p', text: "Tout manquement peut entraîner la suspension ou la résiliation de votre compte, sans préjudice des actions en réparation que l'éditeur pourrait engager." },
+            ],
+          },
+          {
+            title: "8. Données personnelles",
+            blocks: [
+              { type: 'p', text: "Le traitement de vos données personnelles est décrit en détail dans notre politique de confidentialité (lien en bas de page). Nous traitons vos données dans le respect du RGPD et de la loi Informatique et Libertés." },
+            ],
+          },
+          {
+            title: "9. Résiliation",
+            blocks: [
+              { type: 'p', text: "Vous pouvez cesser d'utiliser le service et supprimer votre compte à tout moment. L'éditeur peut suspendre ou résilier l'accès d'un utilisateur en cas de manquement aux présentes CGU, après notification lorsque cela est raisonnablement possible." },
+              { type: 'p', text: "En cas de résiliation, les fichiers audio et données associées sont supprimés sous 30 jours, sous réserve des obligations légales de conservation (comptabilité, fiscalité)." },
+            ],
+          },
+          {
+            title: "10. Modifications des CGU",
+            blocks: [
+              { type: 'p', text: "Les présentes CGU peuvent être modifiées pour refléter l'évolution du service ou du cadre légal. Toute modification substantielle vous sera notifiée par e-mail ou via une bannière dans l'application. La poursuite de l'utilisation du service après notification vaut acceptation des nouvelles CGU." },
+            ],
+          },
+          {
+            title: "11. Droit applicable et juridiction",
+            blocks: [
+              { type: 'p', text: "Les présentes CGU sont soumises au droit français. À défaut de résolution amiable, tout litige relatif à leur exécution ou à leur interprétation sera soumis aux tribunaux français compétents, sauf disposition légale impérative contraire." },
+              { type: 'p', text: "Conformément aux articles L611-1 et suivants du Code de la consommation, les utilisateurs consommateurs peuvent recourir à un médiateur de la consommation ou utiliser la plateforme européenne de règlement en ligne des litiges accessible à l'adresse https://ec.europa.eu/consumers/odr." },
+            ],
+          },
+          {
+            title: "12. Contact",
+            blocks: [
+              { type: 'p', text: "Pour toute question relative aux présentes CGU : {email}." },
+            ],
+          },
+        ],
+      },
+    },
   },
 
   en: {
@@ -2909,6 +3133,223 @@ const STRINGS = {
       footerQuoteStart: "Your music.",
       footerQuoteEm: "Your vision.",
       footerQuoteEnd: "Our guidance.",
+    },
+
+    /* ─────────────────────── LEGAL PAGES ───────────────────── */
+    legal: {
+      common: {
+        backToHome: "Back to home",
+        privacyLink: "Privacy policy",
+        termsLink: "Terms of service",
+        navAria: "Legal pages",
+      },
+      privacy: {
+        eyebrow: "PRIVACY",
+        title: "Privacy",
+        titleEm: "policy",
+        updated: "Last updated: May 4, 2026",
+        lede: "This policy describes how Versions collects, uses and protects your personal data when you use the service available at www.versions.studio.",
+        sections: [
+          {
+            title: "1. Publisher identity",
+            blocks: [
+              { type: 'p', text: "The Versions service is published by David Berdugo, operating as a sole proprietor under the trade name **Multicolorz**, registered in France under SIRET 819 747 296." },
+              { type: 'p', text: "Contact: {email}" },
+            ],
+          },
+          {
+            title: "2. Data collected and purposes",
+            blocks: [
+              { type: 'p', text: "We only collect data strictly necessary for the operation of the service:" },
+              { type: 'ul', items: [
+                "**Email address** — provided by Google during OAuth authentication, used to identify your account and to send you communications related to the service.",
+                "**Audio files** — the tracks you upload for analysis (mix or master) are stored on Supabase Storage to enable playback, analysis by our engine and display of your analysis reports.",
+                "**Analysis data** — results produced by the analysis engine (scores, diagnostics, DSP metrics), kept so you can review and compare your versions over time.",
+                "**User preferences** — DAW used, interface language, artistic intents, profile settings.",
+                "**Payment data** — handled entirely by Stripe; we do not store any banking data on our servers. Stripe only communicates the status of transactions (success, failure, active subscription) to us.",
+              ]},
+            ],
+          },
+          {
+            title: "3. Legal basis for processing",
+            blocks: [
+              { type: 'p', text: "Processing is based on:" },
+              { type: 'ul', items: [
+                "**Performance of the contract** between you and Versions when you create an account and use the service (article 6.1.b of the GDPR) — this is the primary legal basis for account management, audio file storage and analysis generation.",
+                "**Your consent** (article 6.1.a of the GDPR) for authentication via Google, collected at the time of OAuth login.",
+                "**Legal obligations** applicable to the publisher (article 6.1.c), notably accounting and tax obligations for Stripe transactions.",
+              ]},
+            ],
+          },
+          {
+            title: "4. Hosting and sub-processors",
+            blocks: [
+              { type: 'p', text: "Your data may be processed by our technical service providers: hosting (European Union and United States), payment, authentication and analysis. The detailed list is available upon request at {email}." },
+            ],
+          },
+          {
+            title: "5. Retention period",
+            blocks: [
+              { type: 'ul', items: [
+                "**User account, audio files and analyses** — kept as long as your account is active, then 30 days after account deletion. You can delete each track individually from your dashboard at any time.",
+                "**Billing data** — kept for 10 years in accordance with French accounting obligations.",
+                "**Technical logs** — kept for a maximum of 12 months for security and debugging purposes.",
+              ]},
+            ],
+          },
+          {
+            title: "6. Your rights",
+            blocks: [
+              { type: 'p', text: "Pursuant to the General Data Protection Regulation (GDPR) and the French Data Protection Act, you have the following rights regarding your personal data:" },
+              { type: 'ul', items: [
+                "**Right of access** — obtain a copy of the data we hold about you.",
+                "**Right of rectification** — correct any inaccurate or incomplete data.",
+                "**Right to erasure** — request the deletion of your data.",
+                "**Right to portability** — recover your data in a structured, machine-readable format.",
+                "**Right to object** — object to a specific processing activity.",
+                "**Right to withdraw your consent** at any time, without affecting the lawfulness of prior processing.",
+              ]},
+              { type: 'p', text: "To exercise these rights, write to us at {email}. You also have the right to lodge a complaint with the CNIL (www.cnil.fr)." },
+            ],
+          },
+          {
+            title: "7. Cookies",
+            blocks: [
+              { type: 'p', text: "Versions uses **no tracking or advertising cookies**. Only cookies strictly necessary for the operation of the service are placed on your device:" },
+              { type: 'ul', items: [
+                "A session cookie tied to your authentication.",
+                "Local storage entries (localStorage) used to remember your preferences (language, DAW, interface settings).",
+              ]},
+              { type: 'p', text: "As these trackers are strictly necessary to provide the service, they do not require prior consent in line with CNIL recommendations." },
+            ],
+          },
+          {
+            title: "8. Security",
+            blocks: [
+              { type: 'p', text: "All communications between your browser and our servers are encrypted via HTTPS. Access to your audio files is protected by Supabase's security policies (Row Level Security), which guarantee that only the owner of a file can access it." },
+            ],
+          },
+          {
+            title: "9. Changes",
+            blocks: [
+              { type: 'p', text: "We may update this policy to reflect legal or technical changes. Any substantial change will be notified to you by email or via a banner inside the application." },
+            ],
+          },
+          {
+            title: "10. Contact",
+            blocks: [
+              { type: 'p', text: "For any question regarding your personal data or this policy: {email}." },
+            ],
+          },
+        ],
+      },
+      terms: {
+        eyebrow: "TERMS",
+        title: "Terms of",
+        titleEm: "service",
+        updated: "Last updated: May 4, 2026",
+        lede: "These terms of service (\"Terms\") govern the access to and use of the Versions service, available at www.versions.studio. By creating an account or using the service, you accept these Terms without reservation.",
+        sections: [
+          {
+            title: "1. Purpose of the service",
+            blocks: [
+              { type: 'p', text: "Versions is an online service for AI-powered audio mix analysis. It allows a user to upload an audio track (mix or master), receive a detailed analysis — frequency balance, dynamics, stereo image, listening quality — in the form of a report, and compare successive versions of the same track." },
+              { type: 'p', text: "The service is intended for professional or personal use as part of the creative and technical music production process. It does not constitute a mastering service or the opinion of a certified sound engineer." },
+            ],
+          },
+          {
+            title: "2. Publisher",
+            blocks: [
+              { type: 'p', text: "The service is published by David Berdugo, operating as a sole proprietor under the trade name **Multicolorz**, registered in France under SIRET 819 747 296." },
+              { type: 'p', text: "Contact: {email}" },
+            ],
+          },
+          {
+            title: "3. Registration and user account",
+            blocks: [
+              { type: 'p', text: "Access to the service requires creating an account via Google OAuth authentication. You warrant the accuracy of the information provided and undertake to keep your credentials confidential." },
+              { type: 'p', text: "The account is strictly personal. You are solely responsible for any activity carried out from your account. You must notify us immediately of any unauthorized use." },
+              { type: 'p', text: "You can delete your account at any time from your settings or by contacting us at {email}." },
+            ],
+          },
+          {
+            title: "4. Credits, subscription and billing",
+            blocks: [
+              { type: 'p', text: "The service operates on a credit system. Each analysis consumes one credit. Credits can be obtained:" },
+              { type: 'ul', items: [
+                "**Via a monthly subscription** — a number of credits is granted each month and expires at the end of the subscription period.",
+                "**Via the purchase of one-off packs** — pack credits are cumulative and do not expire as long as your account remains active.",
+              ]},
+              { type: 'p', text: "Payments are processed by Stripe. No banking data is stored on our servers. Prices are listed in euros, including all applicable taxes where relevant." },
+              { type: 'p', text: "In accordance with article L221-28 of the French Consumer Code, you waive your right of withdrawal for digital services delivered immediately after your order. This waiver is expressly accepted at the time of subscription." },
+              { type: 'p', text: "You can cancel your subscription at any time from your settings. Cancellation takes effect at the end of the current billing period; no pro rata refund is issued." },
+            ],
+          },
+          {
+            title: "5. Intellectual property",
+            blocks: [
+              { type: 'p', text: "**Your audio files remain your exclusive property.** You retain all copyright, neighboring rights and master rights relating to the tracks you upload. Versions claims no rights over your works." },
+              { type: 'p', text: "By uploading a track, you only grant us the limited, non-exclusive and revocable license necessary to store, play back and technically analyze the file as part of the service. This license ends when you delete the track or your account." },
+              { type: 'p', text: "Analysis reports generated by Versions, as well as the elements of the interface (text, graphics, logos, code), are the property of the publisher and protected by intellectual property law. You can freely use the report contents for your own production needs, but you may not publicly reproduce or distribute the interface or the service without authorization." },
+              { type: 'p', text: "You warrant that you hold all necessary rights to the files you upload and undertake not to submit content that infringes third-party rights." },
+            ],
+          },
+          {
+            title: "6. Availability and liability",
+            blocks: [
+              { type: 'p', text: "We strive to ensure the availability of the service, but cannot guarantee uninterrupted operation. Maintenance operations, technical incidents or external factors may cause temporary unavailability." },
+              { type: 'p', text: "Analyses produced by Versions are provided for guidance only. They cannot replace the opinion of a sound engineer and do not bind the publisher with regard to the final outcome of a production. The final artistic and technical decision belongs to you." },
+              { type: 'p', text: "The publisher's liability cannot be engaged for indirect damages (data loss, loss of opportunity, loss of profit) arising from the use of the service. The publisher's total liability is in any event limited to the amount paid by the user during the previous twelve (12) months." },
+            ],
+          },
+          {
+            title: "7. Acceptable use",
+            blocks: [
+              { type: 'p', text: "You undertake not to:" },
+              { type: 'ul', items: [
+                "upload illegal, infringing content or content that violates third-party rights;",
+                "attempt to access accounts or resources that do not belong to you;",
+                "disrupt the operation of the service or circumvent its technical protections;",
+                "massively or automatically extract content from the service for commercial purposes without authorization;",
+                "use the service to train third-party artificial intelligence models.",
+              ]},
+              { type: 'p', text: "Any breach may result in the suspension or termination of your account, without prejudice to any compensation actions the publisher may take." },
+            ],
+          },
+          {
+            title: "8. Personal data",
+            blocks: [
+              { type: 'p', text: "The processing of your personal data is described in detail in our privacy policy (link at the bottom of this page). We process your data in compliance with the GDPR and the French Data Protection Act." },
+            ],
+          },
+          {
+            title: "9. Termination",
+            blocks: [
+              { type: 'p', text: "You can stop using the service and delete your account at any time. The publisher may suspend or terminate a user's access in case of breach of these Terms, after notification where reasonably possible." },
+              { type: 'p', text: "Upon termination, audio files and associated data are deleted within 30 days, subject to legal retention obligations (accounting, tax)." },
+            ],
+          },
+          {
+            title: "10. Changes to the Terms",
+            blocks: [
+              { type: 'p', text: "These Terms may be updated to reflect changes in the service or the legal framework. Any substantial change will be notified to you by email or via a banner inside the application. Continued use of the service after notification constitutes acceptance of the new Terms." },
+            ],
+          },
+          {
+            title: "11. Governing law and jurisdiction",
+            blocks: [
+              { type: 'p', text: "These Terms are governed by French law. Failing an amicable resolution, any dispute relating to their performance or interpretation will be submitted to the competent French courts, save for any mandatory legal provision to the contrary." },
+              { type: 'p', text: "In accordance with articles L611-1 et seq. of the French Consumer Code, consumer users may resort to a consumer mediator or use the European online dispute resolution platform available at https://ec.europa.eu/consumers/odr." },
+            ],
+          },
+          {
+            title: "12. Contact",
+            blocks: [
+              { type: 'p', text: "For any question regarding these Terms: {email}." },
+            ],
+          },
+        ],
+      },
     },
   },
 };
