@@ -8898,6 +8898,19 @@ export default function MockupStyles() {
     letter-spacing: 1.5px; text-transform: uppercase;
     color: var(--muted); margin-bottom: 6px;
   }
+  /* Astérisque rouge pour signaler les champs requis dans la modale
+     d'upload (titre, version, type vocal, mix/master, DAW). Les
+     champs facultatifs (genre musical, intention artistique) n'en
+     ont pas. font-weight 700 + couleur rouge pour ressortir sur le
+     gris du label sans changer son rythme. margin-left: 4px pour
+     un petit espace après le label sans le coller. line-height: 1
+     pour que l'astérisque ne décale pas la baseline du label. */
+  .add-mini-required {
+    color: #ff5d5d;
+    margin-left: 4px;
+    font-weight: 700;
+    line-height: 1;
+  }
 
   /* Upload : bandeau projet */
   .add-mini-upload-banner {

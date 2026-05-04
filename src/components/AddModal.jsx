@@ -132,12 +132,11 @@ export default function AddModal({
   // bouton dédié a été retiré pour alléger la modale — moins de
   // décisions, plus fluide.
   const [declaredGenre, setDeclaredGenre] = useState('');
-  // Intention artistique (facultative). Toggle dépliable pour ne pas
-  // alourdir la modale par défaut. Ce qu'on saisissait avant dans
-  // l'IntentionScreen post-Phase-A : maintenant tout en amont, plus
-  // d'interruption mid-analyse.
+  // Intention artistique (facultative). Toujours affichée dans la
+  // modale pour ne pas être ratée par l'artiste. Ce qu'on saisissait
+  // avant dans l'IntentionScreen post-Phase-A : maintenant tout en
+  // amont, plus d'interruption mid-analyse.
   const [artisticIntent, setArtisticIntent] = useState('');
-  const [intentExpanded, setIntentExpanded] = useState(false);
   const [drag, setDrag] = useState(false);
   // États du check durée audio (lecture/erreur). file ne devient non-null
   // que si la durée a été lue ET qu'elle est ≤ MAX_AUDIO_DURATION_SEC.
@@ -247,13 +246,13 @@ export default function AddModal({
       // l'écoute Gemini déjà faite, zéro coût supplémentaire.
       declaredGenre: trimmedGenre || null,
       genreUnknown: !trimmedGenre,
-      // Intention artistique saisie en amont (toggle "+ Ajouter une
-      // intention artistique"). On utilise le champ `inlineIntent`
-      // existant que LoadingScreen passe directement dans /api/analyze/
-      // start → le backend reçoit l'intention dès le départ et ne pause
-      // plus sur `awaiting_intent` post-Phase-A. Plus d'IntentionScreen
-      // à afficher mid-analyse, plus de double round-trip.
-      inlineIntent: (intentExpanded && trimmedIntent) ? trimmedIntent : null,
+      // Intention artistique saisie en amont (champ toujours visible
+      // dans la modale). On utilise le champ `inlineIntent` existant
+      // que LoadingScreen passe directement dans /api/analyze/start →
+      // le backend reçoit l'intention dès le départ et ne pause plus
+      // sur `awaiting_intent` post-Phase-A. Plus d'IntentionScreen à
+      // afficher mid-analyse, plus de double round-trip.
+      inlineIntent: trimmedIntent || null,
       // Scope par défaut 'track' (cas le plus courant : V1, ou V2+
       // qui re-déclare l'intention pour tout le titre).
       _pendingIntentScope: 'track',
@@ -273,7 +272,6 @@ export default function AddModal({
       setUploadType('mix');
       setDeclaredGenre('');
       setArtisticIntent('');
-      setIntentExpanded(false);
       setDrag(false);
       setFileError(null);
       setFileChecking(false);
@@ -703,7 +701,10 @@ export default function AddModal({
             {file && (
               <div className="add-mini-grid-2col">
                 <div>
-                  <div className="add-mini-field-label">{s.addModal.uploadTitleLabel}</div>
+                  <div className="add-mini-field-label">
+                    {s.addModal.uploadTitleLabel}
+                    <span className="add-mini-required" aria-hidden="true">*</span>
+                  </div>
                   <input
                     className="add-mini-input"
                     value={title}
@@ -713,7 +714,10 @@ export default function AddModal({
                   />
                 </div>
                 <div>
-                  <div className="add-mini-field-label">{s.addModal.uploadVersionLabel}</div>
+                  <div className="add-mini-field-label">
+                    {s.addModal.uploadVersionLabel}
+                    <span className="add-mini-required" aria-hidden="true">*</span>
+                  </div>
                   <input
                     className="add-mini-input"
                     value={version}
@@ -727,7 +731,10 @@ export default function AddModal({
             {/* Type vocal (nouveau titre uniquement) */}
             {file && askVocal && (
               <div className="add-mini-field">
-                <div className="add-mini-field-label">{s.addModal.uploadVocalLabel}</div>
+                <div className="add-mini-field-label">
+                  {s.addModal.uploadVocalLabel}
+                  <span className="add-mini-required" aria-hidden="true">*</span>
+                </div>
                 <div className="add-mini-pill-row">
                   <button
                     type="button"
@@ -766,7 +773,10 @@ export default function AddModal({
                 Toujours visible (pas de gate sur `file`) pour rester
                 cohérent avec DAW/Genre qui s'affichent dès l'ouverture. */}
             <div className="add-mini-field">
-              <div className="add-mini-field-label">{s.addModal.uploadTypeLabel}</div>
+              <div className="add-mini-field-label">
+                {s.addModal.uploadTypeLabel}
+                <span className="add-mini-required" aria-hidden="true">*</span>
+              </div>
               <div className="add-mini-pill-row">
                 <button
                   type="button"
@@ -788,7 +798,10 @@ export default function AddModal({
 
             {/* DAW */}
             <div className="add-mini-field">
-              <div className="add-mini-field-label">{s.addModal.uploadDawLabel}</div>
+              <div className="add-mini-field-label">
+                {s.addModal.uploadDawLabel}
+                <span className="add-mini-required" aria-hidden="true">*</span>
+              </div>
               <div className="add-mini-select-wrap">
                 <select
                   className="add-mini-select"
@@ -825,42 +838,23 @@ export default function AddModal({
               />
             </div>
 
-            {/* Intention artistique — toggle dépliable. Plié par défaut
-                pour ne pas alourdir la modale. Si l'utilisateur clique
-                "+ Ajouter une intention artistique", le textarea
-                apparaît. Si saisi, le pipeline saute l'IntentionScreen
-                post-Phase-A (tout est en amont, pas d'interruption). */}
+            {/* Intention artistique — toujours visible (au même titre
+                que Genre musical), facultative. Si saisie, le pipeline
+                saute l'IntentionScreen post-Phase-A (tout est en
+                amont, pas d'interruption mid-analyse). Pas
+                d'astérisque rouge : champ optionnel. */}
             <div className="add-mini-field">
-              {!intentExpanded ? (
-                <button
-                  type="button"
-                  className="add-mini-intent-toggle"
-                  onClick={() => setIntentExpanded(true)}
-                >
-                  + Ajouter une intention artistique
-                </button>
-              ) : (
-                <>
-                  <div className="add-mini-field-label add-mini-field-label-row">
-                    <span>Intention artistique</span>
-                    <button
-                      type="button"
-                      className="add-mini-intent-collapse"
-                      onClick={() => { setIntentExpanded(false); setArtisticIntent(''); }}
-                      aria-label="Replier"
-                      title="Replier"
-                    >×</button>
-                  </div>
-                  <textarea
-                    className="add-mini-input add-mini-textarea"
-                    value={artisticIntent}
-                    onChange={(e) => setArtisticIntent(e.target.value)}
-                    placeholder={intentPh}
-                    rows={3}
-                    maxLength={600}
-                  />
-                </>
-              )}
+              <div className="add-mini-field-label">
+                {lang === 'en' ? 'Artistic intent' : 'Intention artistique'}
+              </div>
+              <textarea
+                className="add-mini-input add-mini-textarea"
+                value={artisticIntent}
+                onChange={(e) => setArtisticIntent(e.target.value)}
+                placeholder={intentPh}
+                rows={3}
+                maxLength={600}
+              />
             </div>
 
             {/* CTA */}

@@ -229,74 +229,6 @@ export default function PricingScreen({
         <div className="pr-errbar" role="alert">{errMsg}</div>
       )}
 
-      {/* ── À LA CARTE — 5 packs en cartes verticales compactes ─────── */}
-      <section className="pr-section pr-section-tight">
-        <div className="pr-section-eyebrow pr-anim">{t.packsEyebrow}</div>
-        <h2 className="pr-section-title pr-anim" style={{ '--anim-d': '60ms' }}>
-          {t.packsTitleStart}<em>{t.packsTitleEm}</em>{t.packsTitleEnd}
-        </h2>
-        <p className="pr-section-lede pr-anim" style={{ '--anim-d': '120ms' }}>{t.packsLede}</p>
-
-        <div className="pr-packs-grid">
-          {PACKS.map((p, i) => {
-            const accent = PACK_ACCENT[p.key] || 'cerulean';
-            // 'mostChosen' = bouton CTA en mode primary (featured)
-            const isFeatured = p.highlightKey === 'mostChosen';
-            const isPending = pendingKey === p.key;
-            const ribbonLabel = p.highlightKey ? t.ribbons?.[p.highlightKey] : null;
-            return (
-              <article
-                key={p.key}
-                className={`pr-pack pr-pack-${accent}${isFeatured ? ' pr-pack-featured' : ''} pr-anim`}
-                style={{ '--anim-d': `${100 + i * 80}ms` }}
-              >
-                {ribbonLabel && <div className="pr-pack-ribbon">{ribbonLabel}</div>}
-                <div className="pr-pack-qty">
-                  <span className="pr-pack-num">{p.credits}</span>
-                  <span className="pr-pack-unit">
-                    {p.credits > 1 ? t.packAnalysisPlural : t.packAnalysisSingular}
-                  </span>
-                </div>
-                <div className="pr-pack-price">
-                  <span className={`pr-price-pill pr-price-pill-${accent}`}>
-                    <span className="pr-price-amount">{formatPrice(p.price_eur)}</span>
-                    <span className="pr-price-currency">€</span>
-                  </span>
-                </div>
-                <div className="pr-pack-meta">
-                  <div className="pr-pack-unit-line">{formatPrice(p.perUnit)} {t.packPerUnit}</div>
-                </div>
-                <button
-                  type="button"
-                  className={isFeatured ? 'pr-cta-primary' : 'pr-cta-secondary'}
-                  onClick={() => goToCheckout(p)}
-                  disabled={isPending}
-                >
-                  {isPending ? t.packRedirecting : t.packBuy}
-                </button>
-              </article>
-            );
-          })}
-        </div>
-
-        {/* Grappe "tout est inclus" — chips colorées, rythme un peu
-            décalé pour casser le strip horizontal monotone. Couleurs
-            qui rappellent les chips du hero (cerulean / mint / violet
-            / amber / rose). */}
-        <div className="pr-included-strip pr-anim">
-          <span className="pr-included-label">{t.includedLabel}</span>
-          <div className="pr-included-chips" aria-hidden="true">
-            <span className="pr-chip pr-chip-mint pr-chip-rot-a">{t.included1}</span>
-            <span className="pr-chip pr-chip-cerulean pr-chip-rot-b">{t.included2}</span>
-            <span className="pr-chip pr-chip-violet pr-chip-rot-c">{t.included3}</span>
-            <span className="pr-chip pr-chip-amber-soft pr-chip-rot-d">{t.included4}</span>
-            <span className="pr-chip pr-chip-neutral pr-chip-rot-e">{t.included5}</span>
-          </div>
-        </div>
-      </section>
-
-      <div className="pr-divider" />
-
       {/* ── ABONNEMENTS — 3 cards (Indie + Pro + École) ──────────────
           Indie + Pro viennent de SUBSCRIPTIONS, École est un cas
           spécial (sans Stripe — mailto + tarif "sur devis"). Les 3
@@ -379,6 +311,75 @@ export default function PricingScreen({
               {t.schoolCta}
             </a>
           </article>
+        </div>
+
+        {/* Grappe "tout est inclus" — chips colorées qui rappellent les
+            chips du hero (cerulean / mint / violet / amber / rose).
+            Placée entre Abonnements et À la carte : sert de pont
+            visuel et rappelle que toute analyse, peu importe le mode
+            d'achat, contient les mêmes livrables. */}
+        <div className="pr-included-strip pr-anim">
+          <span className="pr-included-label">{t.includedLabel}</span>
+          <div className="pr-included-chips" aria-hidden="true">
+            <span className="pr-chip pr-chip-mint pr-chip-rot-a">{t.included1}</span>
+            <span className="pr-chip pr-chip-cerulean pr-chip-rot-b">{t.included2}</span>
+            <span className="pr-chip pr-chip-violet pr-chip-rot-c">{t.included3}</span>
+            <span className="pr-chip pr-chip-amber-soft pr-chip-rot-d">{t.included4}</span>
+            <span className="pr-chip pr-chip-neutral pr-chip-rot-e">{t.included5}</span>
+          </div>
+        </div>
+      </section>
+
+      <div className="pr-divider" />
+
+      {/* ── À LA CARTE — 5 packs en cartes verticales compactes ─────── */}
+      <section className="pr-section pr-section-tight">
+        <div className="pr-section-eyebrow pr-anim">{t.packsEyebrow}</div>
+        <h2 className="pr-section-title pr-anim" style={{ '--anim-d': '60ms' }}>
+          {t.packsTitleStart}<em>{t.packsTitleEm}</em>{t.packsTitleEnd}
+        </h2>
+        <p className="pr-section-lede pr-anim" style={{ '--anim-d': '120ms' }}>{t.packsLede}</p>
+
+        <div className="pr-packs-grid">
+          {PACKS.map((p, i) => {
+            const accent = PACK_ACCENT[p.key] || 'cerulean';
+            // 'mostChosen' = bouton CTA en mode primary (featured)
+            const isFeatured = p.highlightKey === 'mostChosen';
+            const isPending = pendingKey === p.key;
+            const ribbonLabel = p.highlightKey ? t.ribbons?.[p.highlightKey] : null;
+            return (
+              <article
+                key={p.key}
+                className={`pr-pack pr-pack-${accent}${isFeatured ? ' pr-pack-featured' : ''} pr-anim`}
+                style={{ '--anim-d': `${100 + i * 80}ms` }}
+              >
+                {ribbonLabel && <div className="pr-pack-ribbon">{ribbonLabel}</div>}
+                <div className="pr-pack-qty">
+                  <span className="pr-pack-num">{p.credits}</span>
+                  <span className="pr-pack-unit">
+                    {p.credits > 1 ? t.packAnalysisPlural : t.packAnalysisSingular}
+                  </span>
+                </div>
+                <div className="pr-pack-price">
+                  <span className={`pr-price-pill pr-price-pill-${accent}`}>
+                    <span className="pr-price-amount">{formatPrice(p.price_eur)}</span>
+                    <span className="pr-price-currency">€</span>
+                  </span>
+                </div>
+                <div className="pr-pack-meta">
+                  <div className="pr-pack-unit-line">{formatPrice(p.perUnit)} {t.packPerUnit}</div>
+                </div>
+                <button
+                  type="button"
+                  className={isFeatured ? 'pr-cta-primary' : 'pr-cta-secondary'}
+                  onClick={() => goToCheckout(p)}
+                  disabled={isPending}
+                >
+                  {isPending ? t.packRedirecting : t.packBuy}
+                </button>
+              </article>
+            );
+          })}
         </div>
       </section>
 
