@@ -8293,15 +8293,19 @@ export default function MockupStyles() {
     background: rgba(255,93,93,0.06);
   }
 
-  /* Label = eyebrow mono uppercase au-dessus du contenu de la row,
-     comme les eyebrows de section ailleurs sur le site. Plus
-     hiérarchisé que l'ancien label 13px medium.
-     Sur la modale crème, --rg-text bascule en dark warm. */
+  /* Label = eyebrow mono uppercase amber, aligné RIGOUREUSEMENT sur
+     .add-mini-card.is-upload .add-mini-field-label (modèle de référence
+     unifiée des modales du site). Couleur amber soft (78% alpha) pour
+     que les titres de section ressortent du gris sans crier — donne des
+     "ancres visuelles" qui hiérarchisent la modale.
+     Si tu touches à la taille / letter-spacing / couleur ici, fais-le
+     aussi dans .add-mini-card.is-upload .add-mini-field-label pour
+     préserver l'unification. */
   .rg-mini .rg-label {
     font-family: var(--mono);
-    font-size: 10.5px; font-weight: 500;
-    letter-spacing: 1.6px; text-transform: uppercase;
-    color: var(--text);
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 1.8px; text-transform: uppercase;
+    color: rgba(245,166,35,0.78);
     display: flex; align-items: center; gap: 8px;
     line-height: 1.2;
   }
@@ -9117,12 +9121,14 @@ export default function MockupStyles() {
   .fb-nps-btn {
     /* Plus de flex/min-width — c'est le grid parent qui distribue
        les colonnes. Width: 100% pour que chaque bouton remplisse sa
-       cellule de grid. */
+       cellule de grid. Pill 999px : aligne sur la grammaire pill des
+       toggles d'action de la charte unifiée (.add-mini-pill,
+       .add-mini-btn, .add-mini-cta). */
     width: 100%;
     height: 36px; padding: 0 4px;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.03);
+    border-radius: 999px;
+    border: 1px solid var(--btn-border);
+    background: transparent;
     color: var(--soft, #c5c5c7);
     font-family: var(--mono); font-size: 13px; font-weight: 500;
     line-height: 1; cursor: pointer;

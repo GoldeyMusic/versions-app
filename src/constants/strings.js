@@ -810,7 +810,7 @@ const STRINGS = {
     feedback: {
       triggerLabel: "Ton avis compte",
       triggerTitle: "Donne ton avis sur Versions — 3 min, 6 questions",
-      title: "TON AVIS",
+      title: "Ton avis",
       sub: "6 questions courtes — moins de 3 minutes",
       intro: "Tes retours nous aident à calibrer Versions. Tu peux laisser une question vide si tu n'as rien à dire dessus.",
       // Q1 : NPS
@@ -2506,7 +2506,7 @@ const STRINGS = {
     feedback: {
       triggerLabel: "Your feedback matters",
       triggerTitle: "Share your feedback on Versions — 3 min, 6 questions",
-      title: "YOUR FEEDBACK",
+      title: "Your feedback",
       sub: "6 short questions — under 3 minutes",
       intro: "Your feedback helps us calibrate Versions. Skip any question you don't have an answer to.",
       // Q1: NPS
