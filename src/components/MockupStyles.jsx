@@ -8386,19 +8386,24 @@ export default function MockupStyles() {
     color: var(--muted);
     line-height: 1.2;
   }
-  /* CTA "+ Acheter des crédits" — pill amber sur fond dark. */
+  /* CTA "+ Acheter des crédits" — pill amber compact, posé à DROITE
+     du row stack. Taille alignée sur .rg-btn / .add-mini-btn (mono 11px,
+     padding 10px 20px) pour rester cohérent avec les autres boutons
+     d'action de la modale. */
   .rg-mini .rg-account-cta {
     display: inline-flex; align-items: center; justify-content: center;
     gap: 8px;
-    width: 100%;
-    padding: 11px 18px;
+    align-self: flex-end;
+    width: auto;
+    padding: 10px 20px;
     border-radius: 999px;
     background: rgba(245,166,35,0.10);
     border: 1px solid rgba(245,166,35,0.42);
     color: var(--amber);
     font-family: var(--mono);
     font-size: 11px; font-weight: 500;
-    letter-spacing: 1.6px; text-transform: uppercase;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    line-height: 16px;
     cursor: pointer;
     box-shadow: 0 12px 30px -16px rgba(245,166,35,0.4);
     transition: background .18s, border-color .18s, box-shadow .18s, transform .15s;
