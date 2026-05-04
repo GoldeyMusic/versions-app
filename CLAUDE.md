@@ -19,6 +19,8 @@ Récap pour reprendre proprement le projet depuis Cowork.
 | `#/exemple` | Page exemple avec données fictives |
 | `#/analyse` | Nouvelle analyse |
 | `#/reglages` | Réglages |
+| `#/privacy` | Politique de confidentialité (FR/EN) |
+| `#/terms` | Conditions générales d'utilisation (FR/EN) |
 
 - Logo cliquable → pointe vers la landing.
 - "À propos" dans la sidebar → landing.
@@ -88,9 +90,30 @@ Implémentée :
 - Front fiche : `ReleaseReadinessBanner` accepte `uploadType` → libellés "Prêt pour le mastering / Presque prêt à masteriser / Pas encore prêt" en mode mix, libellés historiques en master. Strings dans `strings.js` (FR + EN, clés `releaseMasteringReady*`).
 - RPC publique `get_public_fiche` non touchée pour ne pas casser la signature i18n vivante en prod : les liens publics affichent le verdict "mix" par défaut. À étendre dans une migration séparée si besoin.
 
+## Livré récemment (mai 2026)
+
+Snapshot des chantiers fermés sur la sprint en cours — pour comprendre vite ce qui a bougé sans relire les commits.
+
+- **Pages légales `/privacy` et `/terms`** — éditeur Multicolorz (SIRET 819 747 296), i18n FR/EN via `STRINGS.legal.{privacy,terms}`, layout partagé dans `components/LegalLayout.jsx` (helper `renderLegalInline` pour `**gras**` + `{email}`). Sous-traitants simplifiés en une phrase pointant vers `contact@versions.studio` pour la liste détaillée. Liens "Confidentialité · CGU" en bas de la landing.
+- **Suppression de compte automatique** — bouton danger zone dans la modale Réglages → `confirmDialog({ danger: true })` → `supabase.rpc('delete_my_account')` (RPC SECURITY DEFINER côté DB qui purge en cascade : `mix_note_completions`, `comparisons`, `versions`, `tracks`, `projects`, `credit_events`, `user_credits`, `analysis_cost_logs`, `chat_cost_logs`, `feedback`, `user_profiles`, `revenue_logs`, puis `auth.users`) → `signOut()` → redirect `#/`. Modale d'erreur (mode alert) si la RPC échoue. Storage (audio, avatars, covers) NON purgé par la RPC — orphelin côté DB, à nettoyer via job batch ultérieur.
+- **Résiliation abonnement** — bouton dans Réglages visible uniquement si `monthly_grant > 0` → modale d'explication → mailto pré-rempli vers `contact@versions.studio` (sujet + corps avec email du compte). À remplacer par `cancel_subscription` quand Stripe sera branché côté backend.
+- **Crédits — seed testeurs** — migration `022_seed_5_credits.sql` : 5 crédits aux nouveaux comptes ; `017_seed_99_credits.sql` : 99 crédits seedés pour David + Abakan.
+- **Modale 0 crédits** — `NoCreditsModal.jsx` gate l'écran d'analyse quand `balance_remaining === 0`, CTA vers `/pricing`.
+- **Score Card PNG** — watermark `www.versions.studio` ajouté à l'export (cf. section Refonte).
+- **Plan d'action supprimé** — section absorbée dans les items de diagnostic via `how` + `plugin_pick` (cf. section Refonte).
+- **Layout fiche 1 colonne** — refonte UI desktop fiche (cf. section dédiée).
+- **Pochette + Score global sur la même ligne** — restauré depuis git history après une régression de la refonte.
+- **Sections refermables sur page exemple** — accordéon strict (un seul ouvert à la fois) sur `SampleFicheScreen.jsx`.
+- **Chat fictif sur page exemple** — démo UX du chat fiche sans appels API, pour les visiteurs.
+- **URLs lisibles** — `#/fiche/{slug}/{vN}` (cf. routing) avec rétrocompat UUID dans `parseHash`/`buildHash`.
+- **Fix refresh routing** — guard sur `authLoading` dans le routeInit (deep-link `#/fiche/...` n'écrase plus l'écran avant que la session soit hydratée).
+- **Bloc 6 roadmap supprimé** — tous les tiers AubioMix sont clos, le bloc statut a été retiré (cf. section Roadmap AubioMix).
+
 ## Points en suspens
 
 - Badge "EN COURS" tronqué sur mobile (premier chip V1).
 - Thème clair à finaliser (maquettes H explorées, pas encore implémenté).
 - Adapter vue mobile complète (commencé, reste à auditer).
 - Étendre la RPC `get_public_fiche` pour exposer `upload_type` (les liens publics servent le verdict "mix" par défaut tant que ce n'est pas fait).
+- Brancher Stripe (webhook + RPC `cancel_subscription`) — la résiliation passe pour l'instant par mailto vers le support.
+- Job batch de nettoyage Storage des fichiers orphelins après suppression de compte (audio, avatars, covers).
