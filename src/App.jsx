@@ -33,6 +33,8 @@ import SampleFicheScreen from "./screens/SampleFicheScreen";
 import PricingScreen from "./screens/PricingScreen";
 import AdminScreen from "./screens/AdminScreen";
 import PublicFicheScreen from "./screens/PublicFicheScreen";
+import PrivacyScreen from "./screens/PrivacyScreen";
+import TermsScreen from "./screens/TermsScreen";
 import ReglagesModal from "./components/ReglagesModal";
 import RenameModal from "./components/RenameModal";
 import AddModal from "./components/AddModal";
@@ -2516,6 +2518,8 @@ const SCREEN_HASH = {
   loading: '#/analyse',
   fiche: '#/fiche',
   versions: '#/versions',
+  privacy: '#/privacy',
+  terms: '#/terms',
 };
 const HASH_SCREEN = {
   '#/': 'home',
@@ -2529,6 +2533,8 @@ const HASH_SCREEN = {
   '#/analyse': 'loading',
   '#/fiche': 'fiche',
   '#/versions': 'versions',
+  '#/privacy': 'privacy',
+  '#/terms': 'terms',
 };
 
 // Slugifie un nom (titre, version) pour produire un segment d'URL lisible.
@@ -2641,6 +2647,8 @@ function VersionsAppAuthed() {
     if (h === '#/exemple' || h === '#/sample-report') return 'sample';
     if (h === '#/pricing' || h === '#/tarifs') return 'pricing';
     if (h === '#/admin') return 'admin';
+    if (h === '#/privacy') return 'privacy';
+    if (h === '#/terms') return 'terms';
     return 'welcome';
   });
   // Visiteurs non connectés : landing page par défaut, AuthScreen sur clic CTA.
@@ -2899,19 +2907,21 @@ function VersionsAppAuthed() {
       const h = window.location.hash;
       const isOAuthReturn = h.includes('access_token=') || h.includes('refresh_token=') || h.includes('error=') || h.includes('error_code=');
       // Routes publiques accessibles aux visiteurs : on les laisse intactes
-      // pour ne pas casser un deep-link landing/sample.
-      const isPublicRoute = h === '#/' || h === '#/home' || h === '#/exemple' || h === '#/sample-report';
+      // pour ne pas casser un deep-link landing/sample/privacy/terms.
+      const isPublicRoute = h === '#/' || h === '#/home' || h === '#/exemple' || h === '#/sample-report' || h === '#/privacy' || h === '#/terms';
       if (!isOAuthReturn && !isPublicRoute) {
         window.history.replaceState({ screen: 'welcome' }, '', '#/');
       }
     }
     // Pour les visiteurs, on aligne `screen` sur la route publique courante :
-    // sample garde 'sample' (rendu plein écran), tout le reste tombe sur
-    // 'welcome' (l'auth gate rendra la landing à sa place).
+    // sample/privacy/terms gardent leur écran (rendus plein écran), tout
+    // le reste tombe sur 'welcome' (l'auth gate rendra la landing à sa place).
     if (typeof window !== 'undefined') {
       const h = window.location.hash;
-      const isSample = h === '#/exemple' || h === '#/sample-report';
-      const targetScreen = isSample ? 'sample' : 'welcome';
+      let targetScreen = 'welcome';
+      if (h === '#/exemple' || h === '#/sample-report') targetScreen = 'sample';
+      else if (h === '#/privacy') targetScreen = 'privacy';
+      else if (h === '#/terms') targetScreen = 'terms';
       if (screen !== targetScreen) {
         isHashSyncRef.current = true;
         setScreen(targetScreen);
@@ -3802,11 +3812,27 @@ function VersionsAppAuthed() {
         window.history.pushState({ screen: 'pricing' }, '', '#/pricing');
       }
     };
+    const goPrivacy = () => {
+      setShowAuth(false);
+      setScreen('privacy');
+      if (typeof window !== 'undefined') {
+        window.history.pushState({ screen: 'privacy' }, '', '#/privacy');
+      }
+    };
+    const goTerms = () => {
+      setShowAuth(false);
+      setScreen('terms');
+      if (typeof window !== 'undefined') {
+        window.history.pushState({ screen: 'terms' }, '', '#/terms');
+      }
+    };
     let view;
     if (showAuth) view = <AuthScreen />;
     else if (screen === 'sample') view = <SampleFicheScreen onSignup={goAuth} onBackToLanding={goLanding} />;
     else if (screen === 'pricing') view = <PricingScreen onStart={goAuth} onBackToLanding={goLanding} onViewDashboard={goAuth} isAuthenticated={false} />;
-    else view = <LandingScreen onStart={goAuth} onViewSample={goSample} onViewPricing={goPricing} onViewDashboard={goAuth} isAuthenticated={false} />;
+    else if (screen === 'privacy') view = <PrivacyScreen onBackToLanding={goLanding} onGoTerms={goTerms} />;
+    else if (screen === 'terms') view = <TermsScreen onBackToLanding={goLanding} onGoPrivacy={goPrivacy} />;
+    else view = <LandingScreen onStart={goAuth} onViewSample={goSample} onViewPricing={goPricing} onViewDashboard={goAuth} onGoPrivacy={goPrivacy} onGoTerms={goTerms} isAuthenticated={false} />;
     return (
       <LangContext.Provider value={{ lang, s, setLang, t }}>
         <FontLink />
@@ -3836,6 +3862,8 @@ function VersionsAppAuthed() {
           onViewSample={() => setScreen('sample')}
           onViewPricing={() => setScreen('pricing')}
           onViewDashboard={() => setScreen('welcome')}
+          onGoPrivacy={() => setScreen('privacy')}
+          onGoTerms={() => setScreen('terms')}
           isAuthenticated={true}
           credits={userCredits}
           isAdmin={!!(import.meta.env.VITE_ADMIN_EMAIL && user?.email?.toLowerCase() === import.meta.env.VITE_ADMIN_EMAIL.trim().toLowerCase())}
@@ -3938,6 +3966,36 @@ function VersionsAppAuthed() {
             trackId={config?.trackId || null}
           />
         )}
+      </LangContext.Provider>
+    );
+  }
+
+  // Connecté + #/privacy ou #/terms : pages légales plein écran, sans
+  // sidebar ni rail. Cohérent avec home / pricing : la lecture prime,
+  // pas d'éléments de navigation flottants.
+  if (screen === 'privacy') {
+    return (
+      <LangContext.Provider value={{ lang, s, setLang, t }}>
+        <FontLink />
+        <GlobalStyles />
+        <MockupStyles />
+        <PrivacyScreen
+          onBackToLanding={() => setScreen('home')}
+          onGoTerms={() => setScreen('terms')}
+        />
+      </LangContext.Provider>
+    );
+  }
+  if (screen === 'terms') {
+    return (
+      <LangContext.Provider value={{ lang, s, setLang, t }}>
+        <FontLink />
+        <GlobalStyles />
+        <MockupStyles />
+        <TermsScreen
+          onBackToLanding={() => setScreen('home')}
+          onGoPrivacy={() => setScreen('privacy')}
+        />
       </LangContext.Provider>
     );
   }

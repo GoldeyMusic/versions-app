@@ -20,6 +20,8 @@ export default function LandingScreen({
   onViewSample,
   onViewPricing,
   onViewDashboard,
+  onGoPrivacy,
+  onGoTerms,
   ctaPrimaryLabel,
   ctaFooterLabel,
   isAuthenticated = false,
@@ -299,6 +301,21 @@ export default function LandingScreen({
             {'VER'}<span className="accent">{'Si'}</span>{'ONS'}
           </span>
         </div>
+        {(onGoPrivacy || onGoTerms) && (
+          <nav className="lp-footer-legal" aria-label="Pages légales">
+            {onGoPrivacy && (
+              <button type="button" className="lp-footer-legal-link" onClick={onGoPrivacy}>
+                Confidentialité
+              </button>
+            )}
+            {onGoPrivacy && onGoTerms && <span className="lp-footer-legal-sep" aria-hidden="true">·</span>}
+            {onGoTerms && (
+              <button type="button" className="lp-footer-legal-link" onClick={onGoTerms}>
+                CGU
+              </button>
+            )}
+          </nav>
+        )}
       </footer>
     </div>
   );
@@ -998,6 +1015,26 @@ function LandingStyles() {
         font-family: ${T.body}; font-weight: 700;
         font-size: 22px; letter-spacing: -0.4px;
         color: ${T.text}; line-height: 1;
+      }
+      /* Liens pages légales — discret, sous le wordmark */
+      .lp-footer-legal {
+        margin-top: 18px;
+        display: inline-flex; align-items: center; gap: 10px;
+      }
+      .lp-footer-legal-link {
+        font-family: ${T.mono};
+        font-size: 11px; font-weight: 500;
+        letter-spacing: 1.6px; text-transform: uppercase;
+        color: ${T.muted};
+        background: transparent; border: 0; padding: 4px 6px;
+        cursor: pointer;
+        transition: color .15s;
+      }
+      .lp-footer-legal-link:hover { color: ${T.amber}; }
+      .lp-footer-legal-sep {
+        color: ${T.muted2};
+        font-size: 12px;
+        user-select: none;
       }
 
       /* ── RESPONSIVE ───────────────────────────────── */
