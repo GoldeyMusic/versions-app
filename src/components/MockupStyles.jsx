@@ -8280,6 +8280,18 @@ export default function MockupStyles() {
   .rg-mini .rg-row.is-stack {
     flex-direction: column; align-items: stretch; gap: 10px;
   }
+  /* Danger zone — séparateur visuel + teinte rouge discrète sur la row
+     "Supprimer mon compte". Garde la même grammaire .rg-row mais signale
+     l'irréversibilité par un liseré et un hover plus marqué. */
+  .rg-mini .rg-row.rg-row-danger {
+    margin-top: 18px;
+    border-color: rgba(255,93,93,0.18);
+    background: rgba(255,93,93,0.04);
+  }
+  .rg-mini .rg-row.rg-row-danger:hover {
+    border-color: rgba(255,93,93,0.32);
+    background: rgba(255,93,93,0.06);
+  }
 
   /* Label = eyebrow mono uppercase au-dessus du contenu de la row,
      comme les eyebrows de section ailleurs sur le site. Plus

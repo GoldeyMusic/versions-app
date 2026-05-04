@@ -1017,6 +1017,28 @@ const STRINGS = {
       replayOnboardingLabel: "Guide d'utilisation",
       replayOnboardingHint: "Reprendre le guide étape par étape",
       replayOnboardingBtn: "Revoir",
+      // Résiliation d'abonnement (visible uniquement si abonné).
+      // Stripe pas encore branché → ouvre une modale qui invite à
+      // contacter le support par e-mail (mailto pré-rempli).
+      cancelSubLabel: "Abonnement",
+      cancelSubHint: "Résilier ton abonnement actuel",
+      cancelSubBtn: "Résilier",
+      cancelSubModalTitle: "Résilier l'abonnement",
+      cancelSubModalMessage: "Pour résilier ton abonnement, écris-nous à contact@versions.studio depuis l'adresse e-mail de ton compte. On s'occupe de la résiliation sous 48h.",
+      cancelSubModalConfirm: "Écrire un e-mail",
+      // Suppression de compte — bouton danger, modale de confirmation.
+      // Côté backend rien n'est branché : la modale invite à envoyer un
+      // e-mail au support qui supprimera le compte manuellement.
+      deleteAccountLabel: "Supprimer mon compte",
+      deleteAccountHint: "Supprime définitivement ton compte et toutes tes données",
+      deleteAccountBtn: "Supprimer",
+      deleteAccountModalTitle: "Supprimer mon compte",
+      deleteAccountModalMessage: "Cette action est irréversible. Tous tes projets, analyses et fichiers audio seront définitivement supprimés. Pour confirmer la suppression, écris-nous à contact@versions.studio depuis l'adresse e-mail de ton compte.",
+      deleteAccountModalConfirm: "Écrire un e-mail",
+      mailtoCancelSubSubject: "Résiliation de mon abonnement",
+      mailtoCancelSubBody: "Bonjour,\n\nJe souhaite résilier mon abonnement Versions.\n\nE-mail du compte : {email}\n\nMerci.",
+      mailtoDeleteAccountSubject: "Suppression de mon compte",
+      mailtoDeleteAccountBody: "Bonjour,\n\nJe souhaite supprimer définitivement mon compte Versions ainsi que toutes les données associées (projets, analyses, fichiers audio).\n\nE-mail du compte : {email}\n\nMerci.",
       close: "Fermer",
     },
 
@@ -1505,7 +1527,7 @@ const STRINGS = {
           {
             title: "1. Identité de l'éditeur",
             blocks: [
-              { type: 'p', text: "Le service Versions est édité par David Berdugo, exerçant en auto-entreprise sous la dénomination **Multicolorz**, immatriculée en France sous le SIRET 819 747 296." },
+              { type: 'p', text: "Le service Versions est édité par **Multicolorz**, auto-entreprise immatriculée en France sous le SIRET 819 747 296." },
               { type: 'p', text: "Contact : {email}" },
             ],
           },
@@ -1612,7 +1634,7 @@ const STRINGS = {
           {
             title: "2. Éditeur",
             blocks: [
-              { type: 'p', text: "Le service est édité par David Berdugo, exerçant en auto-entreprise sous la dénomination **Multicolorz**, immatriculée en France sous le SIRET 819 747 296." },
+              { type: 'p', text: "Le service est édité par **Multicolorz**, auto-entreprise immatriculée en France sous le SIRET 819 747 296." },
               { type: 'p', text: "Contact : {email}" },
             ],
           },
@@ -2691,6 +2713,24 @@ const STRINGS = {
       replayOnboardingLabel: "Onboarding guide",
       replayOnboardingHint: "Restart the step-by-step guide",
       replayOnboardingBtn: "Replay",
+      // Subscription cancellation (visible only when subscribed).
+      cancelSubLabel: "Subscription",
+      cancelSubHint: "Cancel your current subscription",
+      cancelSubBtn: "Cancel",
+      cancelSubModalTitle: "Cancel subscription",
+      cancelSubModalMessage: "To cancel your subscription, email us at contact@versions.studio from your account's email address. We'll process the cancellation within 48 hours.",
+      cancelSubModalConfirm: "Send email",
+      // Account deletion — danger button + confirmation modal.
+      deleteAccountLabel: "Delete my account",
+      deleteAccountHint: "Permanently delete your account and all your data",
+      deleteAccountBtn: "Delete",
+      deleteAccountModalTitle: "Delete my account",
+      deleteAccountModalMessage: "This action is irreversible. All your projects, analyses and audio files will be permanently deleted. To confirm deletion, email us at contact@versions.studio from your account's email address.",
+      deleteAccountModalConfirm: "Send email",
+      mailtoCancelSubSubject: "Cancel my subscription",
+      mailtoCancelSubBody: "Hello,\n\nI'd like to cancel my Versions subscription.\n\nAccount email: {email}\n\nThanks.",
+      mailtoDeleteAccountSubject: "Delete my account",
+      mailtoDeleteAccountBody: "Hello,\n\nI'd like to permanently delete my Versions account along with all associated data (projects, analyses, audio files).\n\nAccount email: {email}\n\nThanks.",
       close: "Close",
     },
 
@@ -3153,7 +3193,7 @@ const STRINGS = {
           {
             title: "1. Publisher identity",
             blocks: [
-              { type: 'p', text: "The Versions service is published by David Berdugo, operating as a sole proprietor under the trade name **Multicolorz**, registered in France under SIRET 819 747 296." },
+              { type: 'p', text: "The Versions service is published by **Multicolorz**, a French sole proprietorship registered under SIRET 819 747 296." },
               { type: 'p', text: "Contact: {email}" },
             ],
           },
@@ -3260,7 +3300,7 @@ const STRINGS = {
           {
             title: "2. Publisher",
             blocks: [
-              { type: 'p', text: "The service is published by David Berdugo, operating as a sole proprietor under the trade name **Multicolorz**, registered in France under SIRET 819 747 296." },
+              { type: 'p', text: "The service is published by **Multicolorz**, a French sole proprietorship registered under SIRET 819 747 296." },
               { type: 'p', text: "Contact: {email}" },
             ],
           },

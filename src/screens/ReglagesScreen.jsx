@@ -3,6 +3,25 @@ import DAWS from '../constants/daws';
 import { useAuth } from '../hooks/useAuth';
 import useLang from '../hooks/useLang';
 import { supabase } from '../lib/supabase';
+import { confirmDialog } from '../lib/confirm.jsx';
+
+// Adresse de contact unique (cf. pages légales). Centralisée ici pour
+// pouvoir construire les mailto de résiliation et suppression de compte
+// sans duppliquer la chaîne.
+const CONTACT_EMAIL = 'contact@versions.studio';
+
+// Construit un lien mailto encodé. Subject + body peuvent contenir
+// du texte multi-lignes (les \n dans body sont encodés).
+function buildMailto(subject, body) {
+  const params = new URLSearchParams();
+  if (subject) params.set('subject', subject);
+  if (body) params.set('body', body);
+  // URLSearchParams encode les espaces en "+" — pour un mailto on
+  // préfère %20 (certains clients mail interprètent mal le "+"). On
+  // remplace après coup pour garder l'encodage des autres caractères.
+  const qs = params.toString().replace(/\+/g, '%20');
+  return `mailto:${CONTACT_EMAIL}?${qs}`;
+}
 
 /* ═══════════════════════════════════════════════════════════ */
 /* RÉGLAGES — mini-modal v2                                    */
@@ -142,6 +161,51 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
     else if (onGoHome) onGoHome();
   };
 
+  // ── Résiliation d'abonnement ───────────────────────────────
+  // Stripe pas encore branché côté backend → la modale de confirmation
+  // explique la marche à suivre (e-mail au support) et le bouton
+  // déclenche l'ouverture d'un mailto pré-rempli avec l'email du compte.
+  // À remplacer par un appel `cancel_subscription` quand le webhook
+  // Stripe sera branché.
+  const handleCancelSubscription = async () => {
+    const ok = await confirmDialog({
+      title: s.reglages.cancelSubModalTitle,
+      message: s.reglages.cancelSubModalMessage,
+      confirmLabel: s.reglages.cancelSubModalConfirm,
+      cancelLabel: s.common.cancel,
+    });
+    if (ok !== 'confirm') return;
+    const subject = s.reglages.mailtoCancelSubSubject;
+    const body = (s.reglages.mailtoCancelSubBody || '')
+      .replace('{email}', user?.email || '');
+    if (typeof window !== 'undefined') {
+      window.location.href = buildMailto(subject, body);
+    }
+  };
+
+  // ── Suppression de compte ──────────────────────────────────
+  // Côté Supabase, la suppression de auth.users nécessite la service-
+  // role key (ou une RPC SECURITY DEFINER ad hoc) qu'on n'a pas
+  // exposée. Tant que la RPC n'existe pas, on demande à l'utilisateur
+  // d'écrire au support pour que la suppression soit effectuée
+  // manuellement (avec sa cascade : tracks, versions, fichiers Storage).
+  const handleDeleteAccount = async () => {
+    const ok = await confirmDialog({
+      title: s.reglages.deleteAccountModalTitle,
+      message: s.reglages.deleteAccountModalMessage,
+      confirmLabel: s.reglages.deleteAccountModalConfirm,
+      cancelLabel: s.common.cancel,
+      danger: true,
+    });
+    if (ok !== 'confirm') return;
+    const subject = s.reglages.mailtoDeleteAccountSubject;
+    const body = (s.reglages.mailtoDeleteAccountBody || '')
+      .replace('{email}', user?.email || '');
+    if (typeof window !== 'undefined') {
+      window.location.href = buildMailto(subject, body);
+    }
+  };
+
   // Tant que la facturation n'est pas branchée, David est affiché Premium manuellement.
   // À remplacer par user?.plan === 'premium' quand les abonnements seront actifs.
   const planLabel = s.reglages.miniAccountPlanPremium;
@@ -273,35 +337,55 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
               else if (onGoHome) onGoHome();
             };
             return (
-              <div className="rg-row is-stack">
-                <div className="rg-account-row">
-                  <div>
-                    <div className="rg-label">{s.reglages.miniAccountLabel}</div>
-                    <div className="rg-hint">{user?.email || ''}</div>
-                  </div>
-                  <div className="rg-account-meta">
-                    {credText && (
-                      <span className="rg-account-credits">{credText}</span>
-                    )}
-                    <span className={`rg-account-plan${isSubscribed ? ' is-premium' : ''}`}>
-                      {planText}
-                    </span>
-                    {renewText && (
-                      <span className="rg-account-renew">
-                        {(s.reglages.renewsOn || 'Renouvelle le {date}').replace('{date}', renewText)}
+              <>
+                <div className="rg-row is-stack">
+                  <div className="rg-account-row">
+                    <div>
+                      <div className="rg-label">{s.reglages.miniAccountLabel}</div>
+                      <div className="rg-hint">{user?.email || ''}</div>
+                    </div>
+                    <div className="rg-account-meta">
+                      {credText && (
+                        <span className="rg-account-credits">{credText}</span>
+                      )}
+                      <span className={`rg-account-plan${isSubscribed ? ' is-premium' : ''}`}>
+                        {planText}
                       </span>
-                    )}
+                      {renewText && (
+                        <span className="rg-account-renew">
+                          {(s.reglages.renewsOn || 'Renouvelle le {date}').replace('{date}', renewText)}
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    className="rg-account-cta"
+                    onClick={goToPricing}
+                  >
+                    <span className="rg-account-cta-icon" aria-hidden="true">+</span>
+                    <span>{s.reglages.buyCreditsCta || (isSubscribed ? 'Gérer mon abonnement' : 'Acheter des crédits')}</span>
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="rg-account-cta"
-                  onClick={goToPricing}
-                >
-                  <span className="rg-account-cta-icon" aria-hidden="true">+</span>
-                  <span>{s.reglages.buyCreditsCta || (isSubscribed ? 'Gérer mon abonnement' : 'Acheter des crédits')}</span>
-                </button>
-              </div>
+
+                {/* Résilier l'abonnement — visible seulement si l'user est
+                    abonné. Modale d'explication + mailto contact pré-rempli. */}
+                {isSubscribed && (
+                  <div className="rg-row">
+                    <div>
+                      <div className="rg-label">{s.reglages.cancelSubLabel}</div>
+                      <div className="rg-hint">{s.reglages.cancelSubHint}</div>
+                    </div>
+                    <button
+                      type="button"
+                      className="rg-btn"
+                      onClick={handleCancelSubscription}
+                    >
+                      {s.reglages.cancelSubBtn}
+                    </button>
+                  </div>
+                )}
+              </>
             );
           })()}
 
@@ -333,6 +417,23 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
               }}
             >
               {s.reglages.replayOnboardingBtn}
+            </button>
+          </div>
+
+          {/* ── Supprimer mon compte ── danger zone, en bas avant le footer.
+              Tant que la RPC backend n'existe pas, la modale demande à
+              l'utilisateur d'écrire au support — bouton mailto pré-rempli. */}
+          <div className="rg-row rg-row-danger">
+            <div>
+              <div className="rg-label">{s.reglages.deleteAccountLabel}</div>
+              <div className="rg-hint">{s.reglages.deleteAccountHint}</div>
+            </div>
+            <button
+              type="button"
+              className="rg-btn is-danger"
+              onClick={handleDeleteAccount}
+            >
+              {s.reglages.deleteAccountBtn}
             </button>
           </div>
 
