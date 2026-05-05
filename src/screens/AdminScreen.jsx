@@ -1454,10 +1454,18 @@ function AdminStyles() {
       }
       .cost-kpi-value {
         /* Charte Versions : DM Sans 700 pour les chiffres clés, sans
-           italique. Italique réservé aux verdicts (Cormorant). */
+           italique. Italique réservé aux verdicts (Cormorant).
+           clamp(26, 2.5vw, 36) pour éviter overflow sur 13" : à 1280px
+           viewport on tombe à 32px, à 1480+ on garde le 36px d origine. */
         font-family: ${T.body}; font-style: normal; font-weight: 700;
-        font-size: 36px; line-height: 1; letter-spacing: -1px;
+        font-size: clamp(26px, 2.5vw, 36px);
+        line-height: 1; letter-spacing: -1px;
         color: ${T.text};
+        /* Garde-fou si la valeur dépasse encore : ellipsis plutôt que
+           débordement visible de la card. */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .cost-kpi-sub {
         font-family: ${T.body}; font-size: 12px; font-weight: 300;

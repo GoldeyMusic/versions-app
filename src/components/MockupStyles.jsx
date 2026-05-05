@@ -5937,6 +5937,25 @@ export default function MockupStyles() {
      si on calait la formule sur 1080). */
   body.app-layout-fiche { --app-content-w: 920px; }
   body.app-layout-dashboard { --app-content-w: 1080px; }
+  /* Paliers de width pour l expand 290 → cap dynamique sur petits
+     écrans (worst case dashboard, content 1080px → couloir gauche
+     plus étroit que sur fiche). Sans ça, sur 13" la pill expand
+     clippait sur le bord gauche du viewport. Largeurs fixes par
+     palier (pas min/calc) pour préserver l interpolation cubic-bezier
+     du bounce — même logique que la chat-pill (cf. supra).
+     Fix 2026-05-05 jumeau du fix chat-pill. */
+  @media (max-width: 1559px) and (min-width: 1481px) {
+    .add-pill:hover, .add-pill:focus-visible { width: 280px; }
+  }
+  @media (max-width: 1480px) and (min-width: 1401px) {
+    .add-pill:hover, .add-pill:focus-visible { width: 240px; }
+  }
+  @media (max-width: 1400px) and (min-width: 1321px) {
+    .add-pill:hover, .add-pill:focus-visible { width: 200px; }
+  }
+  @media (max-width: 1320px) and (min-width: 1241px) {
+    .add-pill:hover, .add-pill:focus-visible { width: 160px; }
+  }
   /* Sous 1240px : pas d'espace libre à gauche → on rebascule en
      bottom-strip pleine largeur (mais à gauche du chat pill qui est
      aussi en bottom-strip via son @media). */
