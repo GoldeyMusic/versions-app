@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import T from '../constants/theme';
-import API from '../constants/api';
+import { apiFetch } from '../lib/apiClient';
 import { IconX, IconSend } from './Icons';
 import useLang from '../hooks/useLang';
 
@@ -26,7 +26,7 @@ export default function AskModal({ onClose }) {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 45000);
-      const res = await fetch(`${API}/api/ask`, {
+      const res = await apiFetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,

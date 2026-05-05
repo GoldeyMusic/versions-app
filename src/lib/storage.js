@@ -355,11 +355,11 @@ export async function loadVersionLocalized(versionId, userLocale) {
   if (cache[target]) return cache[target];
 
   // Cas 3 : cache miss → traduction à la volée
-  const API = (await import('../constants/api')).default;
+  const { apiFetch } = await import('./apiClient');
   const callTranslate = async (type, content) => {
     if (!content || typeof content !== 'object') return null;
     try {
-      const r = await fetch(`${API}/api/translate`, {
+      const r = await apiFetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, content, targetLocale: target, sourceLocale: source }),
@@ -627,11 +627,11 @@ export async function translateAnalysisResult(analysisResult, sourceLocale, targ
   const source = (sourceLocale || 'fr').toString().toLowerCase().slice(0, 2);
   const target = (targetLocale || 'fr').toString().toLowerCase().slice(0, 2);
   if (source === target) return analysisResult;
-  const API = (await import('../constants/api')).default;
+  const { apiFetch } = await import('./apiClient');
   const callTranslate = async (type, content) => {
     if (!content || typeof content !== 'object') return null;
     try {
-      const r = await fetch(`${API}/api/translate`, {
+      const r = await apiFetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, content, targetLocale: target, sourceLocale: source }),
@@ -859,9 +859,9 @@ export async function getOrCreateComparison(trackId, versionA, versionB, locale)
     if (trCache[target]) return trCache[target];
 
     // Cache miss : on traduit à la demande
-    const API = (await import('../constants/api')).default;
+    const { apiFetch } = await import('./apiClient');
     try {
-      const r = await fetch(`${API}/api/translate`, {
+      const r = await apiFetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'comparison', content: cached.result, targetLocale: target, sourceLocale: source }),
@@ -895,8 +895,8 @@ export async function getOrCreateComparison(trackId, versionA, versionB, locale)
     throw err;
   }
 
-  const API = (await import('../constants/api')).default;
-  const resp = await fetch(`${API}/api/compare`, {
+  const { apiFetch } = await import('./apiClient');
+  const resp = await apiFetch('/api/compare', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ficheA, ficheB, nameA: versionA.name, nameB: versionB.name, locale: target }),

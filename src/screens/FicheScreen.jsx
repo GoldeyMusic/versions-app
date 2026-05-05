@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import API from '../constants/api';
+import { apiFetch } from '../lib/apiClient';
 // import CompareButton from '../components/CompareButton'; // mis en sommeil
 // VChip (carousel de chips V1/V2/V3) remplacé par VersionDropdown — import retiré.
 import ExportPdfModal from '../components/ExportPdfModal';
@@ -1519,7 +1519,7 @@ function pickDspMetrics(version, analysisResult) {
 }
 
 // Normalise + formate la tonalité pour affichage (chip topbar).
-// Cohérent avec normalizeKey() côté backend (decode-api/lib/fadr.js) :
+// Cohérent avec normalizeKey() côté backend (versions-api/lib/fadr.js) :
 // préfère les bémols en majeur (D# → Eb, A# → Bb, G# → Ab),
 // préfère les dièses en mineur (Db → C#, Gb → F#, Ab → G#).
 // Les anciennes valeurs Fadr brutes en base ("D#:maj") sont normalisées
@@ -3251,13 +3251,10 @@ function VersionChat({
       const controller = new AbortController();
       controllerRef.current = controller;
       const timeout = setTimeout(() => controller.abort(), 45000);
-      // userId / versionId envoyés au backend pour tracker le coût du
-      // chat dans chat_cost_logs (alimente le dashboard #/admin).
-      // Si pas de session (anonymous), userId = null et la ligne sera
-      // loggée sans rattachement utilisateur.
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id || null;
-      const res = await fetch(`${API}/api/chat`, {
+      // versionId envoyé pour tracker le coût du chat dans chat_cost_logs.
+      // userId est dérivé du Bearer JWT côté backend (requireAuth) — plus
+      // besoin de l'envoyer depuis le client.
+      const res = await apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
@@ -3271,7 +3268,6 @@ function VersionChat({
           daw: config?.daw || 'Logic Pro',
           listening: analysisResult?.listening || null,
           fiche: analysisResult?.fiche || null,
-          userId,
           versionId: versionId || null,
         }),
       });
@@ -4239,7 +4235,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
       const uploadType = versionInDb?.uploadType || 'mix';
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 60000);
-      const res = await fetch(`${API}/api/mastering-charter`, {
+      const res = await apiFetch('/api/mastering-charter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import useLang from '../hooks/useLang';
 import DAWS from '../constants/daws';
 
-// Cap audio (sync avec backend decode-api/api/analyze.js).
+// Cap audio (sync avec backend versions-api/api/analyze.js).
 // 720s = 12 min : limite anti-DJ-set qui protège l'API Fadr/Gemini.
 const MAX_AUDIO_DURATION_SEC = 720;
 

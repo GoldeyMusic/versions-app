@@ -1,4 +1,4 @@
-// URL du backend Versions (decode-api).
+// URL du backend Versions.
 //
 // REVERT 2026-04-29 (nuit) : retour sur Railway après tentative migration
 // Vercel échouée. Le pipeline d'analyse stocke le job state dans un `Map`
@@ -12,10 +12,11 @@
 // dans une table Supabase (`analysis_jobs`) lisible/écrivable par toutes
 // les invocations. Plan détaillé : `docs/UPLOAD_DIRECT_PLAN.md`.
 //
-// État actuel : upload direct câblé côté frontend, fonctionnel sur
-// Railway aussi (même code backend). Le PUT signé navigateur→Supabase
-// marche, le storagePath est bien transmis à `/analyze/start`. Seule
-// l'archi de partage de state bloque le passage Vercel.
-const API = "https://decode-api-production.up.railway.app";
+// 2026-05-05 : URL fournie via env (VITE_API_URL) pour faciliter la
+// transition vers le nom versions-api une fois le service Railway renommé.
+// Fallback sur l'URL historique decode-api-production tant que le rename
+// Railway n'a pas eu lieu.
+const API = import.meta.env.VITE_API_URL
+  || 'https://decode-api-production.up.railway.app';
 
 export default API;

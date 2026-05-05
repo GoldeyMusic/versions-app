@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import T from '../constants/theme';
-import API from '../constants/api';
+import { apiFetch } from '../lib/apiClient';
 import useLang from '../hooks/useLang';
 import { supabase } from '../lib/supabase';
 import { PACKS, SUBSCRIPTIONS, SCHOOL_CONTACT_EMAIL, getPriceIdForPlan } from '../constants/plans';
@@ -122,14 +122,9 @@ export default function PricingScreen({
     }
     setPendingKey(plan.key);
     try {
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess?.session?.access_token || '';
-      const res = await fetch(`${API}/api/billing/checkout`, {
+      const res = await apiFetch('/api/billing/checkout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           planKey: plan.key,
           priceId,

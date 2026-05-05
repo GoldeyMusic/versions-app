@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import WaveSurfer from 'wavesurfer.js';
-import API from '../constants/api';
+import { apiFetch } from '../lib/apiClient';
 import useLang from '../hooks/useLang';
 
 /**
@@ -52,7 +52,9 @@ export async function resolveAudio(storagePath) {
   // Signed URL
   let signedUrl = urlCache.get(storagePath);
   if (!signedUrl) {
-    const res = await fetch(`${API}/api/audio/signed-url?path=${encodeURIComponent(storagePath)}`);
+    // apiFetch attache le Bearer JWT — le backend (requireAuth + check ownership)
+    // refuse 401/403 si un autre user essaie de signer cette URL.
+    const res = await apiFetch(`/api/audio/signed-url?path=${encodeURIComponent(storagePath)}`);
     const { url, error } = await res.json();
     if (error || !url) throw new Error(error || 'no url');
     signedUrl = url;

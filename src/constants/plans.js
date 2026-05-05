@@ -7,7 +7,7 @@
  *   - 1 formule École "sur devis" (pas de Stripe, mailto)
  *
  * Les Price IDs Stripe ne sont PAS hardcodés ici : ils arrivent via les
- * variables d'env Vite, créées par le script `decode-api/scripts/init_stripe_catalog.js`.
+ * variables d'env Vite, créées par le script `versions-api/scripts/init_stripe_catalog.js`.
  * Tant qu'elles ne sont pas définies, les boutons d'achat sont désactivés
  * avec un message "configuration en cours" — utile pendant la phase test.
  *

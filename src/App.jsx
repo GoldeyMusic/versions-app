@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import STRINGS, { pick } from "./constants/strings";
 import T from "./constants/theme";
-import API from "./constants/api";
+import { apiFetch } from "./lib/apiClient";
 import { LangContext } from "./hooks/useLang";
 import useLang from "./hooks/useLang";
 import useMobile from "./hooks/useMobile";
@@ -3382,7 +3382,7 @@ function VersionsAppAuthed() {
     if (pollingRef.current) clearInterval(pollingRef.current);
     pollingRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`${API}/api/analyze/status/${jobId}`);
+        const res = await apiFetch(`/api/analyze/status/${jobId}`);
         const job = await res.json();
         if (job.fiche) {
           setAnalysisResult(prev => ({ ...prev, fiche: job.fiche, _stage: job.stage }));
@@ -3516,7 +3516,7 @@ function VersionsAppAuthed() {
   const handleIntentSubmit = async (intent, scope) => {
     if (!intentCtx?.jobId) return;
     try {
-      await fetch(`${API}/api/analyze/diagnose/${intentCtx.jobId}`, {
+      await apiFetch(`/api/analyze/diagnose/${intentCtx.jobId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ intent, scope }),
@@ -3541,7 +3541,7 @@ function VersionsAppAuthed() {
   const handleIntentSkip = async () => {
     if (!intentCtx?.jobId) return;
     try {
-      await fetch(`${API}/api/analyze/diagnose/${intentCtx.jobId}`, {
+      await apiFetch(`/api/analyze/diagnose/${intentCtx.jobId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ skipIntent: true }),

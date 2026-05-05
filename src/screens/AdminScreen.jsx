@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import T from '../constants/theme';
 import { supabase } from '../lib/supabase';
 
-// ── Constantes Fadr (synchro avec decode-api/lib/costTracker.js) ──
+// ── Constantes Fadr (synchro avec versions-api/lib/costTracker.js) ──
 // Abo Fadr Plus = $10/mois ≈ 9,20 € à 0.92, inclut $10 d'API soit
 // 200 minutes au tarif Create Stem Task ($0.05/min ≈ 0,046 €/min).
 const FADR_EUR_PER_MIN = 0.046;
@@ -24,7 +24,7 @@ const INFRA_COSTS = [
   {
     label: 'Railway Hobby',
     eurMonth: 4.60,            // $5/mois × 0.92 — inclut $5 d'usage, suffit pour le volume actuel
-    note: 'Backend decode-api · $5/mois flat (usage inclus)',
+    note: 'Backend versions-api · $5/mois flat (usage inclus)',
     tone: 'amber',
   },
   {
@@ -750,7 +750,7 @@ export default function AdminScreen() {
               VER<span className="accent">Si</span>ONS
             </div>
             <div className="cost-footer-line">
-              Tarifs unitaires définis dans <code>decode-api/lib/costTracker.js</code>.
+              Tarifs unitaires définis dans <code>versions-api/lib/costTracker.js</code>.
               Recettes alimentées via <code>revenue_logs</code> (Stripe webhook à brancher).
             </div>
           </footer>

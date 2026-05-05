@@ -5,7 +5,8 @@ Récap pour reprendre proprement le projet depuis Cowork.
 ## Architecture
 
 - **Front** : `~/versions-app/src/` — React + Vite, déployé sur Vercel.
-- **Backend** : `~/decode-api/` — Node, héberge l'analyse Claude (Sonnet 4.6).
+- **Backend** : `~/versions-api/` — Node, héberge l'analyse Claude (Sonnet 4.6).
+  - Anciennement `~/decode-api/` — renommé 2026-05-05 lors du passage en prod (le projet "Decode" original n'est plus d'actualité).
 - **Deploy** : `git push` sur `main` → Vercel auto (front) et redeploy backend.
 - **Ne PAS utiliser** `~/Desktop/Versions/` ni `deploy.sh` (legacy).
 

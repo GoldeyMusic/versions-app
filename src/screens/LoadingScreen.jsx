@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import API from '../constants/api';
+import { apiFetch } from '../lib/apiClient';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { hashAudioFile, findDuplicateAudio, loadTracks, getInheritedIntentByTitle, loadNoteCompletions } from "../lib/storage";
 import { supabase } from "../lib/supabase";
@@ -100,7 +100,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           while (attempts < 120) {
             await new Promise((r) => setTimeout(r, 3000));
             if (canceledRef.current) return;
-            const pollRes = await fetch(`${API}/api/analyze/status/${jobId}`);
+            const pollRes = await apiFetch(`/api/analyze/status/${jobId}`);
             const job = await pollRes.json();
             console.log("🔄 Poll (resume)", attempts, "— status:", job.status, "stage:", job.stage, "pct:", job.pct, "hasFiche:", !!job.fiche, "keys:", Object.keys(job).join(","));
             // Propage le vrai pct backend à l'anneau (cf. backendPct au top
@@ -251,7 +251,8 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
         // Sinon : fallback multipart historique (cas rares, ex. anonymous).
         const { data: { session } } = await supabase.auth.getSession();
         const userId = session?.user?.id || null;
-        console.log('[analyze] userId:', userId);
+        // Pas de log d'userId en prod : visible aux extensions navigateur.
+        if (import.meta.env.DEV) console.log('[analyze] userId present:', !!userId);
 
         setPhase(1);
         let startRes;
@@ -267,10 +268,11 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           // ─── UPLOAD DIRECT NAVIGATEUR → SUPABASE ─────────────────────
           // 1. Demander une URL signée d'upload au backend
           const fileExt = (config.file.name?.split('.').pop() || 'wav').toLowerCase();
-          const signRes = await fetch(`${API}/api/storage/sign-upload`, {
+          // userId n'est plus envoyé : le backend le dérive du JWT (requireAuth).
+          const signRes = await apiFetch('/api/storage/sign-upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, ext: fileExt }),
+            body: JSON.stringify({ ext: fileExt }),
           });
           if (!signRes.ok) {
             throw new Error(s.loading.errorStart.replace('{status}', `sign-upload ${signRes.status}`));
@@ -328,7 +330,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           if (config.declaredGenre) startBody.declaredGenre = config.declaredGenre;
           if (config.genreUnknown) startBody.genreUnknown = 'true';
 
-          startRes = await fetch(`${API}/api/analyze/start`, {
+          startRes = await apiFetch('/api/analyze/start', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(startBody),
@@ -366,7 +368,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           if (config.declaredGenre) formData.append("declaredGenre", config.declaredGenre);
           if (config.genreUnknown) formData.append("genreUnknown", "true");
 
-          startRes = await fetch(`${API}/api/analyze/start`, {
+          startRes = await apiFetch('/api/analyze/start', {
             method: "POST",
             body: formData,
           });
@@ -374,7 +376,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
         if (!startRes.ok) {
           // 413 a deux origines très différentes :
           //  - notre backend renvoie 413 + JSON { receivedSeconds } quand
-          //    l'audio dépasse le cap de 12 min (cf. decode-api/lib/audioCap).
+          //    l'audio dépasse le cap de 12 min (cf. versions-api/lib/audioCap).
           //  - la plateforme Vercel renvoie 413 SANS payload utile quand le
           //    body de la requête multipart dépasse ~4,5 MB (limite serverless).
           // → on distingue via la présence d'un `receivedSeconds > 0`.
@@ -411,7 +413,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
         while (attempts < 120) {
           await new Promise((r) => setTimeout(r, 3000));
           if (canceledRef.current) return; // bouton "Annuler l'analyse"
-          const pollRes = await fetch(`${API}/api/analyze/status/${jobId}`);
+          const pollRes = await apiFetch(`/api/analyze/status/${jobId}`);
           const job = await pollRes.json();
           console.log("🔄 Poll", attempts, "— status:", job.status, "stage:", job.stage, "pct:", job.pct);
           // Propage le vrai pct backend à l'anneau (cf. backendPct au top).
