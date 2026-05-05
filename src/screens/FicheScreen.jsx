@@ -5662,7 +5662,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                 </svg>
               </span>
               <span className="chat-pill-placeholder">
-                {s.fiche.chatPillPlaceholder || 'Demande à Versions…'}
+                {s.fiche.chatPillPlaceholder || 'Chat'}
               </span>
               <span className="chat-pill-cta" aria-hidden="true">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
