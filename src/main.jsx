@@ -7,6 +7,13 @@ import 'drag-drop-touch'
 import App from './App.jsx'
 import { AuthProvider } from './hooks/useAuth.jsx'
 
+// Le footer SEO statique de index.html n'est utile qu'aux crawlers qui
+// ne rendent pas le JS (validation OAuth Google notamment). Dès que le
+// JS s'exécute, on le supprime du DOM pour qu'il n'interfère jamais avec
+// l'UI applicative (qui a son propre footer dans la landing).
+const seoFooter = document.getElementById('seo-static-footer')
+if (seoFooter) seoFooter.remove()
+
 createRoot(document.getElementById('root')).render(
   <AuthProvider>
     <App />

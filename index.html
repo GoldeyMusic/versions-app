@@ -16,6 +16,17 @@
     <title>VERSIONS</title>
   </head>
   <body>
+    <!-- Footer statique : présent dans le HTML brut renvoyé par le
+         serveur, lu par les crawlers qui n'exécutent pas le JS
+         (Googlebot OAuth review notamment, plus basique que le
+         crawler SEO classique). Sans ce bloc, Google ne trouve
+         aucun lien vers /privacy ni /terms sur la home, ce qui
+         bloque la validation OAuth.
+         Retiré du DOM par main.jsx dès que React monte → invisible
+         à l'usage normal (~150 ms de flash maximum). -->
+    <div id="seo-static-footer" style="position:fixed;bottom:0;left:0;right:0;padding:14px;text-align:center;color:#fff;background:#0a0b14;font-family:system-ui,sans-serif;font-size:13px;z-index:0;">
+      Versions — analyse audio IA · <a href="/privacy" style="color:#fff;text-decoration:underline;">Confidentialité</a> · <a href="/terms" style="color:#fff;text-decoration:underline;">CGU</a>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
