@@ -3458,6 +3458,23 @@ function VersionsAppAuthed() {
     setAnalysisResult(merged);
     const cfgWithHash = result.audioHash ? { ...config, audioHash: result.audioHash } : config;
     if (result.audioHash) setConfig(cfgWithHash);
+    // Charge le morceau dans le BottomPlayer dès qu'on a le storagePath. Sans
+    // ça, le player reste idle (playerState=null) à la fin de l'analyse — il
+    // fallait refresh la page pour que la route handler /fiche/* déclenche
+    // loadPlayer. Ne PAS auto-jouer : juste charger pour que l'user puisse
+    // appuyer sur play immédiatement.
+    // Guard idempotence : handleLoaded peut être appelé 2× (partial puis
+    // all_done) avec le même storagePath. On ne reload QUE si le player est
+    // idle ou pointe ailleurs — sinon on couperait la lecture si l'user a
+    // déjà appuyé sur play entre-temps.
+    if (
+      merged?.storagePath
+      && config?.title
+      && config?.version
+      && playerState?.storagePath !== merged.storagePath
+    ) {
+      loadPlayer(config.title, config.version, merged.storagePath);
+    }
     if (screen !== "fiche") {
       console.log("➡️ VERSIONS setScreen('fiche') triggered from handleLoaded");
       setScreen("fiche");
