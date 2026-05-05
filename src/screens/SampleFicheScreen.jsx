@@ -1145,7 +1145,12 @@ export default function SampleFicheScreen({
               <path d="M21 12a8.5 8.5 0 0 1-12.39 7.55L4 21l1.45-4.61A8.5 8.5 0 1 1 21 12z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </span>
-          <span className="chat-pill-placeholder">Chat</span>
+          <span className="chat-pill-placeholder">
+            <span className="chat-pill-placeholder-long">
+              {lang === 'en' ? 'Ask Versions…' : 'Demande à Versions…'}
+            </span>
+            <span className="chat-pill-placeholder-short">Chat</span>
+          </span>
           <span className="chat-pill-cta" aria-hidden="true">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>

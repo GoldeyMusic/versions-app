@@ -5600,14 +5600,13 @@ export default function MockupStyles() {
   /* État "peek auto" — calque l état :hover (width + halo + bordure
      amber + bg renforcé) pour que l ouverture programmée soit
      visuellement identique à un hover.
-     Width cap dynamique 2026-05-05 : sur 13" (couloir étroit) la pill
-     dépassait du viewport. min(280, couloir-40) garantit qu elle tient
-     toujours dans le couloir avec 20px de marge de chaque côté du
-     wrap (couloir = (vw-920)/2, padding-right wrap = 40). À 1280px
-     viewport elle vaut 140px (texte tronqué mais entièrement visible),
-     à 1560px+ elle reprend ses 280px d origine. */
+     Width 2026-05-05 : 280px par défaut (large screens), réduit
+     par paliers via @media plus bas pour les viewports étroits.
+     On utilise des largeurs fixes (pas min/calc avec 100vw) parce
+     que Chrome interpolait mal le cubic-bezier bouncy avec une
+     valeur dynamique → bounce qui disparaissait à l ouverture. */
   .chat-pill.is-peeking {
-    width: min(280px, calc((100vw - 920px) / 2 - 40px));
+    width: 280px;
     border-color: rgba(245, 166, 35, 0.55);
     box-shadow: 0 16px 48px -12px rgba(0,0,0,0.65), 0 0 32px -8px rgba(245, 166, 35, 0.32);
     background: rgba(28, 24, 20, 0.85);
@@ -5617,10 +5616,35 @@ export default function MockupStyles() {
     color: var(--black);
   }
   .chat-pill:hover {
-    width: min(280px, calc((100vw - 920px) / 2 - 40px));
+    width: 280px;
     border-color: rgba(245, 166, 35, 0.55);
     box-shadow: 0 16px 48px -12px rgba(0,0,0,0.65), 0 0 32px -8px rgba(245, 166, 35, 0.32);
     background: rgba(28, 24, 20, 0.85);
+  }
+  /* Swap placeholder long/court — par défaut on montre le long
+     ("Demande à Versions…"), le court ("Chat") est caché. */
+  .chat-pill-placeholder-short { display: none; }
+  /* Sur viewport < 1560 : pill capped à une largeur plus petite
+     (pas la place pour le long texte) → on bascule sur "Chat".
+     Voir aussi les @media de la pill plus bas qui ajustent width. */
+  @media (max-width: 1559px) {
+    .chat-pill-placeholder-long { display: none; }
+    .chat-pill-placeholder-short { display: inline; }
+  }
+  /* Paliers de width pour adapter la pill au couloir disponible
+     ((vw-920)/2 - 40 marge). Largeurs fixes par palier pour
+     préserver l interpolation cubic-bezier (bounce). */
+  @media (max-width: 1559px) and (min-width: 1481px) {
+    .chat-pill:hover, .chat-pill.is-peeking { width: 240px; }
+  }
+  @media (max-width: 1480px) and (min-width: 1401px) {
+    .chat-pill:hover, .chat-pill.is-peeking { width: 200px; }
+  }
+  @media (max-width: 1400px) and (min-width: 1321px) {
+    .chat-pill:hover, .chat-pill.is-peeking { width: 160px; }
+  }
+  @media (max-width: 1320px) and (min-width: 1241px) {
+    .chat-pill:hover, .chat-pill.is-peeking { width: 120px; }
   }
   .chat-pill:focus-visible {
     outline: 2px solid var(--amber);
