@@ -5656,10 +5656,14 @@ export default function MockupStyles() {
     transform: translateY(8px);
     pointer-events: none;
   }
-  /* Sous 1240px : pas d'espace libre à droite — on rebascule le
-     wrapper en bottom-strip pleine largeur. La pill reste centrée
-     à l'intérieur via flex. */
-  @media (max-width: 1240px) {
+  /* Sous 1480px : couloir droit trop étroit pour accueillir la pill
+     expandée (280px) sans clipping. Le couloir = (viewport-920)/2,
+     avec padding-right 40 il faut viewport ≥ 1560 pour que les 280
+     tiennent confortablement. En dessous on rebascule le wrapper en
+     bottom-strip pleine largeur. La pill reste centrée via flex.
+     Fix 2026-05-05 : remonté de 1240 → 1480 suite au signalement
+     David sur 13" (1280-1440 viewport) où la pill se faisait couper. */
+  @media (max-width: 1480px) {
     .chat-pill-wrap {
       top: auto;
       bottom: 94px;

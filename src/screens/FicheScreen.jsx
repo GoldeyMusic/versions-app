@@ -4028,12 +4028,14 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   // pour utiliser EXACTEMENT la même transition bouncy que :hover, on
   // pilote l ouverture via un toggle de classe JS plutôt qu un keyframe
   // CSS (qui interfère avec la transition). 1er peek 3s après mount,
-  // hold 8s, puis cycle 30s. Désactivé si chat ouvert, viewport < 1241,
-  // ou prefers-reduced-motion.
+  // hold 8s, puis cycle 30s. Désactivé si chat ouvert, viewport < 1481,
+  // ou prefers-reduced-motion. (Seuil 1481 aligné sur le breakpoint CSS
+  // bottom-strip — sous 1480 la pill est en mode bottom-strip et le peek
+  // y est neutralisé visuellement de toute façon.)
   useEffect(() => {
     if (!chatAsDrawer || chatOpen) return undefined;
     if (typeof window === 'undefined') return undefined;
-    const desktopMq = window.matchMedia('(min-width: 1241px)');
+    const desktopMq = window.matchMedia('(min-width: 1481px)');
     const reduceMq = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (!desktopMq.matches || reduceMq.matches) return undefined;
 
@@ -5640,7 +5642,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
       {/* Chat — wrapper qui occupe l'espace libre à droite, avec la
           pill centrée dedans via flex. Plus fiable que des calc()
           basés sur 100vw (qui peuvent diverger selon scrollbar/zoom).
-          Sur narrow (<1240px), le wrapper devient bottom-centered. */}
+          Sur narrow (≤1480px), le wrapper devient bottom-centered. */}
       {chatAsDrawer && (
         <>
           <div className="chat-pill-wrap" aria-hidden="true">
