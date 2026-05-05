@@ -5599,9 +5599,15 @@ export default function MockupStyles() {
   }
   /* État "peek auto" — calque l état :hover (width + halo + bordure
      amber + bg renforcé) pour que l ouverture programmée soit
-     visuellement identique à un hover. */
+     visuellement identique à un hover.
+     Width cap dynamique 2026-05-05 : sur 13" (couloir étroit) la pill
+     dépassait du viewport. min(280, couloir-40) garantit qu elle tient
+     toujours dans le couloir avec 20px de marge de chaque côté du
+     wrap (couloir = (vw-920)/2, padding-right wrap = 40). À 1280px
+     viewport elle vaut 140px (texte tronqué mais entièrement visible),
+     à 1560px+ elle reprend ses 280px d origine. */
   .chat-pill.is-peeking {
-    width: 280px;
+    width: min(280px, calc((100vw - 920px) / 2 - 40px));
     border-color: rgba(245, 166, 35, 0.55);
     box-shadow: 0 16px 48px -12px rgba(0,0,0,0.65), 0 0 32px -8px rgba(245, 166, 35, 0.32);
     background: rgba(28, 24, 20, 0.85);
@@ -5611,7 +5617,7 @@ export default function MockupStyles() {
     color: var(--black);
   }
   .chat-pill:hover {
-    width: 280px;
+    width: min(280px, calc((100vw - 920px) / 2 - 40px));
     border-color: rgba(245, 166, 35, 0.55);
     box-shadow: 0 16px 48px -12px rgba(0,0,0,0.65), 0 0 32px -8px rgba(245, 166, 35, 0.32);
     background: rgba(28, 24, 20, 0.85);
@@ -5656,14 +5662,12 @@ export default function MockupStyles() {
     transform: translateY(8px);
     pointer-events: none;
   }
-  /* Sous 1480px : couloir droit trop étroit pour accueillir la pill
-     expandée (280px) sans clipping. Le couloir = (viewport-920)/2,
-     avec padding-right 40 il faut viewport ≥ 1560 pour que les 280
-     tiennent confortablement. En dessous on rebascule le wrapper en
-     bottom-strip pleine largeur. La pill reste centrée via flex.
-     Fix 2026-05-05 : remonté de 1240 → 1480 suite au signalement
-     David sur 13" (1280-1440 viewport) où la pill se faisait couper. */
-  @media (max-width: 1480px) {
+  /* Sous 1240px : couloir trop étroit même avec le cap dynamique
+     (la pill deviendrait < 100px, inutilisable). On rebascule le
+     wrapper en bottom-strip pleine largeur. La pill reste centrée
+     via flex. Entre 1241 et 1559px la pill garde sa place à droite
+     avec largeur expand cappée dynamiquement (cf. .chat-pill:hover). */
+  @media (max-width: 1240px) {
     .chat-pill-wrap {
       top: auto;
       bottom: 94px;
