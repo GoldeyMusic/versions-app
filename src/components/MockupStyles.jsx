@@ -5624,10 +5624,11 @@ export default function MockupStyles() {
   /* Swap placeholder long/court — par défaut on montre le long
      ("Demande à Versions…"), le court ("Chat") est caché. */
   .chat-pill-placeholder-short { display: none; }
-  /* Sur viewport < 1560 : pill capped à une largeur plus petite
-     (pas la place pour le long texte) → on bascule sur "Chat".
-     Voir aussi les @media de la pill plus bas qui ajustent width. */
-  @media (max-width: 1559px) {
+  /* Sur viewport ≤ 1480 : pill trop étroite pour le long texte
+     (pill ≤ 200px, placeholder area < 100px) → on bascule sur "Chat".
+     Au-dessus de 1480, pill ≥ 240 et le long texte s affiche
+     (avec ellipsis naturelle si encore un peu serré entre 1481-1559). */
+  @media (max-width: 1480px) {
     .chat-pill-placeholder-long { display: none; }
     .chat-pill-placeholder-short { display: inline; }
   }
