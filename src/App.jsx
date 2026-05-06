@@ -3027,6 +3027,12 @@ function VersionsAppAuthed() {
   // La fiche encode son trackId/versionId pour permettre un reload propre.
   useEffect(() => {
     if (!user) return;
+    // /update-password : page recovery hors arborescence "screen". On ne
+    // touche PAS à l'URL pour ne pas écraser ce path par /dashboard (qui
+    // serait le nextPath déduit du screen courant 'welcome' par défaut).
+    if (typeof window !== 'undefined' && window.location.pathname === '/update-password') {
+      return;
+    }
     if (isHashSyncRef.current) {
       isHashSyncRef.current = false;
       prevScreenRef.current = screen;
