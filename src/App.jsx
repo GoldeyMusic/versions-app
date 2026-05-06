@@ -3849,6 +3849,7 @@ function VersionsAppAuthed() {
       <LangContext.Provider value={{ lang, s, setLang, t }}>
         <FontLink />
         <GlobalStyles />
+        <MockupStyles />
         <UpdatePasswordScreen />
       </LangContext.Provider>
     );
