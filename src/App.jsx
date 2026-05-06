@@ -2980,6 +2980,14 @@ function VersionsAppAuthed() {
       }
       return;
     }
+    // /update-password : on laisse l'URL et le screen intactes — l'arbre de
+    // rendu détecte ce pathname juste après l'auth gate et monte
+    // UpdatePasswordScreen plein écran. Sans ce return, le fallback ci-dessous
+    // (`parsePath` ne connaît pas /update-password → fallback 'welcome')
+    // remplacerait l'URL par /dashboard et l'utilisateur sortirait du flow.
+    if (rawPath === '/update-password') {
+      return;
+    }
     // Compat : /reglages ouvre désormais la modale et renvoie sur le dashboard.
     if (rawPath === '/reglages') {
       setReglagesOpen(true);
