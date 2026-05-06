@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import useLang from '../hooks/useLang';
 import { supabase } from '../lib/supabase';
 import { confirmDialog } from '../lib/confirm.jsx';
+import API from '../constants/api';
 
 // Adresse de contact unique (cf. pages légales). Centralisée ici pour
 // pouvoir construire les mailto de résiliation et suppression de compte
@@ -184,13 +185,23 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
   };
 
   // ── Suppression de compte ──────────────────────────────────
-  // Branché sur la RPC `delete_my_account` (SECURITY DEFINER, supprime
-  // en cascade : mix_note_completions, comparisons, versions, tracks,
-  // projects, credit_events, user_credits, analysis_cost_logs,
-  // chat_cost_logs, feedback, user_profiles, revenue_logs, puis
-  // auth.users). Les fichiers Storage (audio, avatars, project-covers,
-  // track-covers) ne sont pas purgés par la RPC — ils deviennent
-  // orphelins (plus aucun row pour les référencer côté DB) et seront
+  // Flow en 2 étapes (refonte 2026-05-06bis pour sécurité contre les
+  // suppressions accidentelles + hijack de session) :
+  //   1. Le user clique "Supprimer mon compte" → on POST vers
+  //      /api/account/request-deletion (Bearer JWT). Le backend génère
+  //      un token signé HMAC 1h et envoie un mail branded au user avec
+  //      un lien `versions.studio/confirm-delete-account?token=...`.
+  //   2. Le user clique le lien dans le mail → écran
+  //      ConfirmDeleteAccountScreen → POST /api/account/confirm-deletion
+  //      avec le token → le backend appelle la RPC service-role
+  //      `delete_user_account(p_user_id)` qui purge en cascade toutes
+  //      les tables et auth.users.
+  //
+  // La notif ops à David part automatiquement via le webhook Supabase
+  // auth.users DELETE (cf. versions-api/api/_internal.js).
+  //
+  // Storage : les fichiers (audio, avatars, project-covers, track-covers)
+  // ne sont pas purgés par la RPC — ils deviennent orphelins et seront
   // nettoyés via un job batch ultérieur si besoin.
   const handleDeleteAccount = async () => {
     const ok = await confirmDialog({
@@ -202,26 +213,33 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
     });
     if (ok !== 'confirm') return;
     try {
-      const { error } = await supabase.rpc('delete_my_account');
-      if (error) throw error;
-      // Compte purgé en base — on déconnecte l'utilisateur et on le
-      // ramène à la landing publique. Le signOut déclenche déjà la
-      // bascule via le hook useAuth, mais on appelle explicitement
-      // l'override App-level (handleSignOut) qui force aussi le
-      // routing vers `/`.
-      try { await supabase.auth.signOut(); } catch { /* ignore */ }
-      if (onSignOut) {
-        try { await onSignOut(); } catch { /* ignore */ }
-      }
-      if (typeof window !== 'undefined') {
-        try { window.history.replaceState(null, '', '/'); } catch { /* ignore */ }
-      }
+      // On a besoin du JWT du user pour authentifier le request côté backend.
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('no_session');
+      const res = await fetch(`${API}/api/account/request-deletion`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) throw new Error(`request_failed_${res.status}`);
+      // Mail envoyé. On affiche une modale d'info (alert mode, pas un
+      // confirm) pour rappeler au user d'aller cliquer le lien dans son
+      // email. La suppression effective se fera après ce clic via
+      // l'écran /confirm-delete-account. On NE déconnecte PAS l'user ici
+      // — il reste connecté tant qu'il n'a pas confirmé.
+      await confirmDialog({
+        title: s.reglages.deleteAccountEmailSentTitle,
+        message: s.reglages.deleteAccountEmailSentMessage,
+        confirmLabel: s.common.ok,
+        cancelLabel: '',
+      });
       if (onClose) onClose();
     } catch (e) {
-      console.warn('[reglages] delete_my_account failed:', e?.message || e);
-      // Ré-affiche une modale d'erreur (ConfirmModal en mode "alert"
-      // sans bouton annuler) pour que l'utilisateur voie clairement
-      // que l'opération a échoué et qu'il peut nous écrire.
+      console.warn('[reglages] request-deletion failed:', e?.message || e);
       await confirmDialog({
         title: s.reglages.deleteAccountErrorTitle,
         message: s.reglages.deleteAccountErrorMessage,

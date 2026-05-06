@@ -36,6 +36,7 @@ import PublicFicheScreen from "./screens/PublicFicheScreen";
 import PrivacyScreen from "./screens/PrivacyScreen";
 import TermsScreen from "./screens/TermsScreen";
 import UpdatePasswordScreen from "./screens/UpdatePasswordScreen";
+import ConfirmDeleteAccountScreen from "./screens/ConfirmDeleteAccountScreen";
 import ReglagesModal from "./components/ReglagesModal";
 import RenameModal from "./components/RenameModal";
 import AddModal from "./components/AddModal";
@@ -2936,7 +2937,10 @@ function VersionsAppAuthed() {
       // amont (cf. juste après l'auth gate). On laisse l'URL intacte pour
       // que le check fonctionne au cold start (refresh, lien depuis email).
       const isUpdatePassword = p === '/update-password';
-      if (!isPublicRoute && !isAuthCallback && !isUpdatePassword) {
+      // /confirm-delete-account : visiteur arrivant via mail de confirmation
+      // (peut ne plus avoir de session active). On laisse l'URL intacte.
+      const isConfirmDelete = p === '/confirm-delete-account';
+      if (!isPublicRoute && !isAuthCallback && !isUpdatePassword && !isConfirmDelete) {
         window.history.replaceState({ screen: 'welcome' }, '', '/');
       }
     }
@@ -2988,6 +2992,11 @@ function VersionsAppAuthed() {
     if (rawPath === '/update-password') {
       return;
     }
+    // /confirm-delete-account : idem update-password, route hors arborescence
+    // "screen". Ne pas réécrire l'URL vers /dashboard.
+    if (rawPath === '/confirm-delete-account') {
+      return;
+    }
     // Compat : /reglages ouvre désormais la modale et renvoie sur le dashboard.
     if (rawPath === '/reglages') {
       setReglagesOpen(true);
@@ -3027,11 +3036,14 @@ function VersionsAppAuthed() {
   // La fiche encode son trackId/versionId pour permettre un reload propre.
   useEffect(() => {
     if (!user) return;
-    // /update-password : page recovery hors arborescence "screen". On ne
-    // touche PAS à l'URL pour ne pas écraser ce path par /dashboard (qui
-    // serait le nextPath déduit du screen courant 'welcome' par défaut).
-    if (typeof window !== 'undefined' && window.location.pathname === '/update-password') {
-      return;
+    // /update-password et /confirm-delete-account : pages hors arborescence
+    // "screen". On ne touche PAS à l'URL pour ne pas écraser ce path par
+    // /dashboard (qui serait le nextPath déduit du screen courant 'welcome').
+    if (typeof window !== 'undefined') {
+      const p = window.location.pathname;
+      if (p === '/update-password' || p === '/confirm-delete-account') {
+        return;
+      }
     }
     if (isHashSyncRef.current) {
       isHashSyncRef.current = false;
@@ -3851,6 +3863,21 @@ function VersionsAppAuthed() {
         <GlobalStyles />
         <MockupStyles />
         <UpdatePasswordScreen />
+      </LangContext.Provider>
+    );
+  }
+  // Route /confirm-delete-account : page de confirmation finale du flow
+  // de suppression de compte (le user a cliqué le lien dans le mail, on
+  // affiche un écran de dernière confirmation rouge avant l'appel API).
+  // Même pattern que /update-password : rendu plein écran indépendamment
+  // de l'auth gate. Le token signé en query param fait office d'auth.
+  if (typeof window !== 'undefined' && window.location.pathname === '/confirm-delete-account') {
+    return (
+      <LangContext.Provider value={{ lang, s, setLang, t }}>
+        <FontLink />
+        <GlobalStyles />
+        <MockupStyles />
+        <ConfirmDeleteAccountScreen />
       </LangContext.Provider>
     );
   }

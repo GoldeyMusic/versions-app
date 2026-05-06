@@ -136,6 +136,20 @@ const STRINGS = {
       updateLinkExpired: "Le lien a expiré. Demande un nouveau mail de réinitialisation.",
     },
 
+    /* ─── Confirmation de suppression de compte (route /confirm-delete-account) ─── */
+    deleteAccount: {
+      confirmFinalTitle: "Suppression de compte",
+      confirmFinalMessage: "Tu es sur le point de supprimer définitivement ton compte Versions et toutes les données associées. Cette action est irréversible.",
+      confirmFinalBtn: "Supprimer définitivement",
+      confirmCancelBtn: "Annuler",
+      confirmedTitle: "Compte supprimé ✓",
+      confirmedMessage: "Ton compte a bien été supprimé. Tu vas être redirigé vers l'accueil dans un instant.",
+      confirmTokenInvalid: "Ce lien a expiré ou n'est plus valide. Refais une demande de suppression depuis tes Réglages.",
+      confirmFailed: "Une erreur est survenue. Réessaie ou écris-nous à contact@versions.studio.",
+      invalidLinkTitle: "Lien invalide",
+      invalidLinkMessage: "Ce lien ne contient pas de jeton de confirmation. Refais une demande de suppression depuis tes Réglages.",
+    },
+
     /* ─────────────────────────── HOME / WELCOME ────────────── */
     home: {
       greeting: "SALUT !",
@@ -1049,10 +1063,12 @@ const STRINGS = {
       deleteAccountHint: "Supprime définitivement ton compte et toutes tes données",
       deleteAccountBtn: "Supprimer",
       deleteAccountModalTitle: "Supprimer mon compte",
-      deleteAccountModalMessage: "Cette action est irréversible. Tous tes projets, analyses et fichiers audio seront définitivement supprimés. Tu seras déconnecté immédiatement après.",
-      deleteAccountModalConfirm: "Supprimer définitivement",
+      deleteAccountModalMessage: "Cette action est irréversible. Pour confirmer, on va t'envoyer un email avec un lien de confirmation. La suppression ne sera effective qu'après ton clic sur ce lien.",
+      deleteAccountModalConfirm: "Envoyer l'email de confirmation",
       deleteAccountErrorTitle: "Suppression impossible",
-      deleteAccountErrorMessage: "Une erreur est survenue lors de la suppression de ton compte. Réessaie dans un instant ou écris-nous à contact@versions.studio si le problème persiste.",
+      deleteAccountErrorMessage: "Une erreur est survenue lors de l'envoi de l'email de confirmation. Réessaie dans un instant ou écris-nous à contact@versions.studio si le problème persiste.",
+      deleteAccountEmailSentTitle: "Email envoyé",
+      deleteAccountEmailSentMessage: "On t'a envoyé un email pour confirmer la suppression. Clique sur le lien pour finaliser. Le lien est valable 1 heure.",
       mailtoCancelSubSubject: "Résiliation de mon abonnement",
       mailtoCancelSubBody: "Bonjour,\n\nJe souhaite résilier mon abonnement Versions.\n\nE-mail du compte : {email}\n\nMerci.",
       close: "Fermer",
@@ -1865,6 +1881,20 @@ const STRINGS = {
       updatePasswordMismatch: "The two passwords don't match.",
       updatePasswordTooShort: "Password must be at least 6 characters.",
       updateLinkExpired: "Link has expired. Request a new password reset email.",
+    },
+
+    /* ─── Account deletion confirmation (route /confirm-delete-account) ─── */
+    deleteAccount: {
+      confirmFinalTitle: "Account deletion",
+      confirmFinalMessage: "You're about to permanently delete your Versions account and all associated data. This action is irreversible.",
+      confirmFinalBtn: "Delete permanently",
+      confirmCancelBtn: "Cancel",
+      confirmedTitle: "Account deleted ✓",
+      confirmedMessage: "Your account has been deleted. You'll be redirected to the home page in a moment.",
+      confirmTokenInvalid: "This link has expired or is no longer valid. Request a new deletion from your Settings.",
+      confirmFailed: "An error occurred. Try again or email us at contact@versions.studio.",
+      invalidLinkTitle: "Invalid link",
+      invalidLinkMessage: "This link doesn't contain a confirmation token. Request a new deletion from your Settings.",
     },
 
     /* ─────────────────────────── HOME / WELCOME ────────────── */
@@ -2757,10 +2787,12 @@ const STRINGS = {
       deleteAccountHint: "Permanently delete your account and all your data",
       deleteAccountBtn: "Delete",
       deleteAccountModalTitle: "Delete my account",
-      deleteAccountModalMessage: "This action is irreversible. All your projects, analyses and audio files will be permanently deleted. You'll be signed out immediately after.",
-      deleteAccountModalConfirm: "Delete permanently",
+      deleteAccountModalMessage: "This action is irreversible. To confirm, we'll send you an email with a confirmation link. The deletion will only happen after you click that link.",
+      deleteAccountModalConfirm: "Send confirmation email",
       deleteAccountErrorTitle: "Deletion failed",
-      deleteAccountErrorMessage: "An error occurred while deleting your account. Try again in a moment or email us at contact@versions.studio if the problem persists.",
+      deleteAccountErrorMessage: "An error occurred while sending the confirmation email. Try again in a moment or email us at contact@versions.studio if the problem persists.",
+      deleteAccountEmailSentTitle: "Email sent",
+      deleteAccountEmailSentMessage: "We sent you an email to confirm the deletion. Click the link to finalize. The link is valid for 1 hour.",
       mailtoCancelSubSubject: "Cancel my subscription",
       mailtoCancelSubBody: "Hello,\n\nI'd like to cancel my Versions subscription.\n\nAccount email: {email}\n\nThanks.",
       close: "Close",
