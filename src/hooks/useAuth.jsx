@@ -75,8 +75,26 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // Mot de passe oublié : envoie un mail avec un lien magique vers /update-password.
+  // Le user clique le lien, Supabase pose la session, puis updateUserPassword() peut être appelé.
+  // Locale persistée dans user_metadata pour que le mail soit servi en FR/EN.
+  const resetPasswordForEmail = async (email) => {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/update-password`,
+      data: { locale: readLocale() },
+    });
+    return { data, error };
+  };
+
+  // Mise à jour du mot de passe (appelé depuis /update-password après clic sur le lien).
+  // Le user est déjà authentifié à ce moment (Supabase a validé le token du lien).
+  const updateUserPassword = async (password) => {
+    const { data, error } = await supabase.auth.updateUser({ password });
+    return { data, error };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithEmail, signUpWithEmail, signInWithOAuth, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signInWithEmail, signUpWithEmail, signInWithOAuth, signOut, resetPasswordForEmail, updateUserPassword }}>
       {children}
     </AuthContext.Provider>
   );

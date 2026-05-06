@@ -118,6 +118,22 @@ const STRINGS = {
       cgu2: "Conditions d'utilisation",
       cgu3: "et la",
       cgu4: "Politique de confidentialité",
+      // Flow réinitialisation mot de passe
+      resetTitle: "Mot de passe oublié",
+      resetSubtitle: "Entre ton email, on t'envoie un lien pour choisir un nouveau mot de passe.",
+      resetSubmit: "Envoyer le lien",
+      resetSent: "Email envoyé. Clique sur le lien pour choisir un nouveau mot de passe.",
+      backToSignIn: "Retour à la connexion",
+      // Écran nouveau mot de passe (après clic sur le lien email)
+      updateTitle: "Choisis un nouveau mot de passe",
+      updateSubtitle: "Tu peux maintenant définir un nouveau mot de passe pour ton compte.",
+      newPassword: "Nouveau mot de passe",
+      confirmPassword: "Confirme le mot de passe",
+      updateSubmit: "Mettre à jour",
+      updateSuccess: "Mot de passe mis à jour. Tu peux te connecter avec.",
+      updatePasswordMismatch: "Les deux mots de passe ne correspondent pas.",
+      updatePasswordTooShort: "Le mot de passe doit faire au moins 6 caractères.",
+      updateLinkExpired: "Le lien a expiré. Demande un nouveau mail de réinitialisation.",
     },
 
     /* ─────────────────────────── HOME / WELCOME ────────────── */
@@ -1833,6 +1849,22 @@ const STRINGS = {
       cgu2: "Terms of Service",
       cgu3: "and",
       cgu4: "Privacy Policy",
+      // Password reset flow
+      resetTitle: "Forgot password",
+      resetSubtitle: "Enter your email and we'll send you a link to choose a new password.",
+      resetSubmit: "Send link",
+      resetSent: "Email sent. Click the link to choose a new password.",
+      backToSignIn: "Back to sign in",
+      // New password screen (after clicking the email link)
+      updateTitle: "Choose a new password",
+      updateSubtitle: "You can now set a new password for your account.",
+      newPassword: "New password",
+      confirmPassword: "Confirm password",
+      updateSubmit: "Update",
+      updateSuccess: "Password updated. You can sign in with it now.",
+      updatePasswordMismatch: "The two passwords don't match.",
+      updatePasswordTooShort: "Password must be at least 6 characters.",
+      updateLinkExpired: "Link has expired. Request a new password reset email.",
     },
 
     /* ─────────────────────────── HOME / WELCOME ────────────── */

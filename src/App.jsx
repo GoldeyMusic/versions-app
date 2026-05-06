@@ -35,6 +35,7 @@ import AdminScreen from "./screens/AdminScreen";
 import PublicFicheScreen from "./screens/PublicFicheScreen";
 import PrivacyScreen from "./screens/PrivacyScreen";
 import TermsScreen from "./screens/TermsScreen";
+import UpdatePasswordScreen from "./screens/UpdatePasswordScreen";
 import ReglagesModal from "./components/ReglagesModal";
 import RenameModal from "./components/RenameModal";
 import AddModal from "./components/AddModal";
@@ -2931,7 +2932,11 @@ function VersionsAppAuthed() {
       // /auth/callback : on laisse Supabase finir d'échanger le code, le
       // useEffect ci-dessous redirigera dès que `user` sera hydraté.
       const isAuthCallback = p === '/auth/callback';
-      if (!isPublicRoute && !isAuthCallback) {
+      // /update-password : page recovery, rendue par un check spécifique en
+      // amont (cf. juste après l'auth gate). On laisse l'URL intacte pour
+      // que le check fonctionne au cold start (refresh, lien depuis email).
+      const isUpdatePassword = p === '/update-password';
+      if (!isPublicRoute && !isAuthCallback && !isUpdatePassword) {
         window.history.replaceState({ screen: 'welcome' }, '', '/');
       }
     }
@@ -3818,6 +3823,20 @@ function VersionsAppAuthed() {
           CHARGEMENT...
         </div>
       </>
+    );
+  }
+  // Route /update-password : page d'atterrissage du lien recovery email.
+  // Rendue plein écran qu'il y ait user ou pas — UpdatePasswordScreen check
+  // la session par lui-même (Supabase pose la session via le token recovery).
+  // Doit être placé AVANT le check `!user` car au moment où le lien email est
+  // cliqué dans un nouvel onglet, la session n'est pas encore initialisée.
+  if (typeof window !== 'undefined' && window.location.pathname === '/update-password') {
+    return (
+      <LangContext.Provider value={{ lang, s, setLang, t }}>
+        <FontLink />
+        <GlobalStyles />
+        <UpdatePasswordScreen />
+      </LangContext.Provider>
     );
   }
   if (!user) {
