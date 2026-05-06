@@ -47,7 +47,10 @@ BEGIN
   DELETE FROM public.revenue_logs WHERE user_id = p_user_id;
 
   -- user_profiles : id (PK) = auth.users.id directement (1:1 mapping)
-  DELETE FROM public.user_profiles WHERE id = p_user_id;
+  -- IMPORTANT : `id` est typé TEXT (legacy), pas UUID comme les autres tables.
+  -- On caste explicitement p_user_id en text sinon Postgres throw
+  -- "operator does not exist: text = uuid".
+  DELETE FROM public.user_profiles WHERE id = p_user_id::text;
 
   -- Suppression de auth.users (déclenche le webhook auth.users DELETE
   -- → notif ops David via /api/internal/notify-deletion).
