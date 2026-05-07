@@ -2196,11 +2196,27 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
   // dominent pas en dehors du hover.
   const showDots = true;
 
+  // Rangée entière cliquable quand une fiche existe : on ouvre la fiche
+  // au clic sur la card. Les boutons internes (play, menu ⋯, drag handle,
+  // chip "Voir fiche") font tous e.stopPropagation pour ne pas déclencher
+  // l'ouverture par-dessus leur propre action. Si pas de fiche, la row
+  // n'est pas interactive (curseur normal).
+  const rowClickable = hasFiche;
+  const handleRowClick = rowClickable ? () => onViewFiche?.() : undefined;
+  const handleRowKey = rowClickable ? (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewFiche?.(); }
+  } : undefined;
+
   return (
     <div
-      className={`wh-track-row${menuOpen ? ' menu-open' : ''}`}
+      className={`wh-track-row${menuOpen ? ' menu-open' : ''}${rowClickable ? ' clickable' : ''}`}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onClick={handleRowClick}
+      onKeyDown={handleRowKey}
+      role={rowClickable ? 'button' : undefined}
+      tabIndex={rowClickable ? 0 : undefined}
+      aria-label={rowClickable ? `${s.home.trackAnalysis} — ${track.title}` : undefined}
       onDragOver={(e) => {
         if (!drag || drag.type !== 'track') return;
         if (drag.trackId === track.id) return;
@@ -2304,10 +2320,16 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
       {/* Date */}
       {dateStr && <span className="wh-track-date">{dateStr}</span>}
 
-      {/* Chip "ANALYSE" — pilule cerulean, label uniquement (pas d'icône). */}
+      {/* Chip "VOIR FICHE" — pilule cerulean, label + petit chevron pour
+          signifier "ouvrir, on va ailleurs" (vs déclencher un calcul).
+          La row entière est aussi cliquable (cf. handleRowClick), cette
+          chip reste comme cible explicite et accessible. */}
       {hasFiche && (
         <button className="wh-track-fiche" onClick={(e) => { e.stopPropagation(); onViewFiche?.(e); }}>
-          {s.home.trackAnalysis}
+          <span>{s.home.trackAnalysis}</span>
+          <svg className="wh-track-fiche-chev" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3.5 2l3 3-3 3" />
+          </svg>
         </button>
       )}
 

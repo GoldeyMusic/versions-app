@@ -271,7 +271,7 @@ const STRINGS = {
       trackDragHandle: "Glisser pour déplacer le titre",
       trackMove: "Déplacer le titre",
       trackOptions: "Options",
-      trackAnalysis: "Analyse",
+      trackAnalysis: "Voir fiche",
       tips: [
         "Faire des pauses régulières permet de conserver une écoute attentive et objective.",
         "Tes oreilles se fatiguent après 45 min — une pause de 10 min te fait gagner 2h de travail.",
@@ -2014,7 +2014,7 @@ const STRINGS = {
       trackDragHandle: "Drag to move this track",
       trackMove: "Move track",
       trackOptions: "Options",
-      trackAnalysis: "Analysis",
+      trackAnalysis: "View fiche",
       tips: [
         "Taking regular breaks keeps your listening attentive and objective.",
         "Your ears fatigue after 45 min — a 10 min break saves you 2h of work.",

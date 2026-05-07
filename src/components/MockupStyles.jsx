@@ -7145,6 +7145,14 @@ export default function MockupStyles() {
     background: var(--s1); border: 1px solid var(--border);
     transition: all .2s;
   }
+  /* Row cliquable (a une fiche) : on signale clairement qu'on peut cliquer
+     n'importe où sur la rangée pour ouvrir la fiche. Les controls internes
+     (play, menu ⋯, drag handle, chip "Voir fiche") font e.stopPropagation
+     dans leur onClick, donc le clic sur eux ne déclenche PAS l'ouverture. */
+  .wh-track-row.clickable { cursor: pointer; }
+  .wh-track-row.clickable:focus-visible {
+    outline: 2px solid var(--cerulean); outline-offset: 2px;
+  }
   .wh-track-row.drag-over-above { border-top: 2px solid var(--amber); margin-top: -2px; }
   .wh-track-row.drag-over-below { border-bottom: 2px solid var(--amber); margin-bottom: -2px; }
   /* Poignée de déplacement DnD (home) */
@@ -7256,10 +7264,12 @@ export default function MockupStyles() {
     font-family: var(--mono); font-size: 12px; color: var(--muted);
     letter-spacing: 0.5px; margin-top: 2px;
   }
-  /* Chip "ANALYSE" — pilule cerulean alignée sur .v4-chip.cerulean de la
-     maquette v2 (même forme, même typo). Pas d'icône, juste le label. */
+  /* Chip "VOIR FICHE" — pilule cerulean alignée sur .v4-chip.cerulean.
+     Label + petit chevron → pour signifier "on ouvre une page" (vs un
+     calcul à déclencher). Le chevron se décale d'1px à droite au hover
+     pour renforcer le sens de navigation. */
   .wh-track-fiche {
-    display: inline-flex; align-items: center;
+    display: inline-flex; align-items: center; gap: 6px;
     padding: 5px 10px; border-radius: 20px;
     background: rgba(92,184,204,0.10); border: 1px solid rgba(92,184,204,0.35);
     color: var(--cerulean); cursor: pointer; flex-shrink: 0;
@@ -7269,6 +7279,14 @@ export default function MockupStyles() {
   }
   .wh-track-fiche:hover {
     background: rgba(92,184,204,0.18); border-color: var(--cerulean);
+  }
+  .wh-track-fiche .wh-track-fiche-chev {
+    transition: transform .15s;
+    flex-shrink: 0;
+  }
+  .wh-track-fiche:hover .wh-track-fiche-chev,
+  .wh-track-row.clickable:hover .wh-track-fiche .wh-track-fiche-chev {
+    transform: translateX(1px);
   }
 
   .wh-track-picker {
