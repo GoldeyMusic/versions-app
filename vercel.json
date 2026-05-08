@@ -1,4 +1,7 @@
 {
+  "redirects": [
+    { "source": "/favicon.svg", "destination": "/favicon.png", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],
