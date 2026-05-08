@@ -376,6 +376,15 @@ const STRINGS = {
       errorTimeout: "Timeout — analyse trop longue",
       errorCancelled: "Upload annulé",
       errorUploadFailed: "Upload du fichier échoué. Vérifie ta connexion et réessaie.",
+      // Codes d'erreur stables remontés par le backend versions-api dans job.error
+      // (cf. backend lib/jobErrors.js). Le mapper translateBackendError() côté
+      // front les traduit en strings i18n. Ne plus afficher d'err.message brut.
+      errorAnalysisTimeout: "L'analyse a pris trop de temps. Réessaie.",
+      errorAnalysisService: "Un service externe est temporairement indisponible. Réessaie dans quelques minutes.",
+      errorAnalysisStorage: "Problème lors de la lecture de ton fichier audio. Réessaie.",
+      errorAnalysisParse: "L'analyse a échoué à la rédaction de la fiche. Réessaie.",
+      errorJobNotFound: "Cette analyse n'existe plus. Relance-la depuis ton dashboard.",
+      errorJobNotAwaiting: "Cette analyse n'attend plus d'intention. Relance-la depuis ton dashboard.",
       // 413 backend (audio > 12 min) — `{recv}` est rempli côté front avec
       // la durée reçue formatée (ex : " (14 min 32 s)"), vide sinon.
       errorTooLongAudio: "Audio trop long{recv}. Versions analyse les morceaux jusqu'à 12 minutes.",
@@ -2133,6 +2142,13 @@ const STRINGS = {
       errorFailed: "Analysis failed",
       errorTimeout: "Timeout — analysis took too long",
       errorUploadFailed: "File upload failed. Check your connection and try again.",
+      // Backend error codes (versions-api lib/jobErrors.js) → translated strings
+      errorAnalysisTimeout: "Analysis took too long. Please try again.",
+      errorAnalysisService: "An external service is temporarily unavailable. Please try again in a few minutes.",
+      errorAnalysisStorage: "Could not read your audio file. Please try again.",
+      errorAnalysisParse: "Analysis failed while writing the report. Please try again.",
+      errorJobNotFound: "This analysis no longer exists. Start a new one from your dashboard.",
+      errorJobNotAwaiting: "This analysis is no longer awaiting input. Start a new one from your dashboard.",
       errorCancelled: "Upload cancelled",
       // 413 backend (audio > 12 min) — `{recv}` is filled in by the front
       // with the formatted received duration (e.g. " (14 min 32 s)"), empty otherwise.

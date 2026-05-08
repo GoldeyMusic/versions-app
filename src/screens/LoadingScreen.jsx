@@ -4,6 +4,7 @@ import { confirmDialog } from '../lib/confirm.jsx';
 import { hashAudioFile, findDuplicateAudio, loadTracks, getInheritedIntentByTitle, loadNoteCompletions } from "../lib/storage";
 import { supabase } from "../lib/supabase";
 import useLang from '../hooks/useLang';
+import { translateBackendError } from '../lib/backendErrors';
 
 // ── Feature flag intention artistique ──
 // Quand VITE_INTENT_ENABLED !== 'true', on force skipIntent=true côté backend
@@ -111,7 +112,9 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
             }
             if (canceledRef.current) return;
             if (job.status === "error") {
-              throw new Error(job.error || s.loading.errorFailed);
+              // job.error est un code stable (cf. backend lib/jobErrors.js).
+              // translateBackendError mappe → string i18n FR/EN.
+              throw new Error(translateBackendError(job.error, s));
             }
             // En mode resume on ne repasse plus par awaiting_intent
             // (l'utilisateur a déjà soumis ou skippé son intention).
@@ -428,7 +431,8 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           if (canceledRef.current) return;
 
           if (job.status === "error") {
-            throw new Error(job.error || s.loading.errorFailed);
+            // Idem ligne 115 (path resume) — code stable backend → string i18n.
+            throw new Error(translateBackendError(job.error, s));
           }
 
           // ── NOUVEAU : intention attendue → on sort pour IntentionScreen ──
