@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import useLang from '../hooks/useLang';
+import { translateAuthError } from '../lib/authErrors';
 
 export default function AuthScreen() {
   const { signInWithEmail, signUpWithEmail, signInWithOAuth, resetPasswordForEmail } = useAuth();
@@ -27,16 +28,16 @@ export default function AuthScreen() {
     try {
       if (mode === 'signin') {
         const { error } = await signInWithEmail(email, password);
-        if (error) setError(error.message);
+        if (error) setError(translateAuthError(error, s));
       } else if (mode === 'signup') {
         const { data, error } = await signUpWithEmail(email, password);
-        if (error) setError(error.message);
+        if (error) setError(translateAuthError(error, s));
         else if (data?.user && !data.session) {
           setInfo(s.auth.confirmEmail);
         }
       } else if (mode === 'reset') {
         const { error } = await resetPasswordForEmail(email);
-        if (error) setError(error.message);
+        if (error) setError(translateAuthError(error, s));
         else setInfo(s.auth.resetSent);
       }
     } finally {
@@ -48,7 +49,7 @@ export default function AuthScreen() {
     setError('');
     setLoading(true);
     const { error } = await signInWithOAuth(provider);
-    if (error) setError(error.message);
+    if (error) setError(translateAuthError(error, s));
     setLoading(false);
   };
 

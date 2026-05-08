@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import useLang from '../hooks/useLang';
 import { supabase } from '../lib/supabase';
+import { translateAuthError } from '../lib/authErrors';
 
 /**
  * UpdatePasswordScreen — page d'atterrissage du lien "Réinitialise ton mot de passe".
@@ -47,7 +48,7 @@ export default function UpdatePasswordScreen() {
     try {
       const { error } = await updateUserPassword(password);
       if (error) {
-        setError(error.message);
+        setError(translateAuthError(error, s));
       } else {
         setSuccess(true);
         // Redirige vers dashboard au bout de 2s

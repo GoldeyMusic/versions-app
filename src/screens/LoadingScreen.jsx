@@ -292,7 +292,11 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
               upsert: true,
             });
           if (upErr) {
-            throw new Error(`Supabase upload failed: ${upErr.message}`);
+            // Localisé : on garde le détail technique en console mais on
+            // affiche un message FR à l'utilisateur (cf. authErrors pattern,
+            // évite de remonter du jargon anglais "Supabase upload failed").
+            console.warn('[upload] storage upload failed:', upErr.message);
+            throw new Error(s.loading.errorUploadFailed || s.loading.errorFailed);
           }
 
           // 3. Démarrer le job avec un body JSON minuscule (quelques centaines

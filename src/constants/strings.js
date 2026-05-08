@@ -134,6 +134,20 @@ const STRINGS = {
       updatePasswordMismatch: "Les deux mots de passe ne correspondent pas.",
       updatePasswordTooShort: "Le mot de passe doit faire au moins 6 caractères.",
       updateLinkExpired: "Le lien a expiré. Demande un nouveau mail de réinitialisation.",
+      // Erreurs Supabase Auth — traduites pour ne plus afficher l'anglais brut
+      errInvalidCredentials: "Email ou mot de passe incorrect.",
+      errSamePassword: "Le nouveau mot de passe doit être différent de l'ancien.",
+      errWeakPassword: "Mot de passe trop court (6 caractères minimum).",
+      errUserAlreadyRegistered: "Un compte existe déjà avec cet email. Essaie de te connecter.",
+      errEmailNotConfirmed: "Email non confirmé. Vérifie ta boîte mail (et les spams).",
+      errInvalidEmail: "Email invalide.",
+      errRateLimit: "Trop de tentatives. Réessaie dans quelques minutes.",
+      errEmailRateLimit: "Trop de mails envoyés. Patiente quelques minutes avant de réessayer.",
+      errOtpExpired: "Ce lien a expiré. Demande-en un nouveau.",
+      errOAuth: "La connexion via Google a échoué. Réessaie ou utilise email + mot de passe.",
+      errSignupsDisabled: "Les inscriptions sont temporairement fermées.",
+      errNetwork: "Connexion impossible. Vérifie ta connexion internet et réessaie.",
+      errGeneric: "Une erreur est survenue. Réessaie dans un instant.",
     },
 
     /* ─── Confirmation de suppression de compte (route /confirm-delete-account) ─── */
@@ -361,6 +375,7 @@ const STRINGS = {
       errorFailed: "Analyse échouée",
       errorTimeout: "Timeout — analyse trop longue",
       errorCancelled: "Upload annulé",
+      errorUploadFailed: "Upload du fichier échoué. Vérifie ta connexion et réessaie.",
       // 413 backend (audio > 12 min) — `{recv}` est rempli côté front avec
       // la durée reçue formatée (ex : " (14 min 32 s)"), vide sinon.
       errorTooLongAudio: "Audio trop long{recv}. Versions analyse les morceaux jusqu'à 12 minutes.",
@@ -1881,6 +1896,20 @@ const STRINGS = {
       updatePasswordMismatch: "The two passwords don't match.",
       updatePasswordTooShort: "Password must be at least 6 characters.",
       updateLinkExpired: "Link has expired. Request a new password reset email.",
+      // Supabase Auth errors — translated so we don't leak raw backend strings
+      errInvalidCredentials: "Incorrect email or password.",
+      errSamePassword: "New password must be different from the old one.",
+      errWeakPassword: "Password too short (6 characters minimum).",
+      errUserAlreadyRegistered: "An account already exists with this email. Try signing in.",
+      errEmailNotConfirmed: "Email not confirmed. Check your inbox (and spam folder).",
+      errInvalidEmail: "Invalid email.",
+      errRateLimit: "Too many attempts. Please try again in a few minutes.",
+      errEmailRateLimit: "Too many emails sent. Wait a few minutes before trying again.",
+      errOtpExpired: "This link has expired. Request a new one.",
+      errOAuth: "Google sign-in failed. Try again or use email + password.",
+      errSignupsDisabled: "Sign-ups are temporarily closed.",
+      errNetwork: "Can't connect. Check your internet connection and try again.",
+      errGeneric: "Something went wrong. Please try again in a moment.",
     },
 
     /* ─── Account deletion confirmation (route /confirm-delete-account) ─── */
@@ -2103,6 +2132,7 @@ const STRINGS = {
       errorStart: "Start failed ({status})",
       errorFailed: "Analysis failed",
       errorTimeout: "Timeout — analysis took too long",
+      errorUploadFailed: "File upload failed. Check your connection and try again.",
       errorCancelled: "Upload cancelled",
       // 413 backend (audio > 12 min) — `{recv}` is filled in by the front
       // with the formatted received duration (e.g. " (14 min 32 s)"), empty otherwise.
