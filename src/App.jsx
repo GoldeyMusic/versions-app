@@ -3425,6 +3425,38 @@ function VersionsAppAuthed() {
   const hasNext = playerState?.playlist?.length > 0 && playerState.currentIdx < playerState.playlist.length - 1;
   const hasPrev = playerState?.playlist?.length > 0 && playerState.currentIdx > 0;
 
+  // Resync de la playlist du player après un reorder/déplacement de titres.
+  // Sans ça, playerState.playlist est un snapshot figé au play() initial :
+  // si l'utilisateur drag&drop le morceau en cours (ou un autre du même projet),
+  // hasNext/hasPrev continuent de calculer sur l'ancien ordre tant qu'on n'a
+  // pas refresh la page → un titre ramené en 1ʳᵉ position garde son statut
+  // de "dernier" et n'a pas de bouton suivant. Idem pour le bouton précédent.
+  // Le fix recompose la playlist depuis le projet qui contient le morceau en
+  // cours et recalcule le currentIdx pour pointer sur la nouvelle position.
+  useEffect(() => {
+    if (!playerState?.playlist?.length) return;
+    if (!Array.isArray(projects) || projects.length === 0) return;
+    const playingTitle = playerState.trackTitle;
+    const owner = projects.find(p => (p.tracks || []).some(t => t.title === playingTitle));
+    if (!owner) return;
+    const nextPlaylist = (owner.tracks || [])
+      .map((t) => {
+        const latest = t.versions?.[t.versions.length - 1];
+        if (!latest?.storagePath) return null;
+        return { trackTitle: t.title, versionName: latest.name, storagePath: latest.storagePath };
+      })
+      .filter(Boolean);
+    if (!nextPlaylist.length) return;
+    const nextIdx = nextPlaylist.findIndex(p => p.trackTitle === playingTitle);
+    if (nextIdx < 0) return;
+    // Pas de set inutile si rien n'a bougé (titres + ordre identiques).
+    const prevPlaylist = playerState.playlist;
+    const sameOrder = nextPlaylist.length === prevPlaylist.length
+      && nextPlaylist.every((p, i) => p.trackTitle === prevPlaylist[i]?.trackTitle);
+    if (sameOrder && nextIdx === playerState.currentIdx) return;
+    setPlayerState((prev) => prev ? { ...prev, playlist: nextPlaylist, currentIdx: nextIdx } : prev);
+  }, [projects, playerState?.trackTitle]);
+
   // ── Background polling for progressive results ──
   const pollingRef = useRef(null);
 
