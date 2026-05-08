@@ -125,6 +125,17 @@ export default function BottomPlayer({
   const activePathRef = useRef(null);
   // Mémorise le dernier resetKey vu : si inchangé = switch de version → on conserve la position.
   const lastResetKeyRef = useRef(resetKey);
+  // Refs miroirs pour onNext/onPrev. Le handler ws.on('finish') est attaché
+  // dans l'effet [storagePath, resetKey] et capture donc les callbacks au
+  // moment du chargement de l'audio. Sans ces refs, un reorder de la
+  // playlist pendant la lecture (qui met à jour currentIdx mais pas
+  // storagePath) laissait le 'finish' appeler une vieille version de
+  // playNext qui lisait un currentIdx périmé → la lecture s'arrêtait
+  // comme en fin de playlist au lieu d'enchaîner.
+  const onNextRef = useRef(onNext);
+  const onPrevRef = useRef(onPrev);
+  useEffect(() => { onNextRef.current = onNext; }, [onNext]);
+  useEffect(() => { onPrevRef.current = onPrev; }, [onPrev]);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -247,7 +258,7 @@ export default function BottomPlayer({
 
         ws.on('timeupdate', (t) => setCurrentTime(t));
         ws.on('decode', (d) => setDuration(d));
-        ws.on('finish', () => { if (onNext) onNext(); });
+        ws.on('finish', () => { const cb = onNextRef.current; if (cb) cb(); });
         ws.on('ready', () => {
           setLoading(false);
           // Audio already playing via audio.play() above — no need to call ws.play()
