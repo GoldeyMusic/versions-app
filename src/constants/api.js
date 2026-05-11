@@ -14,9 +14,9 @@
 //
 // 2026-05-05 : URL fournie via env (VITE_API_URL) pour faciliter la
 // transition vers le nom versions-api une fois le service Railway renommé.
-// Fallback sur l'URL historique decode-api-production tant que le rename
-// Railway n'a pas eu lieu.
+// 2026-05-11 : rename Railway effectif — le service répond désormais sur
+// versions-api-production.up.railway.app. On garde le fallback aligné.
 const API = import.meta.env.VITE_API_URL
-  || 'https://decode-api-production.up.railway.app';
+  || 'https://versions-api-production.up.railway.app';
 
 export default API;

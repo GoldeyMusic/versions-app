@@ -388,9 +388,11 @@ const STRINGS = {
       // 413 backend (audio > 12 min) — `{recv}` est rempli côté front avec
       // la durée reçue formatée (ex : " (14 min 32 s)"), vide sinon.
       errorTooLongAudio: "Audio trop long{recv}. Versions analyse les morceaux jusqu'à 12 minutes.",
-      // 413 plateforme Vercel (body trop gros, ~4,5 MB max) — fichier trop
-      // lourd, indépendamment de la durée. Encourage WAV → MP3/AAC.
-      errorFileTooLarge: "Fichier trop lourd. Limite ~4,5 Mo par envoi : exporte ton mix en MP3 ou AAC (320 kbps suffit largement) plutôt qu'en WAV.",
+      // 413 backend (multer LIMIT_FILE_SIZE, cf. server.js error handler) —
+      // fichier trop lourd, indépendamment de la durée. Le seuil exact vient
+      // du backend via `maxBytes` ; on affiche juste la limite, sans suggérer
+      // de conversion (à l'utilisateur de s'organiser comme il veut).
+      errorFileTooLarge: "Fichier trop lourd. Maximum autorisé : 80 Mo.",
       // 402 backend = solde de crédits à zéro.
       errorNoCredits: "Aucun crédit disponible. Redirection vers les tarifs…",
       dupCheckTitle: "Est-ce bien une version du même titre ?",
@@ -2153,9 +2155,11 @@ const STRINGS = {
       // 413 backend (audio > 12 min) — `{recv}` is filled in by the front
       // with the formatted received duration (e.g. " (14 min 32 s)"), empty otherwise.
       errorTooLongAudio: "Audio too long{recv}. Versions analyzes tracks up to 12 minutes.",
-      // 413 platform (body too big, ~4.5 MB max on Vercel) — file too heavy,
-      // regardless of duration. Suggests WAV → MP3/AAC.
-      errorFileTooLarge: "File too large. ~4.5 MB limit per upload: export your mix to MP3 or AAC (320 kbps is plenty) rather than WAV.",
+      // 413 backend (multer LIMIT_FILE_SIZE, cf. server.js error handler) —
+      // file too heavy, regardless of duration. The exact threshold comes
+      // from the backend via `maxBytes`; we just show the limit and let
+      // the user figure out their own compression workflow.
+      errorFileTooLarge: "File too large. Maximum allowed: 80 MB.",
       // 402 backend = empty credit balance.
       errorNoCredits: "No credits available. Redirecting to pricing…",
       dupCheckTitle: "Is this really a version of the same track?",
