@@ -2213,7 +2213,7 @@ export function StereoFieldBlock({ analysisResult, isOpen = true }) {
   const monoZone = monoCompat == null ? null
     : monoCompat <= 1 ? { tone: 'target', label: s.fiche.dspViz.monoCompatZoneOk }
     : monoCompat <= 2 ? { tone: 'low',    label: s.fiche.dspViz.monoCompatZoneLimit }
-    : { tone: 'critical', label: s.fiche.dspViz.monoCompatZoneDanger };
+    : { tone: 'low',    label: s.fiche.dspViz.monoCompatZoneDanger };
   const corrZone = correlation == null ? null
     : correlation < 0    ? { tone: 'critical', label: s.fiche.dspViz.corrZonePhaseInv }
     : correlation < 0.3  ? { tone: 'low',      label: s.fiche.dspViz.corrZoneVeryWide }

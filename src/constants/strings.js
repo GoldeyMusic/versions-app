@@ -648,7 +648,7 @@ const STRINGS = {
         monoCompatKicker: "MONO COMPAT",
         monoCompatZoneOk: "Mono OK",
         monoCompatZoneLimit: "Mono limite",
-        monoCompatZoneDanger: "Mono dangereux",
+        monoCompatZoneDanger: "Mono à reprendre",
 
         // StereoFieldBlock — Corrélation L/R (C.2)
         corrKicker: "CORR L/R",
@@ -2398,7 +2398,7 @@ const STRINGS = {
         monoCompatKicker: "MONO COMPAT",
         monoCompatZoneOk: "Mono OK",
         monoCompatZoneLimit: "Mono borderline",
-        monoCompatZoneDanger: "Mono unsafe",
+        monoCompatZoneDanger: "Mono needs work",
 
         corrKicker: "CORR L/R",
         corrZonePhaseInv: "Out of phase",
