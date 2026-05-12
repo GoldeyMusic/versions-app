@@ -845,13 +845,17 @@ export async function findDuplicateAudio(_title, audioHash, params = {}) {
   const trackIds = tracks.map(t => t.id);
   const { data: versions } = await supabase
     .from('versions')
-    .select('id, name, track_id, artistic_intent, declared_genre, bpm, upload_type')
+    .select('id, name, track_id, version_intent, declared_genre, bpm, upload_type')
     .in('track_id', trackIds)
     .eq('audio_hash', audioHash);
   if (!versions || versions.length === 0) return null;
 
   // Normalisation pour comparaison case-insensitive et nullable-safe.
   // On veut traiter (null, '', '   ') comme équivalents.
+  // Note : sur la table versions, l'intent est stocké en `version_intent`
+  // (l'intent au niveau du titre est sur tracks.artistic_intent, qu'on
+  // ignore ici — on compare uniquement l'intent saisi à l'upload de la
+  // version, qui correspond à params.intent).
   const norm = {
     intent: (params.intent || '').trim(),
     genre: (params.declaredGenre || '').trim().toLowerCase(),
@@ -859,7 +863,7 @@ export async function findDuplicateAudio(_title, audioHash, params = {}) {
     uploadType: (params.uploadType || 'mix').trim().toLowerCase(),
   };
   const normalizeRow = (v) => ({
-    intent: (v?.artistic_intent || '').trim(),
+    intent: (v?.version_intent || '').trim(),
     genre: (v?.declared_genre || '').trim().toLowerCase(),
     bpm: v?.bpm != null && v.bpm !== '' ? String(v.bpm) : '',
     uploadType: (v?.upload_type || 'mix').trim().toLowerCase(),
