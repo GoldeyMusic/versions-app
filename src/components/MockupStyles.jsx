@@ -1958,15 +1958,16 @@ export default function MockupStyles() {
     position: relative;
     z-index: 1;
   }
-  /* Quand un tooltip est ouvert (score global ou tuile mix), on booste le
-     z-index de toute la row pour que le tooltip puisse déborder au-dessus
-     du Plan d'action / Diagnostic qui suit dans la grille ET au-dessus du
-     chat (.fiche-chat-side z-index 12). On vise 9999 pour être safe contre
-     tout autre stacking context introduit plus tard. */
+  /* Quand un tooltip est ouvert (score global, tuile mix legacy, OU axe radar),
+     on booste le z-index de toute la row pour que le tooltip puisse déborder
+     au-dessus du Plan d'action / Diagnostic qui suit dans la grille ET
+     au-dessus du chat (.fiche-chat-side z-index 12). On vise 9999 pour être
+     safe contre tout autre stacking context introduit plus tard. */
   .fiche-v2 .page .row-verdict:has(.score-ring.tip-open),
   .fiche-v2 .page .row-verdict:has(.score-ring:hover),
   .fiche-v2 .page .row-verdict:has(.mi-tile.tip-open),
-  .fiche-v2 .page .row-verdict:has(.mi-tile:hover) {
+  .fiche-v2 .page .row-verdict:has(.mi-tile:hover),
+  .fiche-v2 .page .row-verdict:has(.mix-radar.is-hovering) {
     z-index: 9999;
   }
   /* Quand row-verdict monte à z-index 100 pour laisser le tooltip déborder,
@@ -1975,7 +1976,8 @@ export default function MockupStyles() {
   .fiche-v2 .page:has(.row-verdict .score-ring.tip-open) .col-cover-wrap,
   .fiche-v2 .page:has(.row-verdict .score-ring:hover) .col-cover-wrap,
   .fiche-v2 .page:has(.row-verdict .mi-tile.tip-open) .col-cover-wrap,
-  .fiche-v2 .page:has(.row-verdict .mi-tile:hover) .col-cover-wrap {
+  .fiche-v2 .page:has(.row-verdict .mi-tile:hover) .col-cover-wrap,
+  .fiche-v2 .page:has(.row-verdict .mix-radar.is-hovering) .col-cover-wrap {
     z-index: 101;
   }
   .fiche-v2 .page .row-verdict .rv-left {
