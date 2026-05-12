@@ -3560,14 +3560,17 @@ function VersionsAppAuthed() {
     ) {
       loadPlayer(config.title, config.version, merged.storagePath);
     }
-    if (screen !== "fiche") {
-      console.log("➡️ VERSIONS setScreen('fiche') triggered from handleLoaded");
+    // Ne bascule sur l'écran fiche QUE quand l'analyse est pleinement
+    // terminée (stage 'all_done' + result.fiche présent). Avant ce point,
+    // on garde l'utilisateur sur LoadingScreen qui continue à poller — ça
+    // évite l'incohérence visuelle "URL/topbar = fiche, body = loading"
+    // qu'on avait quand on basculait sur les résultats partiels (rag_done,
+    // measures_done) avant la fin de la rédaction Claude.
+    const isFullyReady = result._stage === "all_done" && !!result.fiche;
+    if (screen !== "fiche" && isFullyReady) {
+      console.log("➡️ VERSIONS setScreen('fiche') triggered from handleLoaded (all_done)");
       setScreen("fiche");
-      // Start background polling if not complete yet
-      if (result._jobId && result._stage !== "all_done") {
-        startBackgroundPolling(result._jobId);
-      } else if (result._stage === "all_done" && !savedRef.current) {
-        // Analysis completed in one shot — save immediately
+      if (!savedRef.current) {
         savedRef.current = true;
         saveAnalysis(cfgWithHash, merged, merged.storagePath || null, lang)
           .then((ids) => {
