@@ -9299,10 +9299,34 @@ export default function MockupStyles() {
     padding: 10px 2px; margin-top: 4px;
     cursor: pointer; user-select: none;
   }
+  /* Checkbox custom : la native est invisible sur fond noir (case decochee
+     blanche sur blanc). On la stylise integralement pour avoir une vraie
+     bordure visible + un checkmark dessine en ::after a l'etat coche. */
   .add-mini-copyright input[type="checkbox"] {
-    margin-top: 2px;
-    accent-color: var(--amber);
-    cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    flex-shrink: 0;
+    width: 16px; height: 16px; margin: 2px 0 0 0;
+    border: 1.5px solid rgba(245,176,86,0.55);
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer; position: relative;
+    transition: border-color .15s, background .15s;
+  }
+  .add-mini-copyright input[type="checkbox"]:hover {
+    border-color: var(--amber);
+  }
+  .add-mini-copyright input[type="checkbox"]:checked {
+    background: var(--amber);
+    border-color: var(--amber);
+  }
+  .add-mini-copyright input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px; top: 0px;
+    width: 4px; height: 9px;
+    border-right: 2px solid #1a1a1a;
+    border-bottom: 2px solid #1a1a1a;
+    transform: rotate(45deg);
   }
   .add-mini-copyright span {
     font-family: var(--body); font-size: 12px;
