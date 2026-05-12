@@ -11927,7 +11927,9 @@ export default function MockupStyles() {
     overflow: hidden;
     background: rgba(255,255,255,0.04);
   }
-  /* 3 zones colorées : 25% rouge / 50% mint / 25% rouge */
+  /* 3 zones : 25% rouge (voix en retrait, vrai probleme) / 50% mint (cible)
+     / 25% ambre (voix proeminente, souvent un choix assume en pop/rock —
+     pas un defaut). */
   .dsp-voice-block .vv-zone-bad-low {
     flex: 0 0 25%;
     background: linear-gradient(90deg, rgba(255,93,93,0.20), rgba(255,93,93,0.30));
@@ -11940,7 +11942,7 @@ export default function MockupStyles() {
   }
   .dsp-voice-block .vv-zone-bad-high {
     flex: 0 0 25%;
-    background: linear-gradient(90deg, rgba(255,93,93,0.30), rgba(255,93,93,0.20));
+    background: linear-gradient(90deg, rgba(245,176,86,0.30), rgba(245,176,86,0.20));
   }
   /* Valeur nette au-dessus de la jauge — plus grosse pour rester
      dominante comme les chiffres hero de stéréo (22px) et master (17px).
@@ -12008,7 +12010,7 @@ export default function MockupStyles() {
   }
   .dsp-voice-block .vv-legend-r {
     text-align: right;
-    color: rgba(255,93,93,0.7);
+    color: rgba(245,176,86,0.85);
   }
   /* Détails techniques en bas (LUFS exacts) — pour les power users */
   .dsp-voice-block .vv-details {

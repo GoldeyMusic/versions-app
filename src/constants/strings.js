@@ -639,7 +639,7 @@ const STRINGS = {
         instruLabel: "INSTRU",
         voiceVerdictTarget: "Voix bien posée ✓",
         voiceVerdictRetreat: "À retravailler — voix en retrait",
-        voiceVerdictProminent: "À retravailler — voix proéminente",
+        voiceVerdictProminent: "Voix proéminente — choix assumé",
 
         // StereoFieldBlock — Largeur (C.2)
         widthKicker: "LARGEUR",
@@ -2400,7 +2400,7 @@ const STRINGS = {
         instruLabel: "INSTRU",
         voiceVerdictTarget: "Voice well placed ✓",
         voiceVerdictRetreat: "Needs work — voice too quiet",
-        voiceVerdictProminent: "Needs work — voice too loud",
+        voiceVerdictProminent: "Voice forward — by design",
 
         widthKicker: "WIDTH",
         widthZoneNarrow: "Narrow",
