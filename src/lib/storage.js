@@ -819,18 +819,22 @@ export async function hashAudioFile(file) {
   return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** Cherche un fichier audio identique déjà uploadé n'importe où dans le
- *  catalogue de l'utilisateur (extension : avant on scopait au titre, on
- *  ouvre désormais à tous ses titres pour éviter les ré-uploads silencieux
- *  dans des titres différents).
+/** Cherche un fichier audio identique déjà uploadé dans le catalogue de
+ *  l'utilisateur AVEC les mêmes paramètres d'analyse (intent, genre, bpm,
+ *  upload type). Un vrai doublon = même fichier ET même set de paramètres,
+ *  donc même fiche prévisible. Si seuls les paramètres changent, on
+ *  considère que c'est une analyse nouvelle, pas un doublon.
  *
  *  L'argument `title` est conservé pour compat de signature mais n'est plus
  *  utilisé pour filtrer.
  *
- *  Retour : { versionId, versionName, trackId, trackTitle } si doublon,
- *  null sinon.
+ *  params : { intent, declaredGenre, userBpm, uploadType } — passés depuis
+ *  le LoadingScreen pour comparer avec ce qu'il y a en DB.
+ *
+ *  Retour : { versionId, versionName, trackId, trackTitle } si doublon
+ *  strict, null sinon.
  */
-export async function findDuplicateAudio(_title, audioHash) {
+export async function findDuplicateAudio(_title, audioHash, params = {}) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const { data: tracks } = await supabase
@@ -841,21 +845,43 @@ export async function findDuplicateAudio(_title, audioHash) {
   const trackIds = tracks.map(t => t.id);
   const { data: versions } = await supabase
     .from('versions')
-    .select('id, name, track_id')
+    .select('id, name, track_id, artistic_intent, declared_genre, bpm, upload_type')
     .in('track_id', trackIds)
-    .eq('audio_hash', audioHash)
-    .limit(1);
+    .eq('audio_hash', audioHash);
   if (!versions || versions.length === 0) return null;
-  const v = versions[0];
-  const t = tracks.find(tr => tr.id === v.track_id);
+
+  // Normalisation pour comparaison case-insensitive et nullable-safe.
+  // On veut traiter (null, '', '   ') comme équivalents.
+  const norm = {
+    intent: (params.intent || '').trim(),
+    genre: (params.declaredGenre || '').trim().toLowerCase(),
+    bpm: params.userBpm != null && params.userBpm !== '' ? String(params.userBpm) : '',
+    uploadType: (params.uploadType || 'mix').trim().toLowerCase(),
+  };
+  const normalizeRow = (v) => ({
+    intent: (v?.artistic_intent || '').trim(),
+    genre: (v?.declared_genre || '').trim().toLowerCase(),
+    bpm: v?.bpm != null && v.bpm !== '' ? String(v.bpm) : '',
+    uploadType: (v?.upload_type || 'mix').trim().toLowerCase(),
+  });
+
+  // Match strict : tous les paramètres doivent correspondre.
+  const exact = versions.find((v) => {
+    const r = normalizeRow(v);
+    return r.intent === norm.intent
+      && r.genre === norm.genre
+      && r.bpm === norm.bpm
+      && r.uploadType === norm.uploadType;
+  });
+
+  if (!exact) return null;
+  const t = tracks.find(tr => tr.id === exact.track_id);
   return {
-    versionId: v.id,
-    versionName: v.name,
-    trackId: v.track_id,
+    versionId: exact.id,
+    versionName: exact.name,
+    trackId: exact.track_id,
     trackTitle: t?.title || '',
-    // Compat ascendante : certains callers attendaient juste { name }
-    // dans l'ancien retour. On expose toujours `name`.
-    name: v.name,
+    name: exact.name,
   };
 }
 

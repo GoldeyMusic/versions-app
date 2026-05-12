@@ -166,23 +166,58 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           throw new Error(s.loading.errorTimeout);
         }
 
-        // Hash + check doublon (évite une analyse Gemini inutile)
-        if (config.file) {
+        // Hash + check doublon. Le check est désormais "params-aware" : on
+        // ne considère doublon QUE si tous les paramètres d'analyse sont
+        // identiques (intent, genre, bpm, mix/master). Si l'utilisateur a
+        // changé un paramètre, c'est une analyse nouvelle, on laisse passer.
+        // Si match strict et que forceUpload n'est pas activé : on affiche
+        // une modale 2 boutons (voir / uploader quand même).
+        if (config.file && !config._forceUpload) {
           const audioHash = await hashAudioFile(config.file);
           config.audioHash = audioHash;
-          const dup = await findDuplicateAudio(config.title || '', audioHash);
+          const dup = await findDuplicateAudio(config.title || '', audioHash, {
+            intent: config.inlineIntent,
+            declaredGenre: config.declaredGenre,
+            userBpm: config.userBpm,
+            uploadType: config.uploadType,
+          });
           if (dup) {
-            // Le check est désormais étendu à tout le catalogue user :
-            // si le titre du doublon diffère du titre en cours d'upload, on
-            // cite explicitement le titre où le fichier existe déjà (sinon
-            // l'utilisateur ne comprend pas où on est allé chercher).
             const sameTitle = (config.title || '').toLowerCase() === (dup.trackTitle || '').toLowerCase();
             const msg = sameTitle
               ? s.loading.errorDuplicate.replace('{name}', dup.versionName)
               : s.loading.errorDuplicateOtherTrack
                   .replace('{name}', dup.versionName)
                   .replace('{track}', dup.trackTitle || '?');
-            throw new Error(msg);
+            // Modale non-bloquante. 'confirm' = voir, 'cancel' = uploader
+            // quand même. Pas de bouton tertiaire (close = annulation =
+            // retour dashboard).
+            const choice = await confirmDialog({
+              title: s.loading.duplicateModalTitle,
+              message: msg,
+              confirmLabel: s.loading.duplicateModalSeeExisting,
+              cancelLabel: s.loading.duplicateModalUploadAnyway,
+            });
+            if (choice === 'confirm') {
+              // Voir l'analyse existante : on navigue vers la fiche. Slug
+              // identique à celui d'App.jsx (NFD + strip diacritiques + a-z0-9).
+              const slugify = (n) => String(n || '')
+                .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .toLowerCase().replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '').slice(0, 80);
+              const slug = slugify(dup.trackTitle || 'titre');
+              const vSlug = slugify(dup.versionName || 'v1');
+              window.location.href = `/fiche/${slug}/${vSlug}`;
+              return; // stop l'analyse
+            }
+            if (choice === 'cancel') {
+              // Uploader quand même : on continue le pipeline en bypassant
+              // ce check au prochain tour si l'écran se ré-affiche.
+              config._forceUpload = true;
+            } else {
+              // 'tertiary' ou close de la modale : retour dashboard.
+              window.location.href = '/dashboard';
+              return;
+            }
           }
         }
 
