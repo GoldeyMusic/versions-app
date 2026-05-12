@@ -1184,6 +1184,8 @@ const STRINGS = {
       uploadCta: "Lancer l'analyse",
       uploadCtaIncomplete: "Complète les champs pour lancer",
       copyrightAck: "Je détiens les droits sur ce fichier audio ou je suis autorisé à l'analyser sur Versions.",
+      uploadBpmLabel: "BPM (optionnel — laisse vide pour détection automatique)",
+      uploadBpmPlaceholder: "ex : 120",
       // Cap durée audio (12 min). Bloque côté navigateur avant POST,
       // double validation côté backend.
       uploadDurationReading: "Lecture du fichier…",
@@ -2935,6 +2937,8 @@ const STRINGS = {
       uploadCta: "Run analysis",
       uploadCtaIncomplete: "Fill in fields to run",
       copyrightAck: "I hold the rights to this audio file or I am authorized to analyze it on Versions.",
+      uploadBpmLabel: "BPM (optional — leave empty for auto detection)",
+      uploadBpmPlaceholder: "e.g. 120",
       // Audio duration cap (12 min). Blocks in-browser before POST,
       // double-validated server-side.
       uploadDurationReading: "Reading file…",

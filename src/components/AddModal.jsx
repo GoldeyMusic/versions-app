@@ -142,6 +142,12 @@ export default function AddModal({
   // l'analyser. Trace horodatée persistée dans versions.copyright_acknowledged_at
   // pour défense légale (DMCA / safe harbor) en cas de litige.
   const [copyrightAck, setCopyrightAck] = useState(false);
+  // BPM optionnel saisi par l'artiste. Override la détection auto Fadr.
+  // Solution au piège half-time/double-time (75 vs 150) : Fadr et tous les
+  // détecteurs BPM se trompent régulièrement d'un facteur 2. L'artiste
+  // connaît son tempo (réglé dans la DAW), donc on lui laisse la primauté
+  // quand il veut bien le renseigner. Champ optionnel — vide = auto.
+  const [userBpm, setUserBpm] = useState('');
   const [drag, setDrag] = useState(false);
   // États du check durée audio (lecture/erreur). file ne devient non-null
   // que si la durée a été lue ET qu'elle est ≤ MAX_AUDIO_DURATION_SEC.
@@ -266,6 +272,14 @@ export default function AddModal({
       // que l'utilisateur a coché la case (uploadOk garantit que copyrightAck
       // est true ici, sinon le bouton serait disabled).
       copyrightAcknowledgedAt: new Date().toISOString(),
+      // BPM optionnel saisi par l'artiste. Override Fadr backend si présent.
+      // Parsing tolérant : "120" / "120.5" / " 120 " acceptés. Hors borne
+      // (< 30 ou > 300) ou non numérique → ignoré (Fadr reprend la main).
+      userBpm: (() => {
+        const n = parseFloat((userBpm || '').trim().replace(',', '.'));
+        if (!Number.isFinite(n) || n < 30 || n > 300) return null;
+        return n;
+      })(),
     });
     onClose();
   };
@@ -283,6 +297,7 @@ export default function AddModal({
       setDeclaredGenre('');
       setArtisticIntent('');
       setCopyrightAck(false);
+      setUserBpm('');
       setDrag(false);
       setFileError(null);
       setFileChecking(false);
@@ -831,6 +846,27 @@ export default function AddModal({
                 </div>
               </div>
             </div>
+
+            {/* BPM — optionnel, override la détection auto Fadr. Fadr et
+                tous les détecteurs BPM se trompent régulièrement entre
+                half-time et double-time (75 vs 150, etc.). L'artiste
+                connaît son tempo réel (réglé dans la DAW), donc on lui
+                laisse la primauté quand il veut le renseigner. Vide =
+                détection auto. */}
+            {file && (
+              <div className="add-mini-field">
+                <div className="add-mini-field-label">{s.addModal.uploadBpmLabel}</div>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="add-mini-input"
+                  value={userBpm}
+                  placeholder={s.addModal.uploadBpmPlaceholder}
+                  maxLength={5}
+                  onChange={(e) => setUserBpm(e.target.value)}
+                />
+              </div>
+            )}
 
             {/* Genre musical — texte libre. Si vide au moment du
                 lancement, le pipeline détecte automatiquement (cf.

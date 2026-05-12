@@ -346,6 +346,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           else startBody.skipIntent = 'true';
           if (config.declaredGenre) startBody.declaredGenre = config.declaredGenre;
           if (config.genreUnknown) startBody.genreUnknown = 'true';
+          if (config.userBpm != null) startBody.userBpm = String(config.userBpm);
 
           startRes = await apiFetch('/api/analyze/start', {
             method: 'POST',
@@ -384,6 +385,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           }
           if (config.declaredGenre) formData.append("declaredGenre", config.declaredGenre);
           if (config.genreUnknown) formData.append("genreUnknown", "true");
+          if (config.userBpm != null) formData.append("userBpm", String(config.userBpm));
 
           startRes = await apiFetch('/api/analyze/start', {
             method: "POST",
