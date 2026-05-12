@@ -137,6 +137,11 @@ export default function AddModal({
   // avant dans l'IntentionScreen post-Phase-A : maintenant tout en
   // amont, plus d'interruption mid-analyse.
   const [artisticIntent, setArtisticIntent] = useState('');
+  // Acceptation copyright (migration 029). L'utilisateur doit explicitement
+  // cocher qu'il détient les droits sur le fichier ou est autorisé à
+  // l'analyser. Trace horodatée persistée dans versions.copyright_acknowledged_at
+  // pour défense légale (DMCA / safe harbor) en cas de litige.
+  const [copyrightAck, setCopyrightAck] = useState(false);
   const [drag, setDrag] = useState(false);
   // États du check durée audio (lecture/erreur). file ne devient non-null
   // que si la durée a été lue ET qu'elle est ≤ MAX_AUDIO_DURATION_SEC.
@@ -193,7 +198,7 @@ export default function AddModal({
         : null);
   const vocalOk = !askVocal || vocalType !== null;
 
-  const uploadOk = !!file && !!daw && !!title.trim() && !!version.trim() && !!uploadCtx?.projectId && vocalOk;
+  const uploadOk = !!file && !!daw && !!title.trim() && !!version.trim() && !!uploadCtx?.projectId && vocalOk && copyrightAck;
 
   const handlePickFile = async (f) => {
     if (!f) return;
@@ -256,6 +261,11 @@ export default function AddModal({
       // Scope par défaut 'track' (cas le plus courant : V1, ou V2+
       // qui re-déclare l'intention pour tout le titre).
       _pendingIntentScope: 'track',
+      // Timestamp d'acceptation copyright — persisté en colonne
+      // versions.copyright_acknowledged_at (migration 029). Renseigné dès
+      // que l'utilisateur a coché la case (uploadOk garantit que copyrightAck
+      // est true ici, sinon le bouton serait disabled).
+      copyrightAcknowledgedAt: new Date().toISOString(),
     });
     onClose();
   };
@@ -272,6 +282,7 @@ export default function AddModal({
       setUploadType('mix');
       setDeclaredGenre('');
       setArtisticIntent('');
+      setCopyrightAck(false);
       setDrag(false);
       setFileError(null);
       setFileChecking(false);
@@ -856,6 +867,20 @@ export default function AddModal({
                 maxLength={600}
               />
             </div>
+
+            {/* Acceptation copyright — obligatoire avant analyse.
+                Trace persistée en versions.copyright_acknowledged_at pour
+                la défense légale (DMCA / safe harbor). */}
+            {file && (
+              <label className="add-mini-copyright">
+                <input
+                  type="checkbox"
+                  checked={copyrightAck}
+                  onChange={(e) => setCopyrightAck(e.target.checked)}
+                />
+                <span>{s.addModal.copyrightAck}</span>
+              </label>
+            )}
 
             {/* CTA */}
             <button

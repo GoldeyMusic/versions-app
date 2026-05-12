@@ -211,6 +211,12 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
     ? config.uploadType
     : 'mix';
 
+  // Acceptation copyright (migration 029). Renseignée par AddModal au moment
+  // du upload. On la passe à la fois en insert (nouvelle version) et en update
+  // (ré-analyse d'une version existante) — l'utilisateur a coché la case à
+  // chaque nouvelle analyse, on horodate à chaque fois.
+  const copyrightAcknowledgedAt = config?.copyrightAcknowledgedAt || null;
+
   if (existing) {
     const updatePayload = {
       date: formatDate(),
@@ -221,6 +227,7 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
       analysis_translations: {},
       audio_hash: config?.audioHash || analysisResult?.audioHash || null,
       upload_type: uploadType,
+      ...(copyrightAcknowledgedAt ? { copyright_acknowledged_at: copyrightAcknowledgedAt } : {}),
       ...dspPatch,
     };
     if (finalStoragePath) updatePayload.storage_path = finalStoragePath;
@@ -246,6 +253,7 @@ export async function saveAnalysis(config, analysisResult, storagePath = null, a
         audio_hash: config?.audioHash || analysisResult?.audioHash || null,
         storage_path: finalStoragePath,
         upload_type: uploadType,
+        ...(copyrightAcknowledgedAt ? { copyright_acknowledged_at: copyrightAcknowledgedAt } : {}),
         ...dspPatch,
       })
       .select()
@@ -811,24 +819,44 @@ export async function hashAudioFile(file) {
   return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** Cherche un fichier audio identique déjà uploadé pour ce titre. */
-export async function findDuplicateAudio(title, audioHash) {
+/** Cherche un fichier audio identique déjà uploadé n'importe où dans le
+ *  catalogue de l'utilisateur (extension : avant on scopait au titre, on
+ *  ouvre désormais à tous ses titres pour éviter les ré-uploads silencieux
+ *  dans des titres différents).
+ *
+ *  L'argument `title` est conservé pour compat de signature mais n'est plus
+ *  utilisé pour filtrer.
+ *
+ *  Retour : { versionId, versionName, trackId, trackTitle } si doublon,
+ *  null sinon.
+ */
+export async function findDuplicateAudio(_title, audioHash) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const { data: tracks } = await supabase
     .from('tracks')
     .select('id, title')
-    .eq('user_id', user.id)
-    .ilike('title', title);
-  const track = tracks?.find(t => t.title.toLowerCase() === title.toLowerCase());
-  if (!track) return null;
+    .eq('user_id', user.id);
+  if (!tracks || tracks.length === 0) return null;
+  const trackIds = tracks.map(t => t.id);
   const { data: versions } = await supabase
     .from('versions')
-    .select('id, name')
-    .eq('track_id', track.id)
+    .select('id, name, track_id')
+    .in('track_id', trackIds)
     .eq('audio_hash', audioHash)
     .limit(1);
-  return versions?.[0] || null;
+  if (!versions || versions.length === 0) return null;
+  const v = versions[0];
+  const t = tracks.find(tr => tr.id === v.track_id);
+  return {
+    versionId: v.id,
+    versionName: v.name,
+    trackId: v.track_id,
+    trackTitle: t?.title || '',
+    // Compat ascendante : certains callers attendaient juste { name }
+    // dans l'ancien retour. On expose toujours `name`.
+    name: v.name,
+  };
 }
 
 /** Compare two versions (A = older, B = newer). Returns {resume, progres, regressions, inchanges}.

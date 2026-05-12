@@ -172,7 +172,17 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           config.audioHash = audioHash;
           const dup = await findDuplicateAudio(config.title || '', audioHash);
           if (dup) {
-            throw new Error(s.loading.errorDuplicate.replace('{name}', dup.name));
+            // Le check est désormais étendu à tout le catalogue user :
+            // si le titre du doublon diffère du titre en cours d'upload, on
+            // cite explicitement le titre où le fichier existe déjà (sinon
+            // l'utilisateur ne comprend pas où on est allé chercher).
+            const sameTitle = (config.title || '').toLowerCase() === (dup.trackTitle || '').toLowerCase();
+            const msg = sameTitle
+              ? s.loading.errorDuplicate.replace('{name}', dup.versionName)
+              : s.loading.errorDuplicateOtherTrack
+                  .replace('{name}', dup.versionName)
+                  .replace('{track}', dup.trackTitle || '?');
+            throw new Error(msg);
           }
         }
 

@@ -9292,6 +9292,23 @@ export default function MockupStyles() {
     letter-spacing: 0.3px;
   }
 
+  /* Case copyright (obligatoire avant analyse, migration 029).
+     Layout flex avec checkbox alignée en haut du texte (text peut faire 2 lignes). */
+  .add-mini-copyright {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 2px; margin-top: 4px;
+    cursor: pointer; user-select: none;
+  }
+  .add-mini-copyright input[type="checkbox"] {
+    margin-top: 2px;
+    accent-color: var(--amber);
+    cursor: pointer;
+  }
+  .add-mini-copyright span {
+    font-family: var(--body); font-size: 12px;
+    color: var(--soft, #c5c5c7); line-height: 1.5;
+  }
+
   /* CTA large (upload) */
   .add-mini-cta {
     width: 100%; padding: 12px 16px; border-radius: 999px;

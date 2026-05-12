@@ -371,6 +371,7 @@ const STRINGS = {
       didYouKnow: "Le saviez-vous ?",
       cancel: "Annuler l'analyse",
       errorDuplicate: "Fichier identique à la version \"{name}\" déjà uploadée pour ce titre. Importe un rendu différent.",
+      errorDuplicateOtherTrack: "Tu as déjà uploadé ce fichier dans le titre \"{track}\" (version \"{name}\"). Importe un rendu différent ou retrouve cette analyse dans ton catalogue.",
       errorStart: "Démarrage échoué ({status})",
       errorFailed: "Analyse échouée",
       errorTimeout: "Timeout — analyse trop longue",
@@ -1182,6 +1183,7 @@ const STRINGS = {
       uploadGenreAutoBtn: "Choisir automatiquement",
       uploadCta: "Lancer l'analyse",
       uploadCtaIncomplete: "Complète les champs pour lancer",
+      copyrightAck: "Je détiens les droits sur ce fichier audio ou je suis autorisé à l'analyser sur Versions.",
       // Cap durée audio (12 min). Bloque côté navigateur avant POST,
       // double validation côté backend.
       uploadDurationReading: "Lecture du fichier…",
@@ -1579,7 +1581,7 @@ const STRINGS = {
         eyebrow: "CONFIDENTIALITÉ",
         title: "Politique de",
         titleEm: "confidentialité",
-        updated: "Dernière mise à jour : 4 mai 2026",
+        updated: "Dernière mise à jour : 12 mai 2026",
         lede: "La présente politique décrit comment Versions collecte, utilise et protège vos données personnelles lorsque vous utilisez le service accessible à l'adresse www.versions.studio.",
         sections: [
           {
@@ -1597,6 +1599,7 @@ const STRINGS = {
                 "**Adresse e-mail** — transmise par Google lors de l'authentification OAuth, utilisée pour identifier votre compte et vous envoyer les communications relatives au service.",
                 "**Fichiers audio** — les pistes que vous importez pour analyse (mix ou master) sont stockées sur Supabase Storage afin de permettre leur lecture, leur analyse par notre moteur et l'affichage de vos fiches d'analyse.",
                 "**Données d'analyse** — résultats produits par le moteur d'analyse (scores, diagnostics, métriques DSP), conservés pour vous permettre de consulter et comparer vos versions dans le temps.",
+                "**Empreinte technique des fichiers audio** — conservée pour des besoins opérationnels (cohérence d'analyse, optimisation des ressources). Supprimée à la suppression de votre compte.",
                 "**Préférences utilisateur** — DAW utilisé, langue d'interface, intentions artistiques, paramètres de votre profil.",
                 "**Données de paiement** — gérées intégralement par Stripe ; nous ne stockons aucune donnée bancaire sur nos serveurs. Stripe nous communique uniquement le statut des transactions (réussite, échec, abonnement actif).",
               ]},
@@ -1679,7 +1682,7 @@ const STRINGS = {
         eyebrow: "CGU",
         title: "Conditions générales",
         titleEm: "d'utilisation",
-        updated: "Dernière mise à jour : 4 mai 2026",
+        updated: "Dernière mise à jour : 12 mai 2026",
         lede: "Les présentes conditions générales d'utilisation (« CGU ») régissent l'accès et l'utilisation du service Versions, accessible à l'adresse www.versions.studio. En créant un compte ou en utilisant le service, vous acceptez sans réserve les présentes CGU.",
         sections: [
           {
@@ -1723,7 +1726,7 @@ const STRINGS = {
               { type: 'p', text: "**Vos fichiers audio restent votre propriété exclusive.** Vous conservez l'ensemble des droits d'auteur, droits voisins et droits sur les masters relatifs aux pistes que vous importez. Versions ne revendique aucun droit sur vos œuvres." },
               { type: 'p', text: "En important une piste, vous nous accordez uniquement la licence limitée, non exclusive et révocable nécessaire au stockage, à la lecture et à l'analyse technique du fichier dans le cadre du service. Cette licence prend fin lorsque vous supprimez la piste ou votre compte." },
               { type: 'p', text: "Les fiches d'analyse générées par Versions, ainsi que les éléments de l'interface (textes, graphismes, logos, code), sont la propriété de l'éditeur et protégés par le droit de la propriété intellectuelle. Vous pouvez librement utiliser le contenu des fiches pour vos propres besoins de production, mais vous ne pouvez pas reproduire ou distribuer publiquement l'interface ou le service sans autorisation." },
-              { type: 'p', text: "Vous garantissez détenir l'ensemble des droits nécessaires sur les fichiers que vous importez et vous engagez à ne pas soumettre de contenu portant atteinte aux droits de tiers." },
+              { type: 'p', text: "Vous garantissez détenir l'ensemble des droits nécessaires sur les fichiers que vous importez ou être expressément autorisé à les analyser sur le service. Cette garantie est confirmée par une acceptation explicite à chaque upload. Vous vous engagez à ne pas soumettre de contenu portant atteinte aux droits de tiers." },
             ],
           },
           {
@@ -2140,6 +2143,7 @@ const STRINGS = {
       didYouKnow: "Did you know?",
       cancel: "Cancel analysis",
       errorDuplicate: "File identical to version \"{name}\" already uploaded for this track. Please import a different render.",
+      errorDuplicateOtherTrack: "You've already uploaded this file in the track \"{track}\" (version \"{name}\"). Please import a different render or find this analysis in your catalogue.",
       errorStart: "Start failed ({status})",
       errorFailed: "Analysis failed",
       errorTimeout: "Timeout — analysis took too long",
@@ -2930,6 +2934,7 @@ const STRINGS = {
       uploadGenreAutoBtn: "Detect automatically",
       uploadCta: "Run analysis",
       uploadCtaIncomplete: "Fill in fields to run",
+      copyrightAck: "I hold the rights to this audio file or I am authorized to analyze it on Versions.",
       // Audio duration cap (12 min). Blocks in-browser before POST,
       // double-validated server-side.
       uploadDurationReading: "Reading file…",
@@ -3301,7 +3306,7 @@ const STRINGS = {
         eyebrow: "PRIVACY",
         title: "Privacy",
         titleEm: "policy",
-        updated: "Last updated: May 4, 2026",
+        updated: "Last updated: May 12, 2026",
         lede: "This policy describes how Versions collects, uses and protects your personal data when you use the service available at www.versions.studio.",
         sections: [
           {
@@ -3319,6 +3324,7 @@ const STRINGS = {
                 "**Email address** — provided by Google during OAuth authentication, used to identify your account and to send you communications related to the service.",
                 "**Audio files** — the tracks you upload for analysis (mix or master) are stored on Supabase Storage to enable playback, analysis by our engine and display of your analysis reports.",
                 "**Analysis data** — results produced by the analysis engine (scores, diagnostics, DSP metrics), kept so you can review and compare your versions over time.",
+                "**Technical fingerprint of audio files** — kept for operational purposes (analysis consistency, resource optimization). Deleted when you delete your account.",
                 "**User preferences** — DAW used, interface language, artistic intents, profile settings.",
                 "**Payment data** — handled entirely by Stripe; we do not store any banking data on our servers. Stripe only communicates the status of transactions (success, failure, active subscription) to us.",
               ]},
@@ -3401,7 +3407,7 @@ const STRINGS = {
         eyebrow: "TERMS",
         title: "Terms of",
         titleEm: "service",
-        updated: "Last updated: May 4, 2026",
+        updated: "Last updated: May 12, 2026",
         lede: "These terms of service (\"Terms\") govern the access to and use of the Versions service, available at www.versions.studio. By creating an account or using the service, you accept these Terms without reservation.",
         sections: [
           {
@@ -3445,7 +3451,7 @@ const STRINGS = {
               { type: 'p', text: "**Your audio files remain your exclusive property.** You retain all copyright, neighboring rights and master rights relating to the tracks you upload. Versions claims no rights over your works." },
               { type: 'p', text: "By uploading a track, you only grant us the limited, non-exclusive and revocable license necessary to store, play back and technically analyze the file as part of the service. This license ends when you delete the track or your account." },
               { type: 'p', text: "Analysis reports generated by Versions, as well as the elements of the interface (text, graphics, logos, code), are the property of the publisher and protected by intellectual property law. You can freely use the report contents for your own production needs, but you may not publicly reproduce or distribute the interface or the service without authorization." },
-              { type: 'p', text: "You warrant that you hold all necessary rights to the files you upload and undertake not to submit content that infringes third-party rights." },
+              { type: 'p', text: "You warrant that you hold all necessary rights to the files you upload, or that you are expressly authorized to analyze them on the service. This warranty is confirmed by an explicit acknowledgment at each upload. You undertake not to submit content that infringes third-party rights." },
             ],
           },
           {
