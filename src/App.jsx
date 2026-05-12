@@ -3841,7 +3841,25 @@ function VersionsAppAuthed() {
           />
         );
       }
-      case "fiche":
+      case "fiche": {
+        // Garde-fou : si screen='fiche' a été déclenché (par le route handler,
+        // un useEffect, ou autre) MAIS qu'on est encore en train d'analyser
+        // un fichier (audioHash set + pas encore sauvé) ET que la fiche n'a
+        // pas d'items rendus, on rend LoadingScreen plutôt que FicheScreen.
+        // Sinon FicheScreen affiche son AnalyzingState interne entouré de sa
+        // topbar fiche -> incohérence visuelle (URL/topbar = fiche, body = loading).
+        const ficheReady = !!(analysisResult?.fiche?.elements?.length);
+        const inUploadFlow = !!config?.audioHash && !savedRef.current;
+        if (inUploadFlow && !ficheReady) {
+          return (
+            <LoadingScreen
+              config={config}
+              onDone={handleLoaded}
+              onAwaitingIntent={handleAwaitingIntent}
+              onBackToInput={handleCancelAnalysis}
+            />
+          );
+        }
         return (
           <FicheScreen
             config={config}
@@ -3852,6 +3870,7 @@ function VersionsAppAuthed() {
             onAddVersion={handleAddVersionFromPicker}
           />
         );
+      }
       case "versions":
         return (
           <VersionsScreen
