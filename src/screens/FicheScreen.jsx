@@ -2078,10 +2078,13 @@ export function VoiceVsInstruBlock({ analysisResult, isOpen = true }) {
   // Early return APRÈS les hooks
   if (!stemsArr.length || delta == null) return null;
 
-  // Verdict (basé sur la valeur FINALE delta — il ne flippe pas pendant l'anim)
+  // Verdict (basé sur la valeur FINALE delta — il ne flippe pas pendant l'anim).
+  // Seuils recalibres 2026-05-12 : on elargit la zone "bien posee" a -3 / +5
+  // pour refleter la realite des masters commerciaux pop/folk-pop (delta
+  // typique +4 a +6 LU). +5 a +9 = ambre "proeminente assumee". Au-dela = rouge.
   let verdict, verdictTone;
   if (delta < -3) { verdict = s.fiche.dspViz.voiceVerdictRetreat; verdictTone = 'critical'; }
-  else if (delta > 3) { verdict = s.fiche.dspViz.voiceVerdictProminent; verdictTone = 'low'; }
+  else if (delta > 5) { verdict = s.fiche.dspViz.voiceVerdictProminent; verdictTone = 'low'; }
   else { verdict = s.fiche.dspViz.voiceVerdictTarget; verdictTone = 'target'; }
   const verdictColor = verdictTone === 'target'
     ? 'rgb(142,224,122)'
@@ -2089,11 +2092,13 @@ export function VoiceVsInstruBlock({ analysisResult, isOpen = true }) {
       ? 'rgb(255,93,93)'
       : 'rgb(245,166,35)';
 
-  // Jauge ±6 LU. Position curseur basée sur animDelta (qui interpole de 0
-  // à delta cible avec ease-out-back → l'overshoot fait dépasser légèrement
-  // la position avant de revenir s'y stabiliser).
+  // Jauge -6 / +9 LU (etendue 2026-05-12 pour englober la zone "proeminente
+  // assumee" +5/+9 sans empieter sur la zone verte recalibree -3/+5).
+  // Position curseur basee sur animDelta (qui interpole de 0 a delta cible
+  // avec ease-out-back -> l overshoot fait depasser legerement la position
+  // avant de revenir s y stabiliser).
   const DELTA_MIN = -6;
-  const DELTA_MAX = 6;
+  const DELTA_MAX = 9;
   const dClamp = Math.max(DELTA_MIN, Math.min(DELTA_MAX, animDelta));
   const cursorPct = ((dClamp - DELTA_MIN) / (DELTA_MAX - DELTA_MIN)) * 100;
   return (
@@ -2121,13 +2126,15 @@ export function VoiceVsInstruBlock({ analysisResult, isOpen = true }) {
           <div className="vv-zone vv-zone-target" />       {/* -3 à +3 : voix bien posée */}
           <div className="vv-zone vv-zone-bad-high" />     {/* > +3 LU : voix en avant */}
         </div>
-        {/* Graduations sous la jauge : −6, −3, 0, +3, +6 LU */}
+        {/* Graduations sous la jauge : -6, -3, 0, +5, +9 LU (echelle elargie
+            2026-05-12 — +5 est la borne de la zone verte recalibree, +9 le
+            seuil au-dela duquel la voix devient un vrai probleme). */}
         <div className="vv-ticks" aria-hidden="true">
           <span style={{ left: '0%' }}>−6</span>
-          <span style={{ left: '25%' }}>−3</span>
-          <span style={{ left: '50%' }}>0</span>
-          <span style={{ left: '75%' }}>+3</span>
-          <span style={{ left: '100%' }}>+6</span>
+          <span style={{ left: '20%' }}>−3</span>
+          <span style={{ left: '40%' }}>0</span>
+          <span style={{ left: '73.3%' }}>+5</span>
+          <span style={{ left: '100%' }}>+9</span>
         </div>
         {/* Légende sous la jauge */}
         <div className="vv-legend" aria-hidden="true">
@@ -2191,10 +2198,16 @@ export function StereoFieldBlock({ analysisResult, isOpen = true }) {
     return balanceLR > 0 ? s.fiche.dspViz.balanceLeftHeavy : s.fiche.dspViz.balanceRightHeavy;
   })();
 
-  // Couleur tier mono compat — détermine la teinte du blob et des chiffres
+  // Couleur tier mono compat — détermine la teinte du blob et des chiffres.
+  // Seuils recalibres 2026-05-12 : la cible <1 LU est theorique et jamais
+  // atteinte en stereo enveloppante. La realite des masters commerciaux pop
+  // est entre 2 et 4 LU. On adopte une echelle plus juste :
+  //   ≤ 2 LU : OK (vert)        — un master "tres serre" / mono-safe
+  //   2-4 LU : a surveiller (ambre) — la zone des masters pop classiques
+  //   > 4 LU : a reprendre (rouge)  — vraie perte mono problematique
   const monoTier = monoCompat == null ? 'target'
-    : monoCompat <= 1 ? 'target'
-    : monoCompat <= 2 ? 'low'
+    : monoCompat <= 2 ? 'target'
+    : monoCompat <= 4 ? 'low'
     : 'critical';
   const tierColors = {
     target:   { rgb: '142,224,122', hex: '#8ee07a' },
@@ -2203,16 +2216,18 @@ export function StereoFieldBlock({ analysisResult, isOpen = true }) {
   };
   const tc = tierColors[monoTier];
 
-  // Helpers pour les zones width / corr (pour récupérer un label/tone par valeur)
+  // Helpers pour les zones width / corr (pour récupérer un label/tone par valeur).
+  // Seuils width recalibres 2026-05-12 : la cible 15-35% est plus une norme
+  // cinema/ambient. Pour pop/rock/folk, la fourchette realiste est 8-30%.
   const widthPct = midSideRatio != null ? Math.round(midSideRatio * 100) : null;
   const widthZone = widthPct == null ? null
-    : widthPct < 10 ? { tone: 'soft',   label: s.fiche.dspViz.widthZoneNarrow }
+    : widthPct < 8  ? { tone: 'soft',   label: s.fiche.dspViz.widthZoneNarrow }
     : widthPct < 30 ? { tone: 'target', label: s.fiche.dspViz.widthZoneStandard }
-    : widthPct < 50 ? { tone: 'low',    label: s.fiche.dspViz.widthZoneWide }
+    : widthPct < 45 ? { tone: 'low',    label: s.fiche.dspViz.widthZoneWide }
     : { tone: 'soft', label: s.fiche.dspViz.widthZoneVeryWide };
   const monoZone = monoCompat == null ? null
-    : monoCompat <= 1 ? { tone: 'target', label: s.fiche.dspViz.monoCompatZoneOk }
-    : monoCompat <= 2 ? { tone: 'low',    label: s.fiche.dspViz.monoCompatZoneLimit }
+    : monoCompat <= 2 ? { tone: 'target', label: s.fiche.dspViz.monoCompatZoneOk }
+    : monoCompat <= 4 ? { tone: 'low',    label: s.fiche.dspViz.monoCompatZoneLimit }
     : { tone: 'low',    label: s.fiche.dspViz.monoCompatZoneDanger };
   const corrZone = correlation == null ? null
     : correlation < 0    ? { tone: 'critical', label: s.fiche.dspViz.corrZonePhaseInv }
@@ -2387,7 +2402,7 @@ export function StereoFieldBlock({ analysisResult, isOpen = true }) {
               <div className="ss-stat-num">{Math.round(animWidthPct)}<span className="ss-stat-unit">%</span></div>
               <div className="ss-stat-kicker">{s.fiche.dspViz.widthKicker}</div>
               <div className="ss-stat-verdict">{widthZone.label}</div>
-              <div className="ss-stat-target">Cible : 15 à 35 %</div>
+              <div className="ss-stat-target">Cible : 10 à 30 %</div>
             </div>
           )}
           {monoCompat != null && (
@@ -2397,7 +2412,7 @@ export function StereoFieldBlock({ analysisResult, isOpen = true }) {
               </div>
               <div className="ss-stat-kicker">{s.fiche.dspViz.monoCompatKicker}</div>
               <div className="ss-stat-verdict">{monoZone.label}</div>
-              <div className="ss-stat-target">Cible : sous 1 LU</div>
+              <div className="ss-stat-target">Cible : sous 2 LU</div>
             </div>
           )}
           {correlation != null && (

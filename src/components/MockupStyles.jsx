@@ -11927,21 +11927,23 @@ export default function MockupStyles() {
     overflow: hidden;
     background: rgba(255,255,255,0.04);
   }
-  /* 3 zones : 25% rouge (voix en retrait, vrai probleme) / 50% mint (cible)
-     / 25% ambre (voix proeminente, souvent un choix assume en pop/rock —
-     pas un defaut). */
+  /* 3 zones recalibrees 2026-05-12 sur une echelle -6/+9 LU :
+     - bad-low (rouge, 20%)  : -6 a -3 LU (voix en retrait, vrai probleme)
+     - target (vert, 53.3%)  : -3 a +5 LU (cible, inclut le delta typique
+                                des masters commerciaux pop/folk-pop)
+     - bad-high (ambre, 26.7%) : +5 a +9 LU (voix proeminente, choix assume) */
   .dsp-voice-block .vv-zone-bad-low {
-    flex: 0 0 25%;
+    flex: 0 0 20%;
     background: linear-gradient(90deg, rgba(255,93,93,0.20), rgba(255,93,93,0.30));
   }
   .dsp-voice-block .vv-zone-target {
-    flex: 0 0 50%;
+    flex: 0 0 53.3%;
     background: rgba(142,224,122,0.42);
     border-left: 1px solid rgba(0,0,0,0.4);
     border-right: 1px solid rgba(0,0,0,0.4);
   }
   .dsp-voice-block .vv-zone-bad-high {
-    flex: 0 0 25%;
+    flex: 0 0 26.7%;
     background: linear-gradient(90deg, rgba(245,176,86,0.30), rgba(245,176,86,0.20));
   }
   /* Valeur nette au-dessus de la jauge — plus grosse pour rester
