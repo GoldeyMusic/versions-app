@@ -865,6 +865,7 @@ export default function AddModal({
                   maxLength={5}
                   onChange={(e) => setUserBpm(e.target.value)}
                 />
+                <div className="add-mini-field-hint">{s.addModal.uploadBpmHint}</div>
               </div>
             )}
 
