@@ -5382,14 +5382,17 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                             const canCheck = !!completionsVersionId && !(isVoice && voiceLabelOverride);
                             // Validation pure = pas d'action concrète proposée :
                             // 'how' vide OU commence par "RAS" (Rien À Signaler).
-                            // Dans ce cas, la checkbox n'a pas de sens — il n'y a
-                            // rien à "résoudre". Tous les autres items (avec une
-                            // recette technique dans 'how') gardent la case, même
-                            // si le score est élevé : un score 90 avec une vraie
-                            // recommandation reste une action à appliquer.
+                            // Refinement 2026-05-12 : on ajoute aussi le critere
+                            // priority. Un item LOW est une validation (score 80+)
+                            // ou une observation a surveiller — meme s il a un
+                            // 'how' conditionnel ("si remaster, faire X"), ce n est
+                            // pas un correctif a appliquer. La case "Marquer
+                            // comme resolu" n a donc de sens que sur les items
+                            // MED ou HIGH (de vrais correctifs).
                             const howStr = ((it && it.how) || '').trim();
                             const isPureValidation = !howStr || /^ras\b/i.test(howStr);
-                            const isCorrective = !isPureValidation;
+                            const isLowPriority = it?.priority === 'low';
+                            const isCorrective = !isPureValidation && !isLowPriority;
                             return (
                               <div key={it.id || i} className={`diag-item${it.priority ? ` prio-${it.priority}` : ''}${done ? ' is-done' : ''}${it.advice_locked ? ' advice-locked' : ''}`}>
                                 <ScoreRingSmall value={it.score} isOpen={open} animDelay={i * 60} />
