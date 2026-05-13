@@ -13,6 +13,7 @@ export default function ConfirmModal({
   cancelLabel,
   tertiaryLabel = null,
   danger = false,
+  stackedButtons = false,
   onConfirm,
   onCancel,
   onTertiary,
@@ -38,7 +39,7 @@ export default function ConfirmModal({
       <div className="add-mini-card" onClick={(e) => e.stopPropagation()}>
         <div className="add-mini-title">{effTitle}</div>
         {message && <div className="add-mini-body-text">{message}</div>}
-        <div className="add-mini-foot">
+        <div className={`add-mini-foot${stackedButtons ? ' is-stacked-full' : ''}`}>
           {effCancel && (
             <button className="add-mini-btn" onClick={onCancel}>{effCancel}</button>
           )}

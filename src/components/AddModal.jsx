@@ -814,30 +814,22 @@ export default function AddModal({
                   type="button"
                   className={`add-mini-pill${uploadType === 'master' ? ' on' : ''}`}
                   onClick={async () => {
-                    // Confirmation modale au premier clic sur "Master final" :
+                    // Confirmation modale à CHAQUE clic sur "Master final" :
                     // beaucoup d'utilisateurs mettent un limiteur ou un plugin
                     // de mastering sur leur bus master pendant le mix (pour
                     // l'écoute) et risquent de cocher "Master final" par
                     // réflexe alors qu'ils fignolent encore. La modale les
-                    // recadre. Choix mémorisé en localStorage pour ne pas
-                    // spammer à chaque upload.
-                    const ackKey = 'versions_master_final_acknowledged';
-                    const alreadyAcked = (() => {
-                      try { return localStorage.getItem(ackKey) === '1'; }
-                      catch { return false; }
-                    })();
-                    if (alreadyAcked) {
-                      setUploadType('master');
-                      return;
-                    }
+                    // recadre. On ne mémorise pas le choix : la protection
+                    // doit jouer pour chaque upload (un même user peut
+                    // alterner entre titres en mix et titres masterisés).
                     const choice = await confirmDialog({
                       title: s.addModal.uploadTypeMasterConfirmTitle,
                       message: s.addModal.uploadTypeMasterConfirmMessage,
                       confirmLabel: s.addModal.uploadTypeMasterConfirmYes,
                       cancelLabel: s.addModal.uploadTypeMasterConfirmNo,
+                      stackedButtons: true,
                     });
                     if (choice === 'confirm') {
-                      try { localStorage.setItem(ackKey, '1'); } catch { /* localStorage indispo : on continue */ }
                       setUploadType('master');
                     } else {
                       setUploadType('mix');

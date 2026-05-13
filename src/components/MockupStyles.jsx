@@ -9492,6 +9492,19 @@ export default function MockupStyles() {
 
   /* Pied de modale avec deux groupes (gauche: destructif, droite: actions) */
   .add-mini-foot.is-split { justify-content: space-between; }
+  /* Variante "stacked full" — boutons empilés en colonne, pleine largeur,
+     centrés. Utilisé pour les modales de confirmation où les libellés FR
+     sont longs (ex : "Non, je suis encore en mix" / "Oui, c'est mon
+     master final") et où on veut un visuel CTA-style fort. */
+  .add-mini-foot.is-stacked-full {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .add-mini-foot.is-stacked-full .add-mini-btn {
+    width: 100%;
+    justify-content: center;
+  }
 
   @media (max-width: 640px) {
     .add-mini-card { padding: 22px 18px 18px; }
