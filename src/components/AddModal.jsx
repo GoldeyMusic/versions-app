@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import useLang from '../hooks/useLang';
 import DAWS from '../constants/daws';
+import { confirmDialog } from '../lib/confirm.jsx';
 
 // Cap audio (sync avec backend versions-api/api/analyze.js).
 // 720s = 12 min : limite anti-DJ-set qui protège l'API Fadr/Gemini.
@@ -812,7 +813,36 @@ export default function AddModal({
                 <button
                   type="button"
                   className={`add-mini-pill${uploadType === 'master' ? ' on' : ''}`}
-                  onClick={() => setUploadType('master')}
+                  onClick={async () => {
+                    // Confirmation modale au premier clic sur "Master final" :
+                    // beaucoup d'utilisateurs mettent un limiteur ou un plugin
+                    // de mastering sur leur bus master pendant le mix (pour
+                    // l'écoute) et risquent de cocher "Master final" par
+                    // réflexe alors qu'ils fignolent encore. La modale les
+                    // recadre. Choix mémorisé en localStorage pour ne pas
+                    // spammer à chaque upload.
+                    const ackKey = 'versions_master_final_acknowledged';
+                    const alreadyAcked = (() => {
+                      try { return localStorage.getItem(ackKey) === '1'; }
+                      catch { return false; }
+                    })();
+                    if (alreadyAcked) {
+                      setUploadType('master');
+                      return;
+                    }
+                    const choice = await confirmDialog({
+                      title: s.addModal.uploadTypeMasterConfirmTitle,
+                      message: s.addModal.uploadTypeMasterConfirmMessage,
+                      confirmLabel: s.addModal.uploadTypeMasterConfirmYes,
+                      cancelLabel: s.addModal.uploadTypeMasterConfirmNo,
+                    });
+                    if (choice === 'confirm') {
+                      try { localStorage.setItem(ackKey, '1'); } catch { /* localStorage indispo : on continue */ }
+                      setUploadType('master');
+                    } else {
+                      setUploadType('mix');
+                    }
+                  }}
                 >{s.addModal.uploadTypeMaster}</button>
               </div>
               <div className="add-mini-field-hint">

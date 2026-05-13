@@ -1173,10 +1173,14 @@ const STRINGS = {
       // Toggle Mix / Master à l'upload (refonte 2026-04-30).
       // Pilote la pondération de la section master & loudness dans le score
       // (Mix : indulgent, Master : strict) + le verdict de sortie.
-      uploadTypeLabel: "Tu envoies un mix ou un master ?",
-      uploadTypeMix: "Mix",
-      uploadTypeMaster: "Master",
-      uploadTypeMixHint: "Mix en cours — même avec un limiteur ou Ozone sur le bus master pour l'écoute, choisis Mix tant que tu fignoles encore.",
+      uploadTypeLabel: "Tu envoies un mix en cours ou un master final ?",
+      uploadTypeMix: "Mix en cours",
+      uploadTypeMaster: "Master final",
+      uploadTypeMasterConfirmTitle: "Master final ?",
+      uploadTypeMasterConfirmMessage: "Tu confirmes que ce fichier est ton master final ? Pas un mix avec un limiteur ou un plugin de mastering posé sur le bus master pour l'écoute, mais le fichier que tu envoies tel quel à Spotify, Apple Music ou ton distributeur — sans plus aucune modification prévue.",
+      uploadTypeMasterConfirmYes: "Oui, c'est mon master final",
+      uploadTypeMasterConfirmNo: "Non, je suis encore en mix",
+      uploadTypeMixHint: "Mix en cours — même avec un limiteur ou un plugin de mastering posé sur le bus master pour l'écoute, choisis Mix tant que tu fignoles encore.",
       uploadTypeMasterHint: "Fichier finalisé et masterisé, plus aucune modification prévue — sera évalué comme un titre prêt à publier.",
       uploadDawLabel: "Ton DAW",
       uploadDawPlaceholder: "Sélectionne ton DAW…",
@@ -2063,7 +2067,7 @@ const STRINGS = {
       trackDragHandle: "Drag to move this track",
       trackMove: "Move track",
       trackOptions: "Options",
-      trackAnalysis: "View fiche",
+      trackAnalysis: "View analysis",
       tips: [
         "Taking regular breaks keeps your listening attentive and objective.",
         "Your ears fatigue after 45 min — a 10 min break saves you 2h of work.",
@@ -2930,10 +2934,14 @@ const STRINGS = {
       // Mix / Master toggle on upload (2026-04-30 redesign).
       // Drives the weighting of the master & loudness section in the
       // overall score (Mix: lenient, Master: strict) + release verdict.
-      uploadTypeLabel: "Mix or master?",
-      uploadTypeMix: "Mix",
-      uploadTypeMaster: "Master",
-      uploadTypeMixHint: "Mix in progress — even with a limiter or Ozone on the master bus for monitoring, pick Mix while you're still tweaking.",
+      uploadTypeLabel: "Work in progress or final master?",
+      uploadTypeMix: "Mix in progress",
+      uploadTypeMaster: "Final master",
+      uploadTypeMasterConfirmTitle: "Final master?",
+      uploadTypeMasterConfirmMessage: "Are you sure this is your final master? Not a mix with a limiter or mastering plugin on the master bus for monitoring, but the file you send as-is to Spotify, Apple Music or your distributor — with no further changes planned.",
+      uploadTypeMasterConfirmYes: "Yes, this is my final master",
+      uploadTypeMasterConfirmNo: "No, I'm still mixing",
+      uploadTypeMixHint: "Mix in progress — even with a limiter or a mastering plugin on the master bus for monitoring, pick Mix while you're still tweaking.",
       uploadTypeMasterHint: "Finalized and mastered file, no further changes planned — will be evaluated as a release-ready track.",
       uploadDawLabel: "Your DAW",
       uploadDawPlaceholder: "Pick your DAW…",
