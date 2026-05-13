@@ -9115,6 +9115,7 @@ export default function MockupStyles() {
   .add-mini-foot {
     display: flex; gap: 10px; justify-content: flex-end;
     align-items: center; margin-top: 18px; padding-top: 4px;
+    flex-wrap: wrap;
   }
   .add-mini-btn {
     display: inline-flex; align-items: center; justify-content: center;
