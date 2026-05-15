@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { trackPixelSignup } from '../lib/pixel';
 
 const AuthContext = createContext({ user: null, loading: true });
 
@@ -31,6 +32,14 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
       setLoading(false);
+      // Meta Pixel : CompleteRegistration au signup. Idempotent par user.id
+      // (cf. trackPixelSignup) — un user qui se déconnecte/reconnecte ne
+      // re-tire pas l'event. Couvre les 2 chemins : signup email (event
+      // SIGNED_IN tiré juste après signUp réussi) ET OAuth (SIGNED_IN tiré
+      // après échange du code dans /auth/callback).
+      if (_event === 'SIGNED_IN' && session?.user?.id) {
+        trackPixelSignup(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();

@@ -20,6 +20,28 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>VERSiONS</title>
+    <!-- Meta Pixel — chargé en synchrone pour que fbq() soit dispo dès le
+         premier render React. Le PageView initial est tiré ici (couvre le
+         visiteur qui atterrit et part avant l'hydratation React). Les
+         navigations SPA ré-émettent PageView via src/lib/pixel.js
+         (cf. App.jsx, useEffect screen/popstate). Events custom :
+         CompleteRegistration (signup) + LaunchAnalysis (nouvelle analyse). -->
+    <script>
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '2627344637716560');
+      fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=2627344637716560&ev=PageView&noscript=1"
+      alt="" /></noscript>
+    <!-- End Meta Pixel -->
   </head>
   <body>
     <!-- Footer statique : présent dans le HTML brut renvoyé par le

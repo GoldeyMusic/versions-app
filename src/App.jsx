@@ -43,6 +43,7 @@ import AddModal from "./components/AddModal";
 import NoCreditsModal from "./components/NoCreditsModal";
 import FeedbackModal from "./components/FeedbackModal";
 import { confirmDialog } from "./lib/confirm.jsx";
+import { trackPixelPageView, trackPixelAnalysisStarted } from "./lib/pixel";
 
 /* ── Font loader ────────────────────────────────────────── */
 const FontLink = () => (
@@ -3087,6 +3088,11 @@ function VersionsAppAuthed() {
       } else {
         window.history.pushState({ screen }, '', nextPath);
       }
+      // Meta Pixel : ré-émet PageView à chaque navigation SPA. Sans ça,
+      // l'index.html ne tire PageView qu'au tout premier chargement et
+      // Meta ne voit qu'une "page vue" par session, même si l'utilisateur
+      // navigue dans / → /dashboard → /fiche/... → /pricing.
+      trackPixelPageView();
     }
     prevScreenRef.current = screen;
   }, [screen, user, config]);
@@ -3134,6 +3140,18 @@ function VersionsAppAuthed() {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, [config, analysisResult]);
+
+  // ── Meta Pixel : re-fire PageView aussi sur Précédent/Suivant ────────
+  // Le useEffect ci-dessus (pushState quand screen change) couvre la
+  // navigation programmatique, mais Back/Forward navigateur n'y passe pas —
+  // c'est popstate qui setScreen, et le useEffect pushState voit pathname
+  // déjà égal à nextPath → pas de tir. On ajoute donc un listener popstate
+  // dédié au tracking.
+  useEffect(() => {
+    const onPopTrack = () => trackPixelPageView();
+    window.addEventListener('popstate', onPopTrack);
+    return () => window.removeEventListener('popstate', onPopTrack);
+  }, []);
 
   // ── Deep-link fiche : résolution `pendingFiche` → fiche réelle ────────
   // Posé par routeInit ou popstate quand l'URL est `#/fiche/{seg}/...`.
@@ -3528,6 +3546,11 @@ function VersionsAppAuthed() {
     setAnalysisResult(null);
     savedRef.current = false;
     setScreen("loading");
+    // Meta Pixel : custom event LaunchAnalysis pour suivre l'action de valeur
+    // (= démarrage effectif d'une analyse, post-garde-fou crédits). Utilisable
+    // ensuite comme audience custom + objectif d'optim Conversions dès qu'on
+    // a accumulé ~50 events.
+    trackPixelAnalysisStarted();
   };
   const handleLoaded = (result) => {
     console.log("📥 VERSIONS handleLoaded called", { stage: result?._stage, jobId: result?._jobId, hasFiche: !!result?.fiche, currentScreen: screen });
