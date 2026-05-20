@@ -174,23 +174,33 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
   const arrowRef = useRef(null);
   const centersRef = useRef([]);
 
-  // Mesure les centres des paliers après le 1er layout (avant paint) et
-  // pose la flèche au start. useLayoutEffect garantit qu'il n'y a pas
-  // de flash de "flèche au mauvais endroit" à l'apparition du banner.
+  // Helper pour appliquer une position {x, y} à la flèche.
+  const placeArrow = (pos) => {
+    if (!arrowRef.current || !pos) return;
+    arrowRef.current.style.left = `${pos.x}px`;
+    arrowRef.current.style.top = `${pos.y}px`;
+  };
+
+  // Mesure les centres (X + Y) des paliers après le 1er layout (avant paint)
+  // et pose la flèche au start. Le Y est nécessaire parce que la ladder peut
+  // wrap sur 2 lignes (mobile / écrans étroits), et l'animation doit suivre
+  // le chemin visuel (bas-droite → bas-gauche → up → haut-droite → ...).
+  // useLayoutEffect garantit qu'il n'y a pas de flash de "flèche au mauvais
+  // endroit" à l'apparition du banner.
   useLayoutEffect(() => {
     const measure = () => {
       if (!ladderRef.current) return;
       const containerRect = ladderRef.current.getBoundingClientRect();
       centersRef.current = tierRefs.current.map((el) => {
-        if (!el) return 0;
+        if (!el) return { x: 0, y: 0 };
         const r2 = el.getBoundingClientRect();
-        return r2.left + r2.width / 2 - containerRect.left;
+        return {
+          x: r2.left + r2.width / 2 - containerRect.left,
+          y: r2.top - containerRect.top, // top du chip (la flèche sit AU-DESSUS via transform -100%)
+        };
       });
-      // Pose initialement la flèche sur le palier "lit" courant. À
-      // l'init c'est startIndex, donc bord droit de la ladder.
-      if (arrowRef.current && centersRef.current[litIndex] != null) {
-        arrowRef.current.style.left = `${centersRef.current[litIndex]}px`;
-      }
+      // Pose initialement la flèche sur le palier "lit" courant.
+      placeArrow(centersRef.current[litIndex]);
     };
     measure();
     window.addEventListener('resize', measure);
@@ -198,9 +208,12 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // rAF animation — glisse la flèche du startCenter vers l'endCenter
-  // avec easeOutCubic. Update litIndex en cours de route quand la flèche
-  // change de palier survolé.
+  // rAF animation — glisse la flèche segment par segment (startIndex → ...
+  // → activeIndex) avec easeOutCubic global sur la virtual position. Chaque
+  // segment interpole X ET Y, donc la flèche change de ligne quand la ladder
+  // wrap. easeOutCubic global → segments précoces vite, segment final lent
+  // (la flèche ralentit en s'approchant du palier réel — signature visuelle
+  // d'arrivée demandée par David).
   useEffect(() => {
     if (activeIndex < 0) return undefined;
     const prefersReduce = typeof window !== 'undefined'
@@ -210,22 +223,24 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
     // on se cale directement et on quitte.
     if (prefersReduce || activeIndex >= startIndex) {
       setLitIndex(activeIndex);
-      if (arrowRef.current && centersRef.current[activeIndex] != null) {
-        arrowRef.current.style.left = `${centersRef.current[activeIndex]}px`;
-      }
+      placeArrow(centersRef.current[activeIndex]);
       return undefined;
     }
     let cancelled = false;
     let rafId = null;
     let lastLit = startIndex;
-    const duration = 1100;
+    const totalSegments = startIndex - activeIndex;
+    // Durée scalée avec le nombre de segments pour garder une vitesse de
+    // traversal lisible (ni rush si l'arrivée est très basse en score, ni
+    // longue traîne si elle est haute). 250ms par segment, plancher 700ms.
+    const duration = Math.max(700, totalSegments * 250);
     const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
     const startTimer = setTimeout(() => {
-      const startCenter = centersRef.current[startIndex];
-      const endCenter = centersRef.current[activeIndex];
-      if (startCenter == null || endCenter == null) {
+      if (cancelled) return;
+      if (!centersRef.current || centersRef.current.length === 0) {
         // Centres pas encore mesurés (cas dégénéré) — settle direct
         setLitIndex(activeIndex);
+        placeArrow(centersRef.current[activeIndex]);
         return;
       }
       const t0 = performance.now();
@@ -234,26 +249,36 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
         const elapsed = now - t0;
         const raw = Math.min(elapsed / duration, 1);
         const eased = easeOutCubic(raw);
-        const px = startCenter + (endCenter - startCenter) * eased;
-        if (arrowRef.current) arrowRef.current.style.left = `${px}px`;
-        // Détermine le palier survolé = centre le plus proche de la flèche
-        let closest = 0;
-        let minDist = Infinity;
-        for (let i = 0; i < centersRef.current.length; i += 1) {
-          const d = Math.abs(centersRef.current[i] - px);
-          if (d < minDist) { minDist = d; closest = i; }
-        }
-        // Évite les re-renders inutiles : on ne setState que si le palier
-        // a changé (ce qui n'arrive qu'aux moments de croisement, pas
-        // à chaque frame).
-        if (closest !== lastLit) {
-          lastLit = closest;
-          setLitIndex(closest);
+        // Virtual position : 0 = au palier startIndex, totalSegments = au palier activeIndex.
+        // Floor donne le segment courant, frac la position dans le segment.
+        const virtual = totalSegments * eased;
+        const segIdx = Math.min(Math.floor(virtual), totalSegments - 1);
+        const frac = virtual - segIdx;
+        const fromIdx = startIndex - segIdx;
+        const toIdx = fromIdx - 1;
+        const from = centersRef.current[fromIdx];
+        const to = centersRef.current[toIdx];
+        if (from && to) {
+          const x = from.x + (to.x - from.x) * frac;
+          const y = from.y + (to.y - from.y) * frac;
+          if (arrowRef.current) {
+            arrowRef.current.style.left = `${x}px`;
+            arrowRef.current.style.top = `${y}px`;
+          }
+          // Lit tier : celui dont la flèche est le plus proche = arrondi
+          // au tier le plus proche de fracInSegment.
+          const litCandidate = frac < 0.5 ? fromIdx : toIdx;
+          if (litCandidate !== lastLit) {
+            lastLit = litCandidate;
+            setLitIndex(litCandidate);
+          }
         }
         if (raw < 1) {
           rafId = requestAnimationFrame(tick);
         } else {
+          // Snap final propre sur le palier actif (évite tout résidu d'imprécision flottante)
           setLitIndex(activeIndex);
+          placeArrow(centersRef.current[activeIndex]);
         }
       };
       rafId = requestAnimationFrame(tick);
@@ -675,19 +700,24 @@ function Styles() {
          survolé (currentColor sur le border-top). */
       .rr-score-ladder-arrow {
         position: absolute;
-        top: 0;
-        left: 0; /* sera overridé par style.left en JS */
+        /* top et left sont pilotés par JS via style — pas de valeur par
+           défaut ici pour éviter qu'un premier paint flash au mauvais
+           endroit. useLayoutEffect mesure et place la flèche avant le
+           1er paint, donc le user voit toujours la bonne position. */
         width: 0; height: 0;
-        transform: translate(-50%, -100%); /* centre horizontalement + remonte au-dessus de la ladder */
+        /* translate -50% horizontal centre la flèche sur le X visé ; -100%
+           vertical remonte la flèche pour qu'elle pose sa base juste au-dessus
+           du chip (le Y visé est le top du chip, pas son centre). */
+        transform: translate(-50%, -100%);
         border-left: 5px solid transparent;
         border-right: 5px solid transparent;
         border-top: 6px solid currentColor;
         pointer-events: none;
+        /* Transition smooth sur la couleur (quand la flèche change de palier
+           survolé). Le X/Y sont mis à jour à chaque frame en JS donc pas
+           de transition CSS dessus — sinon ça lutterait avec rAF. */
         transition: color .15s ease;
-        /* will-change: left aide le compositeur GPU sur les longues
-           transitions, mais c'est ici mis à jour à la main donc pas
-           strictement nécessaire — on garde pour le bénéfice marginal. */
-        will-change: left;
+        will-change: left, top;
       }
       @media (prefers-reduced-motion: reduce) {
         .rr-score-ladder-arrow { transition: none; }
