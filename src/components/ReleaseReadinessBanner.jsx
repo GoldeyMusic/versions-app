@@ -240,11 +240,13 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
     let lastLit = startIndex;
     const totalSegments = startIndex - activeIndex;
     // Durée scalée avec le nombre de segments pour garder une vitesse de
-    // traversal lisible. 380ms par segment, plancher 1100ms. Augmenté
-    // sur retour visuel David ("un peu trop rapide"). Sur 4 segments
-    // (active = Hit) ça fait ~1520ms total.
+    // traversal lisible. 380ms par segment, plancher 1100ms.
     const duration = Math.max(1100, totalSegments * 380);
-    const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
+    // easeOutQuad au lieu d'easeOutCubic — la cubic passait ~22% du temps
+    // dans le dernier 1% de distance (ça figeait visuellement en fin).
+    // La quad spend ~13% sur le dernier 1% : décélération nette mais
+    // sans queue stationnaire qui fait saccader.
+    const easeOutQuad = (x) => 1 - Math.pow(1 - x, 2);
     // Marge off-screen pour le wrap-around entre lignes : la flèche
     // sort à gauche (x négatif assez pour clipper avec overflow:hidden
     // sur le wrapper) puis réapparaît à droite (x > containerWidth).
@@ -262,7 +264,7 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
         if (cancelled) return;
         const elapsed = now - t0;
         const raw = Math.min(elapsed / duration, 1);
-        const eased = easeOutCubic(raw);
+        const eased = easeOutQuad(raw);
         // Virtual position : 0 = au palier startIndex, totalSegments = au palier activeIndex.
         // Floor donne le segment courant, frac la position dans le segment.
         const virtual = totalSegments * eased;
@@ -723,15 +725,20 @@ function Styles() {
         background: rgba(255,255,255,0.03);
         border: 1px solid rgba(255,255,255,0.10);
         color: rgba(255,255,255,0.42);
-        transition: background .15s, border-color .15s, color .15s, transform .2s;
+        /* Toutes les propriétés visuelles transitionnent sur la même
+           durée (150ms) pour que la transition soit synchrone — sinon
+           la transform plus longue (200ms avant) finit "en retard" sur
+           le reste, ce qui produit une saccade visuelle. */
+        transition: background .15s, border-color .15s, color .15s, transform .15s;
       }
       /* État actif (palier survolé par la flèche OU palier final après anim).
          La classe tier (.rr-score-band-X) est ajoutée en plus de .is-active
          dans le JSX, ce qui chaîne la spécificité (0,3,0) pour battre les
-         styles muted de la base. Bump scale + box-shadow pour faire popper. */
+         styles muted de la base. Scale réduit à 1.04 (vs 1.08) pour moins
+         de "rebond visuel" quand le palier change pendant l'animation. */
       .rr-score-ladder-item.is-active {
         font-weight: 600;
-        transform: scale(1.08);
+        transform: scale(1.04);
         box-shadow: 0 6px 18px -10px rgba(0,0,0,0.55);
       }
       .rr-score-ladder-item.is-active.rr-score-band-violet      { background: rgba(166,126,245,0.20); border-color: rgba(166,126,245,0.60); color: #c2a8ff; }
