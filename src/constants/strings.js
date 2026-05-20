@@ -797,7 +797,7 @@ const STRINGS = {
       scoreBandReference: "Niveau référence",
       scoreBandHit: "Niveau hit",
       scoreBandPro: "Niveau pro",
-      scoreBandDemoAdvanced: "Niveau démo avancé",
+      scoreBandDemoAdvanced: "Démo avancée",
       scoreBandDeveloping: "En développement",
       scoreBandStart: "Début de parcours",
       // Evolution banner — title + section labels

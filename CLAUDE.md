@@ -104,19 +104,20 @@ Implémentée :
 
 ## Score Band social (B.3, refonte 2026-05-20, livré)
 
-- **Chip palier social** à côté du verdict de sortie dans `ReleaseReadinessBanner.jsx` — situe socialement le mix sans entrer en conflit avec le tier ready/almost/not-yet (les deux dimensions sont indépendantes : un mix peut être "Niveau pro" mais "Pas encore prêt" s'il a des bloquants non résolus).
+- **Échelle complète des 6 paliers** rendue sous le verdict dans `ReleaseReadinessBanner.jsx` (inspirée AubioMix) — situe socialement le mix sans entrer en conflit avec le tier ready/almost/not-yet (les deux dimensions sont indépendantes : un mix peut être "Niveau pro" mais "Pas encore prêt" s'il a des bloquants non résolus).
+- **Pas de chip unique séparé** : la 1ère mouture avait un chip palier en plus à droite du verdict, retiré 2026-05-20bis sur retour David ("doublon visuel avec le palier highlighted dans la ladder").
 - Wording Option A "Sobre et factuel" tranchée avec David. 6 paliers calés sur `globalScore /100` :
   - 90-100 : Niveau référence (violet)
   - 80-89 : Niveau hit (cerulean)
   - 65-79 : Niveau pro (mint)
-  - 50-64 : Niveau démo avancé (amber)
+  - 50-64 : Démo avancée (amber) — sans "Niveau" pour rester court, le mot est déjà long
   - 30-49 : En développement (amber muted)
   - 0-29 : Début de parcours (neutre gris)
 - **Pas de rouge dans la grille de couleurs** : "En développement" et "Début de parcours" sont encourageants, pas punitifs.
 - Helper `getScoreBand(score)` inline dans le composant (pas dans `ficheHelpers.jsx` tant qu'il n'est pas réutilisé ailleurs — Score Card PNG potentielle 2è cible plus tard).
-- **Échelle complète des 6 paliers** rendue sous le head (inspirée AubioMix) — l'actif reprend sa couleur tier, les 5 autres restent muted. Source de vérité partagée : `SCORE_BAND_LADDER` (ordre + tone par stringKey). Format compact volontairement (font 8.5px, padding 3×7px, gap 5px) — tient sur 1 ligne dans la colonne 920px, retombe en 2 lignes sur mobile via `flex-wrap`.
-- Strings `scoreBand*` (FR + EN). Aria-label dédié pour les lecteurs d'écran.
-- Visuellement parent des `.vside-chip` (mono uppercase, padding pill, rounded 999px, rotation -1°). Sur mobile (< 768px), retombe sous le bloc texte du head avec `flex-wrap: wrap`.
+- Source de vérité partagée : `SCORE_BAND_LADDER` (ordre + tone par stringKey). Format compact volontairement (font 8.5px, padding 3×7px, gap 5px) — tient sur 1 ligne dans la colonne 920px, retombe en 2 lignes sur mobile via `flex-wrap`.
+- **Marqueur visuel "tu es ici"** sur le palier actif : scale 1.08, opacité fond bump à 20%, petit triangle ▼ pointant le chip via `::before` (couleur héritée du tier via `currentColor`). Spécificité CSS chaînée `.is-active.rr-score-band-X` (0,3,0) pour battre les styles muted de la base.
+- Strings `scoreBand*` (FR + EN). Aria-label dédié + `aria-current="true"` sur le palier actif pour les lecteurs d'écran.
 - Bénéficie aux 3 écrans qui montent le banner : `FicheScreen`, `SampleFicheScreen`, `PublicFicheScreen` — pas de modif côté caller.
 
 ## Livré récemment (mai 2026)
