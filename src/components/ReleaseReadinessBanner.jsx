@@ -169,7 +169,8 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
   //     à chaque frame) pour limiter les re-renders
   const startIndex = SCORE_BAND_LADDER.length - 1; // 5 = Début de parcours
   const [litIndex, setLitIndex] = useState(startIndex);
-  const ladderRef = useRef(null);
+  const wrapperRef = useRef(null); // div parent (position: relative, accueille la flèche absolute)
+  const ladderRef = useRef(null);  // OL (utilisée pour l'a11y, plus pour la mesure)
   const tierRefs = useRef([]);
   const arrowRef = useRef(null);
   const centersRef = useRef([]);
@@ -190,8 +191,14 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
   // endroit" à l'apparition du banner.
   useLayoutEffect(() => {
     const measure = () => {
-      if (!ladderRef.current) return;
-      const containerRect = ladderRef.current.getBoundingClientRect();
+      // On mesure relativement au WRAPPER (pas à l'OL) parce que c'est
+      // le containing block de la flèche position:absolute. Le wrapper
+      // a un padding-top qui décale l'OL — si on mesurait relativement
+      // à l'OL, on retomberait sur top:0 dans le wrapper et la flèche
+      // serait clippée par overflow:hidden (qui s'applique sur la
+      // border-box du wrapper).
+      if (!wrapperRef.current) return;
+      const containerRect = wrapperRef.current.getBoundingClientRect();
       containerWidthRef.current = containerRect.width;
       centersRef.current = tierRefs.current.map((el) => {
         if (!el) return { x: 0, y: 0 };
@@ -350,7 +357,7 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
           Compact volontairement (font 8.5px, padding minimal) pour ne pas
           allonger la section. Sur mobile, retombe en 2 lignes via flex-wrap. */}
       {band && (
-        <div className="rr-score-ladder-wrap">
+        <div className="rr-score-ladder-wrap" ref={wrapperRef}>
           {/* Flèche unique ▼ — position pilotée par JS via ref (style.left).
               La couleur transitionne smoothly via CSS quand elle change de
               palier survolé. */}
