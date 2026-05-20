@@ -102,6 +102,22 @@ Implémentée :
 - Front fiche : `ReleaseReadinessBanner` accepte `uploadType` → libellés "Prêt pour le mastering / Presque prêt à masteriser / Pas encore prêt" en mode mix, libellés historiques en master. Strings dans `strings.js` (FR + EN, clés `releaseMasteringReady*`).
 - RPC publique `get_public_fiche` non touchée pour ne pas casser la signature i18n vivante en prod : les liens publics affichent le verdict "mix" par défaut. À étendre dans une migration séparée si besoin.
 
+## Score Band social (B.3, refonte 2026-05-20, livré)
+
+- **Chip palier social** à côté du verdict de sortie dans `ReleaseReadinessBanner.jsx` — situe socialement le mix sans entrer en conflit avec le tier ready/almost/not-yet (les deux dimensions sont indépendantes : un mix peut être "Niveau pro" mais "Pas encore prêt" s'il a des bloquants non résolus).
+- Wording Option A "Sobre et factuel" tranchée avec David. 6 paliers calés sur `globalScore /100` :
+  - 90-100 : Niveau référence (violet)
+  - 80-89 : Niveau hit (cerulean)
+  - 65-79 : Niveau pro (mint)
+  - 50-64 : Niveau démo avancé (amber)
+  - 30-49 : En développement (amber muted)
+  - 0-29 : Début de parcours (neutre gris)
+- **Pas de rouge dans la grille de couleurs** : "En développement" et "Début de parcours" sont encourageants, pas punitifs.
+- Helper `getScoreBand(score)` inline dans le composant (pas dans `ficheHelpers.jsx` tant qu'il n'est pas réutilisé ailleurs — Score Card PNG potentielle 2è cible plus tard).
+- Strings `scoreBand*` (FR + EN). Aria-label dédié pour les lecteurs d'écran.
+- Visuellement parent des `.vside-chip` (mono uppercase, padding pill, rounded 999px, rotation -1°). Sur mobile (< 768px), retombe sous le bloc texte du head avec `flex-wrap: wrap`.
+- Bénéficie aux 3 écrans qui montent le banner : `FicheScreen`, `SampleFicheScreen`, `PublicFicheScreen` — pas de modif côté caller.
+
 ## Livré récemment (mai 2026)
 
 Snapshot des chantiers fermés sur la sprint en cours — pour comprendre vite ce qui a bougé sans relire les commits.

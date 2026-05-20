@@ -786,6 +786,20 @@ const STRINGS = {
       releaseMasteringAlmostSubScore: "Score à consolider avant le mastering.",
       releaseMasteringNotYetSubAction: "{count} action{plural} prioritaire{plural} en attente.",
       releaseMasteringNotYetSubScore: "Score sous le seuil — encore du chemin avant le mastering.",
+      // Score Band social (B.3, refonte 2026-05-20) — palier qui situe socialement
+      // à côté du verdict de sortie. Option A "Sobre et factuel" tranchée avec
+      // David. 6 tiers calés sur le globalScore /100 :
+      //   90-100 = référence, 80-89 = hit, 65-79 = pro,
+      //   50-64 = démo avancé, 30-49 = en développement, 0-29 = début de parcours.
+      // Volontairement sans rouge dans la grille de couleurs : "En développement"
+      // et "Début de parcours" sont encourageants, pas punitifs.
+      scoreBandAriaLabel: "Niveau du mix",
+      scoreBandReference: "Niveau référence",
+      scoreBandHit: "Niveau hit",
+      scoreBandPro: "Niveau pro",
+      scoreBandDemoAdvanced: "Niveau démo avancé",
+      scoreBandDeveloping: "En développement",
+      scoreBandStart: "Début de parcours",
       // Evolution banner — title + section labels
       evolutionSince: "Évolution depuis {prev}",
       evolutionSinceLast: "Évolution depuis la dernière",
@@ -2553,6 +2567,20 @@ const STRINGS = {
       releaseMasteringAlmostSubScore: "Score to consolidate before mastering.",
       releaseMasteringNotYetSubAction: "{count} priority action{plural} pending.",
       releaseMasteringNotYetSubScore: "Score below threshold — more work before mastering.",
+      // Score Band social (B.3, 2026-05-20 redesign) — social positioning tier
+      // shown next to the release readiness verdict. Option A "Sober and factual"
+      // chosen with David. 6 tiers calibrated on globalScore /100:
+      //   90-100 = reference, 80-89 = hit, 65-79 = pro,
+      //   50-64 = advanced demo, 30-49 = developing, 0-29 = getting started.
+      // No red in the palette by design: "Developing" and "Getting started" are
+      // encouraging, not punitive.
+      scoreBandAriaLabel: "Mix tier",
+      scoreBandReference: "Reference level",
+      scoreBandHit: "Hit level",
+      scoreBandPro: "Pro level",
+      scoreBandDemoAdvanced: "Advanced demo",
+      scoreBandDeveloping: "In development",
+      scoreBandStart: "Getting started",
       // Evolution banner
       evolutionSince: "Evolution since {prev}",
       evolutionSinceLast: "Evolution since last",

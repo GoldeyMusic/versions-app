@@ -2,6 +2,28 @@ import { computeReleaseReadiness } from '../lib/ficheHelpers.jsx';
 import useLang from '../hooks/useLang';
 
 /**
+ * getScoreBand (B.3, refonte 2026-05-20) — palier social calé sur le
+ * globalScore /100. Option A "Sobre et factuel" tranchée avec David.
+ *
+ * 6 paliers, du plus haut au plus bas. Le mapping couleur passe par
+ * violet → cerulean → mint → amber → amber-muted → neutre. Pas de
+ * rouge dans la grille : les paliers bas restent encourageants.
+ *
+ * Retour : { stringKey, toneClass } — stringKey à résoudre via
+ * s.fiche.scoreBand*, toneClass à concaténer à `.rr-score-band`.
+ * Si le score est null ou hors plage, retourne null (chip non rendu).
+ */
+function getScoreBand(score) {
+  if (typeof score !== 'number' || Number.isNaN(score)) return null;
+  if (score >= 90) return { stringKey: 'scoreBandReference', toneClass: 'rr-score-band-violet' };
+  if (score >= 80) return { stringKey: 'scoreBandHit', toneClass: 'rr-score-band-cerulean' };
+  if (score >= 65) return { stringKey: 'scoreBandPro', toneClass: 'rr-score-band-mint' };
+  if (score >= 50) return { stringKey: 'scoreBandDemoAdvanced', toneClass: 'rr-score-band-amber' };
+  if (score >= 30) return { stringKey: 'scoreBandDeveloping', toneClass: 'rr-score-band-amber-muted' };
+  return { stringKey: 'scoreBandStart', toneClass: 'rr-score-band-neutral' };
+}
+
+/**
  * ReleaseReadinessBanner (ticket 4.3) — bandeau "Prêt à sortir / Presque
  * prêt / Pas encore" rendu en tête du rapport, avec liste des bloquants
  * exacts. Trois paliers, trois couleurs (mint / amber / red).
@@ -91,6 +113,10 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
   const cfg = TIER_CONFIG[r.tier];
   const blockerCount = r.blockers.length;
   const hasBlockers = blockerCount > 0;
+  // Score Band (B.3) — palier social calé sur r.score, rendu à droite
+  // du verdict. Null si pas de score exploitable (pas de chip alors).
+  const band = getScoreBand(r.score);
+  const bandLabel = band ? (s.fiche?.[band.stringKey] || '') : '';
 
   return (
     <section className={`release-readiness rr-${r.tier} is-always-open`} aria-label={s.fiche?.releaseAriaLabel || 'État de sortie'}>
@@ -103,6 +129,14 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
           <span className="rr-label">{tierLabel}</span>
           <span className="rr-sub">{subText}</span>
         </span>
+        {band && bandLabel && (
+          <span
+            className={`rr-score-band ${band.toneClass}`}
+            aria-label={`${s.fiche?.scoreBandAriaLabel || 'Niveau du mix'} : ${bandLabel}`}
+          >
+            {bandLabel}
+          </span>
+        )}
       </div>
 
       {hasBlockers && (
@@ -391,9 +425,57 @@ function Styles() {
         transform: translateX(3px);
       }
 
+      /* Score Band social (B.3, refonte 2026-05-20) — chip pill aligné à
+         droite du verdict, vertically-centered. Visuellement parent des
+         .vside-chip de la fiche (même typo mono, même padding, même
+         rounded pill) pour rester cohérent avec le système de chips
+         néon. La couleur du chip est calée sur le palier (cf.
+         getScoreBand) — pas sur le tier de readiness (ready/almost/
+         not-yet), car les deux dimensions sont indépendantes (un mix
+         peut être "Niveau pro" mais "Pas encore prêt" si bloquants
+         non résolus). Subtle rotation -1deg pour rejoindre la grammaire
+         des chips de la side panel verdict. */
+      .rr-score-band {
+        flex-shrink: 0;
+        align-self: center;
+        display: inline-flex; align-items: center;
+        font-family: var(--mono, 'JetBrains Mono', monospace);
+        font-size: 10.5px; font-weight: 500;
+        letter-spacing: 1.4px; text-transform: uppercase;
+        padding: 5px 11px;
+        border-radius: 999px;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+        box-shadow: 0 6px 18px -10px rgba(0,0,0,0.55);
+        user-select: none;
+        transform: rotate(-1deg);
+        transition: transform .2s ease, background .15s, border-color .15s;
+      }
+      .release-readiness:hover .rr-score-band {
+        transform: rotate(0deg) scale(1.02);
+      }
+      .rr-score-band-violet      { background: rgba(166,126,245,0.10); border: 1px solid rgba(166,126,245,0.34); color: #c2a8ff; }
+      .rr-score-band-cerulean    { background: rgba(92,184,204,0.10);  border: 1px solid rgba(92,184,204,0.34);  color: #5cb8cc; }
+      .rr-score-band-mint        { background: rgba(142,224,122,0.10); border: 1px solid rgba(142,224,122,0.34); color: #8ee07a; }
+      .rr-score-band-amber       { background: rgba(245,166,35,0.12);  border: 1px solid rgba(245,166,35,0.40);  color: var(--amber, #f5a623); }
+      /* Variante amber-muted (30-49) — même teinte, opacité réduite
+         pour signaler un palier plus bas sans basculer dans le rouge. */
+      .rr-score-band-amber-muted { background: rgba(245,166,35,0.06);  border: 1px solid rgba(245,166,35,0.22);  color: rgba(245,166,35,0.78); }
+      /* Variante neutre (0-29) — gris très discret. Volontairement
+         dépourvu de signal négatif : encourage sans punir. */
+      .rr-score-band-neutral     { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.14); color: rgba(255,255,255,0.62); }
+
       @media (max-width: 768px) {
         .release-readiness { padding: 12px 14px; }
-        .rr-head { gap: 10px; }
+        .rr-head { gap: 10px; flex-wrap: wrap; }
+        /* Sur mobile, le chip retombe sous le bloc texte (rr-text)
+           pour ne pas serrer le label verdict. flex-wrap: wrap au
+           niveau du head + ce qui suit aligne le chip à gauche du
+           contenu, sous la bordure de l'icône. */
+        .rr-score-band {
+          margin-left: 46px;
+          transform: none !important;
+        }
         .rr-blockers { padding-left: 24px; }
       }
     `}</style>
