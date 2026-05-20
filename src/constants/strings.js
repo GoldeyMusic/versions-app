@@ -1170,18 +1170,20 @@ const STRINGS = {
       uploadVocalInstrumental: "Instrumental",
       uploadVocalComing: "Voix à venir",
       uploadVocalFinal: "Définitif",
-      // Toggle Mix / Master à l'upload (refonte 2026-04-30).
-      // Pilote la pondération de la section master & loudness dans le score
-      // (Mix : indulgent, Master : strict) + le verdict de sortie.
-      uploadTypeLabel: "Tu envoies un mix en cours ou un master final ?",
-      uploadTypeMix: "Mix en cours",
-      uploadTypeMaster: "Master final",
-      uploadTypeMasterConfirmTitle: "Master final ?",
-      uploadTypeMasterConfirmMessage: "Tu confirmes que ce fichier est ton master final ? Pas un mix avec un limiteur ou un plugin de mastering posé sur le bus master pour l'écoute, mais le fichier que tu envoies tel quel à Spotify, Apple Music ou ton distributeur — sans plus aucune modification prévue.",
-      uploadTypeMasterConfirmYes: "Oui, c'est mon master final",
-      uploadTypeMasterConfirmNo: "Non, je suis encore en mix",
-      uploadTypeMixHint: "Mix en cours — même avec un limiteur ou un plugin de mastering posé sur le bus master pour l'écoute, choisis Mix tant que tu fignoles encore.",
-      uploadTypeMasterHint: "Fichier finalisé et masterisé, plus aucune modification prévue — sera évalué comme un titre prêt à publier.",
+      // Question "Ce mix a-t-il été masterisé ?" à l'upload (refonte 2026-05-20, C.2 roadmap).
+      // 3 options Oui / Non / Auto-detect. Pilote la pondération master & loudness
+      // dans le score (Oui : strict, Non / Auto : indulgent) + le verdict de sortie.
+      uploadTypeLabel: "Ce mix a-t-il été masterisé ?",
+      uploadTypeYes: "Oui",
+      uploadTypeNo: "Non",
+      uploadTypeAuto: "Auto-detect",
+      uploadTypeMasterConfirmTitle: "Vraiment masterisé ?",
+      uploadTypeMasterConfirmMessage: "Tu confirmes que ce fichier est masterisé ? Pas un mix avec un limiteur ou un plugin de mastering posé sur le bus master pour l'écoute, mais le fichier que tu envoies tel quel à Spotify, Apple Music ou ton distributeur — sans plus aucune modification prévue.",
+      uploadTypeMasterConfirmYes: "Oui, masterisé",
+      uploadTypeMasterConfirmNo: "Non, encore en mix",
+      uploadTypeYesHint: "Fichier finalisé et masterisé, plus aucune modification prévue — sera évalué comme un titre prêt à publier.",
+      uploadTypeNoHint: "Mix en cours — même avec un limiteur ou un plugin de mastering posé sur le bus master pour l'écoute, réponds Non tant que tu fignoles encore.",
+      uploadTypeAutoHint: "Versions détermine le statut à partir des mesures (loudness, dynamique). À cocher si tu n'es pas sûr — c'est le défaut.",
       uploadDawLabel: "Ton DAW",
       uploadDawPlaceholder: "Sélectionne ton DAW…",
       uploadGenreLabel: "Genre musical",
@@ -2931,18 +2933,21 @@ const STRINGS = {
       uploadVocalInstrumental: "Instrumental",
       uploadVocalComing: "Vocals to come",
       uploadVocalFinal: "Final",
-      // Mix / Master toggle on upload (2026-04-30 redesign).
-      // Drives the weighting of the master & loudness section in the
-      // overall score (Mix: lenient, Master: strict) + release verdict.
-      uploadTypeLabel: "Work in progress or final master?",
-      uploadTypeMix: "Mix in progress",
-      uploadTypeMaster: "Final master",
-      uploadTypeMasterConfirmTitle: "Final master?",
-      uploadTypeMasterConfirmMessage: "Are you sure this is your final master? Not a mix with a limiter or mastering plugin on the master bus for monitoring, but the file you send as-is to Spotify, Apple Music or your distributor — with no further changes planned.",
-      uploadTypeMasterConfirmYes: "Yes, this is my final master",
-      uploadTypeMasterConfirmNo: "No, I'm still mixing",
-      uploadTypeMixHint: "Mix in progress — even with a limiter or a mastering plugin on the master bus for monitoring, pick Mix while you're still tweaking.",
-      uploadTypeMasterHint: "Finalized and mastered file, no further changes planned — will be evaluated as a release-ready track.",
+      // "Has this mix been mastered?" question on upload (2026-05-20 redesign, roadmap C.2).
+      // 3 options Yes / No / Auto-detect. Drives the weighting of the master &
+      // loudness section in the overall score (Yes: strict, No / Auto: lenient)
+      // + release verdict.
+      uploadTypeLabel: "Has this mix been mastered?",
+      uploadTypeYes: "Yes",
+      uploadTypeNo: "No",
+      uploadTypeAuto: "Auto-detect",
+      uploadTypeMasterConfirmTitle: "Really mastered?",
+      uploadTypeMasterConfirmMessage: "Are you sure this file is mastered? Not a mix with a limiter or mastering plugin on the master bus for monitoring, but the file you send as-is to Spotify, Apple Music or your distributor — with no further changes planned.",
+      uploadTypeMasterConfirmYes: "Yes, mastered",
+      uploadTypeMasterConfirmNo: "No, still mixing",
+      uploadTypeYesHint: "Finalized and mastered file, no further changes planned — will be evaluated as a release-ready track.",
+      uploadTypeNoHint: "Mix in progress — even with a limiter or a mastering plugin on the master bus for monitoring, pick No while you're still tweaking.",
+      uploadTypeAutoHint: "Versions will figure out the status from the measurements (loudness, dynamics). Pick this if you're not sure — it's the default.",
       uploadDawLabel: "Your DAW",
       uploadDawPlaceholder: "Pick your DAW…",
       uploadGenreLabel: "Musical genre",

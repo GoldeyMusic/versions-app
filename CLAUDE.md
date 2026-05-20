@@ -87,10 +87,15 @@ Implémentée :
 - **Cormorant Garamond** pour les verdicts (titres dramatiques).
 - Pas d'italique sur les mots isolés en orange (règle visuelle d'emphasis).
 
-## Toggle Mix/Master (refonte 2026-04-30, livré)
+## Question "Ce mix a-t-il été masterisé ?" (refonte 2026-05-20, livré — ex-Toggle Mix/Master)
 
-- **Toggle dans la modale d'upload** entre vocal et DAW (`uploadType` state dans `AddModal.jsx`). Default `mix`.
-- Persisté dans `versions.upload_type` (Supabase). Migration : `supabase/migrations/021_upload_type.sql` (la spec parlait de 010 mais 010 était pris par `010_dsp_metrics.sql`, on a pris 021).
+- **Question dans la modale d'upload** entre vocal et DAW (`masteredAnswer` state dans `AddModal.jsx`). Default `auto`.
+- 3 options UI : `yes` / `no` / `auto` (Auto-detect). Mapping rétro-compat au submit vers `upload_type` DB :
+  - `yes`  → `'master'`
+  - `no`   → `'mix'`
+  - `auto` → `'mix'` (défaut safe — pondération master & loudness à 0.5, ne plombe pas le score d'un titre non finalisé. À enrichir si le backend gagne une heuristique LUFS réelle).
+- Confirm modale conservée sur "Oui" : protège des utilisateurs qui cochent par réflexe alors qu'ils ont un limiteur sur le master bus pour l'écoute. Si annulation → bascule en `auto` (et non `no`, pour ne pas imposer une réponse négative non explicite).
+- Persisté dans `versions.upload_type` (Supabase). Migration : `supabase/migrations/021_upload_type.sql` (la spec parlait de 010 mais 010 était pris par `010_dsp_metrics.sql`, on a pris 021). **Schéma DB inchangé** — toujours 'mix'/'master'.
 - Backend `decode-api/lib/claude.js` :
   - `WEIGHTS.lufs` passe à `0.5` en mode mix (vs `2` en master) → la section Master & Loudness ne plombe plus le globalScore.
   - Bloc `uploadTypeBlock` injecté dans le system prompt → recettes Master en checks pré-master (head-room, mono compat, clipping) et scores hauts par défaut en mode mix ; recettes streaming standards en mode master.
