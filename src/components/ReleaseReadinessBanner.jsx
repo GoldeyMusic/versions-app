@@ -1,6 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { computeReleaseReadiness } from '../lib/ficheHelpers.jsx';
 import useLang from '../hooks/useLang';
+
+/**
+ * Couleurs hex/rgba par toneClass — utilisées pour colorer la flèche
+ * (currentColor du triangle CSS) en fonction du palier qu'elle survole.
+ * Source unique de vérité — si on retouche les couleurs des chips, il
+ * faut aussi mettre à jour cette map.
+ */
+const TONE_COLORS = {
+  'rr-score-band-violet':      '#c2a8ff',
+  'rr-score-band-cerulean':    '#5cb8cc',
+  'rr-score-band-mint':        '#8ee07a',
+  'rr-score-band-amber':       '#f5a623',
+  'rr-score-band-amber-muted': 'rgba(245,166,35,0.78)',
+  'rr-score-band-neutral':     'rgba(255,255,255,0.62)',
+};
 
 /**
  * Échelle des 6 paliers Score Band, ordonnée du plus haut au plus bas.
@@ -135,53 +150,127 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
   // le palier highlighted dans la ladder).
   const band = getScoreBand(r.score);
   const activeIndex = band ? SCORE_BAND_LADDER.findIndex((t) => t.stringKey === band.stringKey) : -1;
-  // Animation d'entrée (2026-05-20bis) : la flèche apparaît au palier
-  // le plus bas ("Début de parcours", index 5) et "remonte" vers le
-  // palier actif. À chaque tick l'allumage suit la flèche ; les paliers
-  // traversés s'éteignent automatiquement via les transitions CSS de
-  // .rr-score-ladder-item (background/border-color/color en 0.15s).
-  // Respect prefers-reduced-motion : jump direct au palier actif.
+  // Animation d'entrée (2026-05-20bis, refonte fluide) : une flèche ▼
+  // unique apparaît au palier le plus bas ("Début de parcours", index 5)
+  // et glisse en CONTINU (requestAnimationFrame + easeOutCubic) vers le
+  // palier actif. Au passage de la flèche, le palier survolé s'allume ;
+  // dès qu'elle le quitte, il fade back en muted via les transitions CSS
+  // de .rr-score-ladder-item. Décélération en fin de parcours pour signer
+  // l'arrivée. Respect prefers-reduced-motion : jump direct au final.
   //
-  // `litIndex` = index visuellement highlighted à l'instant t. Initialisé
-  // au start de la ladder pour éviter un flash de "rien d'allumé" entre
-  // le 1er render et le 1er tick de l'effet.
+  // Architecture :
+  //   - refs sur l'OL + chaque LI pour mesurer les centres réels (les
+  //     chips ont des largeurs variables, on ne peut pas se contenter
+  //     d'un % proportionnel)
+  //   - useLayoutEffect mesure les centres avant le 1er paint
+  //   - useEffect lance la rAF loop quand activeIndex est connu
+  //   - arrow.style.left mis à jour via ref (bypass React, 60fps fluide)
+  //   - setLitIndex appelé seulement quand le palier survolé change (pas
+  //     à chaque frame) pour limiter les re-renders
   const startIndex = SCORE_BAND_LADDER.length - 1; // 5 = Début de parcours
   const [litIndex, setLitIndex] = useState(startIndex);
+  const ladderRef = useRef(null);
+  const tierRefs = useRef([]);
+  const arrowRef = useRef(null);
+  const centersRef = useRef([]);
+
+  // Mesure les centres des paliers après le 1er layout (avant paint) et
+  // pose la flèche au start. useLayoutEffect garantit qu'il n'y a pas
+  // de flash de "flèche au mauvais endroit" à l'apparition du banner.
+  useLayoutEffect(() => {
+    const measure = () => {
+      if (!ladderRef.current) return;
+      const containerRect = ladderRef.current.getBoundingClientRect();
+      centersRef.current = tierRefs.current.map((el) => {
+        if (!el) return 0;
+        const r2 = el.getBoundingClientRect();
+        return r2.left + r2.width / 2 - containerRect.left;
+      });
+      // Pose initialement la flèche sur le palier "lit" courant. À
+      // l'init c'est startIndex, donc bord droit de la ladder.
+      if (arrowRef.current && centersRef.current[litIndex] != null) {
+        arrowRef.current.style.left = `${centersRef.current[litIndex]}px`;
+      }
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // rAF animation — glisse la flèche du startCenter vers l'endCenter
+  // avec easeOutCubic. Update litIndex en cours de route quand la flèche
+  // change de palier survolé.
   useEffect(() => {
     if (activeIndex < 0) return undefined;
     const prefersReduce = typeof window !== 'undefined'
       && window.matchMedia
       && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Edge case : mix au palier de départ (0-29) — pas de traversal,
+    // on se cale directement et on quitte.
     if (prefersReduce || activeIndex >= startIndex) {
-      // Soit pas d'animation souhaitée, soit le palier actif EST le
-      // start (mix à 0-29) → on se cale directement dessus, pas de
-      // traversal possible.
       setLitIndex(activeIndex);
+      if (arrowRef.current && centersRef.current[activeIndex] != null) {
+        arrowRef.current.style.left = `${centersRef.current[activeIndex]}px`;
+      }
       return undefined;
     }
-    // Lance l'animation après un petit délai pour laisser le banner
-    // s'ancrer visuellement avant que la flèche bouge (sans ça l'œil
-    // n'a pas le temps de remarquer le point de départ).
-    let cursor = startIndex;
-    setLitIndex(cursor);
-    let intervalId = null;
+    let cancelled = false;
+    let rafId = null;
+    let lastLit = startIndex;
+    const duration = 1100;
+    const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
     const startTimer = setTimeout(() => {
-      intervalId = setInterval(() => {
-        cursor -= 1;
-        if (cursor <= activeIndex) {
-          clearInterval(intervalId);
-          intervalId = null;
-          setLitIndex(activeIndex); // settle au final
-          return;
+      const startCenter = centersRef.current[startIndex];
+      const endCenter = centersRef.current[activeIndex];
+      if (startCenter == null || endCenter == null) {
+        // Centres pas encore mesurés (cas dégénéré) — settle direct
+        setLitIndex(activeIndex);
+        return;
+      }
+      const t0 = performance.now();
+      const tick = (now) => {
+        if (cancelled) return;
+        const elapsed = now - t0;
+        const raw = Math.min(elapsed / duration, 1);
+        const eased = easeOutCubic(raw);
+        const px = startCenter + (endCenter - startCenter) * eased;
+        if (arrowRef.current) arrowRef.current.style.left = `${px}px`;
+        // Détermine le palier survolé = centre le plus proche de la flèche
+        let closest = 0;
+        let minDist = Infinity;
+        for (let i = 0; i < centersRef.current.length; i += 1) {
+          const d = Math.abs(centersRef.current[i] - px);
+          if (d < minDist) { minDist = d; closest = i; }
         }
-        setLitIndex(cursor);
-      }, 140);
+        // Évite les re-renders inutiles : on ne setState que si le palier
+        // a changé (ce qui n'arrive qu'aux moments de croisement, pas
+        // à chaque frame).
+        if (closest !== lastLit) {
+          lastLit = closest;
+          setLitIndex(closest);
+        }
+        if (raw < 1) {
+          rafId = requestAnimationFrame(tick);
+        } else {
+          setLitIndex(activeIndex);
+        }
+      };
+      rafId = requestAnimationFrame(tick);
     }, 280);
     return () => {
+      cancelled = true;
       clearTimeout(startTimer);
-      if (intervalId) clearInterval(intervalId);
+      if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [activeIndex, startIndex]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIndex]);
+
+  // Couleur de la flèche : héritée du palier qu'elle survole (currentColor
+  // sur le triangle CSS). Transition smooth via CSS sur .rr-score-ladder-arrow.
+  const arrowColor = litIndex != null && SCORE_BAND_LADDER[litIndex]
+    ? TONE_COLORS[SCORE_BAND_LADDER[litIndex].toneClass] || TONE_COLORS['rr-score-band-neutral']
+    : TONE_COLORS['rr-score-band-neutral'];
 
   return (
     <section className={`release-readiness rr-${r.tier} is-always-open`} aria-label={s.fiche?.releaseAriaLabel || 'État de sortie'}>
@@ -204,30 +293,43 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
           Compact volontairement (font 8.5px, padding minimal) pour ne pas
           allonger la section. Sur mobile, retombe en 2 lignes via flex-wrap. */}
       {band && (
-        <ol
-          className="rr-score-ladder"
-          aria-label={s.fiche?.scoreBandAriaLabel || 'Niveau du mix'}
-        >
-          {SCORE_BAND_LADDER.map((tier, idx) => {
-            // `isActiveSemantic` = palier réel du mix (lecteur d'écran).
-            // `isLit` = palier visuellement éclairé à l'instant t — suit
-            // la flèche pendant l'animation d'entrée, puis se cale sur
-            // le palier actif une fois la traversal terminée.
-            const isActiveSemantic = tier.stringKey === band.stringKey;
-            const isLit = idx === litIndex;
-            const label = s.fiche?.[tier.stringKey] || '';
-            if (!label) return null;
-            return (
-              <li
-                key={tier.stringKey}
-                className={`rr-score-ladder-item${isLit ? ` is-active ${tier.toneClass}` : ''}`}
-                aria-current={isActiveSemantic ? 'true' : undefined}
-              >
-                {label}
-              </li>
-            );
-          })}
-        </ol>
+        <div className="rr-score-ladder-wrap">
+          {/* Flèche unique ▼ — position pilotée par JS via ref (style.left).
+              La couleur transitionne smoothly via CSS quand elle change de
+              palier survolé. */}
+          <span
+            ref={arrowRef}
+            className="rr-score-ladder-arrow"
+            style={{ color: arrowColor }}
+            aria-hidden="true"
+          />
+          <ol
+            ref={ladderRef}
+            className="rr-score-ladder"
+            aria-label={s.fiche?.scoreBandAriaLabel || 'Niveau du mix'}
+          >
+            {SCORE_BAND_LADDER.map((tier, idx) => {
+              // `isActiveSemantic` = palier réel du mix (lecteur d'écran).
+              // `isLit` = palier visuellement éclairé à l'instant t — suit
+              // la flèche pendant l'animation d'entrée, puis se cale sur
+              // le palier actif une fois la traversal terminée.
+              const isActiveSemantic = tier.stringKey === band.stringKey;
+              const isLit = idx === litIndex;
+              const label = s.fiche?.[tier.stringKey] || '';
+              if (!label) return null;
+              return (
+                <li
+                  key={tier.stringKey}
+                  ref={(el) => { tierRefs.current[idx] = el; }}
+                  className={`rr-score-ladder-item${isLit ? ` is-active ${tier.toneClass}` : ''}`}
+                  aria-current={isActiveSemantic ? 'true' : undefined}
+                >
+                  {label}
+                </li>
+              );
+            })}
+          </ol>
+        </div>
       )}
 
       {hasBlockers && (
@@ -519,17 +621,23 @@ function Styles() {
       /* Échelle des 6 paliers (B.3 follow-up) — strip horizontal sous le head.
          Compact volontairement : font 8.5px, padding 3px 7px, gap 5px. Sur
          desktop tient sur une seule ligne dans la colonne 920px de la fiche.
-         Sur mobile, flex-wrap permet de retomber sur 2 lignes sans casser. */
+         Sur mobile, flex-wrap permet de retomber sur 2 lignes sans casser.
+
+         Le wrapper porte le margin externe ET la position:relative qui sert
+         d'origine à la flèche absolutely-positioned. */
+      .rr-score-ladder-wrap {
+        position: relative;
+        margin: 18px 0 0 46px; /* +8px de margin-top vs avant pour laisser la place à la flèche au-dessus */
+      }
       .rr-score-ladder {
         list-style: none;
-        margin: 10px 0 0 46px;
+        margin: 0;
         padding: 0;
         display: flex; flex-wrap: wrap;
         gap: 5px;
         align-items: center;
       }
       .rr-score-ladder-item {
-        position: relative;
         display: inline-flex; align-items: center;
         font-family: var(--mono, 'JetBrains Mono', monospace);
         font-size: 8.5px; font-weight: 500;
@@ -538,17 +646,16 @@ function Styles() {
         border-radius: 999px;
         white-space: nowrap;
         /* État par défaut (inactif) : muted, juste assez visible pour
-           rester lisible mais sans concurrencer le chip principal. */
+           rester lisible mais sans concurrencer le palier survolé. */
         background: rgba(255,255,255,0.03);
         border: 1px solid rgba(255,255,255,0.10);
         color: rgba(255,255,255,0.42);
         transition: background .15s, border-color .15s, color .15s, transform .2s;
       }
-      /* État actif : on overdrive la spécificité (.is-active chaînée
-         avec la classe tier) pour battre les styles muted de la base
-         ci-dessus, qui sinon gagnent par ordre source. Aussi : bump
-         visuel (scale + opacité fond + box-shadow) pour que l'actif
-         pope sans ambiguïté dans la grille. */
+      /* État actif (palier survolé par la flèche OU palier final après anim).
+         La classe tier (.rr-score-band-X) est ajoutée en plus de .is-active
+         dans le JSX, ce qui chaîne la spécificité (0,3,0) pour battre les
+         styles muted de la base. Bump scale + box-shadow pour faire popper. */
       .rr-score-ladder-item.is-active {
         font-weight: 600;
         transform: scale(1.08);
@@ -560,20 +667,30 @@ function Styles() {
       .rr-score-ladder-item.is-active.rr-score-band-amber       { background: rgba(245,166,35,0.22);  border-color: rgba(245,166,35,0.66);  color: var(--amber, #f5a623); }
       .rr-score-ladder-item.is-active.rr-score-band-amber-muted { background: rgba(245,166,35,0.14);  border-color: rgba(245,166,35,0.42);  color: rgba(245,166,35,0.92); }
       .rr-score-ladder-item.is-active.rr-score-band-neutral     { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.34); color: rgba(255,255,255,0.85); }
-      /* Marqueur "tu es ici" — petit triangle ▼ pointant VERS LE BAS,
-         posé juste au-dessus du palier actif. Couleur héritée du palier
-         via currentColor (la pointe est faite avec border-top en CSS
-         trick : border-top + left/right transparents → ▼). */
-      .rr-score-ladder-item.is-active::before {
-        content: '';
+
+      /* Flèche ▼ qui glisse au-dessus de la ladder pendant l'animation
+         d'entrée. Position pilotée par JS (style.left mis à jour à 60fps
+         via rAF). Triangle CSS via border-top + transparents + 0×0. La
+         couleur transitionne smoothly quand la flèche change de palier
+         survolé (currentColor sur le border-top). */
+      .rr-score-ladder-arrow {
         position: absolute;
-        top: -7px; left: 50%;
+        top: 0;
+        left: 0; /* sera overridé par style.left en JS */
         width: 0; height: 0;
-        transform: translateX(-50%);
-        border-left: 4px solid transparent;
-        border-right: 4px solid transparent;
-        border-top: 5px solid currentColor;
-        opacity: 0.85;
+        transform: translate(-50%, -100%); /* centre horizontalement + remonte au-dessus de la ladder */
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 6px solid currentColor;
+        pointer-events: none;
+        transition: color .15s ease;
+        /* will-change: left aide le compositeur GPU sur les longues
+           transitions, mais c'est ici mis à jour à la main donc pas
+           strictement nécessaire — on garde pour le bénéfice marginal. */
+        will-change: left;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .rr-score-ladder-arrow { transition: none; }
       }
 
       @media (max-width: 768px) {
