@@ -173,6 +173,7 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
   const tierRefs = useRef([]);
   const arrowRef = useRef(null);
   const centersRef = useRef([]);
+  const containerWidthRef = useRef(0);
 
   // Helper pour appliquer une position {x, y} à la flèche.
   const placeArrow = (pos) => {
@@ -191,6 +192,7 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
     const measure = () => {
       if (!ladderRef.current) return;
       const containerRect = ladderRef.current.getBoundingClientRect();
+      containerWidthRef.current = containerRect.width;
       centersRef.current = tierRefs.current.map((el) => {
         if (!el) return { x: 0, y: 0 };
         const r2 = el.getBoundingClientRect();
@@ -231,10 +233,15 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
     let lastLit = startIndex;
     const totalSegments = startIndex - activeIndex;
     // Durée scalée avec le nombre de segments pour garder une vitesse de
-    // traversal lisible (ni rush si l'arrivée est très basse en score, ni
-    // longue traîne si elle est haute). 250ms par segment, plancher 700ms.
-    const duration = Math.max(700, totalSegments * 250);
+    // traversal lisible. 380ms par segment, plancher 1100ms. Augmenté
+    // sur retour visuel David ("un peu trop rapide"). Sur 4 segments
+    // (active = Hit) ça fait ~1520ms total.
+    const duration = Math.max(1100, totalSegments * 380);
     const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
+    // Marge off-screen pour le wrap-around entre lignes : la flèche
+    // sort à gauche (x négatif assez pour clipper avec overflow:hidden
+    // sur le wrapper) puis réapparaît à droite (x > containerWidth).
+    const OFFSCREEN_MARGIN = 18;
     const startTimer = setTimeout(() => {
       if (cancelled) return;
       if (!centersRef.current || centersRef.current.length === 0) {
@@ -259,8 +266,33 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
         const from = centersRef.current[fromIdx];
         const to = centersRef.current[toIdx];
         if (from && to) {
-          const x = from.x + (to.x - from.x) * frac;
-          const y = from.y + (to.y - from.y) * frac;
+          // Cross-row segment ? Si oui, on fait disparaître à gauche puis
+          // réapparaître à droite au lieu d'interpoler en diagonale.
+          // Tolérance 1px pour les imprécisions sub-pixel du layout.
+          const isCrossRow = Math.abs(from.y - to.y) > 1;
+          let x;
+          let y;
+          if (isCrossRow) {
+            const exitX = -OFFSCREEN_MARGIN;
+            const enterX = (containerWidthRef.current || 0) + OFFSCREEN_MARGIN;
+            if (frac < 0.5) {
+              // Phase A : on reste sur la ligne du from, la flèche glisse
+              // de from.x vers exitX (clippée par overflow:hidden du wrapper)
+              const localFrac = frac / 0.5; // 0 → 1
+              x = from.x + (exitX - from.x) * localFrac;
+              y = from.y;
+            } else {
+              // Phase B : on est sur la ligne du to, la flèche réapparaît
+              // par la droite (enterX) et glisse vers to.x
+              const localFrac = (frac - 0.5) / 0.5; // 0 → 1
+              x = enterX + (to.x - enterX) * localFrac;
+              y = to.y;
+            }
+          } else {
+            // Même ligne — interpolation directe X (Y identique de toute façon)
+            x = from.x + (to.x - from.x) * frac;
+            y = from.y;
+          }
           if (arrowRef.current) {
             arrowRef.current.style.left = `${x}px`;
             arrowRef.current.style.top = `${y}px`;
@@ -653,6 +685,15 @@ function Styles() {
       .rr-score-ladder-wrap {
         position: relative;
         margin: 18px 0 0 46px; /* +8px de margin-top vs avant pour laisser la place à la flèche au-dessus */
+        /* Clip la flèche quand elle "sort" entre 2 lignes : on la translate
+           hors du wrapper à gauche pendant la transition de ligne, puis
+           elle réapparaît à droite. Sans ce overflow:hidden, on verrait
+           des fragments de flèche déborder pendant la phase de wrap. */
+        overflow: hidden;
+        /* Ajoute un petit padding-top pour absorber la flèche posée juste
+           au-dessus du chip (sinon overflow:hidden la coupe en haut). */
+        padding-top: 8px;
+        margin-top: 10px; /* compense le padding pour garder l'espacement visuel total */
       }
       .rr-score-ladder {
         list-style: none;
