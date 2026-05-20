@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { computeReleaseReadiness } from '../lib/ficheHelpers.jsx';
 import useLang from '../hooks/useLang';
 
@@ -133,6 +134,54 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
   // unique à droite du verdict a été retiré (doublon visuel avec
   // le palier highlighted dans la ladder).
   const band = getScoreBand(r.score);
+  const activeIndex = band ? SCORE_BAND_LADDER.findIndex((t) => t.stringKey === band.stringKey) : -1;
+  // Animation d'entrée (2026-05-20bis) : la flèche apparaît au palier
+  // le plus bas ("Début de parcours", index 5) et "remonte" vers le
+  // palier actif. À chaque tick l'allumage suit la flèche ; les paliers
+  // traversés s'éteignent automatiquement via les transitions CSS de
+  // .rr-score-ladder-item (background/border-color/color en 0.15s).
+  // Respect prefers-reduced-motion : jump direct au palier actif.
+  //
+  // `litIndex` = index visuellement highlighted à l'instant t. Initialisé
+  // au start de la ladder pour éviter un flash de "rien d'allumé" entre
+  // le 1er render et le 1er tick de l'effet.
+  const startIndex = SCORE_BAND_LADDER.length - 1; // 5 = Début de parcours
+  const [litIndex, setLitIndex] = useState(startIndex);
+  useEffect(() => {
+    if (activeIndex < 0) return undefined;
+    const prefersReduce = typeof window !== 'undefined'
+      && window.matchMedia
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduce || activeIndex >= startIndex) {
+      // Soit pas d'animation souhaitée, soit le palier actif EST le
+      // start (mix à 0-29) → on se cale directement dessus, pas de
+      // traversal possible.
+      setLitIndex(activeIndex);
+      return undefined;
+    }
+    // Lance l'animation après un petit délai pour laisser le banner
+    // s'ancrer visuellement avant que la flèche bouge (sans ça l'œil
+    // n'a pas le temps de remarquer le point de départ).
+    let cursor = startIndex;
+    setLitIndex(cursor);
+    let intervalId = null;
+    const startTimer = setTimeout(() => {
+      intervalId = setInterval(() => {
+        cursor -= 1;
+        if (cursor <= activeIndex) {
+          clearInterval(intervalId);
+          intervalId = null;
+          setLitIndex(activeIndex); // settle au final
+          return;
+        }
+        setLitIndex(cursor);
+      }, 140);
+    }, 280);
+    return () => {
+      clearTimeout(startTimer);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [activeIndex, startIndex]);
 
   return (
     <section className={`release-readiness rr-${r.tier} is-always-open`} aria-label={s.fiche?.releaseAriaLabel || 'État de sortie'}>
@@ -159,15 +208,20 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
           className="rr-score-ladder"
           aria-label={s.fiche?.scoreBandAriaLabel || 'Niveau du mix'}
         >
-          {SCORE_BAND_LADDER.map((tier) => {
-            const isActive = tier.stringKey === band.stringKey;
+          {SCORE_BAND_LADDER.map((tier, idx) => {
+            // `isActiveSemantic` = palier réel du mix (lecteur d'écran).
+            // `isLit` = palier visuellement éclairé à l'instant t — suit
+            // la flèche pendant l'animation d'entrée, puis se cale sur
+            // le palier actif une fois la traversal terminée.
+            const isActiveSemantic = tier.stringKey === band.stringKey;
+            const isLit = idx === litIndex;
             const label = s.fiche?.[tier.stringKey] || '';
             if (!label) return null;
             return (
               <li
                 key={tier.stringKey}
-                className={`rr-score-ladder-item${isActive ? ` is-active ${tier.toneClass}` : ''}`}
-                aria-current={isActive ? 'true' : undefined}
+                className={`rr-score-ladder-item${isLit ? ` is-active ${tier.toneClass}` : ''}`}
+                aria-current={isActiveSemantic ? 'true' : undefined}
               >
                 {label}
               </li>
