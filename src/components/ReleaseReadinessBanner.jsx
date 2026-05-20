@@ -2,6 +2,21 @@ import { computeReleaseReadiness } from '../lib/ficheHelpers.jsx';
 import useLang from '../hooks/useLang';
 
 /**
+ * Échelle des 6 paliers Score Band, ordonnée du plus haut au plus bas.
+ * Source de vérité partagée entre `getScoreBand` (résolution du palier
+ * actif) et le rendu de la ladder qui affiche tous les paliers pour
+ * situer socialement.
+ */
+const SCORE_BAND_LADDER = [
+  { stringKey: 'scoreBandReference',    toneClass: 'rr-score-band-violet' },
+  { stringKey: 'scoreBandHit',          toneClass: 'rr-score-band-cerulean' },
+  { stringKey: 'scoreBandPro',          toneClass: 'rr-score-band-mint' },
+  { stringKey: 'scoreBandDemoAdvanced', toneClass: 'rr-score-band-amber' },
+  { stringKey: 'scoreBandDeveloping',   toneClass: 'rr-score-band-amber-muted' },
+  { stringKey: 'scoreBandStart',        toneClass: 'rr-score-band-neutral' },
+];
+
+/**
  * getScoreBand (B.3, refonte 2026-05-20) — palier social calé sur le
  * globalScore /100. Option A "Sobre et factuel" tranchée avec David.
  *
@@ -15,12 +30,12 @@ import useLang from '../hooks/useLang';
  */
 function getScoreBand(score) {
   if (typeof score !== 'number' || Number.isNaN(score)) return null;
-  if (score >= 90) return { stringKey: 'scoreBandReference', toneClass: 'rr-score-band-violet' };
-  if (score >= 80) return { stringKey: 'scoreBandHit', toneClass: 'rr-score-band-cerulean' };
-  if (score >= 65) return { stringKey: 'scoreBandPro', toneClass: 'rr-score-band-mint' };
-  if (score >= 50) return { stringKey: 'scoreBandDemoAdvanced', toneClass: 'rr-score-band-amber' };
-  if (score >= 30) return { stringKey: 'scoreBandDeveloping', toneClass: 'rr-score-band-amber-muted' };
-  return { stringKey: 'scoreBandStart', toneClass: 'rr-score-band-neutral' };
+  if (score >= 90) return SCORE_BAND_LADDER[0];
+  if (score >= 80) return SCORE_BAND_LADDER[1];
+  if (score >= 65) return SCORE_BAND_LADDER[2];
+  if (score >= 50) return SCORE_BAND_LADDER[3];
+  if (score >= 30) return SCORE_BAND_LADDER[4];
+  return SCORE_BAND_LADDER[5];
 }
 
 /**
@@ -138,6 +153,35 @@ export default function ReleaseReadinessBanner({ fiche, completedItems, open: op
           </span>
         )}
       </div>
+
+      {/* Échelle complète des 6 paliers (B.3 follow-up 2026-05-20) — inspiré
+          d'AubioMix : on montre où le mix se situe dans la grille sociale,
+          pas juste le palier atteint. L'actif reprend sa couleur de tier
+          (cohérent avec le chip principal à droite du verdict). Les 5 autres
+          paliers restent muted pour ne pas concurrencer le chip principal.
+          Compact volontairement (font 8.5px, padding minimal) pour ne pas
+          allonger la section. Sur mobile, retombe en 2 lignes via flex-wrap. */}
+      {band && (
+        <ol
+          className="rr-score-ladder"
+          aria-label={s.fiche?.scoreBandAriaLabel || 'Niveau du mix'}
+        >
+          {SCORE_BAND_LADDER.map((tier) => {
+            const isActive = tier.stringKey === band.stringKey;
+            const label = s.fiche?.[tier.stringKey] || '';
+            if (!label) return null;
+            return (
+              <li
+                key={tier.stringKey}
+                className={`rr-score-ladder-item${isActive ? ` is-active ${tier.toneClass}` : ''}`}
+                aria-current={isActive ? 'true' : undefined}
+              >
+                {label}
+              </li>
+            );
+          })}
+        </ol>
+      )}
 
       {hasBlockers && (
         <ul className="rr-blockers">
@@ -464,6 +508,42 @@ function Styles() {
       /* Variante neutre (0-29) — gris très discret. Volontairement
          dépourvu de signal négatif : encourage sans punir. */
       .rr-score-band-neutral     { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.14); color: rgba(255,255,255,0.62); }
+
+      /* Échelle des 6 paliers (B.3 follow-up) — strip horizontal sous le head.
+         Compact volontairement : font 8.5px, padding 3px 7px, gap 5px. Sur
+         desktop tient sur une seule ligne dans la colonne 920px de la fiche.
+         Sur mobile, flex-wrap permet de retomber sur 2 lignes sans casser. */
+      .rr-score-ladder {
+        list-style: none;
+        margin: 10px 0 0 46px;
+        padding: 0;
+        display: flex; flex-wrap: wrap;
+        gap: 5px;
+        align-items: center;
+      }
+      .rr-score-ladder-item {
+        display: inline-flex; align-items: center;
+        font-family: var(--mono, 'JetBrains Mono', monospace);
+        font-size: 8.5px; font-weight: 500;
+        letter-spacing: 1.2px; text-transform: uppercase;
+        padding: 3px 7px;
+        border-radius: 999px;
+        white-space: nowrap;
+        /* État par défaut (inactif) : muted, juste assez visible pour
+           rester lisible mais sans concurrencer le chip principal. */
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.10);
+        color: rgba(255,255,255,0.42);
+        transition: background .15s, border-color .15s, color .15s;
+      }
+      /* État actif : la classe de couleur tier (rr-score-band-*) est
+         ajoutée en plus de .is-active dans le JSX, ce qui ré-écrit
+         background/border/color avec la teinte du palier. is-active
+         force juste une légère emphase typographique. */
+      .rr-score-ladder-item.is-active {
+        font-weight: 600;
+        box-shadow: 0 6px 18px -10px rgba(0,0,0,0.55);
+      }
 
       @media (max-width: 768px) {
         .release-readiness { padding: 12px 14px; }

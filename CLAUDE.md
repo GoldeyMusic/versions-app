@@ -114,6 +114,7 @@ Implémentée :
   - 0-29 : Début de parcours (neutre gris)
 - **Pas de rouge dans la grille de couleurs** : "En développement" et "Début de parcours" sont encourageants, pas punitifs.
 - Helper `getScoreBand(score)` inline dans le composant (pas dans `ficheHelpers.jsx` tant qu'il n'est pas réutilisé ailleurs — Score Card PNG potentielle 2è cible plus tard).
+- **Échelle complète des 6 paliers** rendue sous le head (inspirée AubioMix) — l'actif reprend sa couleur tier, les 5 autres restent muted. Source de vérité partagée : `SCORE_BAND_LADDER` (ordre + tone par stringKey). Format compact volontairement (font 8.5px, padding 3×7px, gap 5px) — tient sur 1 ligne dans la colonne 920px, retombe en 2 lignes sur mobile via `flex-wrap`.
 - Strings `scoreBand*` (FR + EN). Aria-label dédié pour les lecteurs d'écran.
 - Visuellement parent des `.vside-chip` (mono uppercase, padding pill, rounded 999px, rotation -1°). Sur mobile (< 768px), retombe sous le bloc texte du head avec `flex-wrap: wrap`.
 - Bénéficie aux 3 écrans qui montent le banner : `FicheScreen`, `SampleFicheScreen`, `PublicFicheScreen` — pas de modif côté caller.
