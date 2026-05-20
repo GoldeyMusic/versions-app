@@ -522,6 +522,7 @@ function Styles() {
         align-items: center;
       }
       .rr-score-ladder-item {
+        position: relative;
         display: inline-flex; align-items: center;
         font-family: var(--mono, 'JetBrains Mono', monospace);
         font-size: 8.5px; font-weight: 500;
@@ -534,15 +535,38 @@ function Styles() {
         background: rgba(255,255,255,0.03);
         border: 1px solid rgba(255,255,255,0.10);
         color: rgba(255,255,255,0.42);
-        transition: background .15s, border-color .15s, color .15s;
+        transition: background .15s, border-color .15s, color .15s, transform .2s;
       }
-      /* État actif : la classe de couleur tier (rr-score-band-*) est
-         ajoutée en plus de .is-active dans le JSX, ce qui ré-écrit
-         background/border/color avec la teinte du palier. is-active
-         force juste une légère emphase typographique. */
+      /* État actif : on overdrive la spécificité (.is-active chaînée
+         avec la classe tier) pour battre les styles muted de la base
+         ci-dessus, qui sinon gagnent par ordre source. Aussi : bump
+         visuel (scale + opacité fond + box-shadow) pour que l'actif
+         pope sans ambiguïté dans la grille. */
       .rr-score-ladder-item.is-active {
         font-weight: 600;
+        transform: scale(1.08);
         box-shadow: 0 6px 18px -10px rgba(0,0,0,0.55);
+      }
+      .rr-score-ladder-item.is-active.rr-score-band-violet      { background: rgba(166,126,245,0.20); border-color: rgba(166,126,245,0.60); color: #c2a8ff; }
+      .rr-score-ladder-item.is-active.rr-score-band-cerulean    { background: rgba(92,184,204,0.20);  border-color: rgba(92,184,204,0.60);  color: #5cb8cc; }
+      .rr-score-ladder-item.is-active.rr-score-band-mint        { background: rgba(142,224,122,0.20); border-color: rgba(142,224,122,0.60); color: #8ee07a; }
+      .rr-score-ladder-item.is-active.rr-score-band-amber       { background: rgba(245,166,35,0.22);  border-color: rgba(245,166,35,0.66);  color: var(--amber, #f5a623); }
+      .rr-score-ladder-item.is-active.rr-score-band-amber-muted { background: rgba(245,166,35,0.14);  border-color: rgba(245,166,35,0.42);  color: rgba(245,166,35,0.92); }
+      .rr-score-ladder-item.is-active.rr-score-band-neutral     { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.34); color: rgba(255,255,255,0.85); }
+      /* Marqueur "tu es ici" — petit triangle ▼ pointant VERS LE BAS,
+         posé juste au-dessus du palier actif. Couleur héritée du palier
+         via currentColor (la pointe est faite avec border-top en CSS
+         trick : border-top + left/right transparents → ▼). */
+      .rr-score-ladder-item.is-active::before {
+        content: '';
+        position: absolute;
+        top: -7px; left: 50%;
+        width: 0; height: 0;
+        transform: translateX(-50%);
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 5px solid currentColor;
+        opacity: 0.85;
       }
 
       @media (max-width: 768px) {
