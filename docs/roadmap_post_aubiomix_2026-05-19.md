@@ -157,9 +157,13 @@ Encart toujours visible sur la fiche pour inviter à uploader la prochaine versi
 
 **Sprint suivant**
 - D.2 amélioration classifieur Gemini (à mesurer après D.1)
-- C.1 Track Type "Live"
+- C.1 Track Type "Live" — toggle actuel est Chanté / Instrumental, à étendre avec une 3è option Live. Calibrer recettes Claude : tolérance dynamique naturelle, moins d'exigence séparation, plus sur équilibre d'ensemble.
 - C.3 upload pill sticky (à valider — ou la chat pill suffit ?)
 - Frequency Balance Map mode A (cf. `docs/frequency_balance_map_spec.md`)
+
+### Dette honnêteté UI à traiter
+
+- **Auto-detect mix/master non implémenté** — le hint AddModal annonce *"Versions détermine le statut à partir des mesures (loudness, dynamique)"* mais le mapping front (cf. `src/components/AddModal.jsx`) bascule silencieusement Auto → `mix`. Aucune heuristique côté backend. À trancher : (a) reformuler le hint pour être honnête (5 min) ou (b) coder l'heuristique réelle (LUFS ≥ -12 + LRA < 8 LU + True Peak proche -1 dBTP → probable master). On dispose déjà des mesures DSP nécessaires (`dspMetrics.lufs/lra/truePeak`), donc (b) est faisable ~1-2 h.
 
 ---
 
