@@ -3506,6 +3506,13 @@ function VersionsAppAuthed() {
               const full = { ...prev, fiche: job.fiche || prev?.fiche, listening: job.listening || prev?.listening, evolution: job.evolution || prev?.evolution || null, storagePath: job.storagePath || prev?.storagePath || null, _stage: "all_done" };
               saveAnalysis(config, full, job.storagePath || prev?.storagePath || null, lang)
                 .then((ids) => {
+                  // Si saveAnalysis n'a pas pu créer la ligne track (silent null),
+                  // on traite ça comme un échec : refund + alert. Voir
+                  // handleSaveFailure pour le détail.
+                  if (!ids?.trackId) {
+                    handleSaveFailure(jobId, new Error('saveAnalysis returned no trackId (bg poll)'));
+                    return;
+                  }
                   // Persiste l'intention au scope choisi (track/version)
                   const intent = full?.intent_used || config?._pendingIntent || null;
                   const scope = full?._intent_scope || config?._pendingIntentScope || 'track';
@@ -3523,7 +3530,7 @@ function VersionsAppAuthed() {
                   refreshCredits();
                   return refreshProjects();
                 })
-                .catch(e => console.warn("saveAnalysis failed:", e));
+                .catch(e => { handleSaveFailure(jobId, e); });
               return full;
             });
           }
@@ -3534,6 +3541,44 @@ function VersionsAppAuthed() {
 
   // Cleanup on unmount
   useEffect(() => () => { if (pollingRef.current) clearInterval(pollingRef.current); }, []);
+
+  // ── Gestion d'un échec de saveAnalysis ──
+  // Si la sauvegarde côté front rate (RLS, session expirée, réseau coupé,
+  // bug applicatif), l'utilisateur a perdu visuellement sa fiche ET son
+  // crédit est débité côté serveur. On déclenche :
+  //   1) un refund immédiat via RPC refund_my_failed_analysis (anti-abus :
+  //      la RPC vérifie qu'aucune version n'a réellement été persistée)
+  //   2) un modal d'alerte qui rassure (texte adapté selon succès du refund)
+  //   3) un reset vers le dashboard pour que l'utilisateur puisse réessayer
+  // Si jobId est absent (cas pathologique : on n'a même pas l'ID du job),
+  // on bascule en mode fallback "écris-nous" — pas de refund possible.
+  const handleSaveFailure = async (jobId, origin) => {
+    console.warn('[saveFailure]', { jobId, origin: origin?.message || origin });
+    let refundOk = false;
+    if (jobId) {
+      try {
+        const { data, error } = await supabase.rpc('refund_my_failed_analysis', { p_job_id: jobId });
+        refundOk = !error && data?.ok === true;
+        if (error) console.warn('[saveFailure] RPC error:', error.message);
+        else if (!refundOk) console.warn('[saveFailure] RPC declined:', data?.error);
+      } catch (e) {
+        console.warn('[saveFailure] RPC threw:', e?.message);
+      }
+    }
+    try { await refreshCredits(); } catch { /* noop */ }
+    await confirmDialog({
+      title: s.errors.saveFailedTitle,
+      message: refundOk ? s.errors.saveFailedMessageRefunded : s.errors.saveFailedMessageManual,
+      confirmLabel: s.errors.saveFailedOk,
+      cancelLabel: null,
+    });
+    // Reset : on libère le garde-fou savedRef et on ramène l'utilisateur
+    // sur welcome pour qu'il puisse relancer une analyse sereinement.
+    savedRef.current = false;
+    setAnalysisResult(null);
+    setConfig(null);
+    setScreen('welcome');
+  };
 
   // ── Handlers ──
   const handleAnalyze = (cfg) => {
@@ -3597,6 +3642,12 @@ function VersionsAppAuthed() {
         savedRef.current = true;
         saveAnalysis(cfgWithHash, merged, merged.storagePath || null, lang)
           .then((ids) => {
+            // Échec silencieux : saveAnalysis a returné null (RLS, session
+            // expirée, projet introuvable, etc.). On traite comme un fail.
+            if (!ids?.trackId) {
+              handleSaveFailure(merged?._jobId, new Error('saveAnalysis returned no trackId (all_done)'));
+              return;
+            }
             // Persiste l'intention utilisée au scope choisi
             const intent = merged?.intent_used || cfgWithHash?._pendingIntent || null;
             const scope = merged?._intent_scope || cfgWithHash?._pendingIntentScope || 'track';
@@ -3614,7 +3665,7 @@ function VersionsAppAuthed() {
             refreshCredits();
             return refreshProjects();
           })
-          .catch(e => console.warn("saveAnalysis failed:", e));
+          .catch(e => { handleSaveFailure(merged?._jobId, e); });
       }
     } else if (screen !== "fiche" && merged._jobId && !savedRef.current) {
       // FIX 2026-05-21 — relais du polling pour ne plus perdre de crédits.

@@ -1356,6 +1356,14 @@ const STRINGS = {
       saveProfile: "Impossible d'enregistrer tes modifications.",
       projectCreate: "La création a échoué, réessaye.",
       compareNeedsFiches: "Les deux versions doivent avoir une fiche analysée",
+      // Échec de sauvegarde côté front après une analyse réussie côté serveur.
+      // Affiché à l'utilisateur si saveAnalysis a échoué (RLS, réseau, session
+      // expirée, etc.) — il a perdu visuellement sa fiche, on doit le rassurer
+      // et lui rendre le crédit immédiatement via RPC refund_my_failed_analysis.
+      saveFailedTitle: "Sauvegarde impossible",
+      saveFailedMessageRefunded: "Ton analyse a bien tourné mais on n'a pas réussi à la sauvegarder. Ton crédit a été restitué automatiquement, tu peux réessayer.",
+      saveFailedMessageManual: "Ton analyse a bien tourné mais on n'a pas réussi à la sauvegarder. Si ton crédit a été débité, écris-nous à contact@versions.studio, on te le rend.",
+      saveFailedOk: "OK",
     },
 
     /* ─────────────── DATE / TIME ─────────────────────── */
@@ -3126,6 +3134,10 @@ const STRINGS = {
       saveProfile: "Unable to save your changes.",
       projectCreate: "Creation failed, please try again.",
       compareNeedsFiches: "Both versions must have an analysis report",
+      saveFailedTitle: "Couldn't save",
+      saveFailedMessageRefunded: "Your analysis ran fine but we couldn't save it. Your credit has been refunded automatically — feel free to try again.",
+      saveFailedMessageManual: "Your analysis ran fine but we couldn't save it. If your credit was debited, email us at contact@versions.studio and we'll restore it.",
+      saveFailedOk: "OK",
     },
 
     /* ─────────────── DATE / TIME ───────────── */
