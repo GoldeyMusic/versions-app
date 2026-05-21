@@ -118,29 +118,29 @@ export default function AddModal({
   const [daw, setDaw] = useState(defaultDaw || '');
   const [vocalKind, setVocalKind] = useState('vocal');
   const [finalInstru, setFinalInstru] = useState(null);
-  // Question "Ce mix a-t-il été masterisé ?" (refonte 2026-05-20, C.2 roadmap).
-  // 3 valeurs UI :
-  //   - 'yes'  : oui, fichier masterisé, prêt-à-publier
-  //   - 'no'   : non, mix en cours (même avec un limiteur posé pour l'écoute)
-  //   - 'auto' : pas sûr / Auto-detect — laisse Versions décider à partir des
-  //              mesures (loudness, dynamique). C'est le défaut : on évite à
-  //              l'artiste un choix s'il ne sait pas trancher.
+  // Question "Ce mix a-t-il été masterisé ?" (refonte 2026-05-20 C.2 roadmap,
+  // simplifiée 2026-05-21 Oui/Non — l'option Auto-detect retirée car elle
+  // promettait une détection LUFS qui n'existait pas).
+  // 2 valeurs UI :
+  //   - 'yes' : oui, fichier masterisé, prêt-à-publier
+  //   - 'no'  : non, mix en cours (default — même avec un limiteur posé pour
+  //             l'écoute, on reste en 'no' tant qu'on fignole)
   //
   // Rétro-compat backend : versions.upload_type ne connaît que 'mix'/'master'.
   // Mapping au submit (cf. handleLaunchAnalyze) :
-  //   - 'yes'  → 'master'
-  //   - 'no'   → 'mix'
-  //   - 'auto' → 'mix' (défaut safe : pondération master & loudness à 0.5
-  //              côté lib/claude.js, ne plombe pas le score d'un titre qui
-  //              n'est pas finalisé). À enrichir plus tard si le backend
-  //              gagne une heuristique réelle (ex: LUFS intégrés > -10 →
-  //              traiter comme master).
+  //   - 'yes' → 'master'
+  //   - 'no'  → 'mix' (pondération master & loudness à 0.5 côté lib/claude.js,
+  //             ne plombe pas le score d'un titre qui n'est pas finalisé)
   //
   // Conditionne côté backend :
   //   - pondération master & loudness dans le score (mix : 0.5 vs master : 2)
   //     — cf. lib/claude.js
   //   - verdict de sortie ("Prêt pour le mastering" vs "Prêt pour la sortie")
-  const [masteredAnswer, setMasteredAnswer] = useState('auto');
+  // Default 'no' (refonte 2026-05-21) — l'option Auto-detect a été retirée car
+  // elle promettait une détection LUFS/dynamique qui n'était pas implémentée
+  // (Auto mappait silencieusement sur mix). La plupart des uploads sont des
+  // mix en cours, donc default 'no' est statistiquement correct ET honnête.
+  const [masteredAnswer, setMasteredAnswer] = useState('no');
   // Genre musical déclaré par l'artiste à l'upload. Texte libre court.
   // Refonte 2026-04-29 : si vide au lancement, le pipeline détecte
   // automatiquement (équivalent ancien "Choisir automatiquement"). Le
@@ -265,10 +265,8 @@ export default function AddModal({
       // Persisté en colonne versions.upload_type. Le backend (lib/claude.js)
       // bascule la pondération master & loudness selon cette valeur.
       // Mapping rétro-compat depuis masteredAnswer (UI) → uploadType (DB) :
-      //   - 'yes'  → 'master'
-      //   - 'no'   → 'mix'
-      //   - 'auto' → 'mix' (défaut safe — ne plombe pas le score loudness
-      //              tant qu'on n'a pas d'heuristique LUFS côté backend)
+      //   - 'yes' → 'master'
+      //   - 'no'  → 'mix'
       uploadType: masteredAnswer === 'yes' ? 'master' : 'mix',
       refFile: null,
       // Genre : si l'utilisateur a tapé quelque chose on le passe, sinon
@@ -313,7 +311,7 @@ export default function AddModal({
       setDaw(defaultDaw || '');
       setVocalKind('vocal');
       setFinalInstru(null);
-      setMasteredAnswer('auto');
+      setMasteredAnswer('no');
       setDeclaredGenre('');
       setArtisticIntent('');
       setCopyrightAck(false);
@@ -774,8 +772,10 @@ export default function AddModal({
               </div>
             )}
 
-            {/* Type vocal (nouveau titre uniquement) */}
-            {file && askVocal && (
+            {/* Type vocal (nouveau titre uniquement). Visible dès l'ouverture
+                de la modale (refonte 2026-05-21) pour rester cohérent avec
+                DAW/Genre/Intention/Masterisé qui sont toujours visibles. */}
+            {askVocal && (
               <div className="add-mini-field">
                 <div className="add-mini-field-label">
                   {s.addModal.uploadVocalLabel}
@@ -810,12 +810,12 @@ export default function AddModal({
               </div>
             )}
 
-            {/* "Ce mix a-t-il été masterisé ?" — refonte 2026-05-20 (C.2 roadmap).
-                Remplace l'ancien toggle binaire Mix/Master par 3 pills :
-                Oui / Non / Auto-detect. Default 'auto' — l'artiste qui ne sait
-                pas trancher n'est plus forcé à choisir, le système décide.
-                Toujours visible (pas de gate sur `file`) pour rester cohérent
-                avec DAW/Genre qui s'affichent dès l'ouverture. */}
+            {/* "Ce mix a-t-il été masterisé ?" — refonte 2026-05-20 (C.2 roadmap),
+                simplifiée 2026-05-21 : Oui/Non binaires, default 'no'. L'option
+                Auto-detect a été retirée car elle promettait une détection
+                LUFS/dynamique qui n'existait pas (mappait silencieusement sur
+                mix). Toujours visible (pas de gate sur `file`) pour rester
+                cohérent avec DAW/Genre qui s'affichent dès l'ouverture. */}
             <div className="add-mini-field">
               <div className="add-mini-field-label">
                 {s.addModal.uploadTypeLabel}
@@ -834,8 +834,7 @@ export default function AddModal({
                     // mémorise pas le choix : la protection doit jouer pour
                     // chaque upload (un même user peut alterner entre titres
                     // en mix et titres masterisés). Si l'utilisateur annule, on
-                    // bascule en 'auto' (et non 'no') pour ne pas imposer une
-                    // réponse négative qu'il n'a pas explicitement donnée.
+                    // bascule en 'no' (default de la modale).
                     const choice = await confirmDialog({
                       title: s.addModal.uploadTypeMasterConfirmTitle,
                       message: s.addModal.uploadTypeMasterConfirmMessage,
@@ -846,7 +845,7 @@ export default function AddModal({
                     if (choice === 'confirm') {
                       setMasteredAnswer('yes');
                     } else {
-                      setMasteredAnswer('auto');
+                      setMasteredAnswer('no');
                     }
                   }}
                 >{s.addModal.uploadTypeYes}</button>
@@ -855,18 +854,11 @@ export default function AddModal({
                   className={`add-mini-pill${masteredAnswer === 'no' ? ' on' : ''}`}
                   onClick={() => setMasteredAnswer('no')}
                 >{s.addModal.uploadTypeNo}</button>
-                <button
-                  type="button"
-                  className={`add-mini-pill${masteredAnswer === 'auto' ? ' on' : ''}`}
-                  onClick={() => setMasteredAnswer('auto')}
-                >{s.addModal.uploadTypeAuto}</button>
               </div>
               <div className="add-mini-field-hint">
                 {masteredAnswer === 'yes'
                   ? s.addModal.uploadTypeYesHint
-                  : masteredAnswer === 'no'
-                    ? s.addModal.uploadTypeNoHint
-                    : s.addModal.uploadTypeAutoHint}
+                  : s.addModal.uploadTypeNoHint}
               </div>
             </div>
 
