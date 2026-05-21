@@ -11,6 +11,40 @@ AubioMix devient un standard de marché (revendique ~3000 analyses). Le snapshot
 
 ---
 
+## Avancement au 2026-05-21
+
+### Livré
+- **Bloc A.2 — Caps mécaniques** : `versions-api/lib/scoring/mechanicalCaps.js` déployé le 20 mai avec les 5 caps de la roadmap (stéréo quasi-mono, LRA serré mix, clipping mix, voix masquée, sibilantes excessives). Cf. validation panel : maquette 72, Polaroids 79, Chic Le Freak 90.
+- **Bloc A.3 — Anchors mix/master + clause CONTEXTE DEMO/MAQUETTE** : recettes Master en checks pré-master côté mix, recettes streaming standards côté master ; clause maquette force bande 65-78 + globalScore ≤ 72.
+- **Bloc B.3 — Score Band social Option A** : 6 paliers (référence/hit/pro/démo avancée/en développement/début de parcours) dans `ReleaseReadinessBanner`, ladder horizontale sous le verdict avec marqueur "tu es ici", anim flèche fluide qui remonte du palier 6 au palier actif (easeOutQuad, wrap-around entre lignes sur mobile).
+- **Bloc C.2 — Question "masterisé ?"** : `AddModal` passe en Oui/Non/Auto-detect, mapping rétro-compat `yes`→master, `no`/`auto`→mix. Backend pondère LUFS à 0.5 en mix.
+- **Persistance backend `lib/persistAnalysis.js`** + 4 paliers de protection des crédits (bg poll relais, cron orphan refund, modal+RPC refund_my_failed_analysis, persist côté serveur). Élimine la cause racine du bug "crédit débité sans fiche persistée".
+
+### Incidents traités le 2026-05-21
+- **`ReferenceError` persistAnalysisResult** : commit 9427693 référençait `version/projectId/vocalType/copyrightAcknowledgedAt` dans le call site persist sans les avoir destructurés de `ctx`. Throw qui cassait TOUTES les analyses entre 10:05 UTC et le hotfix. Heureusement seul David testait — 0 utilisateur prod touché. Fix : ajout au destructuring de `runDiagnosticPhase` + propagation dans les 2 ctx en `/start`.
+- **Garde-fou LUFS aberrant** : `parseEbur128` sanitize désormais à [-40, +1] LUFS. Cas serrurerie.rayan (TikTok "Arts Márcio") : ffmpeg a sorti -70 LUFS sur un latin pop/rap → score 52 → plainte publique. Crédité +3 manual_admin + sa version/cache supprimés pour repartir propre.
+- **Patch IPv6 `rateLimit.js`** : `keyByUser` utilise `ipKeyGenerator(req)` (express-rate-limit v8). Nettoie 8 ValidationError au boot Railway et ferme la vulnérabilité IPv6.
+
+### Nouveau chantier prioritaire — Bloc D : enrichir le `genreBlock`
+**Découverte empirique 2026-05-21** : test direct sur *Die With a Smile* (Bruno Mars × Lady Gaga) avec et sans `declared_genre="pop ballad rétro"`, uploadType=master :
+- Sans genre déclaré : score **78**, 11 items
+- Avec genre déclaré : score **78**, 10/11 items identiques (un seul item de voix qui passe de 86 à 87)
+
+→ **Le levier "genre déclaré" tel qu'implémenté aujourd'hui est virtuellement inopérant**. Le prompt actuel dit à Claude "adapte tes recettes en conséquence" + 4 exemples vagues (dub-techno, folk, electro, jazz). Claude continue à appliquer sa grille mainstream et à pénaliser une basse chaude, un kick rond, une snare retenue — qui sont pourtant SIGNATURE de la pop ballad rétro / soul Motown / R&B vintage.
+
+**Comparaison probante avec Chic Le Freak** (funk disco, score 90) sur les mêmes catégories techniques :
+- Voix, master dynamique, image stéréo, True Peak, compat mono → quasi équivalents (différentiel 0-3 points)
+- **Basses & kick + drums** → Chic 94-95 ("fondation serrée et mélodique", "groove de référence") vs Die 66-68 ("basse envahissante", "kick manque définition"). Même geste de production, lecture inverse selon le genre détecté par Gemini.
+
+**Action D.1 — Enrichir `genreBlock` dans `versions-api/lib/claude.js` avec règles explicites de reconnaissance du craft par esthétique.** Remplacer le "adapte tes recettes" mou par des règles formelles type :
+> *Si genre ∈ {pop ballad rétro, soul Motown, R&B vintage, pop rétro 70s/80s, retro-soul} : la basse chaude posée dans le bas-médium est CRAFT, ne pas la décrire comme "envahissante" ou "boueuse". Caisse claire vintage en retrait avec corps tendu = signature, ne pas exiger un kick punchy moderne. Score baseline ≥ 85 sur drums/basse si le mix est aligné sur le genre déclaré.*
+
+Couvrir 10-12 esthétiques en première passe : pop rétro, soul Motown, R&B vintage, hip-hop boom-bap, indie rock garage, métal moderne, country pop, latin reggaeton, electronica ambient, K-pop. Effort ~1h de rédaction.
+
+**Action D.2 — Améliorer le classifieur Gemini en amont** (à mesurer après D.1). *Die With a Smile* est classé "indie folk pop" alors que c'est une pop ballad rétro orchestrale — la voix proche + la guitare acoustique trompent Gemini. Soit on contraint Gemini sur un vocabulaire fini, soit on fait une 2è passe "es-tu sûr ?" sur les titres mainstream. À budgéter après D.1.
+
+---
+
 ## Bloc A — Calibration du scoring (priorité 1)
 
 ### Pourquoi
@@ -109,22 +143,23 @@ Encart toujours visible sur la fiche pour inviter à uploader la prochaine versi
 
 ## Séquence concrète
 
-**Mardi 19 mai**
-- Matin : David constitue le panel de 15 titres et les passe dans Versions, note les scores obtenus → A.1
-- Après-midi : analyse des résultats, identifier les caps à introduire en pratique → A.2 commencée
+**Semaine du 19 mai — fait**
+- A.1 panel benchmark (David, le 20 mai)
+- A.2 caps mécaniques + A.3 anchors mix/master + clause maquette (déployés 20 mai)
+- B.3 Score Band social Option A + ladder + anim flèche (déployé 21 mai)
+- C.2 question "masterisé ?" 3 options (déployé 21 mai)
+- Hotfix ReferenceError persistAnalysis + garde-fou LUFS aberrant + patch IPv6 rateLimit (21 mai)
 
-**Mercredi-jeudi 19-20 mai**
-- Implémentation des caps mécaniques (A.2)
-- Revoir coefficients par dimension si nécessaire (A.3)
-- Tester le scoring recalibré sur le panel de 15 → boucle de validation
-
-**Suite de la semaine**
-- Score breakdown technique en parallèle (B.1)
-- Cards compression (B.2)
+**Prochain sprint — à attaquer**
+- **D.1 enrichir `genreBlock`** (priorité 1 — c'est le levier qui doit faire bouger les scores rétro/pop ballad sans dénaturer la grille moderne)
+- B.1 score breakdown technique (4-6 barres Tonal/Stéréo/Dynamique/Master/Bruit)
+- B.2 cards "réglages compression" structurées
 
 **Sprint suivant**
-- Score Band social (B.3) après brainstorm appellations
-- Track Type "Live" et reformulation question masterisé (C.1, C.2)
+- D.2 amélioration classifieur Gemini (à mesurer après D.1)
+- C.1 Track Type "Live"
+- C.3 upload pill sticky (à valider — ou la chat pill suffit ?)
+- Frequency Balance Map mode A (cf. `docs/frequency_balance_map_spec.md`)
 
 ---
 
