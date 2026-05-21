@@ -3616,6 +3616,19 @@ function VersionsAppAuthed() {
           })
           .catch(e => console.warn("saveAnalysis failed:", e));
       }
+    } else if (screen !== "fiche" && merged._jobId && !savedRef.current) {
+      // FIX 2026-05-21 — relais du polling pour ne plus perdre de crédits.
+      // Sans ça, LoadingScreen sort de sa boucle dès `listening_done` (fiche
+      // partielle). L'analyse se termine côté serveur (Claude finit d'écrire,
+      // crédit déjà débité au /start), mais saveAnalysis ne se déclenche
+      // jamais : la fiche n'est jamais insérée en DB. Symptôme : 4 cas en
+      // 6 jours d'utilisateurs ayant cramé leur unique crédit sans rien voir.
+      // On bascule l'utilisateur sur la fiche avec les données partielles +
+      // on relance un polling de fond qui complétera la fiche et appellera
+      // saveAnalysis quand le backend passe en `complete`.
+      console.log("➡️ VERSIONS setScreen('fiche') + bg poll (partial _stage =", result._stage, ")");
+      setScreen("fiche");
+      startBackgroundPolling(merged._jobId);
     }
   };
   const goHome = () => {
