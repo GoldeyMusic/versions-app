@@ -156,6 +156,10 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
                 _jobId: jobId,
                 _stage: "all_done",
                 intent_used: job.intent_used || null,
+                // Fix architectural 2026-05-21 — IDs persistés côté backend.
+                // Si présents, App.jsx skip saveAnalysis et utilise direct.
+                persistedTrackId: job.persistedTrackId || null,
+                persistedVersionId: job.persistedVersionId || null,
               });
               return;
             }
@@ -382,6 +386,11 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           if (config.declaredGenre) startBody.declaredGenre = config.declaredGenre;
           if (config.genreUnknown) startBody.genreUnknown = 'true';
           if (config.userBpm != null) startBody.userBpm = String(config.userBpm);
+          // Fix architectural 2026-05-21 — on plumb projectId et
+          // copyrightAcknowledgedAt jusqu'au backend pour qu'il puisse
+          // persister tracks/versions directement (cf. lib/persistAnalysis).
+          if (config.projectId) startBody.projectId = config.projectId;
+          if (config.copyrightAcknowledgedAt) startBody.copyrightAcknowledgedAt = config.copyrightAcknowledgedAt;
 
           startRes = await apiFetch('/api/analyze/start', {
             method: 'POST',
@@ -421,6 +430,12 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           if (config.declaredGenre) formData.append("declaredGenre", config.declaredGenre);
           if (config.genreUnknown) formData.append("genreUnknown", "true");
           if (config.userBpm != null) formData.append("userBpm", String(config.userBpm));
+          // Fix architectural 2026-05-21 — projectId + copyrightAcknowledgedAt
+          // pour que le backend puisse persister tracks/versions directement.
+          if (config.projectId) formData.append("projectId", config.projectId);
+          if (config.copyrightAcknowledgedAt) {
+            formData.append("copyrightAcknowledgedAt", config.copyrightAcknowledgedAt);
+          }
 
           startRes = await apiFetch('/api/analyze/start', {
             method: "POST",
@@ -538,6 +553,8 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
               storagePath: job.storagePath || null,
               _jobId: jobId,
               _stage: job.stage,
+              persistedTrackId: job.persistedTrackId || null,
+              persistedVersionId: job.persistedVersionId || null,
             });
             return; // stop le polling une fois la fiche partielle livrée
           }
@@ -559,6 +576,8 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
               storagePath: job.storagePath || null,
               _jobId: jobId,
               _stage: "all_done",
+              persistedTrackId: job.persistedTrackId || null,
+              persistedVersionId: job.persistedVersionId || null,
             });
             return;
           }

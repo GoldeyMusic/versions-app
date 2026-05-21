@@ -3504,29 +3504,35 @@ function VersionsAppAuthed() {
             savedRef.current = true;
             setAnalysisResult(prev => {
               const full = { ...prev, fiche: job.fiche || prev?.fiche, listening: job.listening || prev?.listening, evolution: job.evolution || prev?.evolution || null, storagePath: job.storagePath || prev?.storagePath || null, _stage: "all_done" };
-              saveAnalysis(config, full, job.storagePath || prev?.storagePath || null, lang)
+              // Fix architectural 2026-05-21 — préférence à la persistance
+              // backend si elle a réussi (job.persistedTrackId présent). Le
+              // crédit n'est jamais perdu : la ligne version est déjà en DB.
+              // Sinon, fallback historique sur saveAnalysis côté client.
+              const persistedIds = (job.persistedTrackId && job.persistedVersionId)
+                ? { trackId: job.persistedTrackId, versionId: job.persistedVersionId, fromBackend: true }
+                : null;
+              const savePromise = persistedIds
+                ? Promise.resolve(persistedIds)
+                : saveAnalysis(config, full, job.storagePath || prev?.storagePath || null, lang);
+              savePromise
                 .then((ids) => {
-                  // Si saveAnalysis n'a pas pu créer la ligne track (silent null),
-                  // on traite ça comme un échec : refund + alert. Voir
-                  // handleSaveFailure pour le détail.
                   if (!ids?.trackId) {
                     handleSaveFailure(jobId, new Error('saveAnalysis returned no trackId (bg poll)'));
                     return;
                   }
-                  // Persiste l'intention au scope choisi (track/version)
+                  // Persiste l'intention au scope choisi (track/version) —
+                  // même chemin que la branche fallback : l'intention n'est
+                  // pas dans les champs persistés backend, on la met à jour
+                  // côté front avec service helper RLS.
                   const intent = full?.intent_used || config?._pendingIntent || null;
                   const scope = full?._intent_scope || config?._pendingIntentScope || 'track';
                   if (intent && ids) {
                     if (scope === 'version' && ids.versionId) updateVersionIntent(ids.versionId, intent);
                     else if (ids.trackId) updateTrackIntent(ids.trackId, intent);
                   }
-                  // Injecte les IDs en config pour que l'URL devienne
-                  // `#/fiche/{trackId}/{versionId}` (deep-link refresh OK).
                   if (ids?.trackId) {
                     setConfig(c => ({ ...(c || {}), trackId: ids.trackId, versionId: ids.versionId || c?.versionId }));
                   }
-                  // Le backend a débité 1 crédit au start de l'analyse.
-                  // On rafraîchit le solde affiché (sidebar + topbar).
                   refreshCredits();
                   return refreshProjects();
                 })
@@ -3640,7 +3646,17 @@ function VersionsAppAuthed() {
       setScreen("fiche");
       if (!savedRef.current) {
         savedRef.current = true;
-        saveAnalysis(cfgWithHash, merged, merged.storagePath || null, lang)
+        // Fix architectural 2026-05-21 — préférence à la persistance backend.
+        // Si le pipeline a déjà inséré tracks/versions (job.persistedTrackId
+        // présent), on saute saveAnalysis et on utilise ces IDs direct.
+        // Sinon, fallback historique sur saveAnalysis côté client.
+        const persistedIds = (merged?.persistedTrackId && merged?.persistedVersionId)
+          ? { trackId: merged.persistedTrackId, versionId: merged.persistedVersionId, fromBackend: true }
+          : null;
+        const savePromise = persistedIds
+          ? Promise.resolve(persistedIds)
+          : saveAnalysis(cfgWithHash, merged, merged.storagePath || null, lang);
+        savePromise
           .then((ids) => {
             // Échec silencieux : saveAnalysis a returné null (RLS, session
             // expirée, projet introuvable, etc.). On traite comme un fail.
