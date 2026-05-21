@@ -96,11 +96,36 @@ Implémentée :
   - `auto` → `'mix'` (défaut safe — pondération master & loudness à 0.5, ne plombe pas le score d'un titre non finalisé. À enrichir si le backend gagne une heuristique LUFS réelle).
 - Confirm modale conservée sur "Oui" : protège des utilisateurs qui cochent par réflexe alors qu'ils ont un limiteur sur le master bus pour l'écoute. Si annulation → bascule en `auto` (et non `no`, pour ne pas imposer une réponse négative non explicite).
 - Persisté dans `versions.upload_type` (Supabase). Migration : `supabase/migrations/021_upload_type.sql` (la spec parlait de 010 mais 010 était pris par `010_dsp_metrics.sql`, on a pris 021). **Schéma DB inchangé** — toujours 'mix'/'master'.
-- Backend `decode-api/lib/claude.js` :
+- Backend `versions-api/lib/claude.js` :
   - `WEIGHTS.lufs` passe à `0.5` en mode mix (vs `2` en master) → la section Master & Loudness ne plombe plus le globalScore.
   - Bloc `uploadTypeBlock` injecté dans le system prompt → recettes Master en checks pré-master (head-room, mono compat, clipping) et scores hauts par défaut en mode mix ; recettes streaming standards en mode master.
 - Front fiche : `ReleaseReadinessBanner` accepte `uploadType` → libellés "Prêt pour le mastering / Presque prêt à masteriser / Pas encore prêt" en mode mix, libellés historiques en master. Strings dans `strings.js` (FR + EN, clés `releaseMasteringReady*`).
 - RPC publique `get_public_fiche` non touchée pour ne pas casser la signature i18n vivante en prod : les liens publics affichent le verdict "mix" par défaut. À étendre dans une migration séparée si besoin.
+
+## Protection des crédits — 4 paliers (livré 2026-05-21)
+
+Architecture historique fragile : le crédit était débité côté serveur dès `/api/analyze/start`, mais la fiche (`tracks`/`versions`) était persistée **uniquement côté client** par `src/lib/storage.js::saveAnalysis()`. Si l'utilisateur fermait sa tab ou perdait le réseau pendant l'analyse, le crédit était cramé sans qu'aucune ligne ne soit créée. 4 cas observés en 6 jours (verdoljose2, addlenywooo, imperatorselect, fifichayeb — tous des nouveaux signups bloqués à leur premier essai).
+
+Quatre paliers de protection ont été empilés, du tactique au structurel :
+
+1. **Relais polling fond** (`App.jsx`) — `handleLoaded` appelle désormais `startBackgroundPolling(merged._jobId)` dès que `_stage !== "all_done"`. Avant ce fix, `LoadingScreen` sortait de sa boucle sur `listening_done` (fiche partielle) et personne ne reprenait le polling → la fiche n'était jamais sauvegardée même si le backend la générait. La fonction `startBackgroundPolling` existait depuis longtemps mais n'avait jamais été branchée.
+
+2. **Cron Supabase `refund_orphan_debits()` toutes les 30 min** (migration `032_refund_orphan_debits.sql`) — fonction SQL idempotente + extension `pg_cron`. Détecte les `credit_events.debit_analysis` sans `version` correspondante dans la fenêtre [debit, debit + 30 min] ET pour des utilisateurs qui n'ont **jamais** persisté aucune fiche (heuristique stricte qui évite les faux positifs sur power users qui testent + cleanupent). Reason='refund_failed'. Fenêtre 7 jours.
+
+3. **Modal d'alerte + RPC immédiate sur échec saveAnalysis** — nouvelle RPC `refund_my_failed_analysis(p_job_id text)` user-callable (auth.uid()), anti-abus (vérifie l'absence de version persistée + l'idempotence). Helper front `handleSaveFailure(jobId, origin)` dans `App.jsx` qui détecte les retours null silencieux de saveAnalysis ET les .catch, appelle la RPC, affiche un modal (strings `errors.saveFailed*` FR + EN), reset vers welcome. Branché sur les deux call sites de saveAnalysis (handleLoaded all_done + startBackgroundPolling).
+
+4. **Persistance côté backend** (fix architectural) — nouveau helper `versions-api/lib/persistAnalysis.js` (service_role) qui insère `tracks`/`versions` directement à la fin du pipeline, aux deux completion points (cache hit + chemin normal de `_analyze.js`). Le job state expose `persistedTrackId` / `persistedVersionId` / `persistError`. `LoadingScreen` propage ces IDs jusqu'à `onDone`. `App.jsx` (les deux call sites) préfère ces IDs au lieu d'appeler saveAnalysis si présents. **Si la persist échoue (Supabase outage, RLS), le front retombe sur le fallback saveAnalysis** — aucune régression possible.
+
+Le client passe désormais `projectId` et `copyrightAcknowledgedAt` dans `startBody` pour que le backend respecte le projet choisi dans `AddModal`.
+
+Combiné, le crédit n'est plus perdu :
+- Tab fermée pendant l'analyse → palier 4 (fiche déjà en DB)
+- LoadingScreen sort sur listening_done → palier 1 (relais polling)
+- saveAnalysis crashe pendant que l'user est là → palier 3 (modal + RPC)
+- Backend pipeline crash → existant (`refundCreditIfDebited` dans `_analyze.js`)
+- Backend persist échoue + saveAnalysis échoue → palier 3 fallback + palier 2 cron (30 min)
+
+Les paliers 1-3 sont devenus des filets de sécurité redondants une fois le palier 4 actif. On les garde en defense-in-depth.
 
 ## Score Band social (B.3, refonte 2026-05-20, livré)
 
@@ -124,6 +149,7 @@ Implémentée :
 
 Snapshot des chantiers fermés sur la sprint en cours — pour comprendre vite ce qui a bougé sans relire les commits.
 
+- **Protection des crédits en 4 paliers (2026-05-21)** — cf. section dédiée. Fix root du bug "crédit débité sans fiche persistée" via persistance backend dans `versions-api/lib/persistAnalysis.js`, plus 3 filets de sécurité tactiques. Touche `versions-api` (lib/persistAnalysis, api/_analyze) et `versions-app` (App.jsx, LoadingScreen, strings, supabase/migrations/032_refund_orphan_debits.sql). 4 utilisateurs touchés au préalable manuellement re-crédités à 3 chacun via `manual_admin`.
 - **Pages légales `/privacy` et `/terms`** — éditeur Multicolorz (SIRET 819 747 296), i18n FR/EN via `STRINGS.legal.{privacy,terms}`, layout partagé dans `components/LegalLayout.jsx` (helper `renderLegalInline` pour `**gras**` + `{email}`). Sous-traitants simplifiés en une phrase pointant vers `contact@versions.studio` pour la liste détaillée. Liens "Confidentialité · CGU" en bas de la landing.
 - **Suppression de compte automatique** — bouton danger zone dans la modale Réglages → `confirmDialog({ danger: true })` → `supabase.rpc('delete_my_account')` (RPC SECURITY DEFINER côté DB qui purge en cascade : `mix_note_completions`, `comparisons`, `versions`, `tracks`, `projects`, `credit_events`, `user_credits`, `analysis_cost_logs`, `chat_cost_logs`, `feedback`, `user_profiles`, `revenue_logs`, puis `auth.users`) → `signOut()` → redirect `#/`. Modale d'erreur (mode alert) si la RPC échoue. Storage (audio, avatars, covers) NON purgé par la RPC — orphelin côté DB, à nettoyer via job batch ultérieur.
 - **Résiliation abonnement** — bouton dans Réglages visible uniquement si `monthly_grant > 0` → modale d'explication → mailto pré-rempli vers `contact@versions.studio` (sujet + corps avec email du compte). À remplacer par `cancel_subscription` quand Stripe sera branché côté backend.
