@@ -3533,6 +3533,11 @@ function VersionsAppAuthed() {
                   if (ids?.trackId) {
                     setConfig(c => ({ ...(c || {}), trackId: ids.trackId, versionId: ids.versionId || c?.versionId }));
                   }
+                  // Bascule maintenant sur l'écran fiche : la fiche est
+                  // pleinement sauvegardée (savedRef=true) donc le guard
+                  // inUploadFlow=false → FicheScreen rend direct, plus
+                  // jamais de re-mount LoadingScreen (bug verdoljose2 fix).
+                  setScreen("fiche");
                   refreshCredits();
                   return refreshProjects();
                 })
@@ -3684,17 +3689,23 @@ function VersionsAppAuthed() {
           .catch(e => { handleSaveFailure(merged?._jobId, e); });
       }
     } else if (screen !== "fiche" && merged._jobId && !savedRef.current) {
-      // FIX 2026-05-21 — relais du polling pour ne plus perdre de crédits.
-      // Sans ça, LoadingScreen sort de sa boucle dès `listening_done` (fiche
-      // partielle). L'analyse se termine côté serveur (Claude finit d'écrire,
-      // crédit déjà débité au /start), mais saveAnalysis ne se déclenche
-      // jamais : la fiche n'est jamais insérée en DB. Symptôme : 4 cas en
-      // 6 jours d'utilisateurs ayant cramé leur unique crédit sans rien voir.
-      // On bascule l'utilisateur sur la fiche avec les données partielles +
-      // on relance un polling de fond qui complétera la fiche et appellera
-      // saveAnalysis quand le backend passe en `complete`.
-      console.log("➡️ VERSIONS setScreen('fiche') + bg poll (partial _stage =", result._stage, ")");
-      setScreen("fiche");
+      // FIX 2026-05-21 (révisé) — relais du polling SANS basculer l'écran.
+      // ⚠️ Historique du bug : la première version de ce fix faisait
+      // `setScreen('fiche')` ici directement. Mais comme la fiche n'est
+      // pas encore prête (listening_done), le guard du case fiche
+      // (`inUploadFlow && !ficheReady`) re-mountait LoadingScreen, qui
+      // relançait alors hashAudioFile + findDuplicateAudio + POST /start.
+      // Si la persistance backend (palier 4) avait déjà créé la version,
+      // findDuplicateAudio l'attrapait → modale "Analyse déjà existante"
+      // → navigation vers /fiche/slug/v-N → page blanche pour certains
+      // utilisateurs. Verdoljose2 a hit ce cas le 2026-05-21 18:36.
+      // Solution : on garde l'utilisateur sur LoadingScreen (qui reste
+      // visuellement actif via son timer displayedPct), on relance juste
+      // le polling de fond. Le setScreen('fiche') est déplacé dans la
+      // callback de fin de bg poll (cf. startBackgroundPolling), pour
+      // qu'il fire UNIQUEMENT quand la fiche est entièrement prête —
+      // donc savedRef=true et plus jamais de re-mount possible.
+      console.log("➡️ VERSIONS bg poll relais (stay on loading, partial _stage =", result._stage, ")");
       startBackgroundPolling(merged._jobId);
     }
   };
