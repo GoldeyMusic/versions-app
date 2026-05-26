@@ -5,6 +5,7 @@ import { hashAudioFile, findDuplicateAudio, loadTracks, getInheritedIntentByTitl
 import { supabase } from "../lib/supabase";
 import useLang from '../hooks/useLang';
 import { translateBackendError } from '../lib/backendErrors';
+import { savePending, updatePending, clearPending } from '../lib/pendingJob';
 
 // ── Feature flag intention artistique ──
 // Quand VITE_INTENT_ENABLED !== 'true', on force skipIntent=true côté backend
@@ -41,6 +42,28 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   // flag pour que la boucle de polling sorte proprement au prochain tick (au
   // lieu d'appeler onDone sur un composant démonté).
   const canceledRef = useRef(false);
+  // pokeSleepRef : holder vers le `resolve` du sleep en cours dans la boucle
+  // de polling. Quand l'onglet revient au premier plan (visibilitychange →
+  // visible), on le déclenche pour court-circuiter le setTimeout(3000) et
+  // poller immédiatement. Sans ça, après un tab switch long, le navigateur
+  // throttle setTimeout à ~1 Hz (Chrome) ou suspend complètement (iOS Safari),
+  // et la boucle finit par hit le cap d'attempts → errorTimeout fantôme alors
+  // que le backend a déjà terminé l'analyse.
+  const pokeSleepRef = useRef(null);
+  const pokeableSleep = (ms) => new Promise((resolve) => {
+    const t = setTimeout(() => { pokeSleepRef.current = null; resolve(); }, ms);
+    pokeSleepRef.current = () => { clearTimeout(t); pokeSleepRef.current = null; resolve(); };
+  });
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'visible' && pokeSleepRef.current) {
+        pokeSleepRef.current();
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
 
   const hasRef = !!config?.refFile;
 
@@ -84,6 +107,18 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
         if (config?.resumeJobId) {
           jobIdRef.current = config.resumeJobId;
           console.log("↩️ VERSIONS Resume polling existing job:", config.resumeJobId);
+          // On garde l'entrée pending à jour (signal au recovery flow
+          // d'App.jsx qu'un job est encore en vol). Idempotent : si déjà
+          // présente, savePending écrase juste les champs.
+          savePending({
+            jobId: config.resumeJobId,
+            title: config.title || null,
+            version: config.version || null,
+            projectId: config.projectId || null,
+            audioHash: config.audioHash || null,
+            vocalType: config.vocalType || null,
+            uploadType: config.uploadType || null,
+          });
           setPhase(2);
           // Best-effort : récupère le nom de la dernière version du même
           // titre pour libeller correctement le bandeau "Depuis V_n" si
@@ -98,10 +133,23 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           const jobId = config.resumeJobId;
           let attempts = 0;
           let noFicheRetries = 0;
-          while (attempts < 120) {
-            await new Promise((r) => setTimeout(r, 3000));
+          while (attempts < 240) {
+            await pokeableSleep(3000);
             if (canceledRef.current) return;
             const pollRes = await apiFetch(`/api/analyze/status/${jobId}`);
+            if (pollRes.status === 404) {
+              // Le job a expiré côté serveur (le backend nettoie 60s après
+              // complete/error). Soit l'analyse a fini pendant qu'on était
+              // hors écran (tab en arrière-plan throttle), soit elle a
+              // crashé — dans les deux cas, le palier 4 (persist backend)
+              // ou le cron de refund prendra le relais. On clear le pending
+              // et on renvoie l'utilisateur au dashboard, qui détectera
+              // peut-être un track récent via le recovery flow d'App.jsx.
+              console.warn("⚠️ VERSIONS Resume 404 (job expired) — back to dashboard");
+              clearPending();
+              onBackToInput?.();
+              return;
+            }
             const job = await pollRes.json();
             console.log("🔄 Poll (resume)", attempts, "— status:", job.status, "stage:", job.stage, "pct:", job.pct, "hasFiche:", !!job.fiche, "keys:", Object.keys(job).join(","));
             // Propage le vrai pct backend à l'anneau (cf. backendPct au top
@@ -111,7 +159,17 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
               setBackendPct((p) => Math.max(p, job.pct));
             }
             if (canceledRef.current) return;
+            // Trace les IDs persistés backend (palier 4) dès qu'ils arrivent,
+            // pour que le recovery flow d'App.jsx puisse y router direct
+            // même si le polling meurt avant le terminal.
+            if (job.persistedTrackId || job.persistedVersionId) {
+              updatePending({
+                persistedTrackId: job.persistedTrackId || null,
+                persistedVersionId: job.persistedVersionId || null,
+              });
+            }
             if (job.status === "error") {
+              clearPending();
               // job.error est un code stable (cf. backend lib/jobErrors.js).
               // translateBackendError mappe → string i18n FR/EN.
               throw new Error(translateBackendError(job.error, s));
@@ -131,10 +189,14 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
                 continue;
               }
               if (!job.fiche) {
+                clearPending();
                 throw new Error(s.loading.errorFailed + " (fiche manquante au terminal)");
               }
               sentFadr.current = true;
               setPhase(3);
+              // Terminal heureux : on libère le slot pending. Le recovery
+              // flow d'App.jsx pourra ignorer ce job au prochain mount.
+              clearPending();
               onDone({
                 fiche: job.fiche,
                 listening: job.listening || null,
@@ -167,6 +229,11 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
             else if (job.pct > 10) setPhase(1);
             attempts++;
           }
+          // Timeout : 240 attempts × 3s = 12 min. Au-delà, on présume que
+          // le job est mort côté backend (le cron de refund prendra le
+          // relais sous 30 min). On clear le pending pour ne pas piéger
+          // l'utilisateur dans un loop de recovery à chaque mount.
+          clearPending();
           throw new Error(s.loading.errorTimeout);
         }
 
@@ -475,14 +542,39 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
         const { jobId } = await startRes.json();
         jobIdRef.current = jobId;
         console.log("✅ VERSIONS Job started:", jobId);
+        // Persiste le contexte du job en localStorage immédiatement après
+        // le POST /start (donc après débit du crédit côté serveur). Si
+        // l'utilisateur refresh / navigue / ferme sa tab, le recovery flow
+        // d'App.jsx pourra reprendre le polling ou ramener vers la fiche
+        // une fois persistée par le backend (palier 4).
+        savePending({
+          jobId,
+          title: config.title || null,
+          version: config.version || null,
+          projectId: config.projectId || null,
+          audioHash: config.audioHash || null,
+          vocalType: config.vocalType || null,
+          uploadType: config.uploadType || null,
+        });
 
         // Poll for results — progressive
         setPhase(2);
         let attempts = 0;
-        while (attempts < 120) {
-          await new Promise((r) => setTimeout(r, 3000));
+        while (attempts < 240) {
+          await pokeableSleep(3000);
           if (canceledRef.current) return; // bouton "Annuler l'analyse"
           const pollRes = await apiFetch(`/api/analyze/status/${jobId}`);
+          if (pollRes.status === 404) {
+            // Job expiré en mémoire backend (60s post-terminal). Cas typique :
+            // l'utilisateur a tab-switché longtemps, le job a fini dans son
+            // dos, et au retour la mémoire serveur ne le connaît plus. La
+            // fiche EST probablement persistée en DB (palier 4) — on délègue
+            // au recovery flow d'App.jsx en sortant vers le dashboard.
+            console.warn("⚠️ VERSIONS Poll 404 (job expired) — back to dashboard");
+            clearPending();
+            onBackToInput?.();
+            return;
+          }
           const job = await pollRes.json();
           console.log("🔄 Poll", attempts, "— status:", job.status, "stage:", job.stage, "pct:", job.pct);
           // Propage le vrai pct backend à l'anneau (cf. backendPct au top).
@@ -491,8 +583,17 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           }
 
           if (canceledRef.current) return;
+          // Idem path resume — on plumbe les IDs persist backend dans
+          // l'entrée pending dès qu'on les voit.
+          if (job.persistedTrackId || job.persistedVersionId) {
+            updatePending({
+              persistedTrackId: job.persistedTrackId || null,
+              persistedVersionId: job.persistedVersionId || null,
+            });
+          }
 
           if (job.status === "error") {
+            clearPending();
             // Idem ligne 115 (path resume) — code stable backend → string i18n.
             throw new Error(translateBackendError(job.error, s));
           }
@@ -504,6 +605,9 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           if (job.status === "awaiting_intent" && !sentFadr.current) {
             console.log("🎯 VERSIONS awaiting_intent → IntentionScreen", { jobId });
             sentFadr.current = true;
+            // On garde l'entrée pending pour qu'un refresh pendant l'écran
+            // intention puisse reprendre. Le polling reprendra en mode
+            // resume via App.jsx → setConfig({ resumeJobId }).
             // Resolve l'intention héritée du titre (si V2+)
             let inherited = null;
             try {
@@ -537,6 +641,8 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
               && !sentFadr.current) {
             sentFadr.current = true;
             setPhase(3);
+            // Terminal heureux : on libère le slot pending.
+            clearPending();
             onDone({
               fiche: job.fiche || null,
               listening: job.listening || null,
@@ -560,6 +666,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           }
 
           if (job.status === "complete") {
+            clearPending();
             onDone({
               fiche: job.fiche,
               listening: job.listening || null,
@@ -589,6 +696,17 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           attempts++;
         }
 
+        // Timeout : 240 attempts × 3s = 12 min. Au-delà on présume
+        // l'analyse perdue. On déclenche un refund immédiat pour ne pas
+        // attendre le cron Supabase (30 min). La RPC est idempotente —
+        // si le backend a en fait persisté la fiche entre-temps, elle
+        // renvoie ok=false et on garde le crédit débité (pas double).
+        clearPending();
+        try {
+          await supabase.rpc('refund_my_failed_analysis', { p_job_id: jobId });
+        } catch (e) {
+          console.warn('[timeout] refund RPC threw:', e?.message);
+        }
         throw new Error(s.loading.errorTimeout);
       } catch (err) {
         console.error("❌ VERSIONS LoadingScreen error:", err.message);
@@ -597,6 +715,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
     };
 
     run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config]);
 
   // ⚠️ TOUS les hooks doivent être déclarés AVANT l'early-return du bloc

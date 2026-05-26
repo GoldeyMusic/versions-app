@@ -22,7 +22,8 @@ import VersionsScreen from "./screens/VersionsScreen";
 import OnboardingHints from "./components/OnboardingHints";
 import { HOME_STEPS, ONBOARDING_STORAGE_KEYS } from "./constants/onboardingSteps";
 
-import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage, setTrackCoverImage, clearTrackCoverImage, updateTrackIntent, updateVersionIntent } from "./lib/storage";
+import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage, setTrackCoverImage, clearTrackCoverImage, updateTrackIntent, updateVersionIntent, findDuplicateAudio } from "./lib/storage";
+import { getPending, clearPending } from "./lib/pendingJob";
 import { assignProjectColors, PROJECT_COLOR_COUNT } from "./lib/projectColors";
 import { resizeImageFile } from "./lib/image";
 import { supabase } from "./lib/supabase";
@@ -3234,6 +3235,265 @@ function VersionsAppAuthed() {
     })();
     return () => { alive = false; };
   }, [pendingFiche, projects, projectsLoaded, user]);
+
+  // ── Helper partagé recovery + watcher : navigation directe vers une
+  //    fiche persistée en DB (palier 4) sans passer par le résolveur
+  //    pendingFiche. On bypass volontairement parce que le résolveur
+  //    s'appuie sur `projects` en state — qui peut ne pas avoir le track
+  //    fraîchement persisté → fallback welcome non désiré. Ici on fetch
+  //    loadProjects() en direct et on construit config + analysisResult
+  //    soi-même.
+  const navigateToPersistedFiche = useCallback(async (trackId, versionId) => {
+    if (!trackId) return false;
+    let freshProjects = [];
+    try { freshProjects = await loadProjects(); } catch { /* noop */ }
+    const allTracks = freshProjects.flatMap(p => p.tracks || []);
+    const track = allTracks.find(t => t.id === trackId);
+    if (!track) {
+      console.warn('[recovery] track not found in DB after persist:', trackId);
+      return false;
+    }
+    let v = versionId ? track.versions?.find(ver => ver.id === versionId) : null;
+    if (!v) v = track.versions?.[track.versions.length - 1];
+    if (!v) return false;
+    const saved = await getAnalysis(track.id, v.id);
+    const ar = saved || v.analysisResult || null;
+    if (v.storagePath) loadPlayer(track.title, v.name, v.storagePath);
+    const dawForVersion = ar?.meta?.daw || userProfile?.default_daw || 'Logic Pro';
+    setConfig({
+      title: track.title,
+      version: v.name,
+      trackId: track.id,
+      versionId: v.id,
+      daw: dawForVersion,
+    });
+    setAnalysisResult(ar);
+    savedRef.current = true;
+    isHashSyncRef.current = true;
+    setScreen('fiche');
+    const targetPath = buildPath('fiche', {
+      title: track.title,
+      version: v.name,
+      trackId: track.id,
+      versionId: v.id,
+    });
+    if (window.location.pathname !== targetPath) {
+      window.history.replaceState({ screen: 'fiche' }, '', targetPath);
+    }
+    refreshProjects();
+    return true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfile, refreshProjects]);
+
+  // ── Recovery flow : analyse en cours retrouvée au mount ───────────────
+  // Si l'utilisateur a refresh / fermé l'onglet / navigué pendant une
+  // analyse, le LoadingScreen est démonté mais le backend continue. On
+  // a sauvegardé { jobId, audioHash, title, ... } en localStorage juste
+  // après le POST /start (cf. pendingJob.js). À chaque mount, dès que
+  // user+projects sont prêts, on regarde ce qu'il faut en faire :
+  //   1) Job toujours en cours côté backend → resume polling
+  //      (setConfig({ resumeJobId }) + setScreen('loading'))
+  //   2) Job terminé avec persistedTrackId → deep-link vers la fiche
+  //   3) Job expiré côté backend (404, mémoire wipe 60s post-terminal) →
+  //      lookup DB par audioHash (la fiche est persistée par le palier 4)
+  //   4) Rien trouvé → clear le pending (le cron Supabase refundra)
+  //
+  // Guard `recoveryRanRef` : on ne tente la récupération qu'une fois par
+  // session — sinon, naviguer pendant qu'une analyse tourne re-déclencherait
+  // le flow et casserait l'expérience.
+  const recoveryRanRef = useRef(false);
+  useEffect(() => {
+    if (!user || !projectsLoaded) return;
+    if (recoveryRanRef.current) return;
+    // On NE PAS run le recovery si on est déjà sur /analyse ou /fiche : ces
+    // écrans pilotent eux-mêmes leur lifecycle (handleAnalyze ou pendingFiche).
+    if (screen === 'loading' || screen === 'fiche') {
+      recoveryRanRef.current = true;
+      return;
+    }
+    // Si un deep-link fiche est en cours de résolution (URL /fiche/...),
+    // on ne contourne pas — laisse le résolveur pendingFiche faire son
+    // travail. Le watcher prendra le relais après si pending existe.
+    if (pendingFiche) {
+      recoveryRanRef.current = true;
+      return;
+    }
+    const pending = getPending();
+    if (!pending) {
+      recoveryRanRef.current = true;
+      return;
+    }
+    recoveryRanRef.current = true;
+    let alive = true;
+    (async () => {
+      const { jobId, audioHash, title, version, projectId, vocalType, uploadType } = pending;
+      // 1) Demande le status au backend. 3 issues possibles :
+      //    - 200 + job vivant → on resume le polling sans relancer d'analyse
+      //    - 200 + persistedTrackId → on déeplink direct vers la fiche
+      //    - 404 (job expiré en mémoire) → fallback DB lookup par audioHash
+      let job = null;
+      let httpStatus = 0;
+      try {
+        const res = await apiFetch(`/api/analyze/status/${jobId}`);
+        httpStatus = res.status;
+        if (res.ok) job = await res.json();
+      } catch (e) {
+        console.warn('[recovery] status fetch failed:', e?.message);
+      }
+      if (!alive) return;
+
+      const tryNavigate = async (trackId, versionId) => {
+        clearPending();
+        return await navigateToPersistedFiche(trackId, versionId);
+      };
+
+      // Helper : lookup DB par audioHash (palier 4 a déjà persisté la
+      // version). On utilise findDuplicateAudio avec les params sauvegardés
+      // pour resserrer le match (intent, genre, bpm, uploadType).
+      const dbLookupAndNavigate = async () => {
+        if (!audioHash) return false;
+        try {
+          const dup = await findDuplicateAudio(title || '', audioHash, {
+            uploadType: uploadType || 'mix',
+          });
+          if (!dup?.trackId) return false;
+          return await tryNavigate(dup.trackId, dup.versionId || null);
+        } catch (e) {
+          console.warn('[recovery] DB lookup failed:', e?.message);
+          return false;
+        }
+      };
+
+      // Cas 404 : le job a été nettoyé. Soit terminé (palier 4 a persisté),
+      // soit crashé (palier 2 refund). Tentative DB ; sinon, on clear et on
+      // laisse le cron faire son travail.
+      if (httpStatus === 404 || !job) {
+        const ok = await dbLookupAndNavigate();
+        if (!ok) clearPending();
+        return;
+      }
+
+      // Cas erreur backend : on clear, le refund a déjà été fait côté serveur.
+      if (job.status === 'error') {
+        clearPending();
+        return;
+      }
+
+      // Cas terminal heureux : on essaie d'abord les IDs persist backend,
+      // sinon fallback DB lookup.
+      const isComplete = job.status === 'complete' || job.stage === 'all_done';
+      if (isComplete) {
+        if (job.persistedTrackId) {
+          await tryNavigate(job.persistedTrackId, job.persistedVersionId || null);
+          return;
+        }
+        if (pending.persistedTrackId) {
+          await tryNavigate(pending.persistedTrackId, pending.persistedVersionId || null);
+          return;
+        }
+        const ok = await dbLookupAndNavigate();
+        if (!ok) clearPending();
+        return;
+      }
+
+      // Cas job encore vivant (running, awaiting_intent…) : on resume le
+      // polling SANS reposter /start. Le LoadingScreen sait gérer ce mode
+      // via config.resumeJobId. On recharge aussi un minimum de config pour
+      // que l'écran affiche le titre + version courants.
+      console.log('[recovery] resuming job', jobId, 'status=', job.status, 'stage=', job.stage);
+      setConfig({
+        resumeJobId: jobId,
+        title: title || '',
+        version: version || '',
+        projectId: projectId || null,
+        audioHash: audioHash || null,
+        vocalType: vocalType || 'vocal',
+        uploadType: uploadType || 'mix',
+      });
+      setAnalysisResult(null);
+      savedRef.current = false;
+      setScreen('loading');
+    })();
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, projectsLoaded]);
+
+  // ── Pending watcher : analyse en cours alors que l'utilisateur a
+  //    navigué hors de l'écran de chargement (cancel, back, click logo).
+  // Le LoadingScreen unmount tue son polling. Sans ce watcher, l'utilisateur
+  // ne verrait jamais le résultat sans refresh manuel. On polle toutes les
+  // 5s tant qu'on a une entrée pending ET qu'on n'est pas sur loading/fiche.
+  // Dès qu'on détecte la complétion, on deeplink vers la fiche.
+  const pendingWatchRef = useRef(null);
+  useEffect(() => {
+    // On laisse le LoadingScreen / FicheScreen piloter leur cycle ;
+    // le watcher ne tourne que sur les autres écrans.
+    if (!user) return;
+    if (screen === 'loading' || screen === 'fiche') return;
+    if (!getPending()) return;
+
+    let stopped = false;
+    const tick = async () => {
+      if (stopped) return;
+      const pending = getPending();
+      if (!pending) return;
+      const { jobId, audioHash, title, uploadType } = pending;
+      const lookupAndNav = async () => {
+        if (!audioHash) return false;
+        try {
+          const dup = await findDuplicateAudio(title || '', audioHash, {
+            uploadType: uploadType || 'mix',
+          });
+          if (!dup?.trackId) return false;
+          clearPending();
+          return await navigateToPersistedFiche(dup.trackId, dup.versionId || null);
+        } catch { return false; }
+      };
+      try {
+        const res = await apiFetch(`/api/analyze/status/${jobId}`);
+        if (res.status === 404) {
+          const ok = await lookupAndNav();
+          if (!ok) clearPending();
+          return;
+        }
+        if (!res.ok) return; // erreur transitoire — on réessaie au tick suivant
+        const job = await res.json();
+        if (job.status === 'error') {
+          clearPending();
+          return;
+        }
+        const isComplete = job.status === 'complete' || job.stage === 'all_done';
+        if (isComplete) {
+          const trackId = job.persistedTrackId || pending.persistedTrackId || null;
+          const versionId = job.persistedVersionId || pending.persistedVersionId || null;
+          if (trackId) {
+            clearPending();
+            await navigateToPersistedFiche(trackId, versionId);
+            return;
+          }
+          await lookupAndNav();
+        }
+      } catch (e) { console.warn('[pendingWatch] poll error:', e?.message); }
+    };
+    // Premier tick immédiat (le mount peut suivre une navigation à l'instant
+    // où le job vient de finir), puis interval.
+    tick();
+    pendingWatchRef.current = setInterval(tick, 5000);
+    // Visibility : si l'onglet revient, on force un tick immédiat.
+    const onVis = () => {
+      if (document.visibilityState === 'visible') tick();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      stopped = true;
+      document.removeEventListener('visibilitychange', onVis);
+      if (pendingWatchRef.current) {
+        clearInterval(pendingWatchRef.current);
+        pendingWatchRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, screen]);
 
   // ── Onboarding gate : true si user connecté mais sans projet ──
   // (needsOnboarding supprimé : plus de modale bloquante au premier login.
