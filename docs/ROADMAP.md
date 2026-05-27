@@ -125,6 +125,7 @@ Pour le détail : `AUBIOMIX_PLAN.md` (clos en intégralité), `ADMIN_DASHBOARD.m
 
 - [ ] **RPC `get_public_fiche` exposer `upload_type`** — les liens publics servent le verdict "mix" par défaut tant que ce n'est pas fait. Migration légère côté Supabase à prévoir sans casser la signature i18n vivante en prod.
 - [ ] **Job state hors RAM** — déplacer le `jobs Map` en RAM dans `_analyze.js` vers une table Supabase. Permettra plusieurs invocations concurrentes sans perdre les jobs en cours. Pré-requis si on retente Vercel-only un jour.
+- [ ] **Enrichir le pool de conseils newsletter** (`versions-api/lib/newsletter.js`) — actuellement `CONSEILS_DU_MOIS` = 12 entrées (un par mois, rotatif annuel) et `IDEES_PROCHAINE_SESSION` = 4 entrées (template inactif). Tant qu'on est à ~1 envoi/an par slot, les users qui restent reçoivent toujours le même conseil au même mois. Passer à **36+ tips** côté actif (mix, monitoring, workflow DAW, mastering prep) et étoffer aussi les idées du template inactif. Stratégie de rotation à revoir : hash `(userId, month)` pour ne pas envoyer 2 fois le même conseil à un même user d'une année sur l'autre. **À terme** : conseils dynamiques basés sur les vraies analyses de l'utilisateur (recurring weaknesses dans les fiches du mois → conseil ciblé).
 
 ---
 
@@ -153,3 +154,4 @@ Pour le détail : `AUBIOMIX_PLAN.md` (clos en intégralité), `ADMIN_DASHBOARD.m
 - **2026-04-29** — Bloc 1 entièrement clos. Tentative migration Vercel-only avortée (pipeline 3-5 min incompatible serverless 60 s). Decode-API revert sur Railway, code upload direct dort.
 - **2026-04-30** — Toggle Mix/Master livré + charte mastering chat avec garde-fou LUFS. Refonte UI desktop fiche (verdict 2/3, side panel chips, eyebrows pop, glyphes premium, scroll anim, fix bande sombre).
 - **2026-05-01** — Score Card refonte trophée + constellation. Mise à jour de cette roadmap pour reprendre la séquence post-Bloc-1.
+- **2026-05-27** — Newsletter mensuelle utilisateurs livrée côté backend (`versions-api/lib/newsletter.js` + `api/_newsletter.js`). Pool initial volontairement minimal (12 conseils + 4 idées) — à enrichir à 36+ tips dès que le rythme d'envoi le justifie (cf. Bloc 4).
