@@ -1092,14 +1092,19 @@ const STRINGS = {
       replayOnboardingHint: "Reprendre le guide étape par étape",
       replayOnboardingBtn: "Revoir",
       // Résiliation d'abonnement (visible uniquement si abonné).
-      // Stripe pas encore branché → ouvre une modale qui invite à
-      // contacter le support par e-mail (mailto pré-rempli).
+      // Branchement Stripe direct (livré 2026-05-31) : confirm modal →
+      // POST /api/billing/cancel-subscription → modale de succès.
+      // Fallback mailto si l'API échoue ou si stripe_subscription_id
+      // est manquant côté DB (bug webhook ancien).
       cancelSubLabel: "Abonnement",
       cancelSubHint: "Résilier ton abonnement actuel",
       cancelSubBtn: "Résilier",
       cancelSubModalTitle: "Résilier l'abonnement",
-      cancelSubModalMessage: "Pour résilier ton abonnement, écris-nous à contact@versions.studio depuis l'adresse e-mail de ton compte. On s'occupe de la résiliation sous 48h.",
-      cancelSubModalConfirm: "Écrire un e-mail",
+      cancelSubModalMessage: "Tu gardes l'accès et tes crédits jusqu'à la fin de la période déjà payée. Aucun prélèvement ne sera effectué après cette date. Tu pourras te réabonner à tout moment.",
+      cancelSubModalConfirm: "Confirmer la résiliation",
+      cancelSubSuccessTitle: "Résiliation enregistrée",
+      cancelSubSuccessMessage: "C'est fait. Tu gardes ton accès et tes crédits jusqu'au {date}. À très bientôt !",
+      cancelSubSuccessMessageNoDate: "C'est fait. Tu gardes ton accès jusqu'à la fin de ta période actuelle. À très bientôt !",
       // Suppression de compte — bouton danger, modale de confirmation.
       // Côté backend rien n'est branché : la modale invite à envoyer un
       // e-mail au support qui supprimera le compte manuellement.
@@ -2879,12 +2884,17 @@ const STRINGS = {
       replayOnboardingHint: "Restart the step-by-step guide",
       replayOnboardingBtn: "Replay",
       // Subscription cancellation (visible only when subscribed).
+      // Direct Stripe cancellation (shipped 2026-05-31). Falls back to
+      // mailto if API fails or stripe_subscription_id is missing.
       cancelSubLabel: "Subscription",
       cancelSubHint: "Cancel your current subscription",
       cancelSubBtn: "Cancel",
       cancelSubModalTitle: "Cancel subscription",
-      cancelSubModalMessage: "To cancel your subscription, email us at contact@versions.studio from your account's email address. We'll process the cancellation within 48 hours.",
-      cancelSubModalConfirm: "Send email",
+      cancelSubModalMessage: "You keep access and your credits until the end of the period you've already paid for. No further charges will be made after that date. You can resubscribe anytime.",
+      cancelSubModalConfirm: "Confirm cancellation",
+      cancelSubSuccessTitle: "Cancellation registered",
+      cancelSubSuccessMessage: "Done. You keep access and your credits until {date}. See you soon!",
+      cancelSubSuccessMessageNoDate: "Done. You keep access until the end of your current period. See you soon!",
       // Account deletion — danger button + confirmation modal.
       deleteAccountLabel: "Delete my account",
       deleteAccountHint: "Permanently delete your account and all your data",

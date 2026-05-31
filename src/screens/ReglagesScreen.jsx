@@ -163,11 +163,17 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
   };
 
   // ── Résiliation d'abonnement ───────────────────────────────
-  // Stripe pas encore branché côté backend → la modale de confirmation
-  // explique la marche à suivre (e-mail au support) et le bouton
-  // déclenche l'ouverture d'un mailto pré-rempli avec l'email du compte.
-  // À remplacer par un appel `cancel_subscription` quand le webhook
-  // Stripe sera branché.
+  // Flow (livré 2026-05-31, branchement Stripe) :
+  //   1. Confirm modal d'explication (fin de période préservée).
+  //   2. POST /api/billing/cancel-subscription (Bearer JWT) → backend
+  //      pose cancel_at_period_end=true sur l'abo Stripe.
+  //   3. Au succès, modale de confirmation avec la date de fin.
+  //
+  // Fallback mailto : si l'API renvoie `reason: 'missing_sub_id'` (cas
+  // d'un abo créé avant le fix webhook 2026-05-27 — stripe_subscription_id
+  // jamais peuplé) OU si le réseau/backend pète, on retombe sur l'ancien
+  // mailto pour que David puisse traiter à la main dans Stripe Dashboard.
+  // Pas de régression possible.
   const handleCancelSubscription = async () => {
     const ok = await confirmDialog({
       title: s.reglages.cancelSubModalTitle,
@@ -176,11 +182,72 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
       cancelLabel: s.common.cancel,
     });
     if (ok !== 'confirm') return;
-    const subject = s.reglages.mailtoCancelSubSubject;
-    const body = (s.reglages.mailtoCancelSubBody || '')
-      .replace('{email}', user?.email || '');
-    if (typeof window !== 'undefined') {
-      window.location.href = buildMailto(subject, body);
+
+    const fallbackToMailto = () => {
+      const subject = s.reglages.mailtoCancelSubSubject;
+      const body = (s.reglages.mailtoCancelSubBody || '')
+        .replace('{email}', user?.email || '');
+      if (typeof window !== 'undefined') {
+        window.location.href = buildMailto(subject, body);
+      }
+    };
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('no_session');
+
+      const res = await fetch(`${API}/api/billing/cancel-subscription`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({}),
+      });
+      const payload = await res.json().catch(() => ({}));
+
+      // Cas "OK" : l'abo Stripe est marqué cancel_at_period_end OU
+      // l'était déjà. On affiche la date de fin si on l'a (timestamp
+      // Unix en secondes côté Stripe).
+      if (res.ok && payload?.ok) {
+        const cancelAt = payload.cancelAt;
+        const dateLabel = cancelAt
+          ? new Date(cancelAt * 1000).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', {
+              day: 'numeric', month: 'long', year: 'numeric',
+            })
+          : null;
+        const msgTemplate = s.reglages.cancelSubSuccessMessage
+          || 'Your subscription is cancelled. You keep access until {date}.';
+        const message = dateLabel
+          ? msgTemplate.replace('{date}', dateLabel)
+          : (s.reglages.cancelSubSuccessMessageNoDate || msgTemplate.replace('{date}', '—'));
+        await confirmDialog({
+          title: s.reglages.cancelSubSuccessTitle || 'Résiliation enregistrée',
+          message,
+          confirmLabel: s.common.ok,
+          cancelLabel: '',
+        });
+        // Refresh des crédits pour que le hint "Renouvelle le …" disparaisse
+        // au prochain ouverture de la modale (l'abo est encore actif mais
+        // le user a vu la confirmation).
+        if (onClose) onClose();
+        return;
+      }
+
+      // Cas "abo sans sub_id" (Sébastien) ou autre erreur connue côté
+      // backend → fallback mailto sans message d'erreur agressif.
+      if (payload?.reason === 'missing_sub_id') {
+        fallbackToMailto();
+        return;
+      }
+
+      // Erreur inconnue : on log + fallback mailto + message neutre.
+      console.warn('[reglages] cancel-subscription returned non-ok:', payload);
+      fallbackToMailto();
+    } catch (e) {
+      console.warn('[reglages] cancel-subscription threw:', e?.message || e);
+      fallbackToMailto();
     }
   };
 
