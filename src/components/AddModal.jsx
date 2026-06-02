@@ -697,7 +697,7 @@ export default function AddModal({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="audio/*,.mp3,.wav,.aiff,.aif,.flac,.m4a,.ogg"
+                  accept="audio/wav,audio/mpeg,audio/flac,.wav,.mp3,.flac"
                   style={{ display: 'none' }}
                   onChange={(e) => e.target.files?.[0] && handlePickFile(e.target.files[0])}
                 />
