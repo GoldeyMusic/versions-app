@@ -1,5 +1,24 @@
 # Versions Plugin DAW — Roadmap
 
+> **ÉTAT AU 2026-06-04 — lire d'abord `~/versions-plugin/CLAUDE.md`**
+> (source de vérité détaillée : état, pièges Logic, conventions UI).
+> Résumé : Phases 0, 1 et 2.A LIVRÉES + bien plus — metering complet
+> (LUFS/TP/RMS/Crest + vrai LRA EBU), spectre niveau FabFilter, panneau
+> arcs + dôme stéréo à particules, chat IA contextuelle (anti-hallucination
+> plugins, langue FR/EN/auto), curation des plugins par fabricant (registre
+> AU + Waves réels + stock Logic), Settings complète (profil, DAWs
+> multi-sélection), tailles discrètes XS→Max, saisie clavier fiabilisée
+> dans Logic (overlay invisible).
+>
+> **PRIORITÉS DÉCIDÉES (2026-06-04)** :
+> 1. **Multi-instance "Console View"** — une instance par piste + master qui
+>    communiquent (hub partagé même process, façon Neutron/Pro-Q), l'IA voit
+>    toute la console et conseille inter-pistes. Sans ARA. LE différenciateur.
+> 2. Phase 3 en 3 niveaux : chat chiffres (fait) / feedback express sur
+>    extrait 30-60 s via buffer circulaire + écoute Gemini courte / fiche
+>    complète par drag & drop du bounce (pas de capture temps réel 4 min).
+> 3. S6 Compare (A/B), signature Apple Developer ID, Phase 2.B auth JWT.
+
 ## Vision
 
 Un plugin VST3/AU/AAX qui apporte Versions directement dans le DAW. Metering temps réel gratuit + feedback IA à la demande + lien vers la fiche complète sur le site. Même compte, mêmes crédits.
