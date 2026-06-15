@@ -11386,6 +11386,109 @@ export default function MockupStyles() {
     color: var(--text);
     font-style: italic;
   }
+  /* Lecture : corps + bouton Modifier discret */
+  .fiche-v2 .intent-panel-fiche .intent-panel-body-wrap .intent-panel-body {
+    margin-bottom: 0;
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-edit-btn,
+  .fiche-v2 .intent-panel-fiche .intent-panel-add {
+    margin-top: 14px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+  }
+  /* Modifier = lien sobre */
+  .fiche-v2 .intent-panel-fiche .intent-panel-edit-btn {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: var(--muted, rgba(255,255,255,0.5));
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-edit-btn:hover {
+    color: var(--amber);
+  }
+  /* Ajouter = CTA pill quand aucune intention */
+  .fiche-v2 .intent-panel-fiche .intent-panel-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--amber, #F59E0B);
+    background: color-mix(in srgb, var(--amber, #F59E0B) 12%, transparent);
+    color: var(--amber, #F59E0B);
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-add:hover {
+    background: color-mix(in srgb, var(--amber, #F59E0B) 22%, transparent);
+  }
+  /* Édition : textarea + actions */
+  .fiche-v2 .intent-panel-fiche .intent-panel-edit {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 84px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border, rgba(255,255,255,0.12));
+    background: var(--bg, rgba(0,0,0,0.25));
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 14px;
+    line-height: 1.55;
+    outline: none;
+    transition: border-color 120ms ease;
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-textarea:focus {
+    border-color: var(--amber, #F59E0B);
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-textarea:disabled {
+    opacity: 0.6;
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-btn {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 120ms ease, opacity 120ms ease;
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-btn.ghost {
+    background: transparent;
+    border: 1px solid var(--border, rgba(255,255,255,0.14));
+    color: var(--muted, rgba(255,255,255,0.6));
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-btn.ghost:hover:not(:disabled) {
+    color: var(--text);
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-btn.primary {
+    background: var(--amber, #F59E0B);
+    border: 1px solid var(--amber, #F59E0B);
+    color: #1a1206;
+    font-weight: 700;
+  }
+  .fiche-v2 .intent-panel-fiche .intent-panel-btn.primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--amber, #F59E0B) 88%, #fff);
+  }
 
   /* ─────────────────────────────────────────────────────────────
      DSP_PLAN A.3 — Radar constellation 6 catégories

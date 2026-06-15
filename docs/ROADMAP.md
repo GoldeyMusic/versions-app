@@ -1,119 +1,94 @@
 # Versions — Roadmap
 
-Source de vérité partagée **Cowork ↔ Dispatch**. Mise à jour 2026-05-01.
+Source de vérité partagée **Cowork ↔ Dispatch**. Mise à jour 2026-06-02.
 
 > **Mode d'emploi pour toute session (Cowork ou Dispatch)**
-> 1. `git pull` sur `versions-app` ET `decode-api` avant toute édition.
+> 1. `git pull` sur `versions-app` ET `versions-api` avant toute édition.
 > 2. Lire ce fichier en premier — reprendre à la **première case non cochée**.
 > 3. À la fin de la tâche : cocher, commit, push.
 > 4. Si une décision change la séquence : mettre à jour ce fichier (et pas une mémoire locale).
 
-Pour le détail : `AUBIOMIX_PLAN.md` (clos en intégralité), `ADMIN_DASHBOARD.md`, `UPLOAD_DIRECT_PLAN.md`, `audit_aubiomix.md`.
+Pour le détail : `AUBIOMIX_PLAN.md` (clos), `roadmap_post_aubiomix_2026-05-19.md` (sprint scoring/présentation), `PLUGIN_ROADMAP.md` (plugin DAW VST3/AU/AAX), `frequency_balance_map_spec.md` (spec viz balance fréquentielle), `ADMIN_DASHBOARD.md`, `audit_aubiomix.md`.
 
 ---
 
-## ✅ Livré depuis le 2026-04-28
+## ✅ Livré — récapitulatif
 
 ### Bloc 1 — Bouclage technique (CLOS)
 
-- [x] **Hard cap durée audio à 12 min** (front + back). Refus à la sélection dans `AddModal`, 413 côté `LoadingScreen`, double validation backend.
-- [x] **Stripe complet** : checkout one-shot (packs) + subscriptions (Indé / Pro), webhook `charge.succeeded` / `invoice.paid`, debit/refund pipeline, init-catalog script.
-- [x] **Tables crédits** : `user_credits` + `credit_events` + RPC `apply_delta`. Modèle Splice 2 buckets (sub / pack), cumul + purge à résiliation.
-- [x] **Sidebar live** des crédits restants.
-- [x] **Blocage analyse si pas de crédits** : 402 Payment Required côté `/analyze/start` → redirect front vers `/pricing`.
-- [x] **Consommation par analyse** + **modale 0 crédits**.
-- [x] **Seed initial signups** = 5 crédits (passé de 999 → 99 → 5 pendant la phase de test).
-- [x] **MONETIZATION_ENABLED=false** par sécurité tant que la prod n'est pas allumée.
+Hard cap durée audio 12 min · Stripe complet (one-shot + abos, webhook, debit/refund) · Tables crédits `user_credits` + `credit_events` + RPC `apply_delta` (modèle Splice 2 buckets) · Sidebar live crédits · Blocage analyse si 0 crédits (modale + redirect /pricing) · Seed signups 5 crédits · `MONETIZATION_ENABLED` allumé en prod.
 
-### Tier 4 AubioMix (livré le 2026-04-27, archivé ici pour mémoire)
+### Bloc 2 — Mise en production publique (CLOS, livré mai 2026)
 
-- [x] Score floor protection en révision (4.1)
-- [x] Advice-followed locking (4.2)
-- [x] Release Readiness verdict (4.3)
-- [x] Plateau detector + bouton "Marquer comme finale" (4.4)
+- [x] Pages légales `/privacy` et `/terms` (éditeur Multicolorz, i18n FR/EN).
+- [x] Google OAuth en Production (branding "Versions" + logo, domaine vérifié, app publiée — cap 100 users en mode Test).
+- [x] URLs propres (suppression du `#`) — History API + flow PKCE Supabase + rewrite SPA Vercel + `migrateHashToPath()` filet de sécurité.
+- [x] `MONETIZATION_ENABLED=true` en prod Stripe.
 
-→ Tout `AUBIOMIX_PLAN.md` est désormais clos.
+### AubioMix Tier 1 → Tier 4 (CLOS — cf. `AUBIOMIX_PLAN.md`)
 
-### Toggle Mix / Master (livré 2026-04-30)
+Format des notes structuré · landing publique unifiée · checklist cochable + table `mix_note_completions` · Score Card PNG 1080×1080 · page `/exemple` sample report · score floor protection · advice-followed locking · Release Readiness verdict · Plateau detector + bouton "VERSION FINALE".
 
-- [x] Toggle dans la modale d'upload (`uploadType` state dans `AddModal`).
-- [x] Persistance `versions.upload_type` (migration 021).
-- [x] Backend `decode-api/lib/claude.js` : pondération master `0.5` en mode mix + `uploadTypeBlock` injecté dans le system prompt.
-- [x] Front fiche : `ReleaseReadinessBanner` adapte les libellés ("Prêt pour le mastering / Presque prêt à masteriser / Pas encore prêt") en mode mix.
-- [x] Strings FR + EN dans `strings.js`.
+### Sprint post-snapshot AubioMix (2026-05-19 → 2026-05-21, livré — cf. `roadmap_post_aubiomix_2026-05-19.md`)
 
-### Charte mastering chat (livré 2026-04-30)
+- [x] **A.2 Caps mécaniques** : `versions-api/lib/scoring/mechanicalCaps.js` (5 caps : stéréo quasi-mono, LRA serré mix, clipping mix, voix masquée, sibilantes excessives).
+- [x] **A.3 Anchors mix/master** + clause CONTEXTE DEMO/MAQUETTE.
+- [x] **B.3 Score Band social Option A** : 6 paliers (référence/hit/pro/démo avancée/en développement/début de parcours), ladder horizontale sous verdict, marqueur "tu es ici" avec triangle ▼.
+- [x] **C.2 Question "masterisé ?"** simplifiée en Oui/Non (Auto-detect retiré 2026-05-21, mapping yes→master / no→mix).
+- [x] **Persistance backend `lib/persistAnalysis.js`** + 4 paliers de protection des crédits (bg poll relais, cron orphan refund, modal+RPC `refund_my_failed_analysis`, persist côté serveur).
+- [x] Hotfix `ReferenceError persistAnalysisResult` + garde-fou LUFS aberrant ([-40, +1]) + patch IPv6 `rateLimit.js`.
+- [x] "Type de titre" toujours visible dans l'AddModal (plus de garde `file &&`).
 
-- [x] Endpoint `/api/mastering-charter` (decode-api) : croise fiche + verdict + RAG PureMix.
-- [x] CTA "Conseils mastering ?" déclenche un seed personnalisé dans le chat.
-- [x] Pill chat = chat vierge ; CTA = seed.
-- [x] Garde-fou polarité LUFS dans le system prompt mastering (règles non négociables).
-- [x] Fixes runtime : capture fetcher via ref, gate sur versionId, safety timeout 90 s, commit même si effect cleanup a fired.
+### Plomberie compte / billing (mai 2026)
 
-### Admin dashboard (mises à jour récentes)
+- [x] **Suppression de compte automatique** — danger zone dans Réglages → RPC `delete_my_account` (cascade purge DB) → signOut → redirect `/`.
+- [x] **Résiliation abonnement en 1 clic** — bouton Réglages → `POST /api/billing/cancel-subscription` → Stripe `cancel_at_period_end`. Fallback mailto si abo pré-fix-webhook.
+- [x] **🔥 Fix webhook Stripe abonnements** — l'API `2025-04-30.basil` déplace `invoice.subscription` vers `invoice.parent.subscription_details.subscription`. Helpers `getInvoiceSubscriptionId()` + `fetchStripeNetForInvoice()`.
+- [x] **Notification intention d'annulation Stripe** — handler `customer.subscription.updated` détecte la transition `cancel_at_period_end: false → true`.
+- [x] **Newsletter mensuelle automatique** — `lib/newsletter.js` + `api/_newsletter.js` (stats par user, 2 templates actif/inactif, List-Unsubscribe Resend, 12 conseils rotatifs).
+- [x] **🔥 Fix analyse perdue sur refresh / tab switch / cancel** — `pendingJob.js` localStorage (TTL 30 min) + Page Visibility API + recovery + watcher 5s.
+- [x] **Crédits cumulables modèle Splice** — 2 buckets `subscription_balance` / `pack_balance`, débit ordonné via RPC `debit_credits_ordered`, purge sub uniquement sur `customer.subscription.deleted`.
 
-- [x] Page `#/admin` en **layout topbar** (plus de sidebar).
-- [x] Bouton Admin dans `DashboardRail` (home/tarifs/dashboard).
-- [x] Footer sidebar : Admin (admin only) + Réglages + Déconnexion.
-- [x] **Mode coûts-only** par défaut tant qu'aucune vente Stripe (revenus / balance / marge masqués).
-- [x] **KPIs nets Stripe** : recettes nettes 30 j + balance corrigée frais déduits.
-- [x] **Section Crédit Fadr du mois** : 200 min et 9,20 € inclus.
-- [x] **Coûts infra trackés** : Supabase Pro $25 + Railway Hobby $5 = ~27,60 €/mois (constante `INFRA_COSTS` en haut de `AdminScreen.jsx`).
-- [x] Migration 015 : recompute rétroactif `fadr_eur` à 0,046 €/min.
+### Refonte UI desktop / pricing / mobile (avril → mai 2026)
 
-### Refonte UI desktop (avril 2026)
+Fiche desktop (verdict 2/3 + side panel chips colorées, BPM/Key cliquables, eyebrows en chip pill sans rotation, glyphes premium SVG, MOY chip color-coded, animations scroll, chat pill centrée) · Pricing podium + i18n FR/EN · Refonte landing/welcome/welcome topbar · Plus d'italique partout sauf verdicts Cormorant · Score Card refonte trophée + constellation · Charte mastering chat (CTA + seed personnalisé).
 
-- [x] **Fiche desktop** : grid verdict 2/3 + side panel 1/3 chips colorées (BPM cyan / Key violet / LUFS mint / Genre amber). BPM/Key cliquables → `DspEditModal`. Genre cliquable → édition inline. LUFS non éditable.
-- [x] **Eyebrows en chip pill** sans rotation (Verdict, Score, Diagnostic, Notes, Évolution).
-- [x] **Glyphes premium SVG** par catégorie diagnostic (`<CategoryIcon>`) — pas d'emojis.
-- [x] **MOY color-coded chip** + chips deltas EvolutionBanner (mint up / red down / muted stable / amber new).
-- [x] **Animations entrée scroll** (`.wh-anim`, IntersectionObserver local sur fiche).
-- [x] **Chat pill** centrée à droite (wrapper `.chat-pill-wrap`), animation `chat-pill-peek` 60 s, bottom-strip mobile sous 1240 px.
-- [x] **Fix bande sombre** : `va-bg-orbs` débordant + `chat-panel` translation 100% + 80px.
-- [x] **LoadingScreen** plein écran, logo top-left, typo Cormorant.
-- [x] **Refonte modales** unifiées + dashboard projets + écran loading + verdict toujours déployé.
+### Admin dashboard (avril → mai 2026)
 
-### Refonte landing / pricing / welcome (avril 2026)
-
-- [x] Landing topbar avec bouton Dashboard à droite, Tarifs au milieu.
-- [x] Pricing : podium 2 cartes (Pack 1 + 5), chips néon, fond animé, FAQ numérotée, scroll anim, **i18n FR/EN complète** (namespace `s.pricing`), `highlightKey` en plan.
-- [x] Logo + wordmark alignés avec sidebar dashboard, switch FR/EN.
-- [x] Section école rapprochée de la section abonnements.
-- [x] Welcome refonte + parité topbar avec landing/pricing.
-- [x] Plus d'italique partout (sauf verdicts Cormorant).
-
-### Refonte mobile (avril 2026)
-
-- [x] Page exemple alignée fiche.
-- [x] Coins de cards plus arrondis (border-radius 20-24).
-- [x] Background fullscreen via theme-color.
-- [x] **Bug cache iPhone** identifié : la refonte marche sur Chrome desktop 390 px mais pas sur iPhone physique → cf. `project_versions_iphone_cache_bug.md`.
-
-### Score Card (livré 2026-05-01)
-
-- [x] Refonte trophée + constellation.
-
-### Migration Vercel-only — tentée puis revert
-
-- [x] Tentative `decode-kappa.vercel.app` → revert vers Railway. Le pipeline d'analyse 3-5 min est incompatible avec `maxDuration` 60 s serverless. Code upload direct dort dans le backend (`api/_storage.js`), réactivable plus tard si on trouve comment splitter le pipeline.
+Layout topbar (plus de sidebar) · Bouton Admin dans DashboardRail · Footer sidebar Admin (admin-only) · Mode coûts-only par défaut tant qu'aucune vente Stripe · KPIs nets Stripe · Section Crédit Fadr du mois (200 min / 9,20 €) · Coûts infra trackés (~27,60 €/mois) · Migration 015 recompute fadr_eur.
 
 ---
 
-## 🟡 Bloc 2 — Mise en production publique (à faire avant d'allumer Stripe)
+## 🟡 Sprint en cours — Scoring & présentation (cf. `roadmap_post_aubiomix_2026-05-19.md`)
 
-- [ ] **Pages légales** `/privacy` et `/terms` (~1 h, template SaaS musique français à adapter). **Prérequis Google OAuth Production**.
+### Priorité 1 — Calibration moteur
 
-- [ ] **Google OAuth en Production** (~30 min + review Google). Branding "Versions" + logo, vérification domaine dans Search Console (DNS TXT), passage Testing → Production. Vire le warning "application non vérifiée".
+- [ ] **D.1 — Enrichir le `genreBlock`** dans `versions-api/lib/claude.js`. Preuve empirique 2026-05-21 : `declared_genre` quasi inopérant. Remplacer le "adapte tes recettes" mou par des règles formelles sur 10-12 esthétiques (pop rétro, soul Motown, R&B vintage, boom-bap, indie garage, métal moderne, country pop, latin reggaeton, electronica ambient, K-pop). **Estimé : ~1-2 h** (rédaction + 3-4 tests A/B).
+- [ ] **D.2 — Améliorer le classifieur Gemini** en amont (après D.1). Soit vocabulaire fini contraint, soit 2è passe "es-tu sûr ?" sur titres mainstream. **Estimé : ~2-3 h** + mesure post-D.1.
+- [ ] **Corriger le barème des verdicts** — 75/100 ne devrait pas déclencher "aïe aïe aïe". Recalibrer la zone neutre 70-79 dans le system prompt (section ECHELLE GLOBALE OBLIGATOIRE). **Estimé : ~1 h**.
 
-- [ ] **URLs propres (suppression du `#`)** (~45 min). Refactor `parseHash`/`buildHash` → `parsePath`/`buildPath`, listeners `hashchange` → `popstate`, `vercel.json` avec rewrite vers `index.html`. Vérifier que l'OAuth Google continue de marcher après. À faire avant de partager les premiers liens publics.
+### Priorité 2 — Présentation du rapport
 
-- [ ] **Allumer `MONETIZATION_ENABLED=true`** sur la prod Stripe (env var côté backend) — quand les 3 items ci-dessus sont OK et que les pages légales sont en ligne.
+- [ ] **B.1 — Score breakdown technique** : 4-6 barres (Tonal / Stéréo / Dynamique / Master / Bruit) dans la verdict row, à côté du scoring par élément musical. **Estimé : ~2-3 h** (les sous-scores existent déjà côté backend, c'est principalement du front).
+- [ ] **B.2 — Cards "réglages compression" structurées** : pour chaque reco de compression, extraire ATK / REL / Ratio / GR / Type (Opto/VCA/FET) dans une mini-carte. À placer en fin de section DRUMS / BASSES & KICK / VOIX. **Estimé : ~3-4 h** (parsing prompt + composant card + i18n).
+
+### Priorité 3 — UX upload
+
+- [ ] **C.1 — Track Type "Live"** au toggle de l'AddModal (déjà Chanté / Instrumental). Calibrer côté Claude : tolérance dynamique naturelle, moins d'exigence séparation, plus sur équilibre d'ensemble. **Estimé : ~2 h front + ~1 h backend prompt = ~3 h**.
+- [ ] **C.3 — Upload pill sticky** : encart toujours visible sur fiche pour inviter à uploader la prochaine version (style AubioMix "Ready to improve?"). **À valider** : on ajoute, ou la chat pill suffit ? **Estimé : ~1-2 h** si on décide d'ajouter.
+
+### Priorité 4 — Frequency Balance Map (cf. `frequency_balance_map_spec.md`)
+
+- [ ] **Frequency Balance Map — mode A (preview au survol)**.
+  - Pipeline backend : séparation stems (déjà fait via DSP_PLAN), FFT par stem, détection collisions par seuil adaptatif selon intention, simulation biquad pour mode A preview.
+  - Front : SVG 720×420, 4 lanes (Voix/Instruments/Basse/Batterie), bandes de masquage gradient orange/bleu, pulse radar sur markers, hover focus bidirectionnel chips ↔ bandes, transition preview ~600 ms.
+  - **Estimé : ~1 semaine de dev** (3 jours backend, 3 jours front, 1 jour calibration + finitions).
 
 ---
 
-## 🟡 Bloc 3 — Bugs / polish UI restants
+## 🟡 Polish UI / mobile
 
-- [ ] **Bug cache iPhone refonte mobile** — la refonte mobile (border-radius 20-24 + bg fullscreen via theme-color) marche sur Chrome desktop 390 px mais pas sur iPhone physique. À élucider avant prod ; en attendant, rediriger les beta testeurs vers desktop.
+- [ ] **Bug cache iPhone refonte mobile** — refonte (border-radius 20-24 + bg fullscreen via theme-color) marche Chrome desktop 390 px mais pas iPhone physique. À élucider, beta testeurs orientés desktop en attendant.
 - [ ] **Badge "EN COURS" tronqué sur mobile** (premier chip V1).
 - [ ] **Audit complet vue mobile** — chantier commencé, reste à passer chaque écran au crible.
 - [ ] **Thème clair** — maquettes "H" explorées, pas encore implémenté.
@@ -121,37 +96,67 @@ Pour le détail : `AUBIOMIX_PLAN.md` (clos en intégralité), `ADMIN_DASHBOARD.m
 
 ---
 
-## 🟡 Bloc 4 — Backend / data plumbing
+## 🟡 Backend / data plumbing
 
 - [ ] **RPC `get_public_fiche` exposer `upload_type`** — les liens publics servent le verdict "mix" par défaut tant que ce n'est pas fait. Migration légère côté Supabase à prévoir sans casser la signature i18n vivante en prod.
-- [ ] **Job state hors RAM** — déplacer le `jobs Map` en RAM dans `_analyze.js` vers une table Supabase. Permettra plusieurs invocations concurrentes sans perdre les jobs en cours. Pré-requis si on retente Vercel-only un jour.
-- [ ] **Enrichir le pool de conseils newsletter** (`versions-api/lib/newsletter.js`) — actuellement `CONSEILS_DU_MOIS` = 12 entrées (un par mois, rotatif annuel) et `IDEES_PROCHAINE_SESSION` = 4 entrées (template inactif). Tant qu'on est à ~1 envoi/an par slot, les users qui restent reçoivent toujours le même conseil au même mois. Passer à **36+ tips** côté actif (mix, monitoring, workflow DAW, mastering prep) et étoffer aussi les idées du template inactif. Stratégie de rotation à revoir : hash `(userId, month)` pour ne pas envoyer 2 fois le même conseil à un même user d'une année sur l'autre. **À terme** : conseils dynamiques basés sur les vraies analyses de l'utilisateur (recurring weaknesses dans les fiches du mois → conseil ciblé).
+- [ ] **Job state hors RAM** — déplacer le `jobs Map` en RAM dans `_analyze.js` vers une table Supabase. Pré-requis si on retente Vercel-only un jour.
+- [ ] **Enrichir le pool de conseils newsletter** — passer de 12 → 36+ tips + rotation hash `(userId, month)`. À terme : conseils dynamiques basés sur les recurring weaknesses de l'utilisateur.
+- [ ] **Configurer cron mensuel newsletter** sur cron-job.org (ou Railway cron) — `0 9 1 * *`, POST `/api/newsletter/send` avec header `X-Admin-Secret`.
+- [ ] **Job batch de nettoyage Storage** des fichiers orphelins après suppression de compte (audio, avatars, covers).
 
 ---
 
-## 🟡 Bloc 5 — Décisions data-driven (à partir de ~50 analyses loggées)
+## 🟡 Plugin DAW (cf. `PLUGIN_ROADMAP.md`)
+
+Plan complet ~12 semaines en 5 phases. Reprise sprint en attente. **Prochaine action notée** : installer JUCE + Xcode, créer un projet vide, confirmer que le plugin charge dans un DAW.
+
+---
+
+## 🟡 Décisions data-driven (à partir de ~50 analyses loggées)
 
 - [ ] **Ajuster la grille de prix** sur la base des coûts réels mesurés sur `#/admin`.
   - Coût moyen < 0,50 € → on peut baisser le pack 5 vers 2,50 €/u et ouvrir un pack 25 ou 50.
   - Coût moyen > 1,00 € → remonter pack et abo Pro.
-  - Toujours regarder le P95 (worst case) plus que la moyenne.
-- [ ] **Annuel −2 mois sur les abos** (~30 min). Créer un Price récurrent annuel côté Stripe + toggle Mensuel/Annuel dans `PricingScreen.jsx`.
+  - Toujours regarder le P95 plus que la moyenne.
+- [ ] **Annuel −2 mois sur les abos** (~30 min). Price récurrent annuel côté Stripe + toggle Mensuel/Annuel dans `PricingScreen.jsx`.
 - [ ] **Hard cap durée plus serré** (8 min ?) si le P95 dépasse 1,50 €.
+- [ ] **Vérification Google OAuth pour passage en Production publique** (au-delà du cap 100 testeurs). Soumettre formulaire à Google (logo, scopes, domaines vérifiés). Délai 1-4 semaines.
+- [ ] **Custom Domain Supabase** (~$10/mo) — `auth.versions.studio` au lieu de `uyeswtjisbzfyribnywt.supabase.co` sur le consent screen Google. Optionnel.
 
 ---
 
-## Conseil de séquence
+## Reporté / backlog
 
-**Si 2-3 h dispos** → Bloc 2 entier (légales + OAuth Prod + URLs propres) puis allumer `MONETIZATION_ENABLED=true`. À ce moment-là, le produit est ouvert au paiement.
+- **Reference Mix payant** — upsell intéressant mais pas prioritaire.
+- **Peer comparison par genre** — attendre une base d'historique (centaines de mix) avant des stats crédibles.
+- **Persona qui signe le rapport** — trust signal humain à reconsidérer plus tard.
+- **Frequency Balance Map mode B (toggle global) et mode C (roadmap interactive)** — à reconsidérer après le retour utilisateurs sur le mode A.
 
-**Si moins de temps** → juste **les pages légales** (indépendantes, déblocage immédiat pour Google OAuth Prod ensuite).
+---
+
+## Différenciation propre — à NE PAS abandonner
+
+Ces axes restent notre territoire unique vs AubioMix.
+
+- **Intention artistique en 1ʳᵉ section du rapport** — cf. `project_versions_intention.md`.
+- **Production / arrangement / structure** — AubioMix ne touche pas du tout.
+- **Multilingue (FR natif)** — eux 100% UK.
+- **Comparaison de catalogue** (mes mixes entre eux) — eux track-par-track uniquement.
+- **Hook narratif compositeur** (équivalent leur "Auditory Habituation", à créer).
 
 ---
 
 ## Journal des décisions
 
 - **2026-04-28** — Roadmap initiale post-AubioMix. Bloc 1 (cap audio + Stripe + crédits) défini comme bouclage technique.
-- **2026-04-29** — Bloc 1 entièrement clos. Tentative migration Vercel-only avortée (pipeline 3-5 min incompatible serverless 60 s). Decode-API revert sur Railway, code upload direct dort.
-- **2026-04-30** — Toggle Mix/Master livré + charte mastering chat avec garde-fou LUFS. Refonte UI desktop fiche (verdict 2/3, side panel chips, eyebrows pop, glyphes premium, scroll anim, fix bande sombre).
-- **2026-05-01** — Score Card refonte trophée + constellation. Mise à jour de cette roadmap pour reprendre la séquence post-Bloc-1.
-- **2026-05-27** — Newsletter mensuelle utilisateurs livrée côté backend (`versions-api/lib/newsletter.js` + `api/_newsletter.js`). Pool initial volontairement minimal (12 conseils + 4 idées) — à enrichir à 36+ tips dès que le rythme d'envoi le justifie (cf. Bloc 4).
+- **2026-04-29** — Bloc 1 entièrement clos. Tentative migration Vercel-only avortée. Decode-API revert sur Railway.
+- **2026-04-30** — Toggle Mix/Master + charte mastering chat avec garde-fou LUFS. Refonte UI desktop fiche.
+- **2026-05-01** — Score Card refonte trophée + constellation.
+- **2026-05-04** — URLs propres livré (History API + OAuth PKCE + rewrite Vercel SPA).
+- **2026-05-05** — Validation OAuth Google (passage Testing → Production, cap 100 users), pages légales `/privacy` et `/terms` livrées.
+- **2026-05-18** — Snapshot comparatif AubioMix → décision d'attaquer scoring (caps + bands) + présentation (breakdown + cards compression).
+- **2026-05-19 → 2026-05-21** — Sprint AubioMix livré : caps mécaniques, anchors mix/master, Score Band social, question masterisé. Persistance backend 4 paliers. Hotfix ReferenceError + LUFS + IPv6.
+- **2026-05-26** — Fix analyse perdue (localStorage + Visibility API + watcher).
+- **2026-05-27** — Fix webhook Stripe API basil + Newsletter mensuelle + Notif intention annulation.
+- **2026-05-31** — Résiliation abonnement en 1 clic livrée.
+- **2026-06-02** — Mise à jour roadmap : archivage Bloc 2 (toutes les pré-prod livrées), ajout sprint scoring en cours (D.1, D.2, B.1, B.2, C.1, C.3, Frequency Map mode A) en priorisé.

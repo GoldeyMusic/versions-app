@@ -10,7 +10,7 @@ import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
 import EvolutionBanner from '../components/EvolutionBanner';
 import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
 import PlateauBanner from '../components/PlateauBanner';
-import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion, updateVersionDspMetrics, updateVersionGenre } from '../lib/storage';
+import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion, updateVersionDspMetrics, updateVersionGenre, updateTrackIntent, updateVersionIntent } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
@@ -3934,7 +3934,7 @@ function NotesSection({ versionId, initialNotes, v2 = false }) {
 //   2. versionInDb.versionIntent      → override au niveau de la version courante
 //   3. currentTrack.artisticIntent    → intention « de base » du titre
 // Renvoie null s'il n'y en a aucune (pipeline non-calibré ou ancien run).
-export function IntentPanel({ analysisResult, currentTrack, versionInDb, open: openProp, onToggle }) {
+export function IntentPanel({ analysisResult, currentTrack, versionInDb, onRefresh, open: openProp, onToggle }) {
   const { s } = useLang();
   // Mode contrôlé optionnel : si `open`/`onToggle` sont fournis, on s'aligne
   // dessus (cf. SampleFicheScreen qui orchestre un accordéon strict). Sinon,
@@ -3946,17 +3946,64 @@ export function IntentPanel({ analysisResult, currentTrack, versionInDb, open: o
     if (onToggle) onToggle();
     if (!isControlled) setOpenInternal((v) => !v);
   };
+
   const fresh = (typeof analysisResult?.intent_used === 'string' && analysisResult.intent_used.trim()) || null;
   const verIntent = (typeof versionInDb?.versionIntent === 'string' && versionInDb.versionIntent.trim()) || null;
   const trkIntent = (typeof currentTrack?.artisticIntent === 'string' && currentTrack.artisticIntent.trim()) || null;
-  const intent = fresh || verIntent || trkIntent;
-  if (!intent) return null;
+
+  // Édition : uniquement sur la vraie fiche (onRefresh fourni + un id de titre
+  // persistant). En lecture seule sur la fiche publique / la page exemple.
+  const trackId = currentTrack?.id && !String(currentTrack.id).startsWith('__pending') ? currentTrack.id : null;
+  const versionId = versionInDb?.id && !String(versionInDb.id).startsWith('__pending') ? versionInDb.id : null;
+  const editable = !!(onRefresh && trackId);
+  // Scope d'écriture : si l'intention vit au niveau de la version, on édite la
+  // version ; sinon (cas par défaut, et titre créé sans intention) le titre.
+  const editScope = (verIntent && versionId) ? 'version' : 'track';
+
+  // Override local pour refléter une sauvegarde immédiatement (les sources DB
+  // se rechargent en async via onRefresh). undefined = pas d'override.
+  const [localIntent, setLocalIntent] = useState(undefined);
+  const intent = localIntent !== undefined ? localIntent : (fresh || verIntent || trkIntent);
+
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Aucune intention ET pas éditable → rien (comportement historique).
+  if (!intent && !editable) return null;
+
   const scope = fresh
     ? (analysisResult?._intent_scope === 'version' ? 'version' : (analysisResult?._intent_scope || 'track'))
     : (verIntent ? 'version' : 'track');
   const scopeLabel = scope === 'version'
     ? (s.fiche?.intentScopeVersion || 'cette version')
     : (s.fiche?.intentScopeTrack || 'ce titre');
+
+  const startEdit = () => {
+    setDraft(intent || '');
+    setEditing(true);
+    if (!isControlled) setOpenInternal(true);
+  };
+  const cancelEdit = () => { setEditing(false); setDraft(''); };
+  const saveEdit = async () => {
+    if (saving) return;
+    setSaving(true);
+    const text = draft.trim();
+    let ok = false;
+    try {
+      if (editScope === 'version' && versionId) ok = await updateVersionIntent(versionId, text);
+      else if (trackId) ok = await updateTrackIntent(trackId, text);
+    } catch (err) {
+      console.warn('[IntentPanel] save failed', err);
+    }
+    setSaving(false);
+    if (ok) {
+      setLocalIntent(text || null);
+      setEditing(false);
+      if (onRefresh) { try { await onRefresh(); } catch (_) { /* refresh best-effort */ } }
+    }
+  };
+
   return (
     <section className={`intent-panel-fiche${open ? ' open' : ''}`} aria-label="Intention artistique">
       <button
@@ -3973,7 +4020,9 @@ export function IntentPanel({ analysisResult, currentTrack, versionInDb, open: o
             </span>
           </span>
           <span className="intent-panel-scope">
-            {s.fiche?.intentScopePrefix || 'Appliquée à'} {scopeLabel}
+            {intent
+              ? `${s.fiche?.intentScopePrefix || 'Appliquée à'} ${scopeLabel}`
+              : (s.fiche?.intentEmpty || 'Non renseignée')}
           </span>
         </span>
         <span className="intent-panel-chev" aria-hidden="true">
@@ -3982,7 +4031,43 @@ export function IntentPanel({ analysisResult, currentTrack, versionInDb, open: o
           </svg>
         </span>
       </button>
-      {open && <p className="intent-panel-body">« {intent} »</p>}
+
+      {open && (editing ? (
+        <div className="intent-panel-edit">
+          <textarea
+            className="intent-panel-textarea"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={s.fiche?.intentPlaceholder || 'Décris en une ou deux phrases l’intention artistique de ce titre (ambiance, références, ce que tu cherches à transmettre)…'}
+            rows={4}
+            disabled={saving}
+            autoFocus
+          />
+          <div className="intent-panel-edit-actions">
+            <button type="button" className="intent-panel-btn ghost" onClick={cancelEdit} disabled={saving}>
+              {s.fiche?.intentCancel || s.common?.cancel || 'Annuler'}
+            </button>
+            <button type="button" className="intent-panel-btn primary" onClick={saveEdit} disabled={saving}>
+              {saving ? (s.fiche?.intentSaving || 'Enregistrement…') : (s.fiche?.intentSave || 'Enregistrer')}
+            </button>
+          </div>
+        </div>
+      ) : intent ? (
+        <div className="intent-panel-body-wrap">
+          <p className="intent-panel-body">« {intent} »</p>
+          {editable && (
+            <button type="button" className="intent-panel-edit-btn" onClick={startEdit}>
+              {s.fiche?.intentEdit || 'Modifier'}
+            </button>
+          )}
+        </div>
+      ) : (
+        editable && (
+          <button type="button" className="intent-panel-add" onClick={startEdit}>
+            {s.fiche?.intentAdd || 'Ajouter une intention artistique'}
+          </button>
+        )
+      ))}
     </section>
   );
 }
@@ -4363,6 +4448,10 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     (typeof versionInDb?.versionIntent === 'string' && versionInDb.versionIntent.trim()) ||
     (typeof currentTrack?.artisticIntent === 'string' && currentTrack.artisticIntent.trim())
   );
+  // Titre persisté → on monte IntentPanel même sans intention, pour proposer
+  // l'affordance « Ajouter une intention » (cas d'un titre créé sans intention,
+  // ex. depuis le plugin). IntentPanel reste read-only sur public/exemple.
+  const canEditIntent = !!(currentTrack?.id && !String(currentTrack.id).startsWith('__pending'));
 
   const toggleCat = (i) => setOpenCat((prev) => (prev === i ? null : i));
 
@@ -5240,7 +5329,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           {/* Bloc évolution + intention en layout 1 colonne (la pochette est masquée). */}
           <div className="f2-col-side">
               {/* Wrapper évolution + intention — pleine largeur en layout 1 colonne. */}
-              {(evolution || hasIntentSource) && (
+              {(evolution || hasIntentSource || canEditIntent) && (
                 <div
                   className="evo-intent-stack wh-anim"
                   style={{
@@ -5279,6 +5368,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     analysisResult={displayAR}
                     currentTrack={currentTrack}
                     versionInDb={versionInDb}
+                    onRefresh={() => loadTracks().then(setTracks)}
                   />
                 </div>
               )}
