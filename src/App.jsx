@@ -3741,6 +3741,16 @@ function VersionsAppAuthed() {
   // Track saved state to avoid double-saving
   const savedRef = useRef(false);
 
+  // Intention saisie à l'écran IntentionScreen, capturée dans une ref pour
+  // survivre aux closures périmés du polling de fond et aux spreads de config.
+  // C'est la source de vérité FIABLE pour le write post-analyse de l'intention
+  // (cf. handleIntentSubmit / handleIntentSkip + les 2 call sites de persist).
+  // Bug historique (2026-06-18) : on lisait l'intention depuis merged.intent_used
+  // (pas toujours exposé top-level côté client) ou config._pendingIntent (perdu
+  // dans le closure du bg poll) → tracks.artistic_intent jamais écrit → aucune
+  // intention héritée sur les versions suivantes ("Non renseignée").
+  const pendingIntentRef = useRef(null);
+
   const startBackgroundPolling = (jobId) => {
     if (pollingRef.current) clearInterval(pollingRef.current);
     pollingRef.current = setInterval(async () => {
@@ -3775,7 +3785,7 @@ function VersionsAppAuthed() {
                 ? Promise.resolve(persistedIds)
                 : saveAnalysis(config, full, job.storagePath || prev?.storagePath || null, lang);
               savePromise
-                .then((ids) => {
+                .then(async (ids) => {
                   if (!ids?.trackId) {
                     handleSaveFailure(jobId, new Error('saveAnalysis returned no trackId (bg poll)'));
                     return;
@@ -3783,13 +3793,9 @@ function VersionsAppAuthed() {
                   // Persiste l'intention au scope choisi (track/version) —
                   // même chemin que la branche fallback : l'intention n'est
                   // pas dans les champs persistés backend, on la met à jour
-                  // côté front avec service helper RLS.
-                  const intent = full?.intent_used || config?._pendingIntent || null;
-                  const scope = full?._intent_scope || config?._pendingIntentScope || 'track';
-                  if (intent && ids) {
-                    if (scope === 'version' && ids.versionId) updateVersionIntent(ids.versionId, intent);
-                    else if (ids.trackId) updateTrackIntent(ids.trackId, intent);
-                  }
+                  // côté front. Source fiable = pendingIntentRef (le closure
+                  // `config` du bg poll peut être périmé, d'où le bug d'origine).
+                  await persistIntentFromRun(ids, full, config);
                   if (ids?.trackId) {
                     setConfig(c => ({ ...(c || {}), trackId: ids.trackId, versionId: ids.versionId || c?.versionId }));
                   }
@@ -3852,6 +3858,30 @@ function VersionsAppAuthed() {
   };
 
   // ── Handlers ──
+  // Écrit l'intention artistique du run dans les colonnes dédiées
+  // (tracks.artistic_intent / versions.version_intent) pour qu'elle soit
+  // affichée ET héritée par les versions suivantes. Idempotent, best-effort.
+  // Priorité des sources : pendingIntentRef (capturé au submit, fiable) >
+  // champ top-level du résultat (intent_used) > config (_pendingIntent).
+  const persistIntentFromRun = async (ids, runResult, cfg) => {
+    if (!ids?.trackId) return;
+    const pend = pendingIntentRef.current;
+    const intent = (pend?.intent) || runResult?.intent_used || cfg?._pendingIntent || null;
+    const scope = (pend?.scope) || runResult?._intent_scope || cfg?._pendingIntentScope || 'track';
+    if (!intent) return;
+    try {
+      const ok = (scope === 'version' && ids.versionId)
+        ? await updateVersionIntent(ids.versionId, intent)
+        : await updateTrackIntent(ids.trackId, intent);
+      if (!ok) console.warn('[intent] persist post-analyse a échoué', { scope, trackId: ids.trackId });
+    } catch (e) {
+      console.warn('[intent] persist post-analyse erreur:', e?.message);
+    } finally {
+      // Consommé : on évite de ré-écrire cette intention sur un run ultérieur.
+      pendingIntentRef.current = null;
+    }
+  };
+
   const handleAnalyze = (cfg) => {
     // Garde-fou crédits : bloque le lancement si solde à 0. Le backend
     // re-vérifie en 402, mais on intercepte ici pour éviter l'aller-retour.
@@ -3861,6 +3891,8 @@ function VersionsAppAuthed() {
     setConfig(cfgWithProject);
     setAnalysisResult(null);
     savedRef.current = false;
+    // Repart d'une ardoise propre : pas d'intention héritée d'un run précédent.
+    pendingIntentRef.current = null;
     setScreen("loading");
     // Meta Pixel : custom event LaunchAnalysis pour suivre l'action de valeur
     // (= démarrage effectif d'une analyse, post-garde-fou crédits). Utilisable
@@ -3922,20 +3954,16 @@ function VersionsAppAuthed() {
           ? Promise.resolve(persistedIds)
           : saveAnalysis(cfgWithHash, merged, merged.storagePath || null, lang);
         savePromise
-          .then((ids) => {
+          .then(async (ids) => {
             // Échec silencieux : saveAnalysis a returné null (RLS, session
             // expirée, projet introuvable, etc.). On traite comme un fail.
             if (!ids?.trackId) {
               handleSaveFailure(merged?._jobId, new Error('saveAnalysis returned no trackId (all_done)'));
               return;
             }
-            // Persiste l'intention utilisée au scope choisi
-            const intent = merged?.intent_used || cfgWithHash?._pendingIntent || null;
-            const scope = merged?._intent_scope || cfgWithHash?._pendingIntentScope || 'track';
-            if (intent && ids) {
-              if (scope === 'version' && ids.versionId) updateVersionIntent(ids.versionId, intent);
-              else if (ids.trackId) updateTrackIntent(ids.trackId, intent);
-            }
+            // Persiste l'intention utilisée au scope choisi. Source fiable =
+            // pendingIntentRef (capturé au submit), fallbacks = champs du run.
+            await persistIntentFromRun(ids, merged, cfgWithHash);
             // Injecte les IDs en config pour que l'URL devienne
             // `#/fiche/{trackId}/{versionId}` (deep-link refresh OK).
             if (ids?.trackId) {
@@ -4004,6 +4032,8 @@ function VersionsAppAuthed() {
       console.warn("[intent] diagnose POST failed:", e.message);
     }
     // Mémorise le scope choisi pour le write post-analyse.
+    // Ref = source fiable (immune aux closures périmés / spreads de config).
+    pendingIntentRef.current = { intent: (intent || '').trim() || null, scope: scope || 'track' };
     // resumeJobId = signal à LoadingScreen : NE PAS redémarrer un nouveau job,
     // juste poller le job existant que le backend vient de reprendre avec
     // l'intention reçue.
@@ -4028,6 +4058,9 @@ function VersionsAppAuthed() {
     } catch (e) {
       console.warn("[intent] skip POST failed:", e.message);
     }
+    // Skip = pas d'intention explicite saisie pour ce run. On ne ré-écrit rien
+    // (une intention de titre déjà en base reste héritée telle quelle).
+    pendingIntentRef.current = null;
     // Même logique : on reprend le même job côté backend.
     setConfig((c) => ({ ...(c || {}), resumeJobId: intentCtx.jobId }));
     setIntentCtx(null);
