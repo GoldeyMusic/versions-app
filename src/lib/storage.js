@@ -801,6 +801,19 @@ export async function removeMember(projectId, userId) {
   return true;
 }
 
+/**
+ * Mon rôle sur un projet : 'owner' | 'editor' | 'commenter' | 'viewer' | null.
+ * null = projet sans rattachement (titre legacy project_id null) → côté UI on
+ * traite null comme "accès plein" (c'est forcément mon propre titre, sinon le
+ * RLS ne me l'aurait pas laissé voir).
+ */
+export async function getMyProjectRole(projectId) {
+  if (!projectId) return null;
+  const { data, error } = await supabase.rpc('project_role_for_project', { p_project: projectId });
+  if (error) { console.warn('[storage] getMyProjectRole error:', error.message); return null; }
+  return data || null;
+}
+
 /** Projets partagés AVEC moi (où je suis membre, pas owner) + mon rôle. */
 export async function loadSharedProjects() {
   const { data, error } = await supabase.rpc('my_shared_projects');

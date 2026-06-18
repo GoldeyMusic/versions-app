@@ -11,7 +11,7 @@ import EvolutionBanner from '../components/EvolutionBanner';
 import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
 import PlateauBanner from '../components/PlateauBanner';
 import FicheComments from '../components/FicheComments';
-import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion, updateVersionDspMetrics, updateVersionGenre, updateTrackIntent, updateVersionIntent } from '../lib/storage';
+import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion, updateVersionDspMetrics, updateVersionGenre, updateTrackIntent, updateVersionIntent, getMyProjectRole } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
@@ -1098,7 +1098,7 @@ function AnalyzingState({ stage }) {
 // Montre l'état courant du titre (Chanté / Voix à venir / Instrumental) et permet
 // à l'utilisateur de le changer. Utile si on s'est trompé à l'import, ou si un
 // instrumental temporaire devient définitif.
-function VocalTypePill({ track, onRefresh }) {
+function VocalTypePill({ track, onRefresh, readOnly = false }) {
   const { s } = useLang();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -1140,16 +1140,18 @@ function VocalTypePill({ track, onRefresh }) {
       <button
         type="button"
         className={`vocal-pill ${current}`}
-        onClick={() => setOpen((v) => !v)}
-        disabled={busy}
+        onClick={() => { if (!readOnly) setOpen((v) => !v); }}
+        disabled={busy || readOnly}
         title={TITLES[current]}
       >
         <span className="vp-label">{LABELS[current]}</span>
-        <svg className="vp-caret" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-          <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        {!readOnly && (
+          <svg className="vp-caret" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+            <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
       </button>
-      {open && (
+      {open && !readOnly && (
         <div className="vocal-pill-menu">
           {(['vocal', 'instrumental_pending', 'instrumental_final']).map((opt) => (
             <button
@@ -3753,7 +3755,7 @@ export function QualitativeSection({ listening }) {
 
 // ── NotesSection (bloc notes perso, 1 par fiche) ───────────
 
-function NotesSection({ versionId, initialNotes, v2 = false }) {
+function NotesSection({ versionId, initialNotes, v2 = false, readOnly = false }) {
   const { s } = useLang();
   const [notes, setNotes] = useState(initialNotes || '');
   const [open, setOpen] = useState(() => v2 || Boolean(initialNotes && initialNotes.trim()));
@@ -3779,7 +3781,7 @@ function NotesSection({ versionId, initialNotes, v2 = false }) {
     };
   }, []);
 
-  const canEdit = Boolean(versionId) && versionId !== '__pending_v__' && versionId !== '__pending__';
+  const canEdit = !readOnly && Boolean(versionId) && versionId !== '__pending_v__' && versionId !== '__pending__';
   const label = status === 'saving' ? s.fiche.notesStatusSaving : status === 'saved' ? s.fiche.notesStatusSaved : null;
 
   const handleChange = (e) => {
@@ -4275,6 +4277,20 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     }],
   } : null);
 
+  // ── Rôle de collaboration (Phase 2) ───────────────────────
+  // Mon rôle sur le projet du titre courant. viewer/commenter = lecture
+  // seule (on masque les contrôles d'édition — le RLS bloque déjà côté
+  // serveur, c'est du confort UX). owner/editor/null(legacy perso) = édition.
+  const currentProjectId = dbTrack?.projectId || null;
+  const [myRole, setMyRole] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    if (!currentProjectId) { setMyRole(null); return undefined; }
+    getMyProjectRole(currentProjectId).then((r) => { if (alive) setMyRole(r); });
+    return () => { alive = false; };
+  }, [currentProjectId]);
+  const canEditFiche = myRole !== 'viewer' && myRole !== 'commenter';
+
   // ── i18n : traduction à la volée de la fiche + écoute ──────
   // On ne traduit que quand on a un id de version (persisté en DB).
   // Tant que la traduction n'est pas revenue, on montre l'original (meilleur
@@ -4675,7 +4691,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             stage={stage}
             analysisResult={analysisResult}
             onSelectVersion={onSelectVersion}
-            onAddVersion={onAddVersion}
+            onAddVersion={canEditFiche ? onAddVersion : undefined}
             onShareVersion={handleShareVersion}
             onExportVersion={handleExportVersion}
             onScoreCard={handleScoreCard}
@@ -4934,7 +4950,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               // BPM et Key sont éditables via DspEditModal si la
               // version est persistée (id valide, pas un pending temp).
               const dspEditable = !!(versionInDb?.id
-                && !String(versionInDb.id).startsWith('__pending'));
+                && !String(versionInDb.id).startsWith('__pending')) && canEditFiche;
               const editTooltip = dspEditable
                 ? 'Mesures objectives (clique pour corriger)'
                 : 'Mesures objectives du fichier audio';
@@ -4990,7 +5006,8 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                       const editVersionId = versionId || config?.versionId || null;
                       const editable = !!editVersionId
                         && editVersionId !== '__pending_v__'
-                        && editVersionId !== '__pending__';
+                        && editVersionId !== '__pending__'
+                        && canEditFiche;
 
                       const startEdit = () => {
                         if (!editable || genreSaving) return;
@@ -5194,7 +5211,8 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     <div className="cover-vocal-pill">
                       <VocalTypePill
                         track={currentTrack}
-                        onRefresh={() => loadTracks().then(setTracks)}
+                        onRefresh={canEditFiche ? () => loadTracks().then(setTracks) : undefined}
+                        readOnly={!canEditFiche}
                       />
                     </div>
                   </div>
@@ -5369,7 +5387,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     analysisResult={displayAR}
                     currentTrack={currentTrack}
                     versionInDb={versionInDb}
-                    onRefresh={() => loadTracks().then(setTracks)}
+                    onRefresh={canEditFiche ? () => loadTracks().then(setTracks) : undefined}
                   />
                 </div>
               )}
@@ -5639,6 +5657,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               versionId={versionInDb?.id || null}
               initialNotes={(analysisResult && analysisResult.userNotes) || ''}
               v2
+              readOnly={!canEditFiche}
             />
           </div>
 
