@@ -1008,6 +1008,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   // Modales
   const [renameProjectTarget, setRenameProjectTarget] = useState(null);
   const [membersTarget, setMembersTarget] = useState(null); // projet dont on gère les membres
+  const [membersInitialTrack, setMembersInitialTrack] = useState(null); // portée initiale (titre) de la modale membres
   const [renameTrackTarget, setRenameTrackTarget] = useState(null);
 
   // Projets partagés AVEC moi (collaboration Phase 2) — chargés à part car
@@ -1645,7 +1646,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                     <div className="wh-acc-menu-sep" />
                     <button
                       className="wh-acc-menu-item"
-                      onClick={() => { setOpenProjectMenuId(null); setMembersTarget(project); }}
+                      onClick={() => { setOpenProjectMenuId(null); setMembersInitialTrack(null); setMembersTarget(project); }}
                     >{s.home.share || 'Partager / Membres'}</button>
                     <div className="wh-acc-menu-sep" />
                     <button
@@ -1672,6 +1673,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                         onDelete={() => handleDeleteTrack(track)}
                         onChangeCover={() => handleChangeTrackCoverStart(track)}
                         onClearCover={() => handleClearTrackCover(track)}
+                        onShare={() => { setMembersInitialTrack(track.id); setMembersTarget(project); }}
                         drag={drag}
                         setDrag={setDrag}
                         onDropTrackOnTrack={handleDropTrackOnTrack}
@@ -1824,7 +1826,8 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
         <ProjectMembersModal
           project={membersTarget}
           s={s}
-          onClose={() => setMembersTarget(null)}
+          initialScope={membersInitialTrack || 'project'}
+          onClose={() => { setMembersTarget(null); setMembersInitialTrack(null); }}
         />
       )}
       {newProjectOpen && (
@@ -2265,7 +2268,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 }
 
 /* ─── Ligne titre dans Home (accordéon ouvert) ─────────────────────── */
-function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename, onDelete, onChangeCover, onClearCover, drag, setDrag, onDropTrackOnTrack, prevTrackId = null, nextTrackId = null }) {
+function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename, onDelete, onChangeCover, onClearCover, onShare, drag, setDrag, onDropTrackOnTrack, prevTrackId = null, nextTrackId = null }) {
   const { s } = useLang();
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -2482,6 +2485,9 @@ function WhTrackRow({ track, project, playerState, onPlay, onViewFiche, onRename
               label={s.home.trackRemoveImage}
               onClick={() => { setMenuOpen(false); onClearCover(); }}
             />
+          )}
+          {onShare && (
+            <WhMenuItem label={s.home.shareTrack || 'Partager ce titre'} onClick={() => { setMenuOpen(false); onShare(); }} />
           )}
           <div style={{ height: 1, background: '#2a2a2e', margin: '4px 2px' }} />
           <WhMenuItem label={s.home.delete} danger onClick={() => { setMenuOpen(false); onDelete(); }} />

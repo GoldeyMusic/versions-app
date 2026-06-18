@@ -15,13 +15,13 @@ import {
 // Membre non-owner : voit la liste (lecture seule).
 const ROLE_OPTIONS = ['editor', 'commenter', 'viewer'];
 
-export default function ProjectMembersModal({ project, onClose, s }) {
+export default function ProjectMembersModal({ project, onClose, s, initialScope = 'project' }) {
   const t = (s && s.share) || {};
   const roleLabel = (r) => (t.roles && t.roles[r]) || r;
 
   const [data, setData] = useState({ members: [], pending: [], my_role: null });
   const [loading, setLoading] = useState(true);
-  const [scope, setScope] = useState('project'); // 'project' | trackId
+  const [scope, setScope] = useState(initialScope); // 'project' | trackId
   const [email, setEmail] = useState('');
   const [inviteMsg, setInviteMsg] = useState('');
   const [inviteRole, setInviteRole] = useState('editor');
