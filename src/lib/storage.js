@@ -625,6 +625,110 @@ export async function fetchPublicFiche(token) {
   };
 }
 
+// ── Commentaires de fiche (collaboration Phase 1) ──────────
+// Deux chemins, calqués sur le lien public :
+//   • PROPRIÉTAIRE  → accès direct table (RLS owner-only).
+//   • VISITEUR partagé → RPC SECURITY DEFINER avec le token.
+// Résolution / suppression passent par des RPC qui acceptent owner OU
+// auteur (un seul chemin, peu importe d'où on regarde la fiche).
+
+function normalizeComment(c) {
+  return {
+    id: c.id,
+    authorName: c.author_name || 'Invité',
+    body: c.body || '',
+    anchor: c.anchor || null,
+    resolved: !!c.resolved,
+    createdAt: c.created_at || null,
+    isMine: !!c.is_mine,
+  };
+}
+
+/** Charge les commentaires d'une fiche que l'on POSSÈDE (chemin owner, RLS direct). */
+export async function loadFicheComments(versionId) {
+  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return [];
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data, error } = await supabase
+    .from('fiche_comments')
+    .select('id, author_id, author_name, body, anchor, resolved, created_at')
+    .eq('version_id', versionId)
+    .order('created_at', { ascending: true });
+  if (error) { console.warn('[storage] loadFicheComments error:', error.message); return []; }
+  return (data || []).map((c) => normalizeComment({ ...c, is_mine: user && c.author_id === user.id }));
+}
+
+/** Ajoute un commentaire sur une fiche que l'on POSSÈDE (chemin owner). */
+export async function addFicheComment(versionId, body, authorName, anchor = null) {
+  if (!versionId || versionId === '__pending_v__' || versionId === '__pending__') return null;
+  const clean = (body || '').trim();
+  if (!clean) return null;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from('fiche_comments')
+    .insert({
+      version_id: versionId,
+      author_id: user.id,
+      author_name: (authorName || '').trim() || 'Moi',
+      body: clean.slice(0, 4000),
+      anchor: (anchor || '').trim() || null,
+    })
+    .select('id, author_name, body, anchor, resolved, created_at')
+    .single();
+  if (error) { console.warn('[storage] addFicheComment error:', error.message); return null; }
+  return normalizeComment({ ...data, is_mine: true });
+}
+
+/** Charge les commentaires d'une fiche PARTAGÉE (chemin visiteur, via token). */
+export async function fetchSharedComments(token) {
+  if (!token) return [];
+  const { data, error } = await supabase.rpc('get_fiche_comments', { p_token: token });
+  if (error) { console.warn('[storage] fetchSharedComments error:', error.message); return []; }
+  return Array.isArray(data) ? data.map(normalizeComment) : [];
+}
+
+/**
+ * Ajoute un commentaire sur une fiche PARTAGÉE (chemin visiteur, via token).
+ * Exige d'être connecté (partage identifié). Renvoie le commentaire créé,
+ * ou un objet { error } pour que l'UI propose la connexion si besoin.
+ */
+export async function addSharedComment(token, body, authorName, anchor = null) {
+  if (!token) return { error: 'no_token' };
+  const clean = (body || '').trim();
+  if (!clean) return { error: 'empty_body' };
+  const { data, error } = await supabase.rpc('add_fiche_comment', {
+    p_token: token,
+    p_body: clean,
+    p_author_name: (authorName || '').trim() || 'Invité',
+    p_anchor: (anchor || '').trim() || null,
+  });
+  if (error) {
+    console.warn('[storage] addSharedComment error:', error.message);
+    // 'auth_required' remonté par la RPC quand l'utilisateur n'est pas connecté.
+    return { error: /auth_required/.test(error.message) ? 'auth_required' : 'failed' };
+  }
+  return normalizeComment(data);
+}
+
+/** Résout / dé-résout un commentaire (owner ou auteur). */
+export async function resolveComment(commentId, resolved) {
+  if (!commentId) return false;
+  const { error } = await supabase.rpc('set_fiche_comment_resolved', {
+    p_comment_id: commentId,
+    p_resolved: !!resolved,
+  });
+  if (error) { console.warn('[storage] resolveComment error:', error.message); return false; }
+  return true;
+}
+
+/** Supprime un commentaire (owner ou auteur). */
+export async function deleteComment(commentId) {
+  if (!commentId) return false;
+  const { error } = await supabase.rpc('delete_fiche_comment', { p_comment_id: commentId });
+  if (error) { console.warn('[storage] deleteComment error:', error.message); return false; }
+  return true;
+}
+
 /**
  * Traduit un analysisResult (fiche + écoute) vers `target` en utilisant
  * /api/translate. Pas d'écriture en DB (utile pour les visiteurs anonymes
