@@ -1384,6 +1384,9 @@ const STRINGS = {
     share: {
       title: "Membres du projet",
       subtitle: "Invite des collaborateurs et gère leurs accès.",
+      scopeLabel: "Partager :",
+      scopeProject: "Projet entier",
+      scopeTrackPrefix: "Titre :",
       inviteEmailLabel: "Inviter par email",
       emailPlaceholder: "email@exemple.com",
       messagePlaceholder: "Message (facultatif) — un mot pour la personne invitée…",
@@ -3253,6 +3256,9 @@ const STRINGS = {
     share: {
       title: "Project members",
       subtitle: "Invite collaborators and manage their access.",
+      scopeLabel: "Share:",
+      scopeProject: "Whole project",
+      scopeTrackPrefix: "Track:",
       inviteEmailLabel: "Invite by email",
       emailPlaceholder: "email@example.com",
       messagePlaceholder: "Message (optional) — a note for the invitee…",

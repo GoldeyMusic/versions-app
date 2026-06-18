@@ -743,23 +743,31 @@ export async function listProjectMembers(projectId) {
   return data || { members: [], pending: [], my_role: null };
 }
 
-/** Invite quelqu'un par email (usage unique, expire 14 j) + envoie le mail.
- *  message : note libre facultative insérée dans l'email. */
-export async function createProjectInvite(projectId, email, role = 'editor', message = null) {
-  const { data, error } = await supabase.rpc('create_project_invite', {
-    p_project: projectId, p_email: email, p_role: role, p_message: message || null,
-  });
-  if (error) { console.warn('[storage] createProjectInvite error:', error.message); return { error: error.message }; }
-  return data; // { token, link, email, role }
+/** Liste les membres d'un TITRE (owner projet + membres titre) + invitations + mon rôle. */
+export async function listTrackMembers(trackId) {
+  if (!trackId) return { members: [], pending: [], my_role: null };
+  const { data, error } = await supabase.rpc('list_track_members', { p_track: trackId });
+  if (error) { console.warn('[storage] listTrackMembers error:', error.message); return { members: [], pending: [], my_role: null }; }
+  return data || { members: [], pending: [], my_role: null };
 }
 
-/** Crée (ou récupère) un lien d'invitation réutilisable pour un rôle. */
-export async function createProjectJoinLink(projectId, role = 'editor') {
+/** Invite par email. trackId optionnel → portée titre au lieu de projet.
+ *  message : note libre facultative insérée dans l'email. */
+export async function createProjectInvite(projectId, email, role = 'editor', message = null, trackId = null) {
+  const { data, error } = await supabase.rpc('create_project_invite', {
+    p_project: projectId, p_email: email, p_role: role, p_message: message || null, p_track: trackId || null,
+  });
+  if (error) { console.warn('[storage] createProjectInvite error:', error.message); return { error: error.message }; }
+  return data; // { token, link, email, role, scope }
+}
+
+/** Crée (ou récupère) un lien d'invitation réutilisable. trackId optionnel → portée titre. */
+export async function createProjectJoinLink(projectId, role = 'editor', trackId = null) {
   const { data, error } = await supabase.rpc('create_project_join_link', {
-    p_project: projectId, p_role: role,
+    p_project: projectId, p_role: role, p_track: trackId || null,
   });
   if (error) { console.warn('[storage] createProjectJoinLink error:', error.message); return { error: error.message }; }
-  return data; // { token, link, role }
+  return data; // { token, link, role, scope }
 }
 
 /** Aperçu d'une invitation (pour l'écran /join). Renvoie {valid, role, project_name} ou {valid:false, reason}. */
@@ -800,6 +808,55 @@ export async function removeMember(projectId, userId) {
   const { error } = await supabase.rpc('remove_member', { p_project: projectId, p_user: userId });
   if (error) { console.warn('[storage] removeMember error:', error.message); return false; }
   return true;
+}
+
+/** Change le rôle d'un membre de TITRE (owner uniquement). */
+export async function updateTrackMemberRole(trackId, userId, role) {
+  const { error } = await supabase.rpc('update_track_member_role', { p_track: trackId, p_user: userId, p_role: role });
+  if (error) { console.warn('[storage] updateTrackMemberRole error:', error.message); return false; }
+  return true;
+}
+
+/** Retire un membre de TITRE (owner) ou se retire soi-même. */
+export async function removeTrackMember(trackId, userId) {
+  const { error } = await supabase.rpc('remove_track_member', { p_track: trackId, p_user: userId });
+  if (error) { console.warn('[storage] removeTrackMember error:', error.message); return false; }
+  return true;
+}
+
+/** Titres partagés AVEC moi (membre titre direct), AVEC versions + rôle/contexte. */
+export async function loadSharedTracks() {
+  const { data: meta, error: e1 } = await supabase.rpc('my_shared_tracks');
+  if (e1) { console.warn('[storage] loadSharedTracks rpc error:', e1.message); return []; }
+  const list = Array.isArray(meta) ? meta : [];
+  if (!list.length) return [];
+  const ids = list.map((x) => x.track_id);
+  const m = new Map(list.map((x) => [x.track_id, x]));
+
+  const { data, error } = await supabase
+    .from('tracks')
+    .select('id, title, project_id, vocal_type, created_at, versions(id, name, date, bpm, key, lufs, is_main, analysis_result, version_intent, storage_path, upload_type, created_at)')
+    .in('id', ids);
+  if (error) { console.warn('[storage] loadSharedTracks tracks error:', error.message); return []; }
+
+  return (data || []).map((t) => ({
+    id: t.id,
+    title: t.title,
+    projectId: t.project_id,
+    vocalType: t.vocal_type || 'vocal',
+    role: m.get(t.id)?.role || 'viewer',
+    projectName: m.get(t.id)?.project_name || '',
+    ownerName: m.get(t.id)?.owner_name || '',
+    versions: (t.versions || [])
+      .slice()
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      .map((v) => ({
+        id: v.id, name: v.name, date: v.date, createdAt: v.created_at,
+        bpm: v.bpm, key: v.key, lufs: v.lufs, main: v.is_main,
+        analysisResult: v.analysis_result, versionIntent: v.version_intent || null,
+        storagePath: v.storage_path, uploadType: v.upload_type || 'mix',
+      })),
+  }));
 }
 
 /**

@@ -1,10 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   listProjectMembers,
+  listTrackMembers,
   createProjectInvite,
   createProjectJoinLink,
   updateMemberRole,
   removeMember,
+  updateTrackMemberRole,
+  removeTrackMember,
 } from '../lib/storage';
 
 // ── ProjectMembersModal — gestion des membres d'un projet (collab Phase 2)
@@ -18,6 +21,7 @@ export default function ProjectMembersModal({ project, onClose, s }) {
 
   const [data, setData] = useState({ members: [], pending: [], my_role: null });
   const [loading, setLoading] = useState(true);
+  const [scope, setScope] = useState('project'); // 'project' | trackId
   const [email, setEmail] = useState('');
   const [inviteMsg, setInviteMsg] = useState('');
   const [inviteRole, setInviteRole] = useState('editor');
@@ -26,14 +30,19 @@ export default function ProjectMembersModal({ project, onClose, s }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
 
+  const isTrackScope = scope !== 'project';
+  const tracks = Array.isArray(project.tracks) ? project.tracks : [];
+
   const reload = useCallback(async () => {
     setLoading(true);
-    const d = await listProjectMembers(project.id);
+    const d = scope === 'project'
+      ? await listProjectMembers(project.id)
+      : await listTrackMembers(scope);
     setData(d || { members: [], pending: [], my_role: null });
     setLoading(false);
-  }, [project.id]);
+  }, [project.id, scope]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { setLink(''); setNotice(''); reload(); }, [reload]);
 
   const isOwner = data.my_role === 'owner';
 
@@ -41,7 +50,7 @@ export default function ProjectMembersModal({ project, onClose, s }) {
     const e = email.trim();
     if (!e || busy) return;
     setBusy(true);
-    const res = await createProjectInvite(project.id, e, inviteRole, inviteMsg.trim() || null);
+    const res = await createProjectInvite(project.id, e, inviteRole, inviteMsg.trim() || null, isTrackScope ? scope : null);
     setBusy(false);
     if (res && !res.error) { setEmail(''); setInviteMsg(''); setNotice(t.inviteSent || 'Invitation envoyée.'); reload(); }
     else setNotice(t.inviteError || "L'envoi a échoué.");
@@ -50,7 +59,7 @@ export default function ProjectMembersModal({ project, onClose, s }) {
   const onGenerateLink = async () => {
     if (busy) return;
     setBusy(true);
-    const res = await createProjectJoinLink(project.id, linkRole);
+    const res = await createProjectJoinLink(project.id, linkRole, isTrackScope ? scope : null);
     setBusy(false);
     if (res && res.link) {
       setLink(res.link);
@@ -60,10 +69,12 @@ export default function ProjectMembersModal({ project, onClose, s }) {
   };
 
   const onChangeRole = async (userId, role) => {
-    if (await updateMemberRole(project.id, userId, role)) reload();
+    const ok = isTrackScope ? await updateTrackMemberRole(scope, userId, role) : await updateMemberRole(project.id, userId, role);
+    if (ok) reload();
   };
   const onRemove = async (userId) => {
-    if (await removeMember(project.id, userId)) reload();
+    const ok = isTrackScope ? await removeTrackMember(scope, userId) : await removeMember(project.id, userId);
+    if (ok) reload();
   };
 
   return (
@@ -74,6 +85,17 @@ export default function ProjectMembersModal({ project, onClose, s }) {
         <div className="pm-eyebrow">{t.title || 'Membres du projet'}</div>
         <div className="pm-project-name">{project.name}</div>
         {t.subtitle && <p className="pm-subtitle">{t.subtitle}</p>}
+
+        {/* Portée : projet entier ou un titre précis */}
+        <div className="pm-scope">
+          <span className="pm-scope-label">{t.scopeLabel || 'Partager :'}</span>
+          <select className="pm-select" value={scope} onChange={(e) => setScope(e.target.value)}>
+            <option value="project">{t.scopeProject || 'Projet entier'}</option>
+            {tracks.map((tk) => (
+              <option key={tk.id} value={tk.id}>{(t.scopeTrackPrefix || 'Titre :')} {tk.title}</option>
+            ))}
+          </select>
+        </div>
 
         {notice && <div className="pm-notice">{notice}</div>}
 
@@ -201,7 +223,10 @@ const PM_CSS = `
   border-radius: 999px; padding: 4px 11px; display: inline-block;
 }
 .pm-project-name { font-size: 20px; font-weight: 700; color: #fff; margin: 12px 0 2px; }
-.pm-subtitle { font-size: 13px; color: rgba(255,255,255,0.5); margin: 0 0 8px; }
+.pm-subtitle { font-size: 13px; color: rgba(255,255,255,0.5); margin: 0 0 12px; }
+.pm-scope { display: flex; align-items: center; gap: 9px; margin: 0 0 4px; flex-wrap: wrap; }
+.pm-scope-label { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.6); }
+.pm-scope .pm-select { flex: 1 1 auto; min-width: 0; }
 .pm-notice {
   margin: 10px 0; font-size: 13px; color: #7fd6b0; background: rgba(127,214,176,0.10);
   border: 1px solid rgba(127,214,176,0.28); border-radius: 10px; padding: 8px 12px;

@@ -22,7 +22,7 @@ import VersionsScreen from "./screens/VersionsScreen";
 import OnboardingHints from "./components/OnboardingHints";
 import { HOME_STEPS, ONBOARDING_STORAGE_KEYS } from "./constants/onboardingSteps";
 
-import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage, setTrackCoverImage, clearTrackCoverImage, updateTrackIntent, updateVersionIntent, findDuplicateAudio, loadSharedProjectsWithTracks } from "./lib/storage";
+import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage, setTrackCoverImage, clearTrackCoverImage, updateTrackIntent, updateVersionIntent, findDuplicateAudio, loadSharedProjectsWithTracks, loadSharedTracks } from "./lib/storage";
 import { getPending, clearPending } from "./lib/pendingJob";
 import { assignProjectColors, PROJECT_COLOR_COUNT } from "./lib/projectColors";
 import { resizeImageFile } from "./lib/image";
@@ -1013,10 +1013,12 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   // Projets partagés AVEC moi (collaboration Phase 2) — chargés à part car
   // loadProjects() ne renvoie que les projets possédés.
   const [sharedProjects, setSharedProjects] = useState([]);
+  const [sharedTracks, setSharedTracks] = useState([]);
   const [openSharedId, setOpenSharedId] = useState(null);
   useEffect(() => {
     let alive = true;
     loadSharedProjectsWithTracks().then((list) => { if (alive) setSharedProjects(list); }).catch(() => {});
+    loadSharedTracks().then((list) => { if (alive) setSharedTracks(list); }).catch(() => {});
     return () => { alive = false; };
   }, [projectsLoaded]);
   const sharedRoleLabel = (r) => (s.share && s.share.roles && s.share.roles[r]) || r;
@@ -1693,8 +1695,8 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     </div>
   ) : null;
 
-  // Section « Partagés avec moi » — projets dont je suis membre (pas owner).
-  const sharedAccordion = sharedProjects.length > 0 ? (
+  // Section « Partagés avec moi » — projets + titres dont je suis membre.
+  const sharedAccordion = (sharedProjects.length > 0 || sharedTracks.length > 0) ? (
     <div className="wh-tracklist wh-shared-section" style={{ marginTop: 18 }}>
       <div className="wh-projects">
         <div className="wh-section-title wh-projects-title">
@@ -1749,6 +1751,20 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
             </div>
           );
         })}
+        {sharedTracks.map((track) => (
+          <div key={track.id} className="wh-acc-item wh-tint-0">
+            <div className="wh-acc-head" style={{ cursor: 'pointer' }} onClick={() => handleViewFiche(track)}>
+              <div className="wh-acc-cover wh-gradient-0" />
+              <div className="wh-acc-info">
+                <div className="wh-acc-name">{track.title}</div>
+                <div className="wh-acc-sub" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ opacity: 0.6 }}>{track.projectName}{track.ownerName ? ` · ${track.ownerName}` : ''}</span>
+                  <span className="vside-chip" style={{ fontSize: 10, padding: '1px 8px' }}>{sharedRoleLabel(track.role)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   ) : null;
