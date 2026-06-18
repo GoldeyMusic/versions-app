@@ -743,10 +743,11 @@ export async function listProjectMembers(projectId) {
   return data || { members: [], pending: [], my_role: null };
 }
 
-/** Invite quelqu'un par email (usage unique, expire 14 j) + envoie le mail. */
-export async function createProjectInvite(projectId, email, role = 'editor') {
+/** Invite quelqu'un par email (usage unique, expire 14 j) + envoie le mail.
+ *  message : note libre facultative insérée dans l'email. */
+export async function createProjectInvite(projectId, email, role = 'editor', message = null) {
   const { data, error } = await supabase.rpc('create_project_invite', {
-    p_project: projectId, p_email: email, p_role: role,
+    p_project: projectId, p_email: email, p_role: role, p_message: message || null,
   });
   if (error) { console.warn('[storage] createProjectInvite error:', error.message); return { error: error.message }; }
   return data; // { token, link, email, role }

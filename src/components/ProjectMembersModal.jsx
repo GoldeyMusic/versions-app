@@ -19,6 +19,7 @@ export default function ProjectMembersModal({ project, onClose, s }) {
   const [data, setData] = useState({ members: [], pending: [], my_role: null });
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
+  const [inviteMsg, setInviteMsg] = useState('');
   const [inviteRole, setInviteRole] = useState('editor');
   const [linkRole, setLinkRole] = useState('editor');
   const [link, setLink] = useState('');
@@ -40,9 +41,9 @@ export default function ProjectMembersModal({ project, onClose, s }) {
     const e = email.trim();
     if (!e || busy) return;
     setBusy(true);
-    const res = await createProjectInvite(project.id, e, inviteRole);
+    const res = await createProjectInvite(project.id, e, inviteRole, inviteMsg.trim() || null);
     setBusy(false);
-    if (res && !res.error) { setEmail(''); setNotice(t.inviteSent || 'Invitation envoyée.'); reload(); }
+    if (res && !res.error) { setEmail(''); setInviteMsg(''); setNotice(t.inviteSent || 'Invitation envoyée.'); reload(); }
     else setNotice(t.inviteError || "L'envoi a échoué.");
   };
 
@@ -97,6 +98,13 @@ export default function ProjectMembersModal({ project, onClose, s }) {
                   {t.inviteBtn || 'Inviter'}
                 </button>
               </div>
+              <textarea
+                className="pm-message"
+                value={inviteMsg}
+                onChange={(e) => setInviteMsg(e.target.value)}
+                placeholder={t.messagePlaceholder || 'Message (facultatif) — un mot pour la personne invitée…'}
+                rows={2}
+              />
             </div>
 
             {/* Lien partageable */}
@@ -206,6 +214,13 @@ const PM_CSS = `
   border-radius: 10px; padding: 9px 12px; color: #fff; font-family: inherit; font-size: 14px; outline: none;
 }
 .pm-input:focus { border-color: rgba(245,176,86,0.55); }
+.pm-message {
+  margin-top: 8px; width: 100%; box-sizing: border-box; resize: vertical; min-height: 40px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
+  padding: 9px 12px; color: #fff; font-family: inherit; font-size: 13.5px; line-height: 1.45; outline: none;
+}
+.pm-message:focus { border-color: rgba(245,176,86,0.55); }
+.pm-message::placeholder { color: rgba(255,255,255,0.32); }
 .pm-select {
   background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
   padding: 9px 10px; color: #fff; font-family: inherit; font-size: 13px; cursor: pointer; outline: none;
