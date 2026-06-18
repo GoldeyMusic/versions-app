@@ -809,6 +809,62 @@ export async function loadSharedProjects() {
 }
 
 /**
+ * Projets partagés AVEC moi, AVEC leurs titres + versions (pour le dashboard).
+ * 1) my_shared_projects() → ids + rôle + nom + owner. 2) charge les projets
+ * (le RLS membre autorise la lecture). Renvoie le même shape que loadProjects
+ * + { role, ownerName }.
+ */
+export async function loadSharedProjectsWithTracks() {
+  const shared = await loadSharedProjects();
+  if (!shared.length) return [];
+  const ids = shared.map((s) => s.project_id);
+  const meta = new Map(shared.map((s) => [s.project_id, s]));
+
+  const { data, error } = await supabase
+    .from('projects')
+    .select(`
+      id, name, cover_gradient, cover_image_url, position, created_at,
+      tracks(
+        id, title, cover_image_url, created_at, position_in_project,
+        versions(id, name, date, bpm, key, lufs, is_main, analysis_result, storage_path, upload_type, created_at)
+      )
+    `)
+    .in('id', ids)
+    .order('created_at', { ascending: true });
+
+  if (error) { console.warn('[storage] loadSharedProjectsWithTracks error:', error.message); return []; }
+
+  return (data || []).map((p) => ({
+    id: p.id,
+    name: p.name,
+    coverGradient: p.cover_gradient,
+    coverImageUrl: p.cover_image_url || null,
+    position: p.position,
+    createdAt: p.created_at,
+    role: meta.get(p.id)?.role || 'viewer',
+    ownerName: meta.get(p.id)?.owner_name || '',
+    tracks: (p.tracks || [])
+      .slice()
+      .sort((a, b) => (a.position_in_project - b.position_in_project) || (new Date(a.created_at) - new Date(b.created_at)))
+      .map((t) => ({
+        id: t.id,
+        title: t.title,
+        coverImageUrl: t.cover_image_url || null,
+        createdAt: t.created_at,
+        versions: (t.versions || [])
+          .slice()
+          .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+          .map((v) => ({
+            id: v.id, name: v.name, date: v.date, createdAt: v.created_at,
+            bpm: v.bpm, key: v.key, lufs: v.lufs, main: v.is_main,
+            analysisResult: v.analysis_result, storagePath: v.storage_path,
+            uploadType: v.upload_type || 'mix',
+          })),
+      })),
+  }));
+}
+
+/**
  * Traduit un analysisResult (fiche + écoute) vers `target` en utilisant
  * /api/translate. Pas d'écriture en DB (utile pour les visiteurs anonymes
  * qui ne peuvent pas updater le cache côté owner).

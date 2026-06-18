@@ -68,6 +68,7 @@ export default function FicheComments({ s, lang, versionId = null, token = null,
   const [sending, setSending] = useState(false);
   const [hideResolved, setHideResolved] = useState(false);
   const [filterAnchor, setFilterAnchor] = useState(null); // null = tout afficher
+  const [present, setPresent] = useState([]); // présence temps réel (noms)
 
   // En mode owner sans version persistée, rien à afficher.
   const ownerInactive = mode === 'owner' && (!versionId || String(versionId).startsWith('__pending'));
@@ -91,6 +92,29 @@ export default function FicheComments({ s, lang, versionId = null, token = null,
     if (ownerInactive) { setComments([]); setLoading(false); return; }
     reload();
   }, [ownerInactive, reload]);
+
+  // Temps réel (collab Phase 2) : commentaires live + présence des membres.
+  // Réservé au mode connecté (versionId) ; le mode token public passe en anon
+  // et le RLS ne livrerait rien de toute façon.
+  useEffect(() => {
+    if (token || !versionId || String(versionId).startsWith('__pending') || !user) return undefined;
+    const myName = displayNameOf(user) || (t.you || 'Moi');
+    const channel = supabase.channel(`fiche:${versionId}`, { config: { presence: { key: user.id } } });
+    channel
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'fiche_comments', filter: `version_id=eq.${versionId}` },
+        () => { reload(); })
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const names = [];
+        Object.values(state).forEach((arr) => (arr || []).forEach((p) => { if (p && p.name) names.push(p.name); }));
+        setPresent(names);
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') { channel.track({ name: myName }); }
+      });
+    return () => { supabase.removeChannel(channel); };
+  }, [token, versionId, user, reload]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (ownerInactive) return null;
 
@@ -164,6 +188,18 @@ export default function FicheComments({ s, lang, versionId = null, token = null,
         )}
       </div>
       {t.subtitle && <p className="fc-subtitle">{t.subtitle}</p>}
+
+      {present.length > 1 && (
+        <div className="fc-presence" aria-label={t.liveHere || 'En ce moment'}>
+          <span className="fc-presence-dot" aria-hidden="true" />
+          <div className="fc-presence-avatars">
+            {present.slice(0, 5).map((n, i) => (
+              <span key={`${n}-${i}`} className="fc-presence-av" title={n}>{(n || '?').trim().charAt(0).toUpperCase()}</span>
+            ))}
+          </div>
+          <span className="fc-presence-label">{(t.liveHere || 'En ce moment')}</span>
+        </div>
+      )}
 
       {usedAnchors.length > 0 && (
         <div className="fc-filters">
@@ -285,6 +321,16 @@ const FC_CSS = `
 }
 .fc-toggle-resolved:hover { color: rgba(255,255,255,0.75); }
 .fc-subtitle { margin: 8px 0 16px; font-size: 13px; color: rgba(255,255,255,0.45); }
+.fc-presence { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; }
+.fc-presence-dot { width: 7px; height: 7px; border-radius: 50%; background: #7fd6b0; box-shadow: 0 0 0 3px rgba(127,214,176,0.18); }
+.fc-presence-avatars { display: flex; }
+.fc-presence-av {
+  width: 22px; height: 22px; border-radius: 50%; margin-left: -6px; display: inline-flex;
+  align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; color: #1a1206;
+  background: linear-gradient(135deg,#f5b056,#d4900e); border: 2px solid #16161b;
+}
+.fc-presence-av:first-child { margin-left: 0; }
+.fc-presence-label { font-size: 11.5px; color: rgba(255,255,255,0.45); }
 .fc-list { display: flex; flex-direction: column; gap: 14px; }
 .fc-empty { font-size: 13px; color: rgba(255,255,255,0.40); padding: 8px 0; }
 .fc-item { display: flex; gap: 11px; align-items: flex-start; }

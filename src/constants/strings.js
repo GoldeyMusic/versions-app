@@ -190,6 +190,8 @@ const STRINGS = {
       projectAvgScore: "Score moyen",
       myProjects: "Mes",
       myProjectsAccent: "projets",
+      sharedWithMe: "Partagés",
+      sharedWithMeAccent: "avec moi",
       emptyProject: "Aucun titre pour l'instant.",
       newTrackInProject: "+ Nouveau titre",
       rename: "Renommer",
@@ -1375,6 +1377,7 @@ const STRINGS = {
       anchorLabel: "Partie concernée",
       anchorAll: "Général",
       filterAll: "Tout",
+      liveHere: "en ce moment",
     },
 
     /* ─────────────── PARTAGE / MEMBRES (collaboration) ──────────────── */
@@ -2087,6 +2090,8 @@ const STRINGS = {
       projectAvgScore: "Avg. score",
       myProjects: "My",
       myProjectsAccent: "projects",
+      sharedWithMe: "Shared",
+      sharedWithMeAccent: "with me",
       emptyProject: "No tracks yet.",
       newTrackInProject: "+ New track",
       rename: "Rename",
@@ -3240,6 +3245,7 @@ const STRINGS = {
       anchorLabel: "Related section",
       anchorAll: "General",
       filterAll: "All",
+      liveHere: "here now",
     },
 
     /* ─────────────── SHARE / MEMBERS (collaboration) ──────────────── */

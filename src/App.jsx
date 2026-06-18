@@ -22,7 +22,7 @@ import VersionsScreen from "./screens/VersionsScreen";
 import OnboardingHints from "./components/OnboardingHints";
 import { HOME_STEPS, ONBOARDING_STORAGE_KEYS } from "./constants/onboardingSteps";
 
-import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage, setTrackCoverImage, clearTrackCoverImage, updateTrackIntent, updateVersionIntent, findDuplicateAudio } from "./lib/storage";
+import { saveAnalysis, getAnalysis, loadProjects, createProject, renameProject, deleteProject, renameTrack, deleteTrack, moveTrackToProject, reorderTracksInProject, setProjectCoverImage, clearProjectCoverImage, setTrackCoverImage, clearTrackCoverImage, updateTrackIntent, updateVersionIntent, findDuplicateAudio, loadSharedProjectsWithTracks } from "./lib/storage";
 import { getPending, clearPending } from "./lib/pendingJob";
 import { assignProjectColors, PROJECT_COLOR_COUNT } from "./lib/projectColors";
 import { resizeImageFile } from "./lib/image";
@@ -1009,6 +1009,17 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
   const [renameProjectTarget, setRenameProjectTarget] = useState(null);
   const [membersTarget, setMembersTarget] = useState(null); // projet dont on gère les membres
   const [renameTrackTarget, setRenameTrackTarget] = useState(null);
+
+  // Projets partagés AVEC moi (collaboration Phase 2) — chargés à part car
+  // loadProjects() ne renvoie que les projets possédés.
+  const [sharedProjects, setSharedProjects] = useState([]);
+  const [openSharedId, setOpenSharedId] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    loadSharedProjectsWithTracks().then((list) => { if (alive) setSharedProjects(list); }).catch(() => {});
+    return () => { alive = false; };
+  }, [projectsLoaded]);
+  const sharedRoleLabel = (r) => (s.share && s.share.roles && s.share.roles[r]) || r;
   const [renameValue, setRenameValue] = useState('');
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [newProjectValue, setNewProjectValue] = useState('');
@@ -1682,6 +1693,66 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     </div>
   ) : null;
 
+  // Section « Partagés avec moi » — projets dont je suis membre (pas owner).
+  const sharedAccordion = sharedProjects.length > 0 ? (
+    <div className="wh-tracklist wh-shared-section" style={{ marginTop: 18 }}>
+      <div className="wh-projects">
+        <div className="wh-section-title wh-projects-title">
+          {s.home.sharedWithMe || 'Partagés'} <em>{s.home.sharedWithMeAccent || 'avec moi'}</em>
+        </div>
+        {sharedProjects.map((project) => {
+          const isOpen = openSharedId === project.id;
+          const nTracks = project.tracks?.length || 0;
+          return (
+            <div key={project.id} className={`wh-acc-item wh-tint-0${isOpen ? ' open' : ''}`}>
+              <div className="wh-acc-head" onClick={() => setOpenSharedId(isOpen ? null : project.id)}>
+                <div
+                  className={`wh-acc-cover wh-gradient-0${project.coverImageUrl ? ' has-image' : ''}`}
+                  style={project.coverImageUrl ? {
+                    backgroundImage: `url("${project.coverImageUrl}")`,
+                    backgroundSize: 'cover', backgroundPosition: 'center',
+                  } : undefined}
+                />
+                <div className="wh-acc-info">
+                  <div className="wh-acc-name">{project.name}</div>
+                  <div className="wh-acc-sub" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {project.ownerName && <span style={{ opacity: 0.6 }}>{project.ownerName}</span>}
+                    <span className="vside-chip" style={{ fontSize: 10, padding: '1px 8px' }}>{sharedRoleLabel(project.role)}</span>
+                  </div>
+                </div>
+              </div>
+              {isOpen && (
+                <div className="wh-acc-body">
+                  {nTracks > 0 ? (
+                    <div className="wh-acc-tracklist">
+                      {project.tracks.map((track) => (
+                        <button
+                          key={track.id}
+                          className="wh-shared-track"
+                          onClick={() => handleViewFiche(track)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            padding: '9px 10px', borderRadius: 10, color: 'inherit',
+                            font: 'inherit', textAlign: 'left',
+                          }}
+                        >
+                          <span style={{ fontSize: 14, color: '#fff' }}>{track.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="wh-acc-empty">{s.home.emptyProject}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
+
   const mobileEmpty = totalProjects === 0 ? (
     <div className="wh-empty">
       <img src="/logo-versions-2.svg" alt="" style={{ height: 60, width: "auto", opacity: 0.3 }} />
@@ -2107,6 +2178,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 La colonne projets respire et les deux blocs secondaires
                 ne s'empilent plus en pile maigre à droite. */}
             <div className="wh-anim" style={{ '--anim-d': '320ms' }}>{projectsAccordion}</div>
+            {sharedAccordion && <div className="wh-anim" style={{ '--anim-d': '360ms' }}>{sharedAccordion}</div>}
             <div
               className="wh-cols"
               style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', marginTop: 32 }}
@@ -2156,6 +2228,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                  secondaires ne montent plus en pile maigre à droite. */
               <>
                 <div className="wh-anim" style={{ '--anim-d': '160ms' }}>{projectsAccordion}</div>
+                {sharedAccordion && <div className="wh-anim" style={{ '--anim-d': '200ms' }}>{sharedAccordion}</div>}
                 <div
                   className="wh-cols"
                   style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', marginTop: 32 }}
