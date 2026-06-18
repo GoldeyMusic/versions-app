@@ -1351,6 +1351,28 @@ const STRINGS = {
       artistNotesTitle: "Notes de l'artiste",
     },
 
+    /* ─────────────── COMMENTAIRES (collaboration) ──────────────── */
+    comments: {
+      title: "Commentaires",
+      subtitle: "Échange avec tes collaborateurs sur cette version.",
+      empty: "Aucun commentaire pour l'instant.",
+      placeholder: "Écris un commentaire…",
+      send: "Commenter",
+      sending: "Envoi…",
+      signInToComment: "Connecte-toi pour laisser un commentaire.",
+      signInCta: "Se connecter",
+      resolve: "Marquer résolu",
+      unresolve: "Rouvrir",
+      resolved: "Résolu",
+      deleteLabel: "Supprimer",
+      deleteConfirm: "Supprimer ce commentaire ?",
+      you: "Toi",
+      countOne: "{n} commentaire",
+      countMany: "{n} commentaires",
+      hideResolved: "Masquer les résolus",
+      showResolved: "Afficher les résolus",
+    },
+
     /* ─────────────── ERREURS / MESSAGES ──────────────── */
     errors: {
       generic: "Une erreur est survenue.",
@@ -3137,6 +3159,28 @@ const STRINGS = {
       versionPrefix: "Version {name}",
       footerText: "Report generated with Versions · read-only",
       artistNotesTitle: "Artist's notes",
+    },
+
+    /* ─────────────── COMMENTS (collaboration) ──────────────── */
+    comments: {
+      title: "Comments",
+      subtitle: "Discuss this version with your collaborators.",
+      empty: "No comments yet.",
+      placeholder: "Write a comment…",
+      send: "Comment",
+      sending: "Sending…",
+      signInToComment: "Sign in to leave a comment.",
+      signInCta: "Sign in",
+      resolve: "Mark resolved",
+      unresolve: "Reopen",
+      resolved: "Resolved",
+      deleteLabel: "Delete",
+      deleteConfirm: "Delete this comment?",
+      you: "You",
+      countOne: "{n} comment",
+      countMany: "{n} comments",
+      hideResolved: "Hide resolved",
+      showResolved: "Show resolved",
     },
 
     /* ─────────────── ERRORS ─────────────── */

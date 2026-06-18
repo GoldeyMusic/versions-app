@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import GlobalStyles from '../components/GlobalStyles';
 import MockupStyles from '../components/MockupStyles';
 import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
+import FicheComments from '../components/FicheComments';
 import {
   ScoreRingBig,
   ScoreRingSmall,
@@ -311,6 +312,10 @@ export default function PublicFicheScreen({ token }) {
                 )}
               </div>
             )}
+
+            {/* Commentaires collaboratifs sur la fiche partagée (Phase 1).
+                Lecture possible en anonyme ; écrire exige d'être connecté. */}
+            <FicheComments s={s} lang={lang} token={token} />
           </div>
         </main>
 

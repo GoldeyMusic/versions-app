@@ -10,6 +10,7 @@ import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
 import EvolutionBanner from '../components/EvolutionBanner';
 import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
 import PlateauBanner from '../components/PlateauBanner';
+import FicheComments from '../components/FicheComments';
 import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion, updateVersionDspMetrics, updateVersionGenre, updateTrackIntent, updateVersionIntent } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 import { preloadTrackVersions } from '../components/BottomPlayer';
@@ -5639,6 +5640,11 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               initialNotes={(analysisResult && analysisResult.userNotes) || ''}
               v2
             />
+          </div>
+
+          {/* Commentaires collaboratifs — fil par version (Phase 1). */}
+          <div className="wh-anim" style={{ '--anim-d': '440ms' }}>
+            <FicheComments s={s} lang={lang} versionId={versionInDb?.id || null} />
           </div>
           </>
           )}
