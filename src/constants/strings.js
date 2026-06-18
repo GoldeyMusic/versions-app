@@ -186,6 +186,7 @@ const STRINGS = {
       fallbackUser: "utilisateur",
       projectKicker: "Projet",
       projectOptions: "Options du projet",
+      share: "Partager / Membres",
       projectAvgScore: "Score moyen",
       myProjects: "Mes",
       myProjectsAccent: "projets",
@@ -1376,6 +1377,57 @@ const STRINGS = {
       filterAll: "Tout",
     },
 
+    /* ─────────────── PARTAGE / MEMBRES (collaboration) ──────────────── */
+    share: {
+      title: "Membres du projet",
+      subtitle: "Invite des collaborateurs et gère leurs accès.",
+      inviteEmailLabel: "Inviter par email",
+      emailPlaceholder: "email@exemple.com",
+      inviteBtn: "Inviter",
+      inviteSent: "Invitation envoyée.",
+      inviteError: "L'envoi a échoué.",
+      linkTitle: "Lien d'invitation",
+      generateLink: "Générer un lien",
+      linkCopied: "Lien copié dans le presse-papiers.",
+      linkHint: "Quiconque a ce lien et se connecte rejoint le projet.",
+      membersTitle: "Membres",
+      pendingTitle: "Invitations en attente",
+      remove: "Retirer",
+      close: "Fermer",
+      roles: {
+        owner: "Propriétaire",
+        editor: "Éditeur",
+        commenter: "Commentateur",
+        viewer: "Lecteur",
+      },
+    },
+
+    /* ─────────────── INVITATION / REJOINDRE ──────────────── */
+    join: {
+      loading: "Chargement de l'invitation…",
+      title: "Invitation à collaborer",
+      intro: "On t'invite à rejoindre {project}, en tant que :",
+      joinBtn: "Rejoindre le projet",
+      joining: "On te connecte…",
+      signInPrompt: "Connecte-toi ou crée un compte pour rejoindre.",
+      home: "Retour à l'accueil",
+      invalidTitle: "Invitation invalide",
+      invalidGeneric: "Cette invitation n'est plus valide.",
+      invalid: {
+        not_found: "Ce lien d'invitation est introuvable.",
+        expired: "Cette invitation a expiré.",
+        used: "Cette invitation a déjà été utilisée.",
+      },
+      errorGeneric: "Impossible de rejoindre ce projet.",
+      errors: {
+        auth_required: "Connecte-toi pour rejoindre.",
+        expired: "Cette invitation a expiré.",
+        used: "Cette invitation a déjà été utilisée.",
+        not_found: "Invitation introuvable.",
+        failed: "Une erreur est survenue, réessaie.",
+      },
+    },
+
     /* ─────────────── ERREURS / MESSAGES ──────────────── */
     errors: {
       generic: "Une erreur est survenue.",
@@ -2031,6 +2083,7 @@ const STRINGS = {
       fallbackUser: "user",
       projectKicker: "Project",
       projectOptions: "Project options",
+      share: "Share / Members",
       projectAvgScore: "Avg. score",
       myProjects: "My",
       myProjectsAccent: "projects",
@@ -3187,6 +3240,57 @@ const STRINGS = {
       anchorLabel: "Related section",
       anchorAll: "General",
       filterAll: "All",
+    },
+
+    /* ─────────────── SHARE / MEMBERS (collaboration) ──────────────── */
+    share: {
+      title: "Project members",
+      subtitle: "Invite collaborators and manage their access.",
+      inviteEmailLabel: "Invite by email",
+      emailPlaceholder: "email@example.com",
+      inviteBtn: "Invite",
+      inviteSent: "Invitation sent.",
+      inviteError: "Sending failed.",
+      linkTitle: "Invite link",
+      generateLink: "Generate a link",
+      linkCopied: "Link copied to clipboard.",
+      linkHint: "Anyone with this link who signs in joins the project.",
+      membersTitle: "Members",
+      pendingTitle: "Pending invitations",
+      remove: "Remove",
+      close: "Close",
+      roles: {
+        owner: "Owner",
+        editor: "Editor",
+        commenter: "Commenter",
+        viewer: "Viewer",
+      },
+    },
+
+    /* ─────────────── INVITATION / JOIN ──────────────── */
+    join: {
+      loading: "Loading invitation…",
+      title: "Invitation to collaborate",
+      intro: "You're invited to join {project}, as:",
+      joinBtn: "Join the project",
+      joining: "Signing you in…",
+      signInPrompt: "Sign in or create an account to join.",
+      home: "Back to home",
+      invalidTitle: "Invalid invitation",
+      invalidGeneric: "This invitation is no longer valid.",
+      invalid: {
+        not_found: "This invite link could not be found.",
+        expired: "This invitation has expired.",
+        used: "This invitation has already been used.",
+      },
+      errorGeneric: "Could not join this project.",
+      errors: {
+        auth_required: "Sign in to join.",
+        expired: "This invitation has expired.",
+        used: "This invitation has already been used.",
+        not_found: "Invitation not found.",
+        failed: "Something went wrong, try again.",
+      },
     },
 
     /* ─────────────── ERRORS ─────────────── */

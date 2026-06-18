@@ -34,6 +34,8 @@ import SampleFicheScreen from "./screens/SampleFicheScreen";
 import PricingScreen from "./screens/PricingScreen";
 import AdminScreen from "./screens/AdminScreen";
 import PublicFicheScreen from "./screens/PublicFicheScreen";
+import JoinScreen from "./screens/JoinScreen";
+import ProjectMembersModal from "./components/ProjectMembersModal";
 import PrivacyScreen from "./screens/PrivacyScreen";
 import TermsScreen from "./screens/TermsScreen";
 import UpdatePasswordScreen from "./screens/UpdatePasswordScreen";
@@ -1005,6 +1007,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   // Modales
   const [renameProjectTarget, setRenameProjectTarget] = useState(null);
+  const [membersTarget, setMembersTarget] = useState(null); // projet dont on gère les membres
   const [renameTrackTarget, setRenameTrackTarget] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [newProjectOpen, setNewProjectOpen] = useState(false);
@@ -1628,6 +1631,11 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                     )}
                     <div className="wh-acc-menu-sep" />
                     <button
+                      className="wh-acc-menu-item"
+                      onClick={() => { setOpenProjectMenuId(null); setMembersTarget(project); }}
+                    >{s.home.share || 'Partager / Membres'}</button>
+                    <div className="wh-acc-menu-sep" />
+                    <button
                       className="wh-acc-menu-item danger"
                       onClick={() => { setOpenProjectMenuId(null); handleDeleteProject(project); }}
                     >{s.home.delete}</button>
@@ -1723,6 +1731,13 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           onCancel={() => setRenameProjectTarget(null)}
           onSubmit={submitRenameProject}
           confirmLabel={s.home.confirmRename}
+        />
+      )}
+      {membersTarget && (
+        <ProjectMembersModal
+          project={membersTarget}
+          s={s}
+          onClose={() => setMembersTarget(null)}
         />
       )}
       {newProjectOpen && (
@@ -2644,12 +2659,21 @@ function extractPublicToken() {
   return m ? m[1] : null;
 }
 
+// Extrait un éventuel token d'invitation (`/join/<token>`) de l'URL.
+function extractJoinToken() {
+  if (typeof window === 'undefined') return null;
+  const p = window.location.pathname || '/';
+  const m = p.match(/^\/join\/([A-Za-z0-9_-]+)$/);
+  return m ? m[1] : null;
+}
+
 export default function VersionsApp() {
   // ── Route publique lien partagé : court-circuite tout (auth, sidebar, etc.)
   // pour que les destinataires du lien n'aient jamais besoin d'un compte.
   const [publicToken, setPublicToken] = useState(() => extractPublicToken());
+  const [joinToken, setJoinToken] = useState(() => extractJoinToken());
   useEffect(() => {
-    const onPop = () => setPublicToken(extractPublicToken());
+    const onPop = () => { setPublicToken(extractPublicToken()); setJoinToken(extractJoinToken()); };
     window.addEventListener('popstate', onPop);
     return () => {
       window.removeEventListener('popstate', onPop);
@@ -2657,6 +2681,9 @@ export default function VersionsApp() {
   }, []);
   if (publicToken) {
     return <PublicFicheScreen token={publicToken} />;
+  }
+  if (joinToken) {
+    return <JoinScreen token={joinToken} />;
   }
 
   return <VersionsAppAuthed />;

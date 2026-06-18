@@ -729,6 +729,85 @@ export async function deleteComment(commentId) {
   return true;
 }
 
+// ── Workspace / membres (collaboration Phase 2) ────────────
+// Partage d'un PROJET avec d'autres comptes : 3 rôles (viewer/commenter/
+// editor). Owner = projects.user_id. Tout passe par des RPC SECURITY
+// DEFINER (migration 037) ; le RLS additif laisse les membres lire/écrire
+// selon leur rôle. "Celui qui lance l'analyse paie" → rien à gérer ici.
+
+/** Liste les membres d'un projet + invitations email en attente + mon rôle. */
+export async function listProjectMembers(projectId) {
+  if (!projectId) return { members: [], pending: [], my_role: null };
+  const { data, error } = await supabase.rpc('list_project_members', { p_project: projectId });
+  if (error) { console.warn('[storage] listProjectMembers error:', error.message); return { members: [], pending: [], my_role: null }; }
+  return data || { members: [], pending: [], my_role: null };
+}
+
+/** Invite quelqu'un par email (usage unique, expire 14 j) + envoie le mail. */
+export async function createProjectInvite(projectId, email, role = 'editor') {
+  const { data, error } = await supabase.rpc('create_project_invite', {
+    p_project: projectId, p_email: email, p_role: role,
+  });
+  if (error) { console.warn('[storage] createProjectInvite error:', error.message); return { error: error.message }; }
+  return data; // { token, link, email, role }
+}
+
+/** Crée (ou récupère) un lien d'invitation réutilisable pour un rôle. */
+export async function createProjectJoinLink(projectId, role = 'editor') {
+  const { data, error } = await supabase.rpc('create_project_join_link', {
+    p_project: projectId, p_role: role,
+  });
+  if (error) { console.warn('[storage] createProjectJoinLink error:', error.message); return { error: error.message }; }
+  return data; // { token, link, role }
+}
+
+/** Aperçu d'une invitation (pour l'écran /join). Renvoie {valid, role, project_name} ou {valid:false, reason}. */
+export async function previewInvite(token) {
+  if (!token) return { valid: false, reason: 'not_found' };
+  const { data, error } = await supabase.rpc('preview_invite', { p_token: token });
+  if (error) { console.warn('[storage] previewInvite error:', error.message); return { valid: false, reason: 'error' }; }
+  return data || { valid: false, reason: 'not_found' };
+}
+
+/** Accepte une invitation (email ou lien). Connecté requis. Renvoie {project_id, role} ou {error}. */
+export async function acceptProjectInvite(token) {
+  if (!token) return { error: 'not_found' };
+  const { data, error } = await supabase.rpc('accept_project_invite', { p_token: token });
+  if (error) {
+    console.warn('[storage] acceptProjectInvite error:', error.message);
+    const m = error.message || '';
+    const reason = /auth_required/.test(m) ? 'auth_required'
+      : /expired/.test(m) ? 'expired'
+      : /used/.test(m) ? 'used'
+      : /not_found/.test(m) ? 'not_found' : 'failed';
+    return { error: reason };
+  }
+  return data; // { project_id, role }
+}
+
+/** Change le rôle d'un membre (owner uniquement). */
+export async function updateMemberRole(projectId, userId, role) {
+  const { error } = await supabase.rpc('update_member_role', {
+    p_project: projectId, p_user: userId, p_role: role,
+  });
+  if (error) { console.warn('[storage] updateMemberRole error:', error.message); return false; }
+  return true;
+}
+
+/** Retire un membre (owner) ou se retire soi-même. */
+export async function removeMember(projectId, userId) {
+  const { error } = await supabase.rpc('remove_member', { p_project: projectId, p_user: userId });
+  if (error) { console.warn('[storage] removeMember error:', error.message); return false; }
+  return true;
+}
+
+/** Projets partagés AVEC moi (où je suis membre, pas owner) + mon rôle. */
+export async function loadSharedProjects() {
+  const { data, error } = await supabase.rpc('my_shared_projects');
+  if (error) { console.warn('[storage] loadSharedProjects error:', error.message); return []; }
+  return Array.isArray(data) ? data : [];
+}
+
 /**
  * Traduit un analysisResult (fiche + écoute) vers `target` en utilisant
  * /api/translate. Pas d'écriture en DB (utile pour les visiteurs anonymes
