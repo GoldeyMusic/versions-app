@@ -1371,6 +1371,9 @@ const STRINGS = {
       countMany: "{n} commentaires",
       hideResolved: "Masquer les résolus",
       showResolved: "Afficher les résolus",
+      anchorLabel: "Partie concernée",
+      anchorAll: "Général",
+      filterAll: "Tout",
     },
 
     /* ─────────────── ERREURS / MESSAGES ──────────────── */
@@ -3181,6 +3184,9 @@ const STRINGS = {
       countMany: "{n} comments",
       hideResolved: "Hide resolved",
       showResolved: "Show resolved",
+      anchorLabel: "Related section",
+      anchorAll: "General",
+      filterAll: "All",
     },
 
     /* ─────────────── ERRORS ─────────────── */

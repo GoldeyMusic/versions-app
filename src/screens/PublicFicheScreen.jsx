@@ -315,7 +315,12 @@ export default function PublicFicheScreen({ token }) {
 
             {/* Commentaires collaboratifs sur la fiche partagée (Phase 1).
                 Lecture possible en anonyme ; écrire exige d'être connecté. */}
-            <FicheComments s={s} lang={lang} token={token} />
+            <FicheComments
+              s={s}
+              lang={lang}
+              token={token}
+              anchors={elements.map((el) => el.cat).filter(Boolean)}
+            />
           </div>
         </main>
 

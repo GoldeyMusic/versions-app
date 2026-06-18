@@ -54,17 +54,20 @@ function Avatar({ name }) {
   return <span className="fc-avatar" aria-hidden="true">{initial}</span>;
 }
 
-export default function FicheComments({ s, lang, versionId = null, token = null }) {
+export default function FicheComments({ s, lang, versionId = null, token = null, anchors = [] }) {
   const t = (s && s.comments) || {};
   const mode = token ? 'shared' : 'owner';
   const canModerate = mode === 'owner'; // propriétaire = peut résoudre/supprimer tout
+  const anchorList = Array.isArray(anchors) ? anchors.filter(Boolean) : [];
 
   const [user, setUser] = useState(undefined); // undefined = pas encore résolu
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [body, setBody] = useState('');
+  const [anchor, setAnchor] = useState(''); // '' = Général (anchor null)
   const [sending, setSending] = useState(false);
   const [hideResolved, setHideResolved] = useState(false);
+  const [filterAnchor, setFilterAnchor] = useState(null); // null = tout afficher
 
   // En mode owner sans version persistée, rien à afficher.
   const ownerInactive = mode === 'owner' && (!versionId || String(versionId).startsWith('__pending'));
@@ -98,17 +101,19 @@ export default function FicheComments({ s, lang, versionId = null, token = null 
     const clean = body.trim();
     if (!clean || sending) return;
     setSending(true);
+    const a = anchor || null;
     let created = null;
     if (mode === 'shared') {
-      const res = await addSharedComment(token, clean, myName);
+      const res = await addSharedComment(token, clean, myName, a);
       if (res && !res.error) created = res;
     } else {
-      created = await addFicheComment(versionId, clean, myName);
+      created = await addFicheComment(versionId, clean, myName, a);
     }
     setSending(false);
     if (created) {
       setComments((prev) => [...prev, created]);
       setBody('');
+      setAnchor('');
     } else {
       // En cas d'échec (token, réseau), on recharge pour rester cohérent.
       reload();
@@ -130,8 +135,12 @@ export default function FicheComments({ s, lang, versionId = null, token = null 
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); submit(); }
   };
 
-  const visible = hideResolved ? comments.filter((c) => !c.resolved) : comments;
+  const visible = comments
+    .filter((c) => (hideResolved ? !c.resolved : true))
+    .filter((c) => (filterAnchor ? c.anchor === filterAnchor : true));
   const resolvedCount = comments.filter((c) => c.resolved).length;
+  // Sections réellement utilisées dans les commentaires (pour le filtre).
+  const usedAnchors = Array.from(new Set(comments.map((c) => c.anchor).filter(Boolean)));
   const total = comments.length;
   const countLabel = total > 0
     ? (total > 1 ? (t.countMany || '{n}') : (t.countOne || '{n}')).replace('{n}', String(total))
@@ -156,6 +165,28 @@ export default function FicheComments({ s, lang, versionId = null, token = null 
       </div>
       {t.subtitle && <p className="fc-subtitle">{t.subtitle}</p>}
 
+      {usedAnchors.length > 0 && (
+        <div className="fc-filters">
+          <button
+            type="button"
+            className={`fc-filter${filterAnchor === null ? ' is-on' : ''}`}
+            onClick={() => setFilterAnchor(null)}
+          >
+            {t.filterAll || 'Tout'}
+          </button>
+          {usedAnchors.map((a) => (
+            <button
+              key={a}
+              type="button"
+              className={`fc-filter${filterAnchor === a ? ' is-on' : ''}`}
+              onClick={() => setFilterAnchor(a)}
+            >
+              {a}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="fc-list">
         {loading ? (
           <div className="fc-empty">…</div>
@@ -171,6 +202,7 @@ export default function FicheComments({ s, lang, versionId = null, token = null 
                   <div className="fc-meta">
                     <span className="fc-author">{c.isMine ? (t.you || 'Toi') : c.authorName}</span>
                     <span className="fc-time">{timeAgo(c.createdAt, lang)}</span>
+                    {c.anchor && <span className="fc-anchor-chip">{c.anchor}</span>}
                     {c.resolved && <span className="fc-resolved-chip">{t.resolved || 'Résolu'}</span>}
                   </div>
                   <div className="fc-text">{c.body}</div>
@@ -194,22 +226,37 @@ export default function FicheComments({ s, lang, versionId = null, token = null 
       {/* Composer */}
       {user === undefined ? null : loggedIn ? (
         <div className="fc-composer">
-          <textarea
-            className="fc-textarea"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder={t.placeholder || 'Écris un commentaire…'}
-            rows={2}
-          />
-          <button
-            type="button"
-            className="fc-send"
-            disabled={!body.trim() || sending}
-            onClick={submit}
-          >
-            {sending ? (t.sending || 'Envoi…') : (t.send || 'Commenter')}
-          </button>
+          {anchorList.length > 0 && (
+            <select
+              className="fc-anchor-select"
+              value={anchor}
+              onChange={(e) => setAnchor(e.target.value)}
+              aria-label={t.anchorLabel || 'Partie concernée'}
+            >
+              <option value="">{t.anchorAll || 'Général'}</option>
+              {anchorList.map((a) => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          )}
+          <div className="fc-composer-row">
+            <textarea
+              className="fc-textarea"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder={t.placeholder || 'Écris un commentaire…'}
+              rows={2}
+            />
+            <button
+              type="button"
+              className="fc-send"
+              disabled={!body.trim() || sending}
+              onClick={submit}
+            >
+              {sending ? (t.sending || 'Envoi…') : (t.send || 'Commenter')}
+            </button>
+          </div>
         </div>
       ) : (
         <div className="fc-signin">
@@ -257,6 +304,26 @@ const FC_CSS = `
   color: #7fd6b0; background: rgba(127,214,176,0.12);
   border: 1px solid rgba(127,214,176,0.30); border-radius: 999px; padding: 1px 7px;
 }
+.fc-anchor-chip {
+  font-size: 10.5px; font-weight: 600; color: #9ec5ff;
+  background: rgba(120,170,255,0.10); border: 1px solid rgba(120,170,255,0.28);
+  border-radius: 999px; padding: 1px 8px;
+}
+.fc-filters { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 16px; }
+.fc-filter {
+  cursor: pointer; font-family: inherit; font-size: 11.5px; font-weight: 600;
+  color: rgba(255,255,255,0.55); background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; padding: 3px 11px;
+}
+.fc-filter:hover { color: rgba(255,255,255,0.85); }
+.fc-filter.is-on { color: #9ec5ff; background: rgba(120,170,255,0.12); border-color: rgba(120,170,255,0.40); }
+.fc-anchor-select {
+  align-self: flex-start; font-family: inherit; font-size: 12.5px; color: #fff;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px; padding: 7px 11px; outline: none; cursor: pointer;
+}
+.fc-anchor-select:focus { border-color: rgba(245,176,86,0.55); }
+.fc-anchor-select option { color: #111; }
 .fc-text { margin-top: 3px; font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.82); white-space: pre-wrap; word-break: break-word; }
 .fc-actions { display: flex; gap: 14px; margin-top: 6px; }
 .fc-act {
@@ -266,8 +333,9 @@ const FC_CSS = `
 .fc-act:hover { color: rgba(255,255,255,0.80); }
 .fc-act-danger:hover { color: #ff8a8a; }
 .fc-composer {
-  margin-top: 16px; display: flex; gap: 10px; align-items: flex-end;
+  margin-top: 16px; display: flex; flex-direction: column; gap: 9px;
 }
+.fc-composer-row { display: flex; gap: 10px; align-items: flex-end; }
 .fc-textarea {
   flex: 1 1 auto; resize: vertical; min-height: 42px;
   background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);

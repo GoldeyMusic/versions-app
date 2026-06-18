@@ -5642,9 +5642,15 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
             />
           </div>
 
-          {/* Commentaires collaboratifs — fil par version (Phase 1). */}
+          {/* Commentaires collaboratifs — fil par version (Phase 1).
+              anchors = catégories du diagnostic pour cibler un point précis. */}
           <div className="wh-anim" style={{ '--anim-d': '440ms' }}>
-            <FicheComments s={s} lang={lang} versionId={versionInDb?.id || null} />
+            <FicheComments
+              s={s}
+              lang={lang}
+              versionId={versionInDb?.id || null}
+              anchors={elements.map((el) => el.cat).filter(Boolean)}
+            />
           </div>
           </>
           )}
