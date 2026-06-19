@@ -106,8 +106,15 @@ export default function FicheComments({ s, lang, versionId = null, token = null,
         () => { reload(); })
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
+        // Une seule entrée par PERSONNE (la clé = user.id), et on s'exclut
+        // soi-même : plusieurs onglets d'un même user ne comptent qu'une fois,
+        // et on n'affiche que les AUTRES collaborateurs présents.
         const names = [];
-        Object.values(state).forEach((arr) => (arr || []).forEach((p) => { if (p && p.name) names.push(p.name); }));
+        Object.entries(state).forEach(([key, metas]) => {
+          if (key === user.id) return;
+          const meta = (metas || [])[0];
+          if (meta && meta.name) names.push(meta.name);
+        });
         setPresent(names);
       })
       .subscribe((status) => {
@@ -189,7 +196,7 @@ export default function FicheComments({ s, lang, versionId = null, token = null,
       </div>
       {t.subtitle && <p className="fc-subtitle">{t.subtitle}</p>}
 
-      {present.length > 1 && (
+      {present.length > 0 && (
         <div className="fc-presence" aria-label={t.liveHere || 'En ce moment'}>
           <span className="fc-presence-dot" aria-hidden="true" />
           <div className="fc-presence-avatars">
