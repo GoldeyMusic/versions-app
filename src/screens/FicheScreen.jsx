@@ -863,7 +863,7 @@ function ListeningSection({ listening }) {
 
   const impression = listening?.impression;
   const points = Array.isArray(listening?.points_forts) ? listening.points_forts : [];
-  const aTravailler = Array.isArray(listening?.a_travailler) ? listening.a_travailler : [];
+  const aTravailler = (Array.isArray(listening?.a_travailler) ? listening.a_travailler : []).filter((p) => !isNoIssueItem(p));
   const espace = listening?.espace;
   const dynamique = listening?.dynamique;
   const potentiel = listening?.potentiel;
@@ -3543,6 +3543,17 @@ function blocksToBullets(blocks) {
   return bullets;
 }
 
+// Détecte un item "à travailler" qui ne signale en fait RIEN à retravailler
+// (ex. "Aucun ajustement majeur à signaler…", "RAS", "déjà très abouti").
+// Utilisé pour masquer la section quand elle n'aurait aucun contenu utile.
+function isNoIssueItem(p) {
+  const t = String(p || '').trim().toLowerCase();
+  if (!t) return true;
+  if (/^(aucun|aucune|rien|ras\b|pas de souci|pas d'ajustement|nothing|no (issue|adjustment|major|notable))/.test(t)) return true;
+  if (/rien (à|a) signaler|aucun ajustement|aucun point (à|a)|tout est en place|d(é|e)j(à|a) (très |tres )?abouti|niveau (d'une )?release/.test(t)) return true;
+  return false;
+}
+
 export function QualitativeSection({ listening }) {
   const { s } = useLang();
   const isMobile = useMobile();
@@ -3586,6 +3597,11 @@ export function QualitativeSection({ listening }) {
     points = bucketList.forts.length ? bucketList.forts : points;
     aTravailler = bucketList.travail.length ? bucketList.travail : aTravailler;
   }
+
+  // « À travailler » : si la liste ne contient que des items "rien à
+  // signaler" (RAS / aucun ajustement / déjà abouti…), on la vide → la
+  // section ne s'affiche pas du tout (inutile quand il n'y a rien à faire).
+  aTravailler = aTravailler.filter((p) => !isNoIssueItem(p));
 
   const hasAny = impression || points.length || aTravailler.length || espace || dynamique || potentiel;
   if (!hasAny) return null;
