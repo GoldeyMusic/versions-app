@@ -2197,7 +2197,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                 La colonne projets respire et les deux blocs secondaires
                 ne s'empilent plus en pile maigre à droite. */}
             <div className="wh-anim" style={{ '--anim-d': '320ms' }}>{projectsAccordion}</div>
-            {sharedAccordion && <div className="wh-anim" style={{ '--anim-d': '360ms' }}>{sharedAccordion}</div>}
+            {sharedAccordion && <div className="wh-shared-wrap">{sharedAccordion}</div>}
             <div
               className="wh-cols"
               style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', marginTop: 32 }}
@@ -2232,7 +2232,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                  les projets/titres PARTAGÉS avec moi (cas d'un compte neuf
                  invité à collaborer), puis Recommandations + Le saviez-vous. */
               <>
-                {sharedAccordion && <div className="wh-anim" style={{ '--anim-d': '120ms' }}>{sharedAccordion}</div>}
+                {sharedAccordion && <div className="wh-shared-wrap">{sharedAccordion}</div>}
                 <div
                   className="wh-cols"
                   style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', marginTop: sharedAccordion ? 32 : 0 }}
@@ -2250,7 +2250,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
                  secondaires ne montent plus en pile maigre à droite. */
               <>
                 <div className="wh-anim" style={{ '--anim-d': '160ms' }}>{projectsAccordion}</div>
-                {sharedAccordion && <div className="wh-anim" style={{ '--anim-d': '200ms' }}>{sharedAccordion}</div>}
+                {sharedAccordion && <div className="wh-shared-wrap">{sharedAccordion}</div>}
                 <div
                   className="wh-cols"
                   style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', marginTop: 32 }}
