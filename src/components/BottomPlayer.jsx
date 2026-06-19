@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import { apiFetch } from '../lib/apiClient';
+import { supabase } from '../lib/supabase';
 import useLang from '../hooks/useLang';
 
 /**
@@ -52,13 +53,25 @@ export async function resolveAudio(storagePath) {
   // Signed URL
   let signedUrl = urlCache.get(storagePath);
   if (!signedUrl) {
-    // apiFetch attache le Bearer JWT — le backend (requireAuth + check ownership)
-    // refuse 401/403 si un autre user essaie de signer cette URL.
-    const res = await apiFetch(`/api/audio/signed-url?path=${encodeURIComponent(storagePath)}`);
-    const { url, error } = await res.json();
-    if (error || !url) throw new Error(error || 'no url');
-    signedUrl = url;
-    urlCache.set(storagePath, url);
+    // 1) Chemin propriétaire : le backend signe (requireAuth + check ownership).
+    //    Pour un COLLABORATEUR, le backend refuse 401/403 (ce n'est pas son
+    //    dossier) → on bascule sur la signature côté client (étape 2).
+    try {
+      const res = await apiFetch(`/api/audio/signed-url?path=${encodeURIComponent(storagePath)}`);
+      if (res.ok) {
+        const { url, error } = await res.json();
+        if (!error && url) signedUrl = url;
+      }
+    } catch { /* on tente le fallback client ci-dessous */ }
+
+    // 2) Fallback membre : URL signée via Supabase Storage. Autorisé par la
+    //    policy Storage "audio member read" (propriétaire OU membre du titre).
+    if (!signedUrl) {
+      const { data, error } = await supabase.storage.from('audio').createSignedUrl(storagePath, 86400);
+      if (data?.signedUrl) signedUrl = data.signedUrl;
+      else throw new Error(error?.message || 'no url');
+    }
+    urlCache.set(storagePath, signedUrl);
   }
 
   // Full blob download (guarantees smooth playback)
