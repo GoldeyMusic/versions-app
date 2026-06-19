@@ -2228,16 +2228,19 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
             </div>
             {desktopOnboarding}
             {totalProjects === 0 ? (
-              /* 0 projet : pas d'accordéon à gauche — on met Recommandations
-                 et Le saviez-vous côte à côte en 50/50, l'espace est mieux
-                 rempli et on évite la colonne "projets" vide. */
-              <div
-                className="wh-cols"
-                style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}
-              >
-                <div className="wh-col-left wh-anim" style={{ '--anim-d': '160ms' }}>{userBlock}</div>
-                <div className="wh-col-right wh-anim" style={{ '--anim-d': '240ms' }}>{knowBlock}</div>
-              </div>
+              /* 0 projet : pas d'accordéon perso — mais on affiche quand même
+                 les projets/titres PARTAGÉS avec moi (cas d'un compte neuf
+                 invité à collaborer), puis Recommandations + Le saviez-vous. */
+              <>
+                {sharedAccordion && <div className="wh-anim" style={{ '--anim-d': '120ms' }}>{sharedAccordion}</div>}
+                <div
+                  className="wh-cols"
+                  style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', marginTop: sharedAccordion ? 32 : 0 }}
+                >
+                  <div className="wh-col-left wh-anim" style={{ '--anim-d': '160ms' }}>{userBlock}</div>
+                  <div className="wh-col-right wh-anim" style={{ '--anim-d': '240ms' }}>{knowBlock}</div>
+                </div>
+              </>
             ) : (
               /* ≥1 projet (refonte 2026-04-30bis) : on remonte les projets
                  en pleine largeur tout en haut, et on bascule Recommandations
