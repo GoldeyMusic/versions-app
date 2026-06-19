@@ -2415,6 +2415,9 @@ export default function MockupStyles() {
        pas. On cible les wrappers via :has() pour les ordonner. */
     .fiche-v2 .page > .wh-anim:has(.row-qualitative) { order: 12; }
     .fiche-v2 .page > .wh-anim:has(.notes-section)   { order: 13; }
+    /* Commentaires collaboratifs : tout en bas de la fiche sur mobile.
+       Sans cet order, le wrapper retombe à 0 et remonte en haut. */
+    .fiche-v2 .page > .wh-anim:has(.fiche-comments)  { order: 14; }
     /* Neutralise les grid-column/row du layout desktop (qui faisaient
        déborder les enfants puisqu'on n'est plus en grid). On reset aussi
        align-self : en grid c'est l'axe block, mais en flex column c'est
