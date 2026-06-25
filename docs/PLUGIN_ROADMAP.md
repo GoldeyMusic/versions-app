@@ -1,65 +1,96 @@
 # Versions Plugin DAW — Roadmap
 
-> **ÉTAT AU 2026-06-04 — lire d'abord `~/versions-plugin/CLAUDE.md`**
-> (source de vérité détaillée : état, pièges Logic, conventions UI).
-> Résumé : Phases 0, 1 et 2.A LIVRÉES + bien plus — metering complet
-> (LUFS/TP/RMS/Crest + vrai LRA EBU), spectre niveau FabFilter, panneau
-> arcs + dôme stéréo à particules, chat IA contextuelle (anti-hallucination
-> plugins, langue FR/EN/auto), curation des plugins par fabricant (registre
-> AU + Waves réels + stock Logic), Settings complète (profil, DAWs
-> multi-sélection), tailles discrètes XS→Max, saisie clavier fiabilisée
-> dans Logic (overlay invisible).
+> **ÉTAT AU 2026-06-25 — quasiment tout est LIVRÉ, EN PROD et LIÉ au site.**
+> Source de vérité détaillée : `~/versions-plugin/CLAUDE.md` (état, pièges
+> Logic, conventions UI) + `~/versions-plugin/docs/PLUGIN_QUOTA_BACKEND.md`
+> (quotas + monétisation).
 >
-> **PRIORITÉS DÉCIDÉES (2026-06-04)** :
-> 1. **Multi-instance "Console View"** — une instance par piste + master qui
->    communiquent (hub partagé même process, façon Neutron/Pro-Q), l'IA voit
->    toute la console et conseille inter-pistes. Sans ARA. LE différenciateur.
-> 2. Phase 3 en 3 niveaux : chat chiffres (fait) / feedback express sur
->    extrait 30-60 s via buffer circulaire + écoute Gemini courte / fiche
->    complète par drag & drop du bounce (pas de capture temps réel 4 min).
-> 3. S6 Compare (A/B), signature Apple Developer ID, Phase 2.B auth JWT.
+> **IL NE RESTE QU'UNE CHOSE** pour que la boucle soit complète :
+> **annoncer le plugin sur la landing page `versions.studio`** (section
+> dédiée + lien de téléchargement du `.pkg`/`.dmg`). Tout le reste ci-dessous
+> est fait.
 
-## Vision
+---
 
-Un plugin VST3/AU/AAX qui apporte Versions directement dans le DAW. Metering temps réel gratuit + feedback IA à la demande + lien vers la fiche complète sur le site. Même compte, mêmes crédits.
+## Ce qui est LIVRÉ (et en prod)
 
-## Plateformes
+### Plugin (AU + VST3, macOS)
+- **Metering temps réel** complet : LUFS BS.1770 (M/S/I), True Peak 4×, RMS,
+  Crest, **vrai LRA EBU Tech 3342**. Gratuit, illimité, 100 % local.
+- **Spectre** niveau FabFilter (tilt +3 dB/oct, lissage 1/6 oct, balistique
+  asymétrique, ombre rémanente) + **Stereo Image** (vectorscope à particules,
+  corrélation, width — mesure intouchable).
+- **Chat IA contextuelle** via versions-api : Haiku par défaut, **Sonnet auto**
+  dès qu'il y a des spectres inter-pistes. Anti-hallucination plugins, langue
+  FR/EN/auto, alimenté par l'arsenal curé de l'utilisateur.
+- **Session View multi-instance** (LE différenciateur) : hub same-process, chat
+  IA inter-pistes (LUFS/crest/spectres), bandeau, panneau spectral façon Pro-Q,
+  détection de masquage calibrée. « Neutron mixe à ta place. Versions t'apprend
+  à mixer. »
+- **Écoute express** : capture ~30 s → écoute Gemini courte → verdict dans le
+  chat (mode stem hors bus de somme).
+- **Curation des plugins** par fabricant (registre AU + VST3 + Waves réels +
+  stock Logic), persistée, injectée dans le chat.
+- **Auth JWT** : login email/mdp + Google PKCE, refresh GoTrue, session partagée
+  et persistée, **tokens en Keychain macOS** (hardening livré).
+- **Identité** : logo onde + wordmark DM Sans bicolore embarqués, 3 tailles
+  (Small/Medium/Large), saisie clavier fiabilisée dans Logic (overlay invisible).
+- **Notification de mise à jour** : le plugin lit `versions.studio/plugin-version.json`
+  au lancement et signale une version plus récente dans le chat.
 
-Mac + Windows dès le départ. JUCE compile les deux depuis le même code source. Formats : VST3 + AU + AAX. DAWs prioritaires : Ableton, Logic, FL Studio, Pro Tools, Reaper, Studio One, Cubase.
+### Quotas + monétisation (LIVRÉ 2026-06-25)
+- **Bug corrigé** : le quota express était cassé en prod (fonctions SQL pointant
+  des colonnes inexistantes → non enforcé). Réécrit et actif.
+- **Modèle** : gratuit = 15 écoutes express/mois + **10 messages chat/jour** ;
+  **abonné Indie/Pro = illimité** (fair-use 300 express + 1000 chat/mois).
+- **Détection d'abonné** = `user_credits.monthly_grant > 0` (helper SQL
+  `plugin_is_subscriber`, garde-fou renouvellement).
+- **Backend** : `/api/plugin/feedback` consomme `plugin_chat_consume` via le JWT
+  user (le plugin envoie désormais `Authorization: Bearer`).
+- **Site** : ligne « Et dans le plugin : écoute express + chat IA en illimité »
+  sur `/pricing` (incluse aux abos, prix inchangés). Migrations Supabase
+  appliquées (035/036).
 
-## Modèle économique
+### Distribution (LIVRÉ)
+- **Installeur signé Developer ID + notarisé Apple + stapled** : `.pkg` et `.dmg`
+  charte Versions, s'ouvrent sans alerte Gatekeeper. `./scripts/release.sh`
+  enchaîne bump de version + build Release **universal (arm64 + x86_64)** +
+  signature + notarisation. Cible macOS 11+.
+- **AU + VST3** : ouvre Logic ET les DAW VST3 (Ableton, Cubase, Studio One,
+  Reaper, Bitwig…).
+- **Version courante : 0.1.8** (2026-06-25), en ligne via `plugin-version.json`.
 
-Plugin gratuit (outil d'acquisition). Metering temps réel = gratuit illimité (local). Feedback rapide IA (basé sur chiffres) = 1 message par question (inclus dans abo Versions, ~0.01-0.03$/msg). Analyse complète (envoi audio Gemini) = 1 crédit Versions (~0.10-0.25$).
+---
 
-## Phase 1 — Plugin minimal (sem 1-3)
-- Setup projet JUCE + build Mac/Windows
-- Metering : LUFS intégré/short-term/momentary, True Peak 4x, RMS, Crest, LRA, Stéréo (correlation, width, mid/side)
-- UI minimale 400x600 : affichage temps réel, spectre 8 bandes, design Versions (dark, amber)
-- Signature Mac (Apple Developer ID) + installeur Windows
+## RESTE À FAIRE
 
-## Phase 2 — Connexion compte Versions (sem 3-4)
-- Auth dans le plugin (login/OAuth, JWT en Keychain/CredentialManager)
-- Endpoint POST /api/plugin/feedback (chiffres metering + question → Claude → feedback texte)
-- Chat dans le plugin (question → chiffres actuels envoyés → réponse IA en 2s)
+1. **Annoncer le plugin sur la landing `versions.studio`** ← dernier maillon :
+   section dédiée (pitch, captures, « Neutron mixe à ta place, Versions
+   t'apprend à mixer ») + bouton de téléchargement du `.pkg`/`.dmg` 0.1.8.
+   Une fois fait, la boucle site ↔ plugin est complète et publique.
+2. Mineurs (confort, non bloquants) :
+   - Bascule du CTA « Passer en illimité → /pricing » quand le quota chat est
+     atteint (choix de layout, à faire en session live).
+   - Enrichissements curation : déplier WaveShell (Waves), recherche dans la
+     modal de curation.
+   - Windows : rangé pour plus tard (chantier lourd, pas de blocage moteur JUCE).
 
-## Phase 3 — Analyse complète depuis le plugin (sem 5-6)
-- Capture audio (buffer circulaire ou drag & drop fichier)
-- Upload vers backend Versions → analyse Gemini + Claude
-- Notification + bouton "Voir la fiche" → ouvre navigateur
-- Intention artistique dans le plugin
+---
 
-## Phase 4 — Features avancées (sem 7-10)
-- Détection type de canal (master/bus/individuel)
-- Spectre EQ courbe smooth + overlay cible par genre
-- Comparaison référence (A/B temps réel, overlay spectral, AI Compare)
-- Snapshots metering (avant/après, synchro avec suivi versions webapp)
+## Historique — plan de phases initial (2026-06-04, pour mémoire)
 
-## Phase 5 — Polish et distribution (sem 10-12)
-- UI premium (halos, DM Sans, animations, mode compact/étendu, redimensionnable)
-- Installeurs signés (.dmg + .exe), page téléchargement, auto-update
-- Onboarding premier lancement
+> Conservé tel quel : toutes ces phases sont aujourd'hui dépassées par la
+> livraison réelle ci-dessus.
 
-## Stack : JUCE 7+ C++17, CMake, Xcode + Visual Studio, JWT, même backend Railway.
-## Coûts fixes : Apple Developer $99/an, code signing Windows ~$70-200/an.
+- **Phase 1** — Plugin minimal : setup JUCE, metering, UI, signature. ✅
+- **Phase 2** — Connexion compte : auth JWT, `/api/plugin/feedback`, chat. ✅
+- **Phase 3** — Analyse depuis le plugin : express (✅) ; drag & drop bounce →
+  fiche complète CODÉ puis RETIRÉ (bascule express-only, l'analyse complète
+  vit sur le site).
+- **Phase 4** — Avancé : détection canal ✅, spectre cible, A/B référence
+  (ABANDONNÉ — hors moat), snapshots. Session View livrée à la place.
+- **Phase 5** — Polish + distribution : UI premium ✅, installeurs signés ✅,
+  auto-update (notif fichier statique) ✅, onboarding.
 
-## Prochaine action : installer JUCE + Xcode, créer projet vide, confirmer que le plugin charge dans un DAW.
+## Stack : JUCE 7+ C++17, CMake, Xcode, JWT, backend Railway, Supabase.
+## Coût fixe : Apple Developer 99 €/an (compte individuel David, Team YRZ487P3P5).
