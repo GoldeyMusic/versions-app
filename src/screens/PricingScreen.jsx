@@ -234,6 +234,10 @@ export default function PricingScreen({
           {t.subsTitleStart}<em>{t.subsTitleEm}</em>{t.subsTitleEnd}
         </h2>
         <p className="pr-section-lede pr-anim" style={{ '--anim-d': '120ms' }}>{t.subsLede}</p>
+        {/* Avantage plugin inclus dans les abos (perk en accent ambre via <em>) */}
+        <p className="pr-section-lede pr-anim" style={{ '--anim-d': '150ms' }}>
+          <em>{t.subsPluginPerk}</em>
+        </p>
 
         <div className="pr-subs-grid">
           {SUBSCRIPTIONS.map((sub, i) => {
