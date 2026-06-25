@@ -234,10 +234,8 @@ export default function PricingScreen({
           {t.subsTitleStart}<em>{t.subsTitleEm}</em>{t.subsTitleEnd}
         </h2>
         <p className="pr-section-lede pr-anim" style={{ '--anim-d': '120ms' }}>{t.subsLede}</p>
-        {/* Avantage plugin inclus dans les abos (perk en accent ambre via <em>) */}
-        <p className="pr-section-lede pr-anim" style={{ '--anim-d': '150ms' }}>
-          <em>{t.subsPluginPerk}</em>
-        </p>
+        {/* Avantage plugin inclus dans les abos — callout ambre (.pr-subs-perk) */}
+        <p className="pr-subs-perk pr-anim" style={{ '--anim-d': '150ms' }}>{t.subsPluginPerk}</p>
 
         <div className="pr-subs-grid">
           {SUBSCRIPTIONS.map((sub, i) => {
@@ -640,6 +638,17 @@ function PricingStyles() {
       .pr-section-title { font-family: ${T.body}; font-weight: 600; font-size: clamp(24px, 3vw, 36px); line-height: 1.2; letter-spacing: -0.6px; color: ${T.text}; margin: 0 0 16px; text-align: center; }
       .pr-section-title em { font-family: inherit; font-style: normal; font-weight: inherit; color: ${T.amber}; }
       .pr-section-lede { font-family: ${T.body}; font-size: 14px; font-weight: 300; color: ${T.muted}; margin: 0 auto; max-width: 680px; text-align: center; }
+      /* Avantage plugin inclus dans les abos — callout ambre qui ressort */
+      .pr-subs-perk {
+        width: fit-content; margin: 14px auto 0;
+        font-family: ${T.body}; font-size: 14.5px; font-weight: 600;
+        color: ${T.amber};
+        background: rgba(245,166,35,0.12);
+        border: 1px solid rgba(245,166,35,0.42);
+        border-radius: 999px; padding: 7px 18px; text-align: center;
+        box-shadow: 0 0 24px rgba(245,166,35,0.12);
+      }
+      @media (max-width: 640px) { .pr-subs-perk { font-size: 13px; padding: 6px 14px; } }
 
       /* PACKS GRID — 2 cartes (Pack 1 + Pack 5) côte à côte sur desktop/tablet,
          empilées en mobile. Centrées avec une largeur max pour ne pas avoir
