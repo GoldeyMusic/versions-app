@@ -6318,7 +6318,7 @@ export default function MockupStyles() {
      Charte sombre/amber cohérente avec les menus ⋯ de la home. */
   .wh-search {
     position: relative;
-    margin: 0 4px 14px;
+    margin: 0 0 14px;
   }
   .wh-search-field {
     display: flex; align-items: center; gap: 9px;
@@ -6404,11 +6404,12 @@ export default function MockupStyles() {
   .wh-search-row:hover .wh-search-row-ic { color: var(--amber); }
   .wh-search-row-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   .wh-search-row-title {
-    font-size: 13.5px; font-weight: 500; color: var(--text);
+    font-family: var(--body);
+    font-size: 14px; font-weight: 500; color: var(--text);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .wh-search-row-sub {
-    font-size: 11.5px; color: var(--muted);
+    font-size: 12px; color: var(--muted);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .wh-search-mark {
