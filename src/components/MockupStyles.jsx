@@ -1590,50 +1590,77 @@ export default function MockupStyles() {
     border-color: var(--btn-border-hover, rgba(255,255,255,0.20));
     transform: translateY(-1px);
   }
-  /* Bandeau membres (collaboration) — qui a accès à ce titre. Repris du
-     langage avatar de ProjectMembersModal (initiale sur pastille amber,
-     owner mis en avant). État "Privé" plus discret pour inviter. */
-  .vside-members {
-    display: inline-flex; align-items: center; gap: 8px;
-    margin-top: 6px;
-    padding: 5px 11px 5px 7px;
-    border-radius: 999px;
-    border: 1px solid var(--btn-border, rgba(255,255,255,0.10));
-    background: transparent;
-    color: var(--soft, rgba(255,255,255,0.72));
-    font-family: var(--mono);
-    font-size: 10.5px; font-weight: 500;
-    letter-spacing: 1.2px; text-transform: uppercase;
-    cursor: pointer;
-    transition: background .15s, color .15s, border-color .15s, transform .15s;
+  /* Bandeau membres (collaboration) — placé au-dessus des commentaires.
+     Liste claire : une ligne par membre (avatar + nom + rôle), pas de
+     chevauchement. Repris du langage de ProjectMembersModal. */
+  .fiche-members-bar {
+    margin: 26px 0 12px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px solid var(--border, rgba(255,255,255,0.06));
+    background: var(--card, #101118);
   }
-  .vside-members:hover {
+  .fiche-members-bar .fmb-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 12px;
+  }
+  .fiche-members-bar .fmb-title {
+    font-family: var(--mono);
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--amber, #f5a623);
+  }
+  .fiche-members-bar .fmb-manage {
+    border: 1px solid var(--btn-border, rgba(255,255,255,0.12));
+    background: transparent;
+    color: var(--soft, rgba(255,255,255,0.78));
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .fiche-members-bar .fmb-manage:hover {
     background: var(--s1, rgba(255,255,255,0.04));
     color: var(--text, #ededed);
     border-color: var(--btn-border-hover, rgba(255,255,255,0.20));
-    transform: translateY(-1px);
   }
-  .vside-members.is-shared {
-    border-color: rgba(245,166,35,0.34);
-    color: var(--amber, #f5a623);
-    padding-left: 5px;
+  .fiche-members-bar .fmb-list {
+    display: flex; flex-wrap: wrap; gap: 10px 14px;
   }
-  .vside-members-ic { flex: 0 0 auto; }
-  .vside-members-label { white-space: nowrap; }
-  .vside-members-avatars { display: inline-flex; align-items: center; }
-  .vside-members-av {
-    width: 22px; height: 22px; border-radius: 50%;
+  .fiche-members-bar .fmb-member {
+    display: inline-flex; align-items: center; gap: 9px;
+    max-width: 100%;
+  }
+  .fiche-members-bar .fmb-av {
+    flex: 0 0 auto;
+    width: 28px; height: 28px; border-radius: 50%;
     display: inline-flex; align-items: center; justify-content: center;
     font-family: var(--mono);
-    font-size: 10px; font-weight: 700; letter-spacing: 0;
+    font-size: 12px; font-weight: 700;
     color: rgba(255,255,255,0.85);
     background: rgba(255,255,255,0.14);
-    border: 1.5px solid var(--card, #101118);
-    margin-left: -7px;
   }
-  .vside-members-av:first-child { margin-left: 0; }
-  .vside-members-av.owner { color: #1a1206; background: linear-gradient(135deg,#f5b056,#d4900e); }
-  .vside-members-av.more { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.10); font-size: 9px; }
+  .fiche-members-bar .fmb-av.owner { color: #1a1206; background: linear-gradient(135deg,#f5b056,#d4900e); }
+  .fiche-members-bar .fmb-name {
+    font-size: 13.5px; color: var(--text, #ededed);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;
+  }
+  .fiche-members-bar .fmb-role {
+    font-family: var(--mono);
+    font-size: 9.5px; font-weight: 500;
+    letter-spacing: 0.8px; text-transform: uppercase;
+    color: rgba(255,255,255,0.6);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 999px; padding: 2px 8px;
+  }
+  .fiche-members-bar .fmb-role.owner {
+    color: var(--amber, #f5a623);
+    background: rgba(245,166,35,0.10);
+    border-color: rgba(245,166,35,0.30);
+  }
   /* Mobile / narrow : on bascule en 1 colonne, on neutralise les
      rotations pour la lisibilité (cohérent avec .pr-chip mobile). */
   @media (max-width: 900px) {

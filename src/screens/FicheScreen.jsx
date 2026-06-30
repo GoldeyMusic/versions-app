@@ -5171,53 +5171,6 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                       )}
                     </div>
                   )}
-                  {/* Bandeau membres : qui a accès à ce titre en collaboration.
-                      Visible seulement sur la fiche privée (onManageMembers
-                      fourni) avec un titre persisté. Click → modale membres. */}
-                  {onManageMembers && trackIdForMembers && (() => {
-                    const members = ficheMembers || [];
-                    // length 0 = pas encore chargé (le RPC renvoie toujours
-                    // au moins l'owner) → on n'affiche rien pour éviter un
-                    // flash "Privé" sur une fiche en réalité partagée.
-                    if (members.length === 0) return null;
-                    // Owner d'abord, puis les autres dans l'ordre reçu.
-                    const ordered = [...members].sort((a, b) => (b.is_owner ? 1 : 0) - (a.is_owner ? 1 : 0));
-                    const shown = ordered.slice(0, 4);
-                    const overflow = ordered.length - shown.length;
-                    const isShared = members.length > 1;
-                    const initial = (m) => (m.name || m.email || '?').trim().charAt(0).toUpperCase();
-                    const label = isShared
-                      ? (s.fiche.membersShared || '{n} membres').replace('{n}', String(members.length))
-                      : (s.fiche.membersPrivate || 'Privé · inviter');
-                    return (
-                      <button
-                        type="button"
-                        className={`vside-members${isShared ? ' is-shared' : ''}`}
-                        onClick={() => onManageMembers(currentProjectId, trackIdForMembers)}
-                        title={s.fiche.membersManage || 'Gérer les accès'}
-                        aria-label={`${label} — ${s.fiche.membersManage || 'Gérer les accès'}`}
-                      >
-                        {isShared ? (
-                          <span className="vside-members-avatars">
-                            {shown.map((m) => (
-                              <span
-                                key={m.user_id}
-                                className={`vside-members-av${m.is_owner ? ' owner' : ''}`}
-                                title={m.name || m.email}
-                              >{initial(m)}</span>
-                            ))}
-                            {overflow > 0 && <span className="vside-members-av more">+{overflow}</span>}
-                          </span>
-                        ) : (
-                          <svg className="vside-members-ic" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                            <circle cx="8" cy="5" r="2.6" stroke="currentColor" strokeWidth="1.4"/>
-                            <path d="M3 13c0-2.2 2.2-3.6 5-3.6S13 10.8 13 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                          </svg>
-                        )}
-                        <span className="vside-members-label">{label}</span>
-                      </button>
-                    );
-                  })()}
                 </aside>
               );
             })()}
@@ -5742,6 +5695,45 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
               readOnly={!canEditFiche}
             />
           </div>
+
+          {/* Bandeau membres : qui a accès à ce titre en collaboration.
+              Placé juste avant les commentaires (contexte « avec qui je
+              collabore »). Visible seulement sur la fiche privée
+              (onManageMembers fourni) avec un titre persisté. Click →
+              modale de gestion des accès. */}
+          {onManageMembers && trackIdForMembers && ficheMembers.length > 0 && (() => {
+            const members = ficheMembers;
+            const ordered = [...members].sort((a, b) => (b.is_owner ? 1 : 0) - (a.is_owner ? 1 : 0));
+            const isShared = members.length > 1;
+            const initial = (m) => (m.name || m.email || '?').trim().charAt(0).toUpperCase();
+            const roleLabel = (r) => (s.share?.roles && s.share.roles[r]) || r;
+            const label = isShared
+              ? (s.fiche.membersShared || '{n} membres').replace('{n}', String(members.length))
+              : (s.fiche.membersPrivate || 'Privé · inviter');
+            return (
+              <div className="wh-anim fiche-members-bar" style={{ '--anim-d': '420ms' }}>
+                <div className="fmb-head">
+                  <span className="fmb-title">{label}</span>
+                  <button
+                    type="button"
+                    className="fmb-manage"
+                    onClick={() => onManageMembers(currentProjectId, trackIdForMembers)}
+                  >{s.fiche.membersManage || 'Gérer les accès'}</button>
+                </div>
+                <div className="fmb-list">
+                  {ordered.map((m) => (
+                    <span key={m.user_id} className="fmb-member" title={m.email || m.name}>
+                      <span className={`fmb-av${m.is_owner ? ' owner' : ''}`}>{initial(m)}</span>
+                      <span className="fmb-name">{m.name || m.email}</span>
+                      <span className={`fmb-role${m.is_owner ? ' owner' : ''}`}>
+                        {m.is_owner ? roleLabel('owner') : roleLabel(m.role)}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Commentaires collaboratifs — fil par version (Phase 1).
               anchors = catégories du diagnostic pour cibler un point précis. */}
