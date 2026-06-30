@@ -2868,13 +2868,16 @@ function Timeline({ track, currentVersionName, stage, analysisResult, onSelectVe
 
   if (!track) return null;
 
+  // 'idle' = fiche déjà analysée chargée depuis le storage (pas d'analyse
+  // en cours) → libellé statique "Fiche d'analyse", pas "Analyse en cours"
+  // (qui laissait croire que le titre était en train d'être analysé).
   const stageLabel =
-    stage === 'all_done' ? s.fiche.stageAllDone :
+    (stage === 'all_done' || stage === 'idle') ? s.fiche.stageAllDone :
     stage === 'fiche_done' ? s.fiche.stageFicheDone :
     s.fiche.stageOther;
 
   const stageClass =
-    stage === 'all_done' ? '' :
+    (stage === 'all_done' || stage === 'idle') ? '' :
     stage === 'fiche_done' ? 'pending' :
     'other';
 
