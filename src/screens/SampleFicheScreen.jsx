@@ -527,7 +527,7 @@ export default function SampleFicheScreen({
                 la sidebar de l'app (cf. Sidebar.jsx). Cliquable, retour
                 landing. */}
             <button type="button" className="sample-brand" onClick={onBackToLanding} aria-label={lang === 'en' ? 'Back to landing' : 'Retour à la landing'}>
-              <img src="/logo-versions-2.svg" alt="" style={{ height: 28, width: 'auto' }} />
+              <img src="/Logo-Versions-2.png" alt="" style={{ height: 28, width: 'auto' }} />
               <span className="sample-brand-text">
                 {'VER'}<span className="sample-brand-accent">{'Si'}</span>{'ONS'}
               </span>

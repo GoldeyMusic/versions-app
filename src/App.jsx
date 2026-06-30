@@ -738,7 +738,7 @@ function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricin
           onClick={onGoLanding}
           aria-label={s.sidebar?.aboutLink || 'Accueil'}
         >
-          <img src="/logo-versions-2.svg" alt="" className="db-topbar-logo" />
+          <img src="/Logo-Versions-2.png" alt="" className="db-topbar-logo" />
           <span className="db-topbar-wordmark">
             VER<span className="accent">Si</span>ONS
           </span>
@@ -2001,7 +2001,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
 
   const mobileEmpty = totalProjects === 0 ? (
     <div className="wh-empty">
-      <img src="/logo-versions-2.svg" alt="" style={{ height: 60, width: "auto", opacity: 0.3 }} />
+      <img src="/Logo-Versions-2.png" alt="" style={{ height: 60, width: "auto", opacity: 0.3 }} />
       <div>{s.home.emptyProjectsMobile}</div>
     </div>
   ) : null;
@@ -2758,7 +2758,7 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd, onGoFeedb
       {/* ── Top bar ── */}
       <div className="mobile-topbar">
         <div className="brand" onClick={() => go('home')} style={{ cursor: 'pointer', fontSize: 20, letterSpacing: '-0.3px', gap: 8 }}>
-          <img src="/logo-versions-2.svg" alt="" style={{ height: 22, width: 'auto' }} />
+          <img src="/Logo-Versions-2.png" alt="" style={{ height: 22, width: 'auto' }} />
           <span>{"VER"}<span className="accent">{"Si"}</span>{"ONS"}</span>
         </div>
         <div className="mobile-avatar-wrap">

@@ -988,7 +988,7 @@ function ApBrandMark({ onGoHome }) {
       onClick={onGoHome}
       aria-label="Retour au tableau de bord"
     >
-      <img src="/logo-versions-2.svg" alt="" className="ap-brand-logo" />
+      <img src="/Logo-Versions-2.png" alt="" className="ap-brand-logo" />
       <span className="ap-brand-wordmark">
         VER<span className="accent">Si</span>ONS
       </span>

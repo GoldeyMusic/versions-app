@@ -68,7 +68,7 @@ export default function ConfirmDeleteAccountScreen() {
     <div className="auth-screen">
       <div className="auth-card">
         <div className="auth-logo">
-          <img src="/logo-versions-2.svg" alt="" style={{ height: 40, width: 'auto' }} />
+          <img src="/Logo-Versions-2.png" alt="" style={{ height: 40, width: 'auto' }} />
           <div className="auth-brand">
             {"VER"}<span className="accent">{"Si"}</span>{"ONS"}
           </div>

@@ -22,7 +22,7 @@ export default function PrivacyScreen({ onBackToLanding, onGoTerms }) {
           className="legal-topbar-brand"
           aria-label={backLabel}
         >
-          <img src="/logo-versions-2.svg" alt="" className="legal-topbar-logo" />
+          <img src="/Logo-Versions-2.png" alt="" className="legal-topbar-logo" />
           <span className="legal-topbar-wordmark">
             VER<span className="accent">Si</span>ONS
           </span>

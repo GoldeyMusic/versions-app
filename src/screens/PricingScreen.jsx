@@ -158,7 +158,7 @@ export default function PricingScreen({
           onClick={onBackToLanding}
           aria-label={t.topbarBackAria}
         >
-          <img src="/logo-versions-2.svg" alt="" className="pr-topbar-logo" />
+          <img src="/Logo-Versions-2.png" alt="" className="pr-topbar-logo" />
           <span className="pr-topbar-wordmark">
             VER<span className="accent">Si</span>ONS
           </span>

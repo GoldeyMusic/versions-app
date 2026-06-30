@@ -76,7 +76,7 @@ export default function LandingScreen({
           aient une identité strictement identique en haut de page. */}
       <header className="lp-topbar">
         <div className="lp-topbar-brand">
-          <img src="/logo-versions-2.svg" alt="" className="lp-topbar-logo" />
+          <img src="/Logo-Versions-2.png" alt="" className="lp-topbar-logo" />
           <span className="lp-topbar-wordmark">
             VER<span className="accent">Si</span>ONS
           </span>
@@ -296,7 +296,7 @@ export default function LandingScreen({
           {ctaFooter}
         </button>
         <div className="lp-footer-mark">
-          <img src="/logo-versions-2.svg" alt="" className="lp-footer-mark-img" />
+          <img src="/Logo-Versions-2.png" alt="" className="lp-footer-mark-img" />
           <span className="lp-footer-mark-text">
             {'VER'}<span className="accent">{'Si'}</span>{'ONS'}
           </span>
