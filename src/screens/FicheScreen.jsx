@@ -11,7 +11,7 @@ import EvolutionBanner from '../components/EvolutionBanner';
 import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
 import PlateauBanner from '../components/PlateauBanner';
 import FicheComments from '../components/FicheComments';
-import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion, updateVersionDspMetrics, updateVersionGenre, updateTrackIntent, updateVersionIntent, getMyProjectRole } from '../lib/storage';
+import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion, updateVersionDspMetrics, updateVersionGenre, updateTrackIntent, updateVersionIntent, getMyProjectRole, listTrackMembers } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
@@ -4096,7 +4096,7 @@ export function IntentPanel({ analysisResult, currentTrack, versionInDb, onRefre
 
 // ── FicheScreen (principal) ────────────────────────────────
 
-export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onGoHome, refreshKey }) {
+export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onGoHome, refreshKey, onManageMembers }) {
   const { s, lang } = useLang();
   const [tracks, setTracks] = useState([]);
   // Fiche traduite (lazy) — null tant qu'on n'a pas fetché, sinon l'objet
@@ -4309,6 +4309,22 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     return () => { alive = false; };
   }, [currentProjectId]);
   const canEditFiche = myRole !== 'viewer' && myRole !== 'commenter';
+
+  // ── Membres de collaboration sur ce titre (affichage fiche) ──
+  // On liste les comptes ayant accès à CE titre (owner projet + membres
+  // titre) pour les montrer dans le side panel du verdict. Click → ouvre
+  // la modale de gestion complète (ProjectMembersModal, via onManageMembers).
+  // Ne tourne que sur la fiche privée (onManageMembers fourni) avec un
+  // titre persisté — jamais sur la page publique / exemple.
+  const trackIdForMembers = currentTrack?.id && !String(currentTrack.id).startsWith('__pending')
+    ? currentTrack.id : null;
+  const [ficheMembers, setFicheMembers] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    if (!trackIdForMembers || !onManageMembers) { setFicheMembers([]); return undefined; }
+    listTrackMembers(trackIdForMembers).then((d) => { if (alive) setFicheMembers(d?.members || []); });
+    return () => { alive = false; };
+  }, [trackIdForMembers, onManageMembers, refreshKey]);
 
   // ── i18n : traduction à la volée de la fiche + écoute ──────
   // On ne traduit que quand on a un id de version (persisté en DB).
@@ -5155,6 +5171,53 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                       )}
                     </div>
                   )}
+                  {/* Bandeau membres : qui a accès à ce titre en collaboration.
+                      Visible seulement sur la fiche privée (onManageMembers
+                      fourni) avec un titre persisté. Click → modale membres. */}
+                  {onManageMembers && trackIdForMembers && (() => {
+                    const members = ficheMembers || [];
+                    // length 0 = pas encore chargé (le RPC renvoie toujours
+                    // au moins l'owner) → on n'affiche rien pour éviter un
+                    // flash "Privé" sur une fiche en réalité partagée.
+                    if (members.length === 0) return null;
+                    // Owner d'abord, puis les autres dans l'ordre reçu.
+                    const ordered = [...members].sort((a, b) => (b.is_owner ? 1 : 0) - (a.is_owner ? 1 : 0));
+                    const shown = ordered.slice(0, 4);
+                    const overflow = ordered.length - shown.length;
+                    const isShared = members.length > 1;
+                    const initial = (m) => (m.name || m.email || '?').trim().charAt(0).toUpperCase();
+                    const label = isShared
+                      ? (s.fiche.membersShared || '{n} membres').replace('{n}', String(members.length))
+                      : (s.fiche.membersPrivate || 'Privé · inviter');
+                    return (
+                      <button
+                        type="button"
+                        className={`vside-members${isShared ? ' is-shared' : ''}`}
+                        onClick={() => onManageMembers(currentProjectId, trackIdForMembers)}
+                        title={s.fiche.membersManage || 'Gérer les accès'}
+                        aria-label={`${label} — ${s.fiche.membersManage || 'Gérer les accès'}`}
+                      >
+                        {isShared ? (
+                          <span className="vside-members-avatars">
+                            {shown.map((m) => (
+                              <span
+                                key={m.user_id}
+                                className={`vside-members-av${m.is_owner ? ' owner' : ''}`}
+                                title={m.name || m.email}
+                              >{initial(m)}</span>
+                            ))}
+                            {overflow > 0 && <span className="vside-members-av more">+{overflow}</span>}
+                          </span>
+                        ) : (
+                          <svg className="vside-members-ic" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <circle cx="8" cy="5" r="2.6" stroke="currentColor" strokeWidth="1.4"/>
+                            <path d="M3 13c0-2.2 2.2-3.6 5-3.6S13 10.8 13 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                          </svg>
+                        )}
+                        <span className="vside-members-label">{label}</span>
+                      </button>
+                    );
+                  })()}
                 </aside>
               );
             })()}

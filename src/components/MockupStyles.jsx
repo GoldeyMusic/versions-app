@@ -1590,6 +1590,50 @@ export default function MockupStyles() {
     border-color: var(--btn-border-hover, rgba(255,255,255,0.20));
     transform: translateY(-1px);
   }
+  /* Bandeau membres (collaboration) — qui a accès à ce titre. Repris du
+     langage avatar de ProjectMembersModal (initiale sur pastille amber,
+     owner mis en avant). État "Privé" plus discret pour inviter. */
+  .vside-members {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 6px;
+    padding: 5px 11px 5px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--btn-border, rgba(255,255,255,0.10));
+    background: transparent;
+    color: var(--soft, rgba(255,255,255,0.72));
+    font-family: var(--mono);
+    font-size: 10.5px; font-weight: 500;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s, transform .15s;
+  }
+  .vside-members:hover {
+    background: var(--s1, rgba(255,255,255,0.04));
+    color: var(--text, #ededed);
+    border-color: var(--btn-border-hover, rgba(255,255,255,0.20));
+    transform: translateY(-1px);
+  }
+  .vside-members.is-shared {
+    border-color: rgba(245,166,35,0.34);
+    color: var(--amber, #f5a623);
+    padding-left: 5px;
+  }
+  .vside-members-ic { flex: 0 0 auto; }
+  .vside-members-label { white-space: nowrap; }
+  .vside-members-avatars { display: inline-flex; align-items: center; }
+  .vside-members-av {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 10px; font-weight: 700; letter-spacing: 0;
+    color: rgba(255,255,255,0.85);
+    background: rgba(255,255,255,0.14);
+    border: 1.5px solid var(--card, #101118);
+    margin-left: -7px;
+  }
+  .vside-members-av:first-child { margin-left: 0; }
+  .vside-members-av.owner { color: #1a1206; background: linear-gradient(135deg,#f5b056,#d4900e); }
+  .vside-members-av.more { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.10); font-size: 9px; }
   /* Mobile / narrow : on bascule en 1 colonne, on neutralise les
      rotations pour la lisibilité (cohérent avec .pr-chip mobile). */
   @media (max-width: 900px) {

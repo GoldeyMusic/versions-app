@@ -711,6 +711,10 @@ const STRINGS = {
       vocalPillInstrumentalPendingTitle: "Voix à venir sur les prochaines versions",
       vocalPillInstrumentalFinalTitle: "Œuvre purement instrumentale — la voix n'est pas évaluée",
 
+      /* Membres / collaboration (side panel verdict) */
+      membersPrivate: "Privé · inviter",
+      membersShared: "{n} membres",
+      membersManage: "Gérer les accès",
       /* Timeline actions */
       timelineBackHome: "Accueil",
       timelineShareBtn: "Partager un lien",
@@ -2606,6 +2610,10 @@ const STRINGS = {
       vocalPillInstrumentalPendingTitle: "Vocals coming on future versions",
       vocalPillInstrumentalFinalTitle: "Purely instrumental track — voice is not evaluated",
 
+      /* Members / collaboration (verdict side panel) */
+      membersPrivate: "Private · invite",
+      membersShared: "{n} members",
+      membersManage: "Manage access",
       /* Timeline actions */
       timelineBackHome: "Home",
       timelineShareBtn: "Share a link",

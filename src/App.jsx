@@ -2055,7 +2055,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           project={membersTarget}
           s={s}
           initialScope={membersInitialTrack || 'project'}
-          onClose={() => { setMembersTarget(null); setMembersInitialTrack(null); }}
+          onClose={() => { setMembersTarget(null); setMembersInitialTrack(null); refreshProjects(); }}
         />
       )}
       {newProjectOpen && (
@@ -4628,6 +4628,13 @@ function VersionsAppAuthed() {
             onGoHome={goHome}
             refreshKey={projectsRefreshKey}
             onAddVersion={handleAddVersionFromPicker}
+            onManageMembers={(projectId, trackId) => {
+              const proj = projects.find((p) => p.id === projectId)
+                || sharedProjects.find((p) => p.id === projectId);
+              if (!proj) return;
+              setMembersInitialTrack(trackId || null);
+              setMembersTarget(proj);
+            }}
           />
         );
       }
