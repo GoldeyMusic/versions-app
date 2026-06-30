@@ -986,6 +986,209 @@ function AddPill({ onOpen, isOpen, layoutWidth = 'fiche', label = 'Ajouter', pla
   );
 }
 
+/* ─── Recherche dashboard (projets + titres + versions) ────────────────
+   Champ de recherche live en tête du panneau projets. Suggère projets et
+   titres dès la 1ère lettre, dropdown avec navigation clavier (↑↓ / Entrée
+   / Échap). Insensible aux accents et à la casse (norm() décompose NFD et
+   retire les diacritiques). Clic sur un titre → dernière version ; clic sur
+   une chip V1/V2 → cette version précise. */
+function WhSearch({ projects = [], allTracks = [], onOpenProject, onOpenTrack, onOpenVersion }) {
+  const { s } = useLang();
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const wrapRef = useRef(null);
+
+  const norm = (str) => (str || '').toString().toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  const q = norm(query);
+
+  const projectHits = q
+    ? projects.filter((p) => norm(p.name).includes(q)).slice(0, 6)
+    : [];
+  const trackHits = q
+    ? allTracks
+        .filter((t) => norm(t.title).includes(q) || norm(t._projectName).includes(q))
+        .slice(0, 12)
+    : [];
+  // Liste à plat pour la navigation clavier (projets puis titres).
+  const flat = [
+    ...projectHits.map((p) => ({ type: 'project', item: p })),
+    ...trackHits.map((t) => ({ type: 'track', item: t })),
+  ];
+  const showDrop = open && q.length > 0;
+
+  // Reset de l'index actif quand la requête change.
+  useEffect(() => { setActive(0); }, [query]);
+
+  // Fermeture au clic en dehors du wrapper.
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => { if (!wrapRef.current?.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const close = () => { setOpen(false); setQuery(''); };
+  const pickProject = (p) => { close(); onOpenProject?.(p); };
+  const pickTrack = (t) => { close(); onOpenTrack?.(t); };
+  const pickVersion = (t, v) => { close(); onOpenVersion?.(t, v); };
+
+  const activate = (idx) => {
+    const r = flat[idx];
+    if (!r) return;
+    if (r.type === 'project') pickProject(r.item);
+    else pickTrack(r.item);
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === 'Escape') { setOpen(false); e.currentTarget.blur(); return; }
+    if (!showDrop || flat.length === 0) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => (i + 1) % flat.length); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => (i - 1 + flat.length) % flat.length); }
+    else if (e.key === 'Enter') { e.preventDefault(); activate(active); }
+  };
+
+  // Surligne la portion qui matche, en se basant sur la chaîne normalisée.
+  // Garde-fou : on ne surligne que si la longueur normalisée == originale
+  // (vrai pour les accents latins courants ; évite un offset faux sur les
+  // ligatures rares type œ/æ).
+  const renderHL = (text) => {
+    const t = text || '';
+    const n = norm(t);
+    const idx = q ? n.indexOf(q) : -1;
+    if (idx < 0 || n.length !== t.length) return t;
+    return (
+      <>{t.slice(0, idx)}<mark className="wh-search-mark">{t.slice(idx, idx + q.length)}</mark>{t.slice(idx + q.length)}</>
+    );
+  };
+
+  return (
+    <div className="wh-search" ref={wrapRef}>
+      <div className="wh-search-field">
+        <svg className="wh-search-ic" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+          <circle cx="7" cy="7" r="5" /><path d="M11 11l3.5 3.5" />
+        </svg>
+        <input
+          className="wh-search-input"
+          type="text"
+          value={query}
+          placeholder={s.home.searchPlaceholder}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={onKeyDown}
+          aria-label={s.home.searchPlaceholder}
+          autoComplete="off"
+          spellCheck="false"
+        />
+        {query && (
+          <button
+            type="button"
+            className="wh-search-clear"
+            onClick={() => { setQuery(''); setOpen(false); }}
+            aria-label={s.home.searchClear}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+              <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {showDrop && (
+        <div className="wh-search-drop" role="listbox">
+          {flat.length === 0 ? (
+            <div className="wh-search-empty">{s.home.searchNoResults}</div>
+          ) : (
+            <>
+              {projectHits.length > 0 && (
+                <div className="wh-search-group">{s.home.searchProjectsLabel}</div>
+              )}
+              {projectHits.map((p) => {
+                const fi = flat.findIndex((r) => r.type === 'project' && r.item.id === p.id);
+                const nTracks = p.tracks?.length || 0;
+                return (
+                  <button
+                    type="button"
+                    key={'p' + p.id}
+                    className={`wh-search-row${active === fi ? ' active' : ''}`}
+                    role="option"
+                    aria-selected={active === fi}
+                    onMouseEnter={() => setActive(fi)}
+                    onClick={() => pickProject(p)}
+                  >
+                    <span className="wh-search-row-ic project" aria-hidden="true">
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1.8 4.2a1 1 0 0 1 1-1h3.1l1.4 1.6h5.1a1 1 0 0 1 1 1v5.4a1 1 0 0 1-1 1H2.8a1 1 0 0 1-1-1z" />
+                      </svg>
+                    </span>
+                    <span className="wh-search-row-main">
+                      <span className="wh-search-row-title">{renderHL(p.name)}</span>
+                      <span className="wh-search-row-sub">
+                        {nTracks} {nTracks > 1 ? s.home.trackPlural : s.home.trackSingular}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+
+              {trackHits.length > 0 && (
+                <div className="wh-search-group">{s.home.searchTracksLabel}</div>
+              )}
+              {trackHits.map((t) => {
+                const fi = flat.findIndex((r) => r.type === 'track' && r.item.id === t.id);
+                const versions = t.versions || [];
+                return (
+                  <div
+                    key={'t' + t.id}
+                    className={`wh-search-row track${active === fi ? ' active' : ''}`}
+                    role="option"
+                    aria-selected={active === fi}
+                    onMouseEnter={() => setActive(fi)}
+                  >
+                    <button
+                      type="button"
+                      className="wh-search-row-open"
+                      onClick={() => pickTrack(t)}
+                    >
+                      <span className="wh-search-row-ic" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                          <path d="M11 1.5v7.2a2.3 2.3 0 1 1-1.2-2V3.8L5.2 5v5.7a2.3 2.3 0 1 1-1.2-2V3.8z" />
+                        </svg>
+                      </span>
+                      <span className="wh-search-row-main">
+                        <span className="wh-search-row-title">{renderHL(t.title)}</span>
+                        <span className="wh-search-row-sub">{t._projectName}</span>
+                      </span>
+                    </button>
+                    {versions.length > 0 && (
+                      <span className="wh-search-vers">
+                        {versions.map((v) => (
+                          <button
+                            type="button"
+                            key={v.id}
+                            className="wh-search-vchip"
+                            title={`${t.title} — ${v.name}`}
+                            onClick={(e) => { e.stopPropagation(); pickVersion(t, v); }}
+                          >
+                            {v.name}
+                          </button>
+                        ))}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+
+              <div className="wh-search-hint">{s.home.searchHint}</div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNewTrack, onAddVersion, onAnalyze, onSelectVersion, onOpenFiche, onPlay, onToggle, onNext, playerState, projects = [], projectsLoaded = false, onMutate, addModalOpen, setAddModalOpen, addModalCtx = null, setAddModalCtx }) {
   const { lang, s } = useLang();
   const pool = (fr, en) => (lang === 'en' ? en : fr);
@@ -1157,6 +1360,23 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
     if (!latest) return;
     if (onOpenFiche) onOpenFiche(track, latest);
     else if (onSelectVersion) onSelectVersion(track, latest);
+  };
+
+  // Ouvre une version précise depuis la recherche (chip V1/V2).
+  const handleOpenVersionFromSearch = (track, version) => {
+    if (!version) { handleViewFiche(track); return; }
+    if (onOpenFiche) onOpenFiche(track, version);
+    else if (onSelectVersion) onSelectVersion(track, version);
+  };
+
+  // Depuis la recherche : déplie le projet ciblé et scrolle dessus.
+  const handleOpenProjectFromSearch = (project) => {
+    if (onSetCurrentProject) onSetCurrentProject(project.id);
+    // Laisse l'accordéon se déplier avant de scroller.
+    setTimeout(() => {
+      const el = document.getElementById(`wh-acc-${project.id}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
   };
 
   const handleAddTrackToProject = (project) => {
@@ -1525,6 +1745,13 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
       <div className="wh-projects">
         {/* Titre "Mes projets" à l'intérieur du cadre (v4-panel-head) */}
         <div className="wh-section-title wh-projects-title">{s.home.myProjects} <em>{s.home.myProjectsAccent}</em></div>
+        <WhSearch
+          projects={projects}
+          allTracks={allTracks}
+          onOpenProject={handleOpenProjectFromSearch}
+          onOpenTrack={handleViewFiche}
+          onOpenVersion={handleOpenVersionFromSearch}
+        />
         {projects.map((project) => {
           const isOpen = project.id === currentProjectId;
           const nTracks = project.tracks?.length || 0;
@@ -1542,6 +1769,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           return (
             <div
               key={project.id}
+              id={`wh-acc-${project.id}`}
               className={`wh-acc-item wh-tint-${gradIdx}${isOpen ? ' open' : ''}${openProjectMenuId === project.id ? ' menu-open' : ''}`}
             >
               {/* Header projet */}

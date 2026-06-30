@@ -6312,6 +6312,139 @@ export default function MockupStyles() {
     letter-spacing: inherit; font-style: normal;
     color: inherit; text-transform: inherit;
   }
+
+  /* ── Recherche dashboard (projets + titres + versions) ───────────────
+     Champ en tête du panneau projets + dropdown de suggestions live.
+     Charte sombre/amber cohérente avec les menus ⋯ de la home. */
+  .wh-search {
+    position: relative;
+    margin: 0 4px 14px;
+  }
+  .wh-search-field {
+    display: flex; align-items: center; gap: 9px;
+    height: 42px;
+    padding: 0 10px 0 12px;
+    background: var(--s1);
+    border: 1px solid var(--border-strong);
+    border-radius: 11px;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .wh-search-field:focus-within {
+    border-color: var(--amber-line);
+    background: var(--s2);
+    box-shadow: 0 0 0 3px var(--amber-glow);
+  }
+  .wh-search-ic { color: var(--muted); flex-shrink: 0; }
+  .wh-search-field:focus-within .wh-search-ic { color: var(--amber); }
+  .wh-search-input {
+    flex: 1; min-width: 0;
+    background: none; border: none; outline: none;
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 14px;
+    letter-spacing: .1px;
+  }
+  .wh-search-input::placeholder { color: var(--muted); }
+  .wh-search-clear {
+    flex-shrink: 0;
+    width: 24px; height: 24px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; cursor: pointer;
+    color: var(--muted);
+    transition: color .15s, background .15s;
+  }
+  .wh-search-clear:hover { color: var(--text); background: rgba(255,255,255,.06); }
+
+  .wh-search-drop {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+    z-index: 120;
+    max-height: 60vh; overflow-y: auto;
+    background: #141416;
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 16px 40px rgba(0,0,0,.55);
+  }
+  .wh-search-empty {
+    padding: 16px 12px; text-align: center;
+    color: var(--muted); font-size: 13px;
+  }
+  .wh-search-group {
+    font-family: var(--mono);
+    font-size: 9.5px; font-weight: 500; letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--muted2);
+    padding: 9px 10px 5px;
+  }
+  .wh-search-row {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 8px 10px; border-radius: 9px;
+    background: none; border: none; cursor: pointer;
+    text-align: left; color: var(--text);
+    transition: background .12s;
+  }
+  .wh-search-row.active,
+  .wh-search-row:hover { background: rgba(245,166,35,.10); }
+  .wh-search-row.track { cursor: default; gap: 8px; }
+  .wh-search-row-open {
+    display: flex; align-items: center; gap: 10px;
+    flex: 1; min-width: 0;
+    background: none; border: none; cursor: pointer;
+    text-align: left; color: inherit; padding: 0;
+  }
+  .wh-search-row-ic {
+    flex-shrink: 0;
+    width: 28px; height: 28px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.05);
+    color: var(--soft);
+  }
+  .wh-search-row-ic.project { color: var(--amber); background: var(--amber-glow); }
+  .wh-search-row.active .wh-search-row-ic,
+  .wh-search-row:hover .wh-search-row-ic { color: var(--amber); }
+  .wh-search-row-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .wh-search-row-title {
+    font-size: 13.5px; font-weight: 500; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .wh-search-row-sub {
+    font-size: 11.5px; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .wh-search-mark {
+    background: var(--amber-dim); color: var(--amber);
+    border-radius: 3px; padding: 0 1px;
+  }
+  .wh-search-vers {
+    flex-shrink: 0; display: flex; flex-wrap: wrap; gap: 4px;
+    justify-content: flex-end; max-width: 45%;
+  }
+  .wh-search-vchip {
+    font-family: var(--mono);
+    font-size: 10.5px; font-weight: 600; letter-spacing: .3px;
+    padding: 3px 8px; border-radius: 999px;
+    background: var(--cerulean-glow);
+    color: var(--cerulean);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: border-color .12s, background .12s;
+  }
+  .wh-search-vchip:hover {
+    border-color: var(--cerulean);
+    background: rgba(92,184,204,.30);
+  }
+  .wh-search-hint {
+    font-family: var(--mono);
+    font-size: 9.5px; letter-spacing: .6px;
+    color: var(--muted2);
+    padding: 8px 10px 5px; margin-top: 3px;
+    border-top: 1px solid var(--border);
+  }
+  /* Mobile : chips versions sous le titre, dropdown plus haut. */
+  @media (max-width: 720px) {
+    .wh-search-vers { max-width: 40%; }
+    .wh-search-drop { max-height: 70vh; }
+  }
   /* Colonne gauche sans cap : elle occupe toute la largeur disponible,
      les tips à droite s'étaleront moins en hauteur. */
   .wh-desktop .wh-col-left { max-width: none; }
