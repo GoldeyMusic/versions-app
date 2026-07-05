@@ -44,6 +44,7 @@ export default function PricingScreen({
   onStart,
   onBackToLanding,
   onViewDashboard,
+  onViewPlugin,
   ctaPrimaryLabel,
   isAuthenticated = false,
   // ─── Props utilitaires (utilisateur connecté) — section utility +
@@ -168,6 +169,14 @@ export default function PricingScreen({
           <button type="button" className="pr-topbar-link" onClick={onBackToLanding}>
             {t.topbarHome}
           </button>
+          {/* Lien Plugin + point notif — même ordre que landing/dashboard
+              (Accueil · Plugin · Tarifs). */}
+          {onViewPlugin && (
+            <button type="button" className="pr-topbar-link pr-topbar-plugin" onClick={onViewPlugin}>
+              {s.landing?.pluginNav || 'Plugin'}
+              <span className="pr-new-dot" aria-hidden="true" />
+            </button>
+          )}
           <span className="pr-topbar-current" aria-current="page">{t.topbarCurrent}</span>
           {onViewDashboard && (
             <button
@@ -183,6 +192,7 @@ export default function PricingScreen({
           <HamburgerMenu
             items={[
               { key: 'home', label: t.topbarHome, icon: NavIcons.home, onSelect: onBackToLanding },
+              ...(onViewPlugin ? [{ key: 'plugin', label: s.landing?.pluginNav || 'Plugin', icon: NavIcons.plugin, onSelect: onViewPlugin }] : []),
               { key: 'pricing', label: t.topbarCurrent, icon: NavIcons.pricing, current: true },
               ...(onViewDashboard ? [{
                 key: 'dashboard',
@@ -517,6 +527,15 @@ function PricingStyles() {
       .pr-topbar-link { background: transparent; color: ${T.textSoft}; border: 1px solid transparent; cursor: pointer; }
       .pr-topbar-link:hover { color: ${T.text}; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.10); }
       .pr-topbar-current { color: ${T.amber}; background: rgba(245,166,35,0.06); border: 1px solid rgba(245,166,35,0.32); }
+      /* Lien Plugin — point notif ambre (même grammaire que .lp-new-dot) */
+      .pr-topbar-plugin { position: relative; }
+      .pr-new-dot {
+        position: absolute; top: 6px; right: 8px;
+        width: 5px; height: 5px; border-radius: 50%;
+        background: ${T.amber};
+        box-shadow: 0 0 6px rgba(245,166,35,0.8);
+        pointer-events: none;
+      }
 
       /* TOPBAR — adaptation mobile : on aligne le brand (logo + wordmark)
          sur le format éprouvé de la fiche échantillon (.sample-brand) :

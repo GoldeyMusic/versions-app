@@ -713,7 +713,7 @@ function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut, onGoAdmi
  * écrans (admin, versions...), ça vaudra le coup d'extraire le CSS dans
  * MockupStyles ou un fichier shared.
  */
-function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricing, onGoReglages, onSignOut, onGoAdmin, onGoFeedback, user, lang, setLang, credits, planLabel = null }) {
+function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricing, onGoPlugin, onGoReglages, onSignOut, onGoAdmin, onGoFeedback, user, lang, setLang, credits, planLabel = null }) {
   const { s } = useLang();
   // Admin gated par VITE_ADMIN_EMAIL — visible uniquement sur le compte
   // de David. Permet d'atteindre #/admin en un clic depuis le menu
@@ -756,6 +756,15 @@ function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricin
           <button type="button" className="db-topbar-link db-topbar-link-home" onClick={onGoLanding}>
             {s.pricing?.topbarHome || 'Accueil'}
           </button>
+          {/* Lien Plugin + point notif — même ordre que la topbar de la
+              landing (Accueil · Plugin · Tarifs), pour que le plugin soit
+              découvrable depuis tous les écrans (demande David 2026-07-05). */}
+          {onGoPlugin && (
+            <button type="button" className="db-topbar-link db-topbar-plugin" onClick={onGoPlugin}>
+              {s.landing?.pluginNav || 'Plugin'}
+              <span className="db-new-dot" aria-hidden="true" />
+            </button>
+          )}
           <button type="button" className="db-topbar-link" onClick={onGoPricing}>
             {s.pricing?.topbarCurrent || 'Tarifs'}
           </button>
@@ -774,6 +783,7 @@ function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricin
           <HamburgerMenu
             items={[
               { key: 'home', label: s.pricing?.topbarHome || 'Accueil', icon: NavIcons.home, onSelect: onGoLanding },
+              ...(onGoPlugin ? [{ key: 'plugin', label: s.landing?.pluginNav || 'Plugin', icon: NavIcons.plugin, onSelect: onGoPlugin }] : []),
               { key: 'pricing', label: s.pricing?.topbarCurrent || 'Tarifs', icon: NavIcons.pricing, onSelect: onGoPricing },
               {
                 key: 'dashboard',
@@ -876,6 +886,16 @@ function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricin
         .db-topbar-link {
           background: transparent; color: var(--text-soft, var(--muted));
           border: 1px solid transparent; cursor: pointer;
+        }
+        /* Lien Plugin — point notif ambre (même grammaire que .lp-new-dot
+           sur la landing). */
+        .db-topbar-plugin { position: relative; }
+        .db-new-dot {
+          position: absolute; top: 6px; right: 8px;
+          width: 5px; height: 5px; border-radius: 50%;
+          background: var(--amber);
+          box-shadow: 0 0 6px rgba(245,166,35,0.8);
+          pointer-events: none;
         }
         .db-topbar-link:hover {
           color: var(--text); background: rgba(255,255,255,0.04);
@@ -4784,7 +4804,7 @@ function VersionsAppAuthed() {
     let view;
     if (showAuth) view = <AuthScreen />;
     else if (screen === 'sample') view = <SampleFicheScreen onSignup={goAuth} onBackToLanding={goLanding} />;
-    else if (screen === 'pricing') view = <PricingScreen onStart={goAuth} onBackToLanding={goLanding} onViewDashboard={goAuth} isAuthenticated={false} />;
+    else if (screen === 'pricing') view = <PricingScreen onStart={goAuth} onBackToLanding={goLanding} onViewDashboard={goAuth} onViewPlugin={goPlugin} isAuthenticated={false} />;
     else if (screen === 'plugin') view = <PluginScreen onBackToLanding={goLanding} onViewPricing={goPricing} onViewDashboard={goAuth} isAuthenticated={false} />;
     else if (screen === 'privacy') view = <PrivacyScreen onBackToLanding={goLanding} onGoTerms={goTerms} />;
     else if (screen === 'terms') view = <TermsScreen onBackToLanding={goLanding} onGoPrivacy={goPrivacy} />;
@@ -4891,6 +4911,7 @@ function VersionsAppAuthed() {
           onStart={() => setScreen('welcome')}
           onBackToLanding={() => setScreen('home')}
           onViewDashboard={() => setScreen('welcome')}
+          onViewPlugin={() => setScreen('plugin')}
           ctaPrimaryLabel={s.sidebar.dashboardLink}
           isAuthenticated={true}
           credits={userCredits}
@@ -5133,6 +5154,7 @@ function VersionsAppAuthed() {
               onGoLanding={() => setScreen('home')}
               onGoDashboard={() => setScreen('welcome')}
               onGoPricing={() => setScreen('pricing')}
+              onGoPlugin={() => setScreen('plugin')}
               onGoReglages={() => setReglagesOpen(true)}
               onSignOut={handleSignOut}
               onGoAdmin={() => setScreen('admin')}
