@@ -745,19 +745,24 @@ function LandingStyles() {
          plugin, décision 2026-07-05 après 2 essais : pill autonome trop
          bouton, note sous la rangée trop présente). */
       .lp-cta-first { position: relative; }
-      /* CTA "Découvrir le plugin" — teinte violette (la couleur "plugin"
-         du langage produit, cf. .lp-chip-plugin) pour le faire ressortir
-         de la rangée sans concurrencer l'ambre du CTA primaire. */
+      /* CTA "Découvrir le plugin" — teinte CONSTANTE bleu→violet (les
+         couleurs froides de la charte, cerulean + violet — le violet est
+         déjà la couleur "plugin" du langage produit, cf. .lp-chip-plugin).
+         Fond dégradé + bordure violette bien visibles au repos, renforcés
+         au hover. Fait ressortir le bouton sans concurrencer l'ambre du
+         CTA primaire. */
       .lp-cta-plugin {
-        color: #c2a8ff;
-        border-color: rgba(166,126,245,0.5);
-        background: rgba(166,126,245,0.05);
+        color: #cdb5ff;
+        border-color: rgba(166,126,245,0.65);
+        background: linear-gradient(135deg,
+          rgba(92,184,204,0.14), rgba(166,126,245,0.18));
       }
       .lp-cta-plugin:hover {
-        color: #d4c2ff;
-        border-color: rgba(166,126,245,0.8);
-        background: rgba(166,126,245,0.10);
-        box-shadow: 0 0 0 6px rgba(166,126,245,0.06);
+        color: #e0d2ff;
+        border-color: rgba(166,126,245,0.95);
+        background: linear-gradient(135deg,
+          rgba(92,184,204,0.20), rgba(166,126,245,0.26));
+        box-shadow: 0 0 0 6px rgba(166,126,245,0.08);
       }
 
       /* CTA row : primary + optional secondary "Voir un exemple". */
