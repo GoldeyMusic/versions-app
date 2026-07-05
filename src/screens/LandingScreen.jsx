@@ -306,9 +306,6 @@ export default function LandingScreen({
               <button type="button" onClick={onViewPlugin} className="lp-cta-primary">
                 {lp.plugCtaDownload}
               </button>
-              <button type="button" onClick={onViewPlugin} className="lp-cta-secondary">
-                {lp.plugCtaMore}
-              </button>
             </div>
           </section>
 

@@ -1729,7 +1729,6 @@ const STRINGS = {
       plugPoint4Title: "L'écoute express",
       plugPoint4Body: "30 secondes d'écoute, un verdict direct dans le chat — sur votre mix ou sur une seule piste. 5 offertes chaque mois, illimitées avec l'abonnement.",
       plugCtaDownload: "Télécharger gratuitement",
-      plugCtaMore: "En savoir plus",
     },
 
     /* ─────────────────────── PAGE PLUGIN (/plugin) ───────────────────
@@ -3687,7 +3686,6 @@ const STRINGS = {
       plugPoint4Title: "The express listen",
       plugPoint4Body: "30 seconds of listening, a verdict right in the chat — on your mix or a single track. 5 free every month, unlimited with a subscription.",
       plugCtaDownload: "Download for free",
-      plugCtaMore: "Learn more",
     },
 
     /* ─────────────────────── PLUGIN PAGE (/plugin) ─────────────────── */
