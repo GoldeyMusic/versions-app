@@ -24,11 +24,12 @@ import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
  * Les binaires vivent dans public/downloads/ sous un NOM STABLE (sans
  * version) pour ne pas avoir à toucher au code à chaque release :
  *   cp ~/versions-plugin/dist/Versions-X.Y.Z.dmg public/downloads/Versions.dmg
- * Windows : URL vide tant que la signature Azure Trusted Signing n'est
- * pas en place (décision 2026-07-05 — pas de .exe "Éditeur inconnu").
+ * Windows : .exe NON SIGNÉ publié en attendant Azure Artifact Signing
+ * (décision David 2026-07-05 — alerte SmartScreen assumée, le binaire
+ * sera remplacé par la version signée dès la validation Multicolorz).
  */
 const PLUGIN_DOWNLOAD_MAC_URL = '/downloads/Versions.dmg';
-const PLUGIN_DOWNLOAD_WIN_URL = '';
+const PLUGIN_DOWNLOAD_WIN_URL = '/downloads/Versions-Setup.exe';
 
 export default function PluginScreen({
   onBackToLanding,
