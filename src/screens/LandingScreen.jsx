@@ -751,13 +751,17 @@ function LandingStyles() {
          Fond dégradé + bordure violette bien visibles au repos, renforcés
          au hover. Fait ressortir le bouton sans concurrencer l'ambre du
          CTA primaire. */
-      .lp-cta-plugin {
+      /* Sélecteur doublé (.lp-cta-secondary.lp-cta-plugin) : la base
+         .lp-cta-secondary est définie PLUS BAS dans la feuille et
+         écraserait une simple classe (bug constaté en prod 2026-07-05 —
+         bouton resté sans couleur). */
+      .lp-cta-secondary.lp-cta-plugin {
         color: #cdb5ff;
         border-color: rgba(166,126,245,0.65);
         background: linear-gradient(135deg,
           rgba(92,184,204,0.14), rgba(166,126,245,0.18));
       }
-      .lp-cta-plugin:hover {
+      .lp-cta-secondary.lp-cta-plugin:hover {
         color: #e0d2ff;
         border-color: rgba(166,126,245,0.95);
         background: linear-gradient(135deg,
