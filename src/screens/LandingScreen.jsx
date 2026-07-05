@@ -745,6 +745,20 @@ function LandingStyles() {
          plugin, décision 2026-07-05 après 2 essais : pill autonome trop
          bouton, note sous la rangée trop présente). */
       .lp-cta-first { position: relative; }
+      /* CTA "Découvrir le plugin" — teinte violette (la couleur "plugin"
+         du langage produit, cf. .lp-chip-plugin) pour le faire ressortir
+         de la rangée sans concurrencer l'ambre du CTA primaire. */
+      .lp-cta-plugin {
+        color: #c2a8ff;
+        border-color: rgba(166,126,245,0.5);
+        background: rgba(166,126,245,0.05);
+      }
+      .lp-cta-plugin:hover {
+        color: #d4c2ff;
+        border-color: rgba(166,126,245,0.8);
+        background: rgba(166,126,245,0.10);
+        box-shadow: 0 0 0 6px rgba(166,126,245,0.06);
+      }
 
       /* CTA row : primary + optional secondary "Voir un exemple". */
       .lp-cta-row {
