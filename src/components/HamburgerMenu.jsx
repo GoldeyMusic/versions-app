@@ -206,6 +206,14 @@ export const NavIcons = {
       <circle cx="17.5" cy="14.5" r="0.9" fill="currentColor" stroke="none" />
     </svg>
   ),
+  // Plugin DAW — mixer 3 faders verticaux (grammaire lucide, cohérente
+  // avec le glyphe SESSION du plugin lui-même).
+  plugin: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <path d="M6 4v16M12 4v16M18 4v16" />
+      <path d="M3.8 14h4.4M9.8 8h4.4M15.8 16h4.4" strokeWidth="2.4" />
+    </svg>
+  ),
   // Tableau de bord — grille 2x2 (layout dashboard)
   dashboard: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">

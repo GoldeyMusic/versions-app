@@ -32,6 +32,7 @@ import AuthScreen from "./screens/AuthScreen";
 import LandingScreen from "./screens/LandingScreen";
 import SampleFicheScreen from "./screens/SampleFicheScreen";
 import PricingScreen from "./screens/PricingScreen";
+import PluginScreen from "./screens/PluginScreen";
 import AdminScreen from "./screens/AdminScreen";
 import PublicFicheScreen from "./screens/PublicFicheScreen";
 import JoinScreen from "./screens/JoinScreen";
@@ -2882,6 +2883,7 @@ const SCREEN_PATH = {
   home: '/',
   sample: '/exemple',
   pricing: '/pricing',
+  plugin: '/plugin',
   admin: '/admin',
   loading: '/analyse',
   fiche: '/fiche',
@@ -2896,6 +2898,7 @@ const PATH_SCREEN = {
   '/sample-report': 'sample',
   '/pricing': 'pricing',
   '/tarifs': 'pricing',
+  '/plugin': 'plugin',
   '/admin': 'admin',
   '/dashboard': 'welcome',
   '/analyse': 'loading',
@@ -3045,6 +3048,7 @@ function VersionsAppAuthed() {
     if (p === '/' || p === '/home') return 'home';
     if (p === '/exemple' || p === '/sample-report') return 'sample';
     if (p === '/pricing' || p === '/tarifs') return 'pricing';
+    if (p === '/plugin') return 'plugin';
     if (p === '/admin') return 'admin';
     if (p === '/privacy') return 'privacy';
     if (p === '/terms') return 'terms';
@@ -4756,6 +4760,13 @@ function VersionsAppAuthed() {
         window.history.pushState({ screen: 'pricing' }, '', '/pricing');
       }
     };
+    const goPlugin = () => {
+      setShowAuth(false);
+      setScreen('plugin');
+      if (typeof window !== 'undefined') {
+        window.history.pushState({ screen: 'plugin' }, '', '/plugin');
+      }
+    };
     const goPrivacy = () => {
       setShowAuth(false);
       setScreen('privacy');
@@ -4774,9 +4785,10 @@ function VersionsAppAuthed() {
     if (showAuth) view = <AuthScreen />;
     else if (screen === 'sample') view = <SampleFicheScreen onSignup={goAuth} onBackToLanding={goLanding} />;
     else if (screen === 'pricing') view = <PricingScreen onStart={goAuth} onBackToLanding={goLanding} onViewDashboard={goAuth} isAuthenticated={false} />;
+    else if (screen === 'plugin') view = <PluginScreen onBackToLanding={goLanding} onViewPricing={goPricing} onViewDashboard={goAuth} isAuthenticated={false} />;
     else if (screen === 'privacy') view = <PrivacyScreen onBackToLanding={goLanding} onGoTerms={goTerms} />;
     else if (screen === 'terms') view = <TermsScreen onBackToLanding={goLanding} onGoPrivacy={goPrivacy} />;
-    else view = <LandingScreen onStart={goAuth} onViewSample={goSample} onViewPricing={goPricing} onViewDashboard={goAuth} onGoPrivacy={goPrivacy} onGoTerms={goTerms} isAuthenticated={false} />;
+    else view = <LandingScreen onStart={goAuth} onViewSample={goSample} onViewPricing={goPricing} onViewPlugin={goPlugin} onViewDashboard={goAuth} onGoPrivacy={goPrivacy} onGoTerms={goTerms} isAuthenticated={false} />;
     return (
       <LangContext.Provider value={{ lang, s, setLang, t }}>
         <FontLink />
@@ -4805,6 +4817,7 @@ function VersionsAppAuthed() {
           ctaFooterLabel={s.sidebar.dashboardLink}
           onViewSample={() => setScreen('sample')}
           onViewPricing={() => setScreen('pricing')}
+          onViewPlugin={() => setScreen('plugin')}
           onViewDashboard={() => setScreen('welcome')}
           onGoPrivacy={() => setScreen('privacy')}
           onGoTerms={() => setScreen('terms')}
@@ -4879,6 +4892,53 @@ function VersionsAppAuthed() {
           onBackToLanding={() => setScreen('home')}
           onViewDashboard={() => setScreen('welcome')}
           ctaPrimaryLabel={s.sidebar.dashboardLink}
+          isAuthenticated={true}
+          credits={userCredits}
+          isAdmin={!!(import.meta.env.VITE_ADMIN_EMAIL && user?.email?.toLowerCase() === import.meta.env.VITE_ADMIN_EMAIL.trim().toLowerCase())}
+          onGoAdmin={() => setScreen('admin')}
+          onGoReglages={() => setReglagesOpen(true)}
+          onSignOut={handleSignOut}
+        />
+        {!!user && (
+          <DashboardRail
+            credits={userCredits}
+            onGoPricing={() => setScreen('pricing')}
+            onGoReglages={() => setReglagesOpen(true)}
+            onSignOut={handleSignOut}
+            onGoAdmin={() => setScreen('admin')}
+            onGoFeedback={() => setFeedbackOpen(true)}
+            user={user}
+          />
+        )}
+        <ReglagesModal
+          open={reglagesOpen}
+          onClose={() => setReglagesOpen(false)}
+          onSignOut={handleSignOut}
+          onProfileUpdate={setUserProfile}
+        />
+        {feedbackOpen && (
+          <FeedbackModal
+            onClose={() => setFeedbackOpen(false)}
+            versionId={config?.versionId || null}
+            trackId={config?.trackId || null}
+          />
+        )}
+      </LangContext.Provider>
+    );
+  }
+
+  // Connecté + /plugin : page plugin plein écran, sans sidebar — même
+  // pattern que pricing (rail bas-gauche pour les outils de compte).
+  if (screen === 'plugin') {
+    return (
+      <LangContext.Provider value={{ lang, s, setLang, t }}>
+        <FontLink />
+        <GlobalStyles />
+        <MockupStyles />
+        <PluginScreen
+          onBackToLanding={() => setScreen('home')}
+          onViewPricing={() => setScreen('pricing')}
+          onViewDashboard={() => setScreen('welcome')}
           isAuthenticated={true}
           credits={userCredits}
           isAdmin={!!(import.meta.env.VITE_ADMIN_EMAIL && user?.email?.toLowerCase() === import.meta.env.VITE_ADMIN_EMAIL.trim().toLowerCase())}

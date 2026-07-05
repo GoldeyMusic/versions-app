@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import T from '../constants/theme';
 import useLang from '../hooks/useLang';
 import LangDropdown from '../components/LangDropdown';
@@ -19,6 +19,7 @@ export default function LandingScreen({
   onStart,
   onViewSample,
   onViewPricing,
+  onViewPlugin,
   onViewDashboard,
   onGoPrivacy,
   onGoTerms,
@@ -40,6 +41,10 @@ export default function LandingScreen({
   const lp = s.landing;
   const ctaPrimary = ctaPrimaryLabel || lp.ctaPrimary;
   const ctaFooter = ctaFooterLabel || lp.ctaFooter;
+  // Vidéo de démo du plugin — /plugin-demo.mp4 (public/). Tant que le
+  // fichier n'est pas déployé, le onError bascule sur un placeholder
+  // stylé (cadre + glyphe play) pour ne jamais montrer un player cassé.
+  const [plugVideoOk, setPlugVideoOk] = useState(true);
   const utilityItems = [
     ...(isAdmin && onGoAdmin ? [{ key: 'admin', label: 'Admin', icon: NavIcons.admin, onSelect: onGoAdmin }] : []),
     ...(onGoReglages ? [{ key: 'reglages', label: s.sidebar?.reglages || 'Réglages', icon: NavIcons.settings, onSelect: onGoReglages }] : []),
@@ -85,6 +90,21 @@ export default function LandingScreen({
           {/* Desktop : nav texte (Accueil/Tarifs/Tableau de bord). Mobile :
               le hamburger prend le relais via media query (cf. CSS). */}
           <span className="lp-topbar-current" aria-current="page">Accueil</span>
+          {/* Lien Plugin + point notif — annonce du plugin DAW (2026-07).
+              Un simple dot ambre façon notification (le badge "Nouveau"
+              complet était trop imposant en topbar — retour David ; il
+              reste sur le CTA hero). */}
+          {onViewPlugin && (
+            <button
+              type="button"
+              className="lp-topbar-link lp-topbar-plugin"
+              onClick={onViewPlugin}
+              aria-label={`${lp.ctaPlugin} — ${lp.pluginNewBadge}`}
+            >
+              {lp.pluginNav}
+              <span className="lp-new-dot" aria-hidden="true" />
+            </button>
+          )}
           {onViewPricing && (
             <button
               type="button"
@@ -111,6 +131,7 @@ export default function LandingScreen({
           <HamburgerMenu
             items={[
               { key: 'home', label: 'Accueil', icon: NavIcons.home, current: true },
+              ...(onViewPlugin ? [{ key: 'plugin', label: lp.pluginNav, icon: NavIcons.plugin, onSelect: onViewPlugin }] : []),
               ...(onViewPricing ? [{ key: 'pricing', label: 'Tarifs', icon: NavIcons.pricing, onSelect: onViewPricing }] : []),
               ...(onViewDashboard ? [{
                 key: 'dashboard',
@@ -155,31 +176,145 @@ export default function LandingScreen({
           </div>
           <p className="lp-hero-sub">{lp.heroSub}</p>
 
-          {/* Badge "Première analyse offerte" — visiteurs non connectés
-              uniquement. Posé juste au-dessus du CTA primaire pour lever
-              la friction "ça coûte combien ?" avant le clic. Style chip
-              pill amber-tinted, mono uppercase, légère rotation -1.5° et
-              pulse subtil sur le dot pour attirer l'œil sans agresser. */}
-          {!isAuthenticated && (
-            <div className="lp-free-badge" role="status" aria-label={lp.freeFirstBadge}>
-              {lp.freeFirstBadge}
-            </div>
-          )}
-
           <div className="lp-cta-row">
-            <button type="button" onClick={onStart} className="lp-cta-primary">
+            {/* Badge "Offerte" sur le CTA primaire — même mécanique que le
+                badge "Nouveau" du CTA plugin. Visiteurs uniquement (l'offre
+                première analyse ne concerne pas les comptes existants). */}
+            <button
+              type="button"
+              onClick={onStart}
+              className="lp-cta-primary lp-cta-first"
+              aria-label={!isAuthenticated ? `${ctaPrimary} — ${lp.freeFirstBadge}` : undefined}
+            >
               {ctaPrimary}
+              {!isAuthenticated && (
+                <span className="lp-new-badge" aria-hidden="true">{lp.freeFirstBadgeShort}</span>
+              )}
             </button>
             {onViewSample && (
               <button type="button" onClick={onViewSample} className="lp-cta-secondary">
                 {lp.ctaSample}
               </button>
             )}
+            {/* CTA plugin + badge "Nouveau" — 3e porte d'entrée du hero,
+                pour que l'écosystème (analyse en ligne + plugin DAW) soit
+                lisible dès l'arrivée sans toucher au reste du hero. */}
+            {onViewPlugin && (
+              <button type="button" onClick={onViewPlugin} className="lp-cta-secondary lp-cta-plugin">
+                {lp.ctaPlugin}
+                <span className="lp-new-badge" aria-hidden="true">{lp.pluginNewBadge}</span>
+              </button>
+            )}
           </div>
+
         </div>
       </header>
 
       <div className="lp-divider" />
+
+      {/* LE PLUGIN — annonce du plugin DAW (2026-07). Posée juste après
+          le hero pour que les deux produits (analyse en ligne + plugin)
+          se lisent immédiatement. Même grammaire que les autres sections
+          (eyebrow amber, titre em, lede). Faits sourcés depuis
+          versions-plugin/CLAUDE.md : AU + VST3, macOS + Windows,
+          express-only — l'analyse complète vit sur le site. */}
+      {onViewPlugin && (
+        <>
+          <section className="lp-section lp-section-plugin">
+            <div className="lp-section-eyebrow lp-anim">{lp.plugEyebrow}</div>
+            <h2 className="lp-section-title lp-anim" style={{ '--anim-d': '60ms' }}>
+              {lp.plugTitleStart} <em>{lp.plugTitleEm}</em>
+            </h2>
+            <p className="lp-section-lede lp-anim" style={{ '--anim-d': '120ms' }}>{lp.plugLede}</p>
+
+            <div className="lp-plug-grid">
+              {/* Vidéo de démo — /plugin-demo.mp4, placeholder si absente.
+                  Lecture automatique en boucle, muette (exigence navigateurs :
+                  l'autoplay n'est autorisé que muted) et sans contrôles —
+                  elle se consomme comme un visuel animé. La version longue
+                  avec son/contrôles vit sur la page /plugin. */}
+              <div className="lp-plug-video lp-anim" style={{ '--anim-d': '180ms' }}>
+                {plugVideoOk ? (
+                  <video
+                    className="lp-plug-video-el"
+                    src="/plugin-demo.mp4"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                    onError={() => setPlugVideoOk(false)}
+                  />
+                ) : (
+                  <div className="lp-plug-video-ph">
+                    <div className="lp-plug-video-play" aria-hidden="true">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                    </div>
+                    <div className="lp-plug-video-note">{lp.plugVideoNote}</div>
+                  </div>
+                )}
+              </div>
+
+              <div className="lp-plug-points">
+                <div className="lp-plug-point lp-plug-cerulean lp-anim" style={{ '--anim-d': '240ms' }}>
+                  <div className="lp-plug-point-ico" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M2 12h3l2-7 4 14 3-10 2 3h6" /></svg>
+                  </div>
+                  <div>
+                    <div className="lp-plug-point-title">{lp.plugPoint1Title}</div>
+                    <div className="lp-plug-point-body">{lp.plugPoint1Body}</div>
+                  </div>
+                </div>
+                <div className="lp-plug-point lp-plug-amber lp-anim" style={{ '--anim-d': '320ms' }}>
+                  <div className="lp-plug-point-ico" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
+                  </div>
+                  <div>
+                    <div className="lp-plug-point-title">{lp.plugPoint2Title}</div>
+                    <div className="lp-plug-point-body">{lp.plugPoint2Body}</div>
+                  </div>
+                </div>
+                <div className="lp-plug-point lp-plug-violet lp-anim" style={{ '--anim-d': '400ms' }}>
+                  <div className="lp-plug-point-ico" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+                  </div>
+                  <div>
+                    <div className="lp-plug-point-title">{lp.plugPoint3Title}</div>
+                    <div className="lp-plug-point-body">{lp.plugPoint3Body}</div>
+                  </div>
+                </div>
+                <div className="lp-plug-point lp-plug-mint lp-anim" style={{ '--anim-d': '480ms' }}>
+                  <div className="lp-plug-point-ico" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                  </div>
+                  <div>
+                    <div className="lp-plug-point-title">{lp.plugPoint4Title}</div>
+                    <div className="lp-plug-point-body">{lp.plugPoint4Body}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Compat — volontairement sobre : juste les 2 OS. Les formats
+                (AU/VST3) et la liste des DAW vivent sur la page /plugin. */}
+            <div className="lp-plug-compat lp-anim" style={{ '--anim-d': '540ms' }}>
+              <span className="lp-plug-compat-chip">macOS</span>
+              <span className="lp-plug-compat-chip">Windows</span>
+            </div>
+
+            <div className="lp-cta-row lp-plug-cta-row lp-anim" style={{ '--anim-d': '600ms' }}>
+              <button type="button" onClick={onViewPlugin} className="lp-cta-primary">
+                {lp.plugCtaDownload}
+              </button>
+              <button type="button" onClick={onViewPlugin} className="lp-cta-secondary">
+                {lp.plugCtaMore}
+              </button>
+            </div>
+          </section>
+
+          <div className="lp-divider" />
+        </>
+      )}
 
       {/* CE QUI NOUS REND DIFFÉRENTS — cards "stickers" :
           - rotation subtile (-1° / +1° / -1.5° / +1.5°) pour casser le grid Excel
@@ -235,6 +370,34 @@ export default function LandingScreen({
             </div>
             <h3 className="lp-diff-title">{lp.diffCard4Title}</h3>
             <p className="lp-diff-body">{lp.diffCard4Body}</p>
+          </article>
+
+          {/* Carte 5 — Collaboration (partage de fiches, rôles, commentaires).
+              Carte 6 — Écosystème site + plugin DAW. Ajoutées 2026-07-05 ;
+              le cycle de couleurs reprend amber/cerulean (rangée 3 = écho
+              de la rangée 1). */}
+          <article className="lp-diff-card lp-diff-cerulean lp-anim" style={{ '--anim-d': '480ms' }}>
+            <div className="lp-diff-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <h3 className="lp-diff-title">{lp.diffCard5Title}</h3>
+            <p className="lp-diff-body">{lp.diffCard5Body}</p>
+          </article>
+
+          <article className="lp-diff-card lp-diff-amber lp-anim" style={{ '--anim-d': '560ms' }}>
+            <div className="lp-diff-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M6 4v16M12 4v16M18 4v16"/>
+                <path d="M3.8 14h4.4M9.8 8h4.4M15.8 16h4.4" strokeWidth="2.2"/>
+              </svg>
+            </div>
+            <h3 className="lp-diff-title">{lp.diffCard6Title}</h3>
+            <p className="lp-diff-body">{lp.diffCard6Body}</p>
           </article>
         </div>
       </section>
@@ -580,25 +743,11 @@ function LandingStyles() {
         .lp-slogan .lp-slogan-line { white-space: normal; }
       }
 
-      /* Badge "Première analyse offerte" — chip pill amber posée
-         au-dessus du CTA primary. Système chip cohérent avec .pr-chip
-         et .vside-chip (mono uppercase, bg amber-tinted, bordure amber).
-         Légère rotation -1.5° pour rester dans la grammaire chip
-         globale ; au hover, la chip se redresse. Pas de halo, pas de
-         dot — sobre et discrète. */
-      .lp-free-badge {
-        display: inline-flex; align-items: center;
-        margin: 4px 0 18px;
-        padding: 6px 14px; border-radius: 999px;
-        font-family: ${T.mono}; font-size: 10.5px; font-weight: 500;
-        letter-spacing: 1.8px; text-transform: uppercase;
-        color: ${T.amber};
-        background: rgba(245,166,35,0.10);
-        border: 1px solid rgba(245,166,35,0.42);
-        transform: rotate(-1.5deg);
-        transition: transform .2s ease;
-      }
-      .lp-free-badge:hover { transform: rotate(0deg); }
+      /* "Première analyse offerte" — badge coin "Offerte" sur le CTA
+         primaire (même grammaire .lp-new-badge que le "Nouveau" du CTA
+         plugin, décision 2026-07-05 après 2 essais : pill autonome trop
+         bouton, note sous la rangée trop présente). */
+      .lp-cta-first { position: relative; }
 
       /* CTA row : primary + optional secondary "Voir un exemple". */
       .lp-cta-row {
@@ -712,6 +861,8 @@ function LandingStyles() {
       .lp-diff-grid > .lp-diff-card:nth-child(2) { --card-rot:  1deg; }
       .lp-diff-grid > .lp-diff-card:nth-child(3) { --card-rot: -1.5deg; }
       .lp-diff-grid > .lp-diff-card:nth-child(4) { --card-rot:  1.5deg; }
+      .lp-diff-grid > .lp-diff-card:nth-child(5) { --card-rot: -1deg; }
+      .lp-diff-grid > .lp-diff-card:nth-child(6) { --card-rot:  1deg; }
       /* Numérotation 01-04 — mono ambre dimmé en haut à droite, hors flux */
       .lp-diff-card::after {
         content: counter(lp-diff-counter, decimal-leading-zero);
@@ -1037,11 +1188,121 @@ function LandingStyles() {
         user-select: none;
       }
 
+      /* ── PLUGIN — badge "Nouveau" (CTA hero) + dot notif (topbar) ── */
+      /* Badge : posé en absolu sur le coin haut-droit du bouton porteur.
+         Fond ambre plein + texte sombre : c'est le seul élément "solide"
+         de la page, voulu — il doit se voir. En topbar, version discrète :
+         juste un point ambre façon notification (retour David 2026-07-05,
+         le badge complet y était trop imposant). */
+      .lp-topbar-plugin, .lp-cta-plugin { position: relative; }
+      .lp-new-dot {
+        position: absolute; top: 6px; right: 8px;
+        width: 5px; height: 5px; border-radius: 50%;
+        background: ${T.amber};
+        box-shadow: 0 0 6px rgba(245,166,35,0.8);
+        pointer-events: none;
+      }
+      .lp-new-badge {
+        position: absolute; top: -8px; right: -6px;
+        font-family: ${T.mono}; font-size: 8px; font-weight: 500;
+        letter-spacing: 1.4px; text-transform: uppercase;
+        color: ${T.black}; background: ${T.amber};
+        padding: 2px 7px; border-radius: 999px;
+        box-shadow: 0 0 10px rgba(245,166,35,0.35);
+        pointer-events: none;
+        line-height: 1.4;
+      }
+
+      /* ── PLUGIN — section d'annonce (home) ────────────────────── */
+      .lp-plug-grid {
+        display: grid; grid-template-columns: 1.15fr 1fr;
+        gap: 40px; align-items: center;
+        margin-top: 48px;
+      }
+      /* Cadre vidéo — mêmes rayons/ombres que les cards de la page.
+         Le player HTML5 remplit le cadre ; le placeholder reprend le
+         dégradé charte tant que /plugin-demo.mp4 n'est pas déployée. */
+      .lp-plug-video {
+        position: relative; aspect-ratio: 16 / 9;
+        border-radius: 18px; overflow: hidden;
+        background: ${T.s1};
+        border: 1px solid ${T.borderStrong};
+        box-shadow: 0 24px 64px -20px rgba(0,0,0,0.7);
+      }
+      .lp-plug-video-el {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
+        object-fit: cover; display: block;
+        background: ${T.s1};
+      }
+      .lp-plug-video-ph {
+        position: absolute; inset: 0;
+        display: grid; place-items: center;
+        background:
+          radial-gradient(ellipse 60% 50% at 30% 30%, rgba(92,184,204,0.10), transparent),
+          radial-gradient(ellipse 50% 45% at 75% 70%, rgba(245,166,35,0.08), transparent);
+      }
+      .lp-plug-video-play {
+        width: 72px; height: 72px; border-radius: 50%;
+        display: grid; place-items: center;
+        color: ${T.amber};
+        background: rgba(245,166,35,0.14);
+        border: 1px solid rgba(245,166,35,0.5);
+      }
+      .lp-plug-video-play svg { margin-left: 4px; }
+      .lp-plug-video-note {
+        position: absolute; bottom: 14px; left: 50%;
+        transform: translateX(-50%);
+        font-family: ${T.mono}; font-size: 9.5px; font-weight: 500;
+        letter-spacing: 1.6px; text-transform: uppercase;
+        color: ${T.muted}; white-space: nowrap;
+      }
+      /* Points clés — icône teintée + titre + body, même palette que
+         les diff-cards (cerulean / amber / violet / mint). */
+      .lp-plug-points { display: flex; flex-direction: column; gap: 18px; }
+      .lp-plug-point { display: flex; gap: 14px; align-items: flex-start; }
+      .lp-plug-point-ico {
+        width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+        display: grid; place-items: center; margin-top: 2px;
+      }
+      .lp-plug-cerulean .lp-plug-point-ico { background: rgba(92,184,204,0.10); border: 1px solid rgba(92,184,204,0.30); color: ${T.cerulean}; }
+      .lp-plug-amber    .lp-plug-point-ico { background: rgba(245,166,35,0.10); border: 1px solid rgba(245,166,35,0.30); color: ${T.amber}; }
+      .lp-plug-violet   .lp-plug-point-ico { background: rgba(166,126,245,0.10); border: 1px solid rgba(166,126,245,0.30); color: ${T.violet}; }
+      .lp-plug-mint     .lp-plug-point-ico { background: rgba(142,224,122,0.10); border: 1px solid rgba(142,224,122,0.30); color: ${T.mint}; }
+      .lp-plug-point-title {
+        font-family: ${T.body}; font-size: 15px; font-weight: 600;
+        color: ${T.text}; margin-bottom: 3px;
+      }
+      .lp-plug-point-body {
+        font-family: ${T.body}; font-size: 13.5px; font-weight: 300;
+        line-height: 1.6; color: ${T.muted};
+      }
+      /* Chips de compatibilité — grammaire chip neutre (cf. .lp-chip-bass) */
+      .lp-plug-compat {
+        display: flex; flex-wrap: wrap; gap: 8px;
+        margin-top: 26px; justify-content: center;
+      }
+      .lp-plug-compat-chip {
+        font-family: ${T.mono}; font-size: 10px; font-weight: 500;
+        letter-spacing: 1.4px; text-transform: uppercase;
+        padding: 5px 12px; border-radius: 999px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.14);
+        color: rgba(255,255,255,0.72);
+        white-space: nowrap;
+      }
+      .lp-plug-cta-row { margin-top: 28px; }
+
       /* ── RESPONSIVE ───────────────────────────────── */
       @media (max-width: 768px) {
         .lp-diff-grid { grid-template-columns: 1fr; }
         .lp-axes-grid { grid-template-columns: 1fr; }
         .lp-nope-grid { grid-template-columns: 1fr; }
+        .lp-plug-grid { grid-template-columns: 1fr; gap: 28px; }
+        /* Le lien Plugin de la topbar disparaît avec les autres liens
+           texte au profit du hamburger (déjà géré par la media query
+           existante sur .lp-topbar-link) — rien à faire ici. Le badge
+           du CTA hero reste lisible en colonne pleine largeur. */
         .lp-section { padding: 64px 20px; }
         .lp-section-tight { padding: 48px 20px; }
         .lp-hero { padding: 56px 20px 48px; }
