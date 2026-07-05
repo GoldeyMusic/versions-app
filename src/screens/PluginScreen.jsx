@@ -201,9 +201,11 @@ export default function PluginScreen({
             <video
               className="plg-video-el"
               src="/plugin-demo.mp4"
-              controls
+              autoPlay
+              muted
+              loop
               playsInline
-              preload="metadata"
+              preload="auto"
               onError={() => setVideoOk(false)}
             />
           ) : (
