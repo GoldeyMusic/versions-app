@@ -3373,6 +3373,28 @@ function VersionsAppAuthed() {
     if (!user || routeInitRef.current) return;
     routeInitRef.current = true;
     const rawPath = window.location.pathname;
+    // Retour post-login (posé par goAuth quand le visiteur lance le login
+    // depuis /plugin ou /pricing) : on le ramène là où il était au lieu du
+    // dashboard. Couvre les DEUX flows : email/mdp (même onglet, l'URL est
+    // déjà passée à /dashboard par goAuth) ET OAuth Google (retour sur
+    // /auth/callback — sessionStorage survit au redirect). Les pages hors
+    // arborescence (recovery, confirm-delete) gardent la priorité.
+    if (rawPath !== '/update-password' && rawPath !== '/confirm-delete-account') {
+      let returnTo = null;
+      try {
+        returnTo = window.sessionStorage.getItem('vs_return_to');
+        if (returnTo) window.sessionStorage.removeItem('vs_return_to');
+      } catch { /* stockage indispo → flow normal */ }
+      const backScreen = returnTo ? PATH_SCREEN[returnTo] : null;
+      if (backScreen) {
+        window.history.replaceState({ screen: backScreen }, '', returnTo);
+        if (screen !== backScreen) {
+          isHashSyncRef.current = true;
+          setScreen(backScreen);
+        }
+        return;
+      }
+    }
     // Retour OAuth en flow PKCE : Supabase a déjà échangé le `?code=...` au
     // mount du client. Au moment où `user` est posé, on peut nettoyer l'URL
     // et atterrir sur le dashboard.
@@ -4756,6 +4778,21 @@ function VersionsAppAuthed() {
     const goAuth = () => {
       setShowAuth(true);
       if (typeof window !== 'undefined') {
+        // Retour post-login : si l'inscription part d'une page publique
+        // "retournable" (/plugin, /pricing), on mémorise où on était pour
+        // y revenir après le login (routeInit lit vs_return_to). Sinon on
+        // NETTOIE la clé (pas de retour périmé d'une visite précédente).
+        // sessionStorage (pas localStorage) : per-onglet, meurt avec lui —
+        // et il survit au redirect OAuth Google (/auth/callback), là où le
+        // pathname est perdu.
+        const p = window.location.pathname;
+        try {
+          if (p === '/plugin' || p === '/pricing') {
+            window.sessionStorage.setItem('vs_return_to', p);
+          } else {
+            window.sessionStorage.removeItem('vs_return_to');
+          }
+        } catch { /* stockage indispo (Safari privé) → dashboard, comme avant */ }
         window.history.replaceState({}, '', '/dashboard');
       }
     };
