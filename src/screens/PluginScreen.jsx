@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import T from '../constants/theme';
+import { apiFetchJson } from '../lib/apiClient';
 import useLang from '../hooks/useLang';
 import LangDropdown from '../components/LangDropdown';
 import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
@@ -21,6 +22,12 @@ import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
  *
  * Liens de téléchargement : constantes ci-dessous. Tant qu'une URL est
  * vide, le bouton correspondant est désactivé avec le libellé "bientôt".
+ * GATING (2026-07-05) : le téléchargement exige un compte — visiteur non
+ * connecté = clic → écran login (onViewDashboard vaut goAuth en rendu
+ * public) ; connecté = <a download> + POST /api/plugin/download
+ * (fire-and-forget : tracking en base + notif email ops côté versions-api).
+ * L'URL statique reste techniquement accessible en direct — assumé, le
+ * gate est un funnel produit, pas un DRM.
  * Les binaires vivent dans public/downloads/ sous un NOM STABLE (sans
  * version) pour ne pas avoir à toucher au code à chaque release :
  *   cp ~/versions-plugin/dist/Versions-X.Y.Z.dmg public/downloads/Versions.dmg
@@ -83,23 +90,53 @@ export default function PluginScreen({
     </svg>
   );
 
-  // Bouton de téléchargement — <a> si l'URL est renseignée, sinon bouton
-  // désactivé avec hint "lien à venir" (title + aria).
-  const DownloadCta = ({ url, label, icon }) => (
-    url ? (
-      <a className="lp-cta-primary plg-dl" href={url} download>{icon}{label}</a>
-    ) : (
-      <button
-        type="button"
-        className="lp-cta-primary plg-dl"
-        disabled
-        title={t.ctaComingSoon}
-        aria-label={`${label} — ${t.ctaComingSoon}`}
-      >
+  // Log de téléchargement — fire-and-forget vers le backend (tracking en
+  // base + notif email ops). Best-effort : un échec ne bloque JAMAIS le
+  // téléchargement (l'anchor natif part quoi qu'il arrive).
+  const logDownload = (platform) => {
+    apiFetchJson('/api/plugin/download', { method: 'POST', body: { platform } })
+      .catch(() => { /* tracking best-effort */ });
+  };
+
+  // Bouton de téléchargement — 3 états (décision David 2026-07-05 : le
+  // download est GATÉ par le compte ; le plugin exige un login à
+  // l'ouverture de toute façon, autant capter l'inscription ici) :
+  //  - URL vide → bouton désactivé "lien à venir" ;
+  //  - visiteur → même look, mais clic = écran d'inscription/login
+  //    (onViewDashboard vaut goAuth dans le rendu public, cf. App.jsx) ;
+  //  - connecté → <a download> + logDownload au clic.
+  const DownloadCta = ({ url, label, icon, platform }) => {
+    if (!url) {
+      return (
+        <button
+          type="button"
+          className="lp-cta-primary plg-dl"
+          disabled
+          title={t.ctaComingSoon}
+          aria-label={`${label} — ${t.ctaComingSoon}`}
+        >
+          {icon}{label}
+        </button>
+      );
+    }
+    if (!isAuthenticated) {
+      return (
+        <button
+          type="button"
+          className="lp-cta-primary plg-dl"
+          onClick={onViewDashboard}
+          title={t.ctaAuthNote}
+        >
+          {icon}{label}
+        </button>
+      );
+    }
+    return (
+      <a className="lp-cta-primary plg-dl" href={url} download onClick={() => logDownload(platform)}>
         {icon}{label}
-      </button>
-    )
-  );
+      </a>
+    );
+  };
 
   return (
     <div className="plg-screen">
@@ -184,13 +221,15 @@ export default function PluginScreen({
             <span className="plg-compat-chip">VST3</span>
           </div>
           <div className="plg-cta-row">
-            <DownloadCta url={PLUGIN_DOWNLOAD_MAC_URL} label={t.ctaMac} icon={AppleIcon} />
+            <DownloadCta url={PLUGIN_DOWNLOAD_MAC_URL} label={t.ctaMac} icon={AppleIcon} platform="mac" />
             <DownloadCta
               url={PLUGIN_DOWNLOAD_WIN_URL}
               label={PLUGIN_DOWNLOAD_WIN_URL ? t.ctaWin : t.ctaWinSoon}
               icon={WindowsIcon}
+              platform="windows"
             />
           </div>
+          {!isAuthenticated && <p className="plg-dl-note">{t.ctaAuthNote}</p>}
         </div>
       </header>
 
@@ -300,13 +339,15 @@ export default function PluginScreen({
           {t.footerQuoteEnd}
         </h2>
         <div className="plg-cta-row plg-anim" style={{ '--anim-d': '80ms' }}>
-          <DownloadCta url={PLUGIN_DOWNLOAD_MAC_URL} label={t.ctaMac} icon={AppleIcon} />
+          <DownloadCta url={PLUGIN_DOWNLOAD_MAC_URL} label={t.ctaMac} icon={AppleIcon} platform="mac" />
           <DownloadCta
             url={PLUGIN_DOWNLOAD_WIN_URL}
             label={PLUGIN_DOWNLOAD_WIN_URL ? t.ctaWin : t.ctaWinSoon}
             icon={WindowsIcon}
+            platform="windows"
           />
         </div>
+        {!isAuthenticated && <p className="plg-dl-note plg-anim" style={{ '--anim-d': '120ms' }}>{t.ctaAuthNote}</p>}
         <button type="button" className="plg-back-link" onClick={onBackToLanding}>
           {t.backToHome}
         </button>
@@ -530,6 +571,12 @@ function PluginStyles() {
       }
       /* Glyphe plateforme dans les boutons de téléchargement */
       .plg-dl-ico { margin-right: 9px; flex-shrink: 0; }
+      /* Note sous les CTAs (visiteur non connecté) : le download passe par
+         un compte gratuit — on l'annonce plutôt que de surprendre au clic. */
+      .plg-dl-note {
+        margin: 12px 0 0; text-align: center;
+        font-size: 13px; color: ${T.textMuted || 'rgba(240,240,245,0.55)'};
+      }
       .plg-screen .lp-cta-secondary {
         display: inline-flex; align-items: center; justify-content: center;
         padding: 16px 28px;
