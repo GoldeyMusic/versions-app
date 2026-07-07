@@ -450,9 +450,9 @@ function PluginStyles() {
 
       /* ── HERO ─────────────────────────────────────── */
       .plg-hero {
-        /* Padding bas réduit (64→36 max) : trop d'air entre les CTAs et
-           la vidéo de démo. */
-        padding: clamp(48px, 8vw, 96px) 24px clamp(22px, 3.5vw, 36px);
+        /* Padding bas = 26px : même espace que le gap du hero-inner,
+           pour un rythme chips → CTAs → version → vidéo homogène. */
+        padding: clamp(48px, 8vw, 96px) 24px 26px;
         display: grid; place-items: center;
       }
       .plg-hero-inner {
@@ -553,7 +553,7 @@ function PluginStyles() {
       }
 
       .plg-cta-row {
-        margin-top: 6px;
+        margin-top: 0;
         display: flex; flex-wrap: wrap; gap: 12px;
         justify-content: center; align-items: center;
       }
@@ -588,11 +588,12 @@ function PluginStyles() {
       }
       /* Numéro de version sous les CTAs — discret, grammaire mono
          uppercase de la charte. Source unique : PLUGIN_VERSION.
-         Marges négatives : hero-inner (gap 26) et footer (gap 28) sont
-         des flex column avec gap — on compense pour coller la note à
-         ~12px sous les boutons, homogène aux deux endroits. */
+         Rythme vertical homogène (demande David 2026-07-07) : chips
+         compat → CTAs → version → vidéo, tout à 26px = le gap du
+         hero-inner. Donc AUCUNE marge ici, et le padding bas du hero
+         vaut 26px aussi. */
       .plg-version-note {
-        margin: -14px 0 0; text-align: center;
+        margin: 0; text-align: center;
         font-family: ${T.mono}; font-size: 10px; font-weight: 500;
         letter-spacing: 1.8px; text-transform: uppercase;
         color: ${T.muted};
@@ -794,7 +795,7 @@ function PluginStyles() {
         .plg-steps > .plg-step,
         .plg-feat-grid > .plg-feat { --card-rot: 0deg; }
         .plg-section { padding: 64px 20px; }
-        .plg-hero { padding: 48px 20px 24px; }
+        .plg-hero { padding: 48px 20px 26px; }
         .plg-slogan { font-size: clamp(36px, 10vw, 56px); letter-spacing: -1.2px; }
         .plg-cta-row { flex-direction: column; gap: 10px; width: 100%; }
         .plg-cta-row > a, .plg-cta-row > button { width: 100%; max-width: 320px; }
