@@ -1,5 +1,5 @@
 {
-  "latest": "1.0.3",
+  "latest": "1.0.4",
   "url": "https://versions.studio",
-  "notes": ""
+  "notes": "Fix metering à l'arrêt (LUNA)"
 }
