@@ -450,7 +450,9 @@ function PluginStyles() {
 
       /* ── HERO ─────────────────────────────────────── */
       .plg-hero {
-        padding: clamp(48px, 8vw, 96px) 24px clamp(40px, 6vw, 64px);
+        /* Padding bas réduit (64→36 max) : trop d'air entre les CTAs et
+           la vidéo de démo. */
+        padding: clamp(48px, 8vw, 96px) 24px clamp(22px, 3.5vw, 36px);
         display: grid; place-items: center;
       }
       .plg-hero-inner {
@@ -585,14 +587,17 @@ function PluginStyles() {
         font-size: 13px; color: ${T.textMuted || 'rgba(240,240,245,0.55)'};
       }
       /* Numéro de version sous les CTAs — discret, grammaire mono
-         uppercase de la charte. Source unique : PLUGIN_VERSION. */
+         uppercase de la charte. Source unique : PLUGIN_VERSION.
+         Marges négatives : hero-inner (gap 26) et footer (gap 28) sont
+         des flex column avec gap — on compense pour coller la note à
+         ~12px sous les boutons, homogène aux deux endroits. */
       .plg-version-note {
-        margin: 10px 0 0; text-align: center;
+        margin: -14px 0 0; text-align: center;
         font-family: ${T.mono}; font-size: 10px; font-weight: 500;
         letter-spacing: 1.8px; text-transform: uppercase;
         color: ${T.muted};
       }
-      .plg-version-note + .plg-dl-note { margin-top: 6px; }
+      .plg-version-note + .plg-dl-note { margin-top: -18px; }
       .plg-screen .lp-cta-secondary {
         display: inline-flex; align-items: center; justify-content: center;
         padding: 16px 28px;
@@ -789,7 +794,7 @@ function PluginStyles() {
         .plg-steps > .plg-step,
         .plg-feat-grid > .plg-feat { --card-rot: 0deg; }
         .plg-section { padding: 64px 20px; }
-        .plg-hero { padding: 48px 20px 40px; }
+        .plg-hero { padding: 48px 20px 24px; }
         .plg-slogan { font-size: clamp(36px, 10vw, 56px); letter-spacing: -1.2px; }
         .plg-cta-row { flex-direction: column; gap: 10px; width: 100%; }
         .plg-cta-row > a, .plg-cta-row > button { width: 100%; max-width: 320px; }
