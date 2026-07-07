@@ -37,6 +37,11 @@ import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
  */
 const PLUGIN_DOWNLOAD_MAC_URL = '/downloads/Versions.dmg';
 const PLUGIN_DOWNLOAD_WIN_URL = '/downloads/Versions-Setup.exe';
+// Version affichée sous les CTAs de téléchargement (hero + footer).
+// À mettre à jour à CHAQUE release, en même temps que la copie du
+// binaire dans public/downloads/ (les noms de fichiers sont stables,
+// cette constante est le seul endroit où la version apparaît).
+const PLUGIN_VERSION = '1.0.4';
 
 export default function PluginScreen({
   onBackToLanding,
@@ -229,6 +234,7 @@ export default function PluginScreen({
               platform="windows"
             />
           </div>
+          <p className="plg-version-note">Version {PLUGIN_VERSION}</p>
           {!isAuthenticated && <p className="plg-dl-note">{t.ctaAuthNote}</p>}
         </div>
       </header>
@@ -347,6 +353,7 @@ export default function PluginScreen({
             platform="windows"
           />
         </div>
+        <p className="plg-version-note plg-anim" style={{ '--anim-d': '100ms' }}>Version {PLUGIN_VERSION}</p>
         {!isAuthenticated && <p className="plg-dl-note plg-anim" style={{ '--anim-d': '120ms' }}>{t.ctaAuthNote}</p>}
         <button type="button" className="plg-back-link" onClick={onBackToLanding}>
           {t.backToHome}
@@ -577,6 +584,15 @@ function PluginStyles() {
         margin: 12px 0 0; text-align: center;
         font-size: 13px; color: ${T.textMuted || 'rgba(240,240,245,0.55)'};
       }
+      /* Numéro de version sous les CTAs — discret, grammaire mono
+         uppercase de la charte. Source unique : PLUGIN_VERSION. */
+      .plg-version-note {
+        margin: 10px 0 0; text-align: center;
+        font-family: ${T.mono}; font-size: 10px; font-weight: 500;
+        letter-spacing: 1.8px; text-transform: uppercase;
+        color: ${T.muted};
+      }
+      .plg-version-note + .plg-dl-note { margin-top: 6px; }
       .plg-screen .lp-cta-secondary {
         display: inline-flex; align-items: center; justify-content: center;
         padding: 16px 28px;
