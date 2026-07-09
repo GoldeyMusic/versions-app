@@ -38,10 +38,12 @@ import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
 const PLUGIN_DOWNLOAD_MAC_URL = '/downloads/Versions.dmg';
 const PLUGIN_DOWNLOAD_WIN_URL = '/downloads/Versions-Setup.exe';
 // Version affichée sous les CTAs de téléchargement (hero + footer).
-// À mettre à jour à CHAQUE release, en même temps que la copie du
-// binaire dans public/downloads/ (les noms de fichiers sont stables,
-// cette constante est le seul endroit où la version apparaît).
-const PLUGIN_VERSION = '1.0.4';
+// Lue au runtime depuis /plugin-version.json — le fichier que
+// publish-site.sh met à jour à chaque release (même source que la notif
+// de MAJ du plugin). Cette constante n'est que le FALLBACK si le fetch
+// échoue ; plus besoin d'y toucher à chaque release (elle était restée
+// bloquée à 1.0.4 alors que le site distribuait la 1.0.5, 2026-07-09).
+const PLUGIN_VERSION_FALLBACK = '1.0.5';
 
 export default function PluginScreen({
   onBackToLanding,
@@ -64,6 +66,22 @@ export default function PluginScreen({
     ...(onGoReglages ? [{ key: 'reglages', label: s.sidebar?.reglages || 'Réglages', icon: NavIcons.settings, onSelect: onGoReglages }] : []),
     ...(onSignOut ? [{ key: 'signout', label: s.sidebar?.signOut || 'Se déconnecter', icon: NavIcons.signOut, onSelect: onSignOut, danger: true }] : []),
   ];
+
+  // Version live depuis /plugin-version.json (source unique, mise à jour
+  // par publish-site.sh). Fallback constante si fetch KO (offline, 404).
+  const [pluginVersion, setPluginVersion] = useState(PLUGIN_VERSION_FALLBACK);
+  useEffect(() => {
+    let alive = true;
+    fetch('/plugin-version.json')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (alive && j && typeof j.latest === 'string' && j.latest) {
+          setPluginVersion(j.latest);
+        }
+      })
+      .catch(() => {}); // silencieux : le fallback reste affiché
+    return () => { alive = false; };
+  }, []);
 
   // Animations d'entrée au scroll — même mécanique que landing/pricing.
   useEffect(() => {
@@ -234,7 +252,7 @@ export default function PluginScreen({
               platform="windows"
             />
           </div>
-          <p className="plg-version-note">Version {PLUGIN_VERSION}</p>
+          <p className="plg-version-note">Version {pluginVersion}</p>
           {!isAuthenticated && <p className="plg-dl-note">{t.ctaAuthNote}</p>}
         </div>
       </header>
@@ -353,7 +371,7 @@ export default function PluginScreen({
             platform="windows"
           />
         </div>
-        <p className="plg-version-note plg-anim" style={{ '--anim-d': '100ms' }}>Version {PLUGIN_VERSION}</p>
+        <p className="plg-version-note plg-anim" style={{ '--anim-d': '100ms' }}>Version {pluginVersion}</p>
         {!isAuthenticated && <p className="plg-dl-note plg-anim" style={{ '--anim-d': '120ms' }}>{t.ctaAuthNote}</p>}
         <button type="button" className="plg-back-link" onClick={onBackToLanding}>
           {t.backToHome}
@@ -587,7 +605,7 @@ function PluginStyles() {
         font-size: 13px; color: ${T.textMuted || 'rgba(240,240,245,0.55)'};
       }
       /* Numéro de version sous les CTAs — discret, grammaire mono
-         uppercase de la charte. Source unique : PLUGIN_VERSION.
+         uppercase de la charte. Source unique : pluginVersion (/plugin-version.json).
          Rythme vertical homogène (demande David 2026-07-07) : chips
          compat → CTAs → version → vidéo, tout à 26px = le gap du
          hero-inner. Donc AUCUNE marge ici, et le padding bas du hero
