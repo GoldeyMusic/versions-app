@@ -72,6 +72,10 @@ export default function AdminScreen() {
   // chat_cost_logs, on tolère l'erreur pour le cas où la migration n'a
   // pas encore été appliquée.
   const [feedbackRows, setFeedbackRows] = useState([]);
+  // Installations plugin — RPC admin_get_plugin_installs (migration 045),
+  // 1 ligne par user ayant ouvert le plugin (table plugin_first_seen).
+  // null = RPC indisponible (migration pas appliquée), [] = zéro install.
+  const [pluginInstalls, setPluginInstalls] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   // Pour l'expand inline d'un user : null ou { userId, loading, items }
@@ -99,7 +103,7 @@ export default function AdminScreen() {
         // 2 RPC, revenue_logs.
         const since = new Date();
         since.setDate(since.getDate() - 30);
-        const [logsRes, chatLogsRes, globalRes, usersRes, revRes, feedbackRes] = await Promise.all([
+        const [logsRes, chatLogsRes, globalRes, usersRes, revRes, feedbackRes, installsRes] = await Promise.all([
           supabase
             .from('analysis_cost_logs')
             .select('*')
@@ -133,6 +137,9 @@ export default function AdminScreen() {
             .select('*')
             .order('created_at', { ascending: false })
             .limit(1000),
+          // Installations plugin : RPC créée par migration 045. Même
+          // tolérance que chat_cost_logs/feedback si pas encore appliquée.
+          supabase.rpc('admin_get_plugin_installs'),
         ]);
 
         if (cancelled) return;
@@ -149,6 +156,9 @@ export default function AdminScreen() {
         if (feedbackRes.error) {
           console.warn('[admin] feedback unavailable (migration 024 not applied?):', feedbackRes.error.message);
         }
+        if (installsRes.error) {
+          console.warn('[admin] admin_get_plugin_installs unavailable (migration 045 not applied?):', installsRes.error.message);
+        }
 
         setLogs(logsRes.data || []);
         setChatLogs(chatLogsRes.data || []);
@@ -157,6 +167,7 @@ export default function AdminScreen() {
         setUserStats(usersRes.data || []);
         setRevenue(revRes.data || []);
         setFeedbackRows(feedbackRes.data || []);
+        setPluginInstalls(installsRes.error ? null : (installsRes.data || []));
       } catch (e) {
         if (!cancelled) setErr(e.message || 'Erreur de chargement');
       } finally {
@@ -178,6 +189,15 @@ export default function AdminScreen() {
   // total cumulé est rappelé en sub-label.
   const feedbackStats30d = useMemo(() => computeFeedbackStats(feedbackRows, 30), [feedbackRows]);
   const feedbackStatsAll = useMemo(() => computeFeedbackStats(feedbackRows, null), [feedbackRows]);
+  // Acquisition : inscriptions (signed_up_at des user stats) + installations
+  // plugin (first_seen_at) agrégées par jour sur 30 jours. Les
+  // téléchargements (plugin_downloads) sont volontairement exclus de la
+  // courbe — doublon avec l'installation réelle (décision 2026-07-10).
+  const acqSeries = useMemo(
+    () => computeAcquisitionSeries(userStats, pluginInstalls || [], 30),
+    [userStats, pluginInstalls]
+  );
+  const pluginTotals = useMemo(() => computePluginTotals(pluginInstalls || []), [pluginInstalls]);
 
   const isAdmin = !!ADMIN_EMAIL && user?.email?.toLowerCase() === ADMIN_EMAIL;
 
@@ -305,6 +325,53 @@ export default function AdminScreen() {
                 />
               )}
             </div>
+          </section>
+
+          {/* SECTION ACQUISITION — inscriptions + installations plugin.
+              Courbe alimentée par admin_get_user_stats (signed_up_at) et
+              admin_get_plugin_installs (migration 045, table
+              plugin_first_seen = installations réelles). Les
+              téléchargements (plugin_downloads) sont volontairement
+              absents de la courbe et des KPIs : doublon avec
+              l'installation, faux positifs mobiles. */}
+          <section className="cost-section">
+            <div className="cost-section-eyebrow">Acquisition — 30 derniers jours</div>
+            <h2 className="cost-section-title">
+              Inscriptions et <em>installations plugin</em> par jour.
+            </h2>
+            <div className="cost-kpi-grid">
+              <KpiCard
+                label="Inscriptions 30j"
+                value={String(acqSeries.reduce((s, d) => s + d.signups, 0))}
+                sub={`Total inscrits : ${globalStats?.total_users || 0}`}
+                tone="cerulean"
+              />
+              <KpiCard
+                label="Installations plugin 30j"
+                value={String(acqSeries.reduce((s, d) => s + d.installs, 0))}
+                sub={`Total : ${pluginTotals.total} machine${pluginTotals.total > 1 ? 's' : ''} depuis le lancement`}
+                tone="mint"
+              />
+              <KpiCard
+                label="Utilisateurs plugin"
+                value={String(pluginTotals.total)}
+                sub={`${pluginTotals.mac} Mac · ${pluginTotals.windows} Windows${pluginTotals.unknown > 0 ? ` · ${pluginTotals.unknown} inconnu${pluginTotals.unknown > 1 ? 's' : ''}` : ''}`}
+                tone="amber"
+              />
+              <KpiCard
+                label="Taux d'équipement"
+                value={globalStats?.total_users > 0 ? `${Math.round((pluginTotals.total / globalStats.total_users) * 100)} %` : '—'}
+                sub="des inscrits ont ouvert le plugin au moins une fois"
+                tone="violet"
+              />
+            </div>
+            <AcquisitionChart series={acqSeries} />
+            {pluginInstalls === null && (
+              <div className="cost-fadr-note">
+                La RPC <code>admin_get_plugin_installs</code> est indisponible — la migration 045
+                n'est probablement pas encore appliquée. La courbe n'affiche que les inscriptions.
+              </div>
+            )}
           </section>
 
           {/* SECTION KPIs COÛTS */}
@@ -1016,6 +1083,83 @@ function DailyChart({ series }) {
   );
 }
 
+/**
+ * AcquisitionChart — courbe double : inscriptions (céruléen) et
+ * installations plugin (mint) par jour. Lignes + aires légères, tooltip
+ * natif par jour (rect invisible pleine hauteur), labels de dates
+ * clairsemés, échelle Y en entiers. Même gabarit visuel que DailyChart.
+ */
+function AcquisitionChart({ series }) {
+  const W = 1000, H = 240, PADX = 34, PADY = 26;
+  const maxVal = Math.max(1, ...series.map((d) => Math.max(d.signups, d.installs)));
+  // Échelle Y : on garde des paliers ENTIERS (ce sont des comptes de
+  // personnes) avec un peu d'air au-dessus du pic.
+  const yMax = maxVal <= 4 ? maxVal + 1 : Math.ceil(maxVal * 1.15);
+  const x = (i) => PADX + (i * (W - PADX * 2)) / Math.max(1, series.length - 1);
+  const y = (v) => H - PADY - (v / yMax) * (H - PADY * 2);
+  const linePts = (key) => series.map((d, i) => `${x(i)},${y(d[key])}`).join(' ');
+  const areaPts = (key) =>
+    `${PADX},${y(0)} ${linePts(key)} ${x(series.length - 1)},${y(0)}`;
+  const step = Math.max(1, Math.ceil(yMax / 4));
+  const gridVals = [];
+  for (let v = step; v <= yMax; v += step) gridVals.push(v);
+  const colW = (W - PADX * 2) / Math.max(1, series.length - 1);
+
+  return (
+    <div className="cost-chart" style={{ marginTop: 18 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="cost-chart-svg" style={{ height: 240 }}>
+        {/* Grille + labels Y (entiers) */}
+        {gridVals.map((v) => (
+          <g key={v}>
+            <line x1={PADX} x2={W - PADX} y1={y(v)} y2={y(v)}
+              stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+            <text x={PADX - 6} y={y(v) + 3} fill="rgba(138,138,144,0.7)"
+              fontSize="9" fontFamily="monospace" textAnchor="end">{v}</text>
+          </g>
+        ))}
+        {/* Aires légères sous chaque ligne */}
+        <polygon points={areaPts('signups')} fill="rgba(92,184,204,0.08)" />
+        <polygon points={areaPts('installs')} fill="rgba(142,224,122,0.08)" />
+        {/* Lignes */}
+        <polyline points={linePts('signups')} fill="none"
+          stroke="#5cb8cc" strokeWidth="2" strokeLinejoin="round" />
+        <polyline points={linePts('installs')} fill="none"
+          stroke="#8ee07a" strokeWidth="2" strokeLinejoin="round" />
+        {/* Marqueurs sur les jours à activité (lisibilité des pics) */}
+        {series.map((d, i) => (
+          <g key={`m-${d.day}`}>
+            {d.signups > 0 && (
+              <rect x={x(i) - 2.5} y={y(d.signups) - 2.5} width="5" height="5" rx="1.5" fill="#5cb8cc" />
+            )}
+            {d.installs > 0 && (
+              <rect x={x(i) - 2.5} y={y(d.installs) - 2.5} width="5" height="5" rx="1.5" fill="#8ee07a" />
+            )}
+          </g>
+        ))}
+        {/* Tooltips natifs : un rect invisible pleine hauteur par jour */}
+        {series.map((d, i) => (
+          <rect key={`t-${d.day}`} x={x(i) - colW / 2} y={PADY - 10}
+            width={colW} height={H - PADY * 2 + 10} fill="transparent">
+            <title>{`${d.day} · ${d.signups} inscription${d.signups > 1 ? 's' : ''} · ${d.installs} installation${d.installs > 1 ? 's' : ''}`}</title>
+          </rect>
+        ))}
+        {/* Labels de dates (début / milieu / fin) */}
+        {series.length > 0 && (
+          <>
+            <text x={PADX} y={H - 6} fill="rgba(138,138,144,0.7)" fontSize="9" fontFamily="monospace">{series[0].day.slice(5)}</text>
+            <text x={W / 2} y={H - 6} fill="rgba(138,138,144,0.7)" fontSize="9" fontFamily="monospace" textAnchor="middle">{series[Math.floor(series.length / 2)].day.slice(5)}</text>
+            <text x={W - PADX} y={H - 6} fill="rgba(138,138,144,0.7)" fontSize="9" fontFamily="monospace" textAnchor="end">{series[series.length - 1].day.slice(5)}</text>
+          </>
+        )}
+      </svg>
+      <div className="cost-chart-legend">
+        <span className="cost-legend-item"><span className="cost-legend-dot" style={{ background: '#5cb8cc' }} /> Inscriptions</span>
+        <span className="cost-legend-item"><span className="cost-legend-dot" style={{ background: '#8ee07a' }} /> Installations plugin</span>
+      </div>
+    </div>
+  );
+}
+
 /* ── Helpers stats ────────────────────────────────────── */
 function computeStats(logs) {
   const costs = logs.map((l) => Number(l.total_eur || 0)).filter((x) => !Number.isNaN(x));
@@ -1027,6 +1171,42 @@ function computeStats(logs) {
   const min = sorted[0];
   const max = sorted[sorted.length - 1];
   return { count: costs.length, total, avg: total / costs.length, median, p95, min, max };
+}
+
+// computeAcquisitionSeries — série quotidienne { day, signups, installs }
+// sur N jours. Inscriptions depuis signed_up_at (admin_get_user_stats),
+// installations depuis first_seen_at (admin_get_plugin_installs).
+function computeAcquisitionSeries(userStats, installs, days) {
+  const map = new Map();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    map.set(key, { day: key, signups: 0, installs: 0 });
+  }
+  for (const u of userStats || []) {
+    const slot = map.get((u.signed_up_at || '').slice(0, 10));
+    if (slot) slot.signups += 1;
+  }
+  for (const p of installs || []) {
+    const slot = map.get((p.first_seen_at || '').slice(0, 10));
+    if (slot) slot.installs += 1;
+  }
+  return Array.from(map.values());
+}
+
+// computePluginTotals — total d'utilisateurs plugin + répartition
+// Mac / Windows / inconnu (platform déduite du dernier téléchargement
+// loggé, cf. migration 045 — NULL si aucun download loggé).
+function computePluginTotals(installs) {
+  const t = { total: 0, mac: 0, windows: 0, unknown: 0 };
+  for (const p of installs || []) {
+    t.total += 1;
+    if (p.platform === 'mac') t.mac += 1;
+    else if (p.platform === 'windows') t.windows += 1;
+    else t.unknown += 1;
+  }
+  return t;
 }
 
 function computeDailySeries(logs, days) {
@@ -1498,6 +1678,19 @@ function AdminStyles() {
         padding: 18px;
       }
       .cost-chart-svg { width: 100%; height: 200px; display: block; }
+      .cost-chart-legend {
+        display: flex; gap: 18px; justify-content: center;
+        margin-top: 10px;
+      }
+      .cost-legend-item {
+        display: inline-flex; align-items: center; gap: 7px;
+        font-family: ${T.mono}; font-size: 10px; font-weight: 500;
+        letter-spacing: 1.2px; text-transform: uppercase;
+        color: ${T.muted2};
+      }
+      .cost-legend-dot {
+        width: 9px; height: 9px; border-radius: 3px; display: inline-block;
+      }
 
       /* TABLES */
       .cost-table-wrap {
