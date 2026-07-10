@@ -1085,15 +1085,21 @@ function DailyChart({ series }) {
 
 /**
  * AcquisitionChart — courbe double : inscriptions (céruléen) et
- * installations plugin (mint) par jour. Lignes + aires légères, tooltip
- * natif par jour (rect invisible pleine hauteur), labels de dates
- * clairsemés, échelle Y en entiers. Même gabarit visuel que DailyChart.
+ * installations plugin (mint) par jour.
+ *
+ * Ergonomie (retour David 2026-07-10) :
+ *   - Axe X : un repère daté par semaine ("11 juin", "18 juin", …) avec
+ *     petit trait de tick, au lieu de 3 labels MM-DD cryptiques.
+ *   - Survol : ligne guide verticale, points qui s'allument (halo), et
+ *     tooltip HTML (date complète + valeurs colorées). Le tooltip est en
+ *     HTML et pas en SVG pour ne pas être déformé par le
+ *     preserveAspectRatio="none".
  */
 function AcquisitionChart({ series }) {
+  const [hover, setHover] = useState(null); // index du jour survolé ou null
   const W = 1000, H = 240, PADX = 34, PADY = 26;
   const maxVal = Math.max(1, ...series.map((d) => Math.max(d.signups, d.installs)));
-  // Échelle Y : on garde des paliers ENTIERS (ce sont des comptes de
-  // personnes) avec un peu d'air au-dessus du pic.
+  // Échelle Y : paliers ENTIERS (comptes de personnes) + air au-dessus du pic.
   const yMax = maxVal <= 4 ? maxVal + 1 : Math.ceil(maxVal * 1.15);
   const x = (i) => PADX + (i * (W - PADX * 2)) / Math.max(1, series.length - 1);
   const y = (v) => H - PADY - (v / yMax) * (H - PADY * 2);
@@ -1105,59 +1111,130 @@ function AcquisitionChart({ series }) {
   for (let v = step; v <= yMax; v += step) gridVals.push(v);
   const colW = (W - PADX * 2) / Math.max(1, series.length - 1);
 
+  // Ticks X hebdomadaires : on part du dernier jour et on remonte de 7 en 7
+  // pour que "aujourd'hui" ait toujours son repère.
+  const ticks = [];
+  for (let i = series.length - 1; i >= 0; i -= 7) ticks.push(i);
+
+  const hovered = hover != null ? series[hover] : null;
+  // Tooltip : bascule à gauche du curseur sur le dernier tiers du graphe
+  // pour ne pas sortir du cadre.
+  const tipFlip = hover != null && x(hover) / W > 0.68;
+
   return (
     <div className="cost-chart" style={{ marginTop: 18 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="cost-chart-svg" style={{ height: 240 }}>
-        {/* Grille + labels Y (entiers) */}
-        {gridVals.map((v) => (
-          <g key={v}>
-            <line x1={PADX} x2={W - PADX} y1={y(v)} y2={y(v)}
-              stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-            <text x={PADX - 6} y={y(v) + 3} fill="rgba(138,138,144,0.7)"
-              fontSize="9" fontFamily="monospace" textAnchor="end">{v}</text>
-          </g>
-        ))}
-        {/* Aires légères sous chaque ligne */}
-        <polygon points={areaPts('signups')} fill="rgba(92,184,204,0.08)" />
-        <polygon points={areaPts('installs')} fill="rgba(142,224,122,0.08)" />
-        {/* Lignes */}
-        <polyline points={linePts('signups')} fill="none"
-          stroke="#5cb8cc" strokeWidth="2" strokeLinejoin="round" />
-        <polyline points={linePts('installs')} fill="none"
-          stroke="#8ee07a" strokeWidth="2" strokeLinejoin="round" />
-        {/* Marqueurs sur les jours à activité (lisibilité des pics) */}
-        {series.map((d, i) => (
-          <g key={`m-${d.day}`}>
-            {d.signups > 0 && (
-              <rect x={x(i) - 2.5} y={y(d.signups) - 2.5} width="5" height="5" rx="1.5" fill="#5cb8cc" />
-            )}
-            {d.installs > 0 && (
-              <rect x={x(i) - 2.5} y={y(d.installs) - 2.5} width="5" height="5" rx="1.5" fill="#8ee07a" />
-            )}
-          </g>
-        ))}
-        {/* Tooltips natifs : un rect invisible pleine hauteur par jour */}
-        {series.map((d, i) => (
-          <rect key={`t-${d.day}`} x={x(i) - colW / 2} y={PADY - 10}
-            width={colW} height={H - PADY * 2 + 10} fill="transparent">
-            <title>{`${d.day} · ${d.signups} inscription${d.signups > 1 ? 's' : ''} · ${d.installs} installation${d.installs > 1 ? 's' : ''}`}</title>
-          </rect>
-        ))}
-        {/* Labels de dates (début / milieu / fin) */}
-        {series.length > 0 && (
-          <>
-            <text x={PADX} y={H - 6} fill="rgba(138,138,144,0.7)" fontSize="9" fontFamily="monospace">{series[0].day.slice(5)}</text>
-            <text x={W / 2} y={H - 6} fill="rgba(138,138,144,0.7)" fontSize="9" fontFamily="monospace" textAnchor="middle">{series[Math.floor(series.length / 2)].day.slice(5)}</text>
-            <text x={W - PADX} y={H - 6} fill="rgba(138,138,144,0.7)" fontSize="9" fontFamily="monospace" textAnchor="end">{series[series.length - 1].day.slice(5)}</text>
-          </>
+      <div className="cost-chart-hoverwrap" onMouseLeave={() => setHover(null)}>
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="cost-chart-svg" style={{ height: 240 }}>
+          {/* Grille + labels Y (entiers) */}
+          {gridVals.map((v) => (
+            <g key={v}>
+              <line x1={PADX} x2={W - PADX} y1={y(v)} y2={y(v)}
+                stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+              <text x={PADX - 6} y={y(v) + 3} fill="rgba(138,138,144,0.7)"
+                fontSize="9" fontFamily="monospace" textAnchor="end">{v}</text>
+            </g>
+          ))}
+          {/* Ticks X hebdomadaires : trait + date lisible */}
+          {ticks.map((i) => (
+            <g key={`tick-${i}`}>
+              <line x1={x(i)} x2={x(i)} y1={H - PADY} y2={H - PADY + 4}
+                stroke="rgba(138,138,144,0.5)" strokeWidth="1" />
+              <line x1={x(i)} x2={x(i)} y1={PADY} y2={H - PADY}
+                stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+              <text x={x(i)} y={H - 6} fill="rgba(138,138,144,0.85)"
+                fontSize="9.5" fontFamily="monospace"
+                textAnchor={i === series.length - 1 ? 'end' : i === 0 ? 'start' : 'middle'}>
+                {fmtAxisDay(series[i].day)}
+              </text>
+            </g>
+          ))}
+          {/* Aires légères sous chaque ligne */}
+          <polygon points={areaPts('signups')} fill="rgba(92,184,204,0.08)" />
+          <polygon points={areaPts('installs')} fill="rgba(142,224,122,0.08)" />
+          {/* Ligne guide verticale au survol */}
+          {hover != null && (
+            <line x1={x(hover)} x2={x(hover)} y1={PADY} y2={H - PADY}
+              stroke="rgba(255,255,255,0.22)" strokeWidth="1" strokeDasharray="3 3" />
+          )}
+          {/* Lignes */}
+          <polyline points={linePts('signups')} fill="none"
+            stroke="#5cb8cc" strokeWidth="2" strokeLinejoin="round" />
+          <polyline points={linePts('installs')} fill="none"
+            stroke="#8ee07a" strokeWidth="2" strokeLinejoin="round" />
+          {/* Marqueurs sur les jours à activité (lisibilité des pics) */}
+          {series.map((d, i) => (
+            <g key={`m-${d.day}`}>
+              {d.signups > 0 && (
+                <rect x={x(i) - 2.5} y={y(d.signups) - 2.5} width="5" height="5" rx="1.5" fill="#5cb8cc" />
+              )}
+              {d.installs > 0 && (
+                <rect x={x(i) - 2.5} y={y(d.installs) - 2.5} width="5" height="5" rx="1.5" fill="#8ee07a" />
+              )}
+            </g>
+          ))}
+          {/* Points allumés au survol : halo + point élargi, y compris à 0 */}
+          {hover != null && (
+            <g>
+              <rect x={x(hover) - 6} y={y(hovered.signups) - 6} width="12" height="12" rx="4"
+                fill="rgba(92,184,204,0.25)" />
+              <rect x={x(hover) - 3.5} y={y(hovered.signups) - 3.5} width="7" height="7" rx="2"
+                fill="#5cb8cc" stroke="#0b0b0e" strokeWidth="1.5" />
+              <rect x={x(hover) - 6} y={y(hovered.installs) - 6} width="12" height="12" rx="4"
+                fill="rgba(142,224,122,0.25)" />
+              <rect x={x(hover) - 3.5} y={y(hovered.installs) - 3.5} width="7" height="7" rx="2"
+                fill="#8ee07a" stroke="#0b0b0e" strokeWidth="1.5" />
+            </g>
+          )}
+          {/* Zones de capture du survol : un rect invisible par jour */}
+          {series.map((d, i) => (
+            <rect key={`h-${d.day}`} x={x(i) - colW / 2} y={PADY - 10}
+              width={colW} height={H - PADY * 2 + 14} fill="transparent"
+              onMouseEnter={() => setHover(i)} />
+          ))}
+        </svg>
+        {/* Tooltip HTML (non déformé par le preserveAspectRatio) */}
+        {hovered && (
+          <div
+            className={`cost-chart-tip ${tipFlip ? 'cost-chart-tip-flip' : ''}`}
+            style={{ left: `${(x(hover) / W) * 100}%` }}
+          >
+            <div className="cost-chart-tip-date">{fmtTipDay(hovered.day)}</div>
+            <div className="cost-chart-tip-row">
+              <span className="cost-legend-dot" style={{ background: '#5cb8cc' }} />
+              <strong>{hovered.signups}</strong>&nbsp;inscription{hovered.signups > 1 ? 's' : ''}
+            </div>
+            <div className="cost-chart-tip-row">
+              <span className="cost-legend-dot" style={{ background: '#8ee07a' }} />
+              <strong>{hovered.installs}</strong>&nbsp;installation{hovered.installs > 1 ? 's' : ''}
+            </div>
+          </div>
         )}
-      </svg>
+      </div>
       <div className="cost-chart-legend">
         <span className="cost-legend-item"><span className="cost-legend-dot" style={{ background: '#5cb8cc' }} /> Inscriptions</span>
         <span className="cost-legend-item"><span className="cost-legend-dot" style={{ background: '#8ee07a' }} /> Installations plugin</span>
       </div>
     </div>
   );
+}
+
+// fmtAxisDay — "2026-06-11" → "11 juin" (labels d'axe compacts et lisibles).
+const AXIS_MONTHS_FR = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
+function fmtAxisDay(iso) {
+  const m = Number(iso.slice(5, 7));
+  const d = Number(iso.slice(8, 10));
+  return `${d} ${AXIS_MONTHS_FR[m - 1] || ''}`;
+}
+
+// fmtTipDay — date complète du tooltip : "jeudi 10 juillet".
+function fmtTipDay(iso) {
+  try {
+    return new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    });
+  } catch {
+    return iso;
+  }
 }
 
 /* ── Helpers stats ────────────────────────────────────── */
@@ -1678,6 +1755,37 @@ function AdminStyles() {
         padding: 18px;
       }
       .cost-chart-svg { width: 100%; height: 200px; display: block; }
+      .cost-chart-hoverwrap { position: relative; }
+      /* Tooltip survol courbe acquisition — HTML au-dessus du SVG,
+         suit le jour survolé, pointer-events none pour ne pas voler
+         le survol aux zones de capture. */
+      .cost-chart-tip {
+        position: absolute;
+        top: 12px;
+        transform: translateX(12px);
+        pointer-events: none;
+        background: rgba(16,16,20,0.96);
+        border: 1px solid ${T.border};
+        border-radius: 10px;
+        padding: 10px 13px;
+        min-width: 150px;
+        z-index: 5;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+      }
+      .cost-chart-tip-flip { transform: translateX(calc(-100% - 12px)); }
+      .cost-chart-tip-date {
+        font-family: ${T.mono}; font-size: 10px; font-weight: 600;
+        letter-spacing: 1px; text-transform: uppercase;
+        color: ${T.muted};
+        margin-bottom: 7px;
+      }
+      .cost-chart-tip-row {
+        display: flex; align-items: center; gap: 7px;
+        font-family: ${T.body}; font-size: 12.5px; font-weight: 300;
+        color: ${T.textSoft};
+        line-height: 1.7;
+      }
+      .cost-chart-tip-row strong { font-weight: 700; color: ${T.text}; }
       .cost-chart-legend {
         display: flex; gap: 18px; justify-content: center;
         margin-top: 10px;
