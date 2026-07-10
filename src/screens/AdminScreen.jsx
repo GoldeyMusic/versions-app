@@ -76,6 +76,10 @@ export default function AdminScreen() {
   // 1 ligne par user ayant ouvert le plugin (table plugin_first_seen).
   // null = RPC indisponible (migration pas appliquée), [] = zéro install.
   const [pluginInstalls, setPluginInstalls] = useState(null);
+  // Parcours d'entrée — RPC admin_get_funnel (migration 046) : dates
+  // fondatrices par user (première analyse / premier plugin / premier
+  // paiement). null = RPC indisponible.
+  const [funnelRows, setFunnelRows] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   // Pour l'expand inline d'un user : null ou { userId, loading, items }
@@ -107,7 +111,7 @@ export default function AdminScreen() {
         // 2 RPC, revenue_logs.
         const since = new Date();
         since.setDate(since.getDate() - 30);
-        const [logsRes, chatLogsRes, globalRes, usersRes, revRes, feedbackRes, installsRes] = await Promise.all([
+        const [logsRes, chatLogsRes, globalRes, usersRes, revRes, feedbackRes, installsRes, funnelRes] = await Promise.all([
           supabase
             .from('analysis_cost_logs')
             .select('*')
@@ -144,6 +148,8 @@ export default function AdminScreen() {
           // Installations plugin : RPC créée par migration 045. Même
           // tolérance que chat_cost_logs/feedback si pas encore appliquée.
           supabase.rpc('admin_get_plugin_installs'),
+          // Parcours d'entrée : RPC créée par migration 046. Même tolérance.
+          supabase.rpc('admin_get_funnel'),
         ]);
 
         if (cancelled) return;
@@ -163,6 +169,9 @@ export default function AdminScreen() {
         if (installsRes.error) {
           console.warn('[admin] admin_get_plugin_installs unavailable (migration 045 not applied?):', installsRes.error.message);
         }
+        if (funnelRes.error) {
+          console.warn('[admin] admin_get_funnel unavailable (migration 046 not applied?):', funnelRes.error.message);
+        }
 
         setLogs(logsRes.data || []);
         setChatLogs(chatLogsRes.data || []);
@@ -172,6 +181,7 @@ export default function AdminScreen() {
         setRevenue(revRes.data || []);
         setFeedbackRows(feedbackRes.data || []);
         setPluginInstalls(installsRes.error ? null : (installsRes.data || []));
+        setFunnelRows(funnelRes.error ? null : (funnelRes.data || []));
       } catch (e) {
         if (!cancelled) setErr(e.message || 'Erreur de chargement');
       } finally {
@@ -202,6 +212,7 @@ export default function AdminScreen() {
     [userStats, pluginInstalls]
   );
   const pluginTotals = useMemo(() => computePluginTotals(pluginInstalls || []), [pluginInstalls]);
+  const funnel = useMemo(() => computeFunnel(funnelRows || []), [funnelRows]);
   // Map user_id → install plugin (pour le badge Mac/Win dans la table users).
   const pluginByUid = useMemo(
     () => new Map((pluginInstalls || []).map((p) => [p.user_id, p])),
@@ -427,6 +438,71 @@ export default function AdminScreen() {
               </div>
             )}
           </section>
+
+          {/* SECTION PARCOURS D'ENTRÉE — le funnel n'est pas linéaire :
+              certains entrent par l'analyse web, d'autres par le plugin
+              (décision David 2026-07-10). Segmentation par PREMIÈRE action
+              (RPC admin_get_funnel, migration 046) + un mini-funnel par
+              porte d'entrée + KPI de croisement. */}
+          {funnelRows !== null && (
+            <section className="cost-section">
+              <div className="cost-section-eyebrow">Parcours d'entrée</div>
+              <h2 className="cost-section-title">
+                Par où ils <em>entrent</em>, jusqu'où ils <em>vont</em>.
+              </h2>
+              <div className="cost-kpi-grid">
+                <KpiCard
+                  label="Entrés par l'analyse"
+                  value={String(funnel.site.length)}
+                  sub={`${pctOf(funnel.site.length, funnel.total)} des inscrits — première action : analyse web`}
+                  tone="cerulean"
+                />
+                <KpiCard
+                  label="Entrés par le plugin"
+                  value={String(funnel.plugin.length)}
+                  sub={`${pctOf(funnel.plugin.length, funnel.total)} des inscrits — première action : plugin DAW`}
+                  tone="mint"
+                />
+                <KpiCard
+                  label="Utilisent les deux"
+                  value={String(funnel.both)}
+                  sub="site + plugin — l'ancrage réel dans l'écosystème"
+                  tone="violet"
+                />
+                <KpiCard
+                  label="Dormants"
+                  value={String(funnel.dormant)}
+                  sub={`${pctOf(funnel.dormant, funnel.total)} des inscrits — aucune action après le signup`}
+                  tone="amber"
+                />
+              </div>
+              <div className="cost-funnel-grid">
+                <FunnelBlock
+                  title="Entrée par l'analyse web"
+                  color="#5cb8cc"
+                  steps={[
+                    { label: 'Ont analysé un titre', count: funnel.site.length },
+                    { label: 'Ont ensuite installé le plugin', count: funnel.siteToPlugin },
+                    { label: 'Ont payé', count: funnel.sitePaid },
+                  ]}
+                />
+                <FunnelBlock
+                  title="Entrée par le plugin"
+                  color="#8ee07a"
+                  steps={[
+                    { label: 'Ont installé le plugin', count: funnel.plugin.length },
+                    { label: 'Ont ensuite analysé un titre', count: funnel.pluginToSite },
+                    { label: 'Ont payé', count: funnel.pluginPaid },
+                  ]}
+                />
+              </div>
+              <div className="cost-fadr-note">
+                Porte d'entrée = première action après l'inscription (première version uploadée
+                vs première ouverture du plugin). Paiement = premier encaissement réel
+                dans <code>revenue_logs</code>. Les dormants n'apparaissent dans aucun des deux funnels.
+              </div>
+            </section>
+          )}
 
           {/* SECTION KPIs COÛTS */}
           <section className="cost-section">
@@ -961,6 +1037,50 @@ function PluginChip({ install }) {
   );
 }
 
+/**
+ * FunnelBlock — mini-funnel vertical : une barre par étape, largeur
+ * proportionnelle à la 1re étape, compte + taux de passage vs l'étape
+ * précédente à droite.
+ */
+function FunnelBlock({ title, color, steps }) {
+  const base = Math.max(1, steps[0]?.count || 0);
+  return (
+    <div className="cost-funnel">
+      <div className="cost-funnel-title" style={{ color }}>{title}</div>
+      {steps.map((s, i) => {
+        const prev = i === 0 ? null : steps[i - 1].count;
+        const rate = prev == null ? null : prev > 0 ? Math.round((s.count / prev) * 100) : 0;
+        const width = Math.max(2, (s.count / base) * 100);
+        return (
+          <div className="cost-funnel-row" key={s.label}>
+            <div className="cost-funnel-label">{s.label}</div>
+            <div className="cost-funnel-track">
+              <div
+                className="cost-funnel-bar"
+                style={{
+                  width: `${width}%`,
+                  background: `${color}${i === 0 ? '55' : '33'}`,
+                  borderColor: color,
+                }}
+              />
+              <span className="cost-funnel-count">{s.count}</span>
+            </div>
+            <div className="cost-funnel-rate">
+              {rate == null ? '—' : `${rate} %`}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// pctOf — "12 %" (arrondi) ou "—" si total nul.
+function pctOf(n, total) {
+  if (!total) return '—';
+  return `${Math.round((n / total) * 100)} %`;
+}
+
 function KpiCard({ label, value, sub, tone }) {
   return (
     <div className={`cost-kpi cost-kpi-${tone || 'amber'}`}>
@@ -1444,6 +1564,34 @@ function computeAcquisitionSeries(userStats, installs, days) {
     if (slot) slot.installs += 1;
   }
   return Array.from(map.values());
+}
+
+// computeFunnel — segmente les users par porte d'entrée (première action).
+//   site    : première action = analyse web (ou seule action connue)
+//   plugin  : première action = ouverture plugin
+//   dormant : aucune action après le signup
+// Et pré-calcule les étapes des deux funnels + le croisement.
+function computeFunnel(rows) {
+  const site = [], plugin = [];
+  let dormant = 0, both = 0;
+  for (const r of rows || []) {
+    const fa = r.first_analysis_at, fp = r.first_plugin_at;
+    if (!fa && !fp) { dormant += 1; continue; }
+    if (fa && fp) both += 1;
+    if (fa && (!fp || fa <= fp)) site.push(r);
+    else plugin.push(r);
+  }
+  return {
+    total: (rows || []).length,
+    site,
+    plugin,
+    dormant,
+    both,
+    siteToPlugin: site.filter((r) => r.first_plugin_at).length,
+    sitePaid: site.filter((r) => r.first_paid_at).length,
+    pluginToSite: plugin.filter((r) => r.first_analysis_at).length,
+    pluginPaid: plugin.filter((r) => r.first_paid_at).length,
+  };
 }
 
 // computePluginTotals — total d'utilisateurs plugin + répartition
@@ -1972,6 +2120,58 @@ function AdminStyles() {
       }
       .cost-legend-dot {
         width: 9px; height: 9px; border-radius: 3px; display: inline-block;
+      }
+
+      /* FUNNELS PARCOURS D'ENTRÉE */
+      .cost-funnel-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+        margin-top: 16px;
+      }
+      @media (max-width: 860px) { .cost-funnel-grid { grid-template-columns: 1fr; } }
+      .cost-funnel {
+        background: ${T.s1};
+        border: 1px solid ${T.border};
+        border-radius: 16px;
+        padding: 18px 20px;
+      }
+      .cost-funnel-title {
+        font-family: ${T.mono}; font-size: 10px; font-weight: 600;
+        letter-spacing: 1.4px; text-transform: uppercase;
+        margin-bottom: 14px;
+      }
+      .cost-funnel-row {
+        display: grid;
+        grid-template-columns: 190px 1fr 52px;
+        align-items: center;
+        gap: 12px;
+        padding: 7px 0;
+      }
+      @media (max-width: 520px) { .cost-funnel-row { grid-template-columns: 130px 1fr 46px; } }
+      .cost-funnel-label {
+        font-family: ${T.body}; font-size: 12px; font-weight: 300;
+        color: ${T.textSoft};
+        line-height: 1.35;
+      }
+      .cost-funnel-track {
+        position: relative;
+        display: flex; align-items: center; gap: 9px;
+        height: 24px;
+      }
+      .cost-funnel-bar {
+        height: 100%;
+        border-radius: 6px;
+        border: 1px solid;
+        min-width: 4px;
+        transition: width .3s ease;
+      }
+      .cost-funnel-count {
+        font-family: ${T.mono}; font-size: 12px; font-weight: 700;
+        color: ${T.text};
+      }
+      .cost-funnel-rate {
+        font-family: ${T.mono}; font-size: 11px; font-weight: 500;
+        color: ${T.muted2};
+        text-align: right;
       }
 
       /* OUTILS TABLE USERS (recherche + compteur) */
