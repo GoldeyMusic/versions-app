@@ -24,6 +24,15 @@
 -- Les téléchargements en tant que TELS restent volontairement absents
 -- de la courbe : doublon avec l'installation réelle, et faux positifs
 -- (clics par erreur sur mobile).
+--
+-- ATTENTION check admin : on ne passe PAS par is_admin() (migration 025)
+-- car elle exige un claim JWT top-level 'email_verified' qui n'existe
+-- pas dans les JWT Supabase (il vit dans user_metadata) → Forbidden
+-- systématique, constaté en prod le 2026-07-10. On check directement
+-- l'appartenance à admin_users via auth.uid() — même niveau de sécurité
+-- (la table est seedée sur email vérifié). NB : les autres RPC admin
+-- (013) utilisent encore le check email hardcodé, le TODO de la 025 n'a
+-- jamais été appliqué à leurs corps.
 
 CREATE OR REPLACE FUNCTION public.admin_get_plugin_installs()
 RETURNS TABLE (
@@ -37,7 +46,9 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF NOT public.is_admin() THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.admin_users a WHERE a.user_id = auth.uid()
+  ) THEN
     RAISE EXCEPTION 'Forbidden';
   END IF;
 
