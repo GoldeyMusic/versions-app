@@ -83,6 +83,10 @@ export default function AdminScreen() {
   // Pour l'expand inline d'un feedback : id de la ligne ouverte (string)
   // ou null si rien d'ouvert. Permet de lire les verbatims complets.
   const [expandedFeedback, setExpandedFeedback] = useState(null);
+  // Table utilisateurs : filtre texte (email/nom) + tri par colonne.
+  // userSort = { key, dir } ou null (= tri par défaut de la RPC).
+  const [userQuery, setUserQuery] = useState('');
+  const [userSort, setUserSort] = useState(null);
 
   // ── Auth check + fetch toutes les données ───────────
   useEffect(() => {
@@ -198,6 +202,56 @@ export default function AdminScreen() {
     [userStats, pluginInstalls]
   );
   const pluginTotals = useMemo(() => computePluginTotals(pluginInstalls || []), [pluginInstalls]);
+  // Map user_id → install plugin (pour le badge Mac/Win dans la table users).
+  const pluginByUid = useMemo(
+    () => new Map((pluginInstalls || []).map((p) => [p.user_id, p])),
+    [pluginInstalls]
+  );
+
+  // Utilisateurs affichés : filtre texte puis tri. Sans tri explicite, on
+  // garde le comportement historique (balance croissante si business live,
+  // coûts décroissants sinon).
+  const visibleUsers = useMemo(() => {
+    const q = userQuery.trim().toLowerCase();
+    let rows = userStats;
+    if (q) {
+      rows = rows.filter((u) =>
+        (u.email || '').toLowerCase().includes(q) ||
+        `${u.prenom || ''} ${u.nom || ''}`.toLowerCase().includes(q)
+      );
+    }
+    const live = Number(globalStats?.total_revenue_all_time || 0) > 0;
+    const base = live ? [...rows] : [...rows].sort((a, b) => Number(b.total_cost_eur || 0) - Number(a.total_cost_eur || 0));
+    if (!userSort) return base;
+    const { key, dir } = userSort;
+    const val = (u) => {
+      switch (key) {
+        case 'email': return (u.email || '').toLowerCase();
+        case 'name': return `${u.prenom || ''} ${u.nom || ''}`.trim().toLowerCase();
+        case 'signed_up_at': return u.signed_up_at || '';
+        case 'last_activity': return u.last_activity || '';
+        case 'plugin': return pluginByUid.has(u.user_id) ? 1 : 0;
+        default: return Number(u[key] || 0);
+      }
+    };
+    return base.sort((a, b) => {
+      const va = val(a), vb = val(b);
+      if (va === vb) return 0;
+      // Vides / nulls toujours en bas, quel que soit le sens du tri.
+      if (va === '' || va == null) return 1;
+      if (vb === '' || vb == null) return -1;
+      return (va < vb ? -1 : 1) * dir;
+    });
+  }, [userStats, userQuery, userSort, globalStats, pluginByUid]);
+
+  // Clic sur un header : 1er clic = sens "naturel" (desc pour les nombres
+  // et dates, asc pour les textes), 2e clic = sens inverse.
+  function toggleUserSort(key) {
+    const textCols = key === 'email' || key === 'name';
+    setUserSort((prev) =>
+      prev?.key === key ? { key, dir: -prev.dir } : { key, dir: textCols ? 1 : -1 }
+    );
+  }
 
   const isAdmin = !!ADMIN_EMAIL && user?.email?.toLowerCase() === ADMIN_EMAIL;
 
@@ -628,30 +682,53 @@ export default function AdminScreen() {
               {userStats.length} compte{userStats.length > 1 ? 's' : ''} · classés par{' '}
               {isLiveBusiness ? <em>balance croissante</em> : <em>coûts décroissants</em>}
             </h2>
+            <div className="cost-table-tools">
+              <input
+                className="cost-search"
+                type="search"
+                placeholder="Filtrer par email ou nom…"
+                value={userQuery}
+                onChange={(e) => setUserQuery(e.target.value)}
+                aria-label="Filtrer les utilisateurs"
+              />
+              {(userQuery || userSort) && (
+                <button
+                  className="cost-search-reset"
+                  onClick={() => { setUserQuery(''); setUserSort(null); }}
+                >
+                  Réinitialiser
+                </button>
+              )}
+              <span className="cost-search-count">
+                {visibleUsers.length === userStats.length
+                  ? `${userStats.length} compte${userStats.length > 1 ? 's' : ''}`
+                  : `${visibleUsers.length} / ${userStats.length}`}
+              </span>
+            </div>
             <div className="cost-table-wrap">
               <table className="cost-table">
                 <thead>
                   <tr>
-                    <th>Email</th>
-                    <th>Nom</th>
-                    <th style={{textAlign: 'center'}}>Inscrit</th>
-                    <th style={{textAlign: 'center'}}>Dernière activité</th>
-                    <th style={{textAlign: 'right'}}>Projets</th>
-                    <th style={{textAlign: 'right'}}>Titres</th>
-                    <th style={{textAlign: 'right'}}>Versions</th>
-                    <th style={{textAlign: 'right'}}>Coûts</th>
-                    {isLiveBusiness && <th style={{textAlign: 'right'}}>Recettes</th>}
-                    {isLiveBusiness && <th style={{textAlign: 'right'}}>Balance</th>}
+                    <SortTh label="Email" k="email" sort={userSort} onSort={toggleUserSort} />
+                    <SortTh label="Nom" k="name" sort={userSort} onSort={toggleUserSort} />
+                    <SortTh label="Plugin" k="plugin" sort={userSort} onSort={toggleUserSort} align="center" />
+                    <SortTh label="Inscrit" k="signed_up_at" sort={userSort} onSort={toggleUserSort} align="center" />
+                    <SortTh label="Dernière activité" k="last_activity" sort={userSort} onSort={toggleUserSort} align="center" />
+                    <SortTh label="Projets" k="projects_count" sort={userSort} onSort={toggleUserSort} align="right" />
+                    <SortTh label="Titres" k="tracks_count" sort={userSort} onSort={toggleUserSort} align="right" />
+                    <SortTh label="Versions" k="versions_count" sort={userSort} onSort={toggleUserSort} align="right" />
+                    <SortTh label="Coûts" k="total_cost_eur" sort={userSort} onSort={toggleUserSort} align="right" />
+                    {isLiveBusiness && <SortTh label="Recettes" k="total_revenue_eur" sort={userSort} onSort={toggleUserSort} align="right" />}
+                    {isLiveBusiness && <SortTh label="Balance" k="balance_eur" sort={userSort} onSort={toggleUserSort} align="right" />}
                   </tr>
                 </thead>
                 <tbody>
-                  {userStats.length === 0 && (
-                    <tr><td colSpan={isLiveBusiness ? 10 : 8} className="cost-empty">Aucun utilisateur.</td></tr>
+                  {visibleUsers.length === 0 && (
+                    <tr><td colSpan={isLiveBusiness ? 11 : 9} className="cost-empty">
+                      {userQuery ? 'Aucun utilisateur ne correspond au filtre.' : 'Aucun utilisateur.'}
+                    </td></tr>
                   )}
-                  {(isLiveBusiness
-                    ? userStats
-                    : [...userStats].sort((a, b) => Number(b.total_cost_eur || 0) - Number(a.total_cost_eur || 0))
-                  ).map((u) => {
+                  {visibleUsers.map((u) => {
                     const isOpen = expanded?.userId === u.user_id;
                     const balance = Number(u.balance_eur || 0);
                     return (
@@ -664,6 +741,9 @@ export default function AdminScreen() {
                         >
                           <td className="cost-email">{u.email || '—'}</td>
                           <td className="cost-muted">{[u.prenom, u.nom].filter(Boolean).join(' ') || <span className="cost-anon">—</span>}</td>
+                          <td style={{textAlign: 'center'}}>
+                            <PluginChip install={pluginByUid.get(u.user_id)} />
+                          </td>
                           <td className="cost-muted" style={{textAlign: 'center'}}>{fmtDate(u.signed_up_at, true)}</td>
                           <td className="cost-muted" style={{textAlign: 'center'}}>{u.last_activity ? fmtDate(u.last_activity, true) : <span className="cost-anon">jamais</span>}</td>
                           <td style={{textAlign: 'right'}}>{u.projects_count}</td>
@@ -681,7 +761,7 @@ export default function AdminScreen() {
                         </tr>
                         {isOpen && (
                           <tr className="cost-row-detail">
-                            <td colSpan={isLiveBusiness ? 10 : 8}>
+                            <td colSpan={isLiveBusiness ? 11 : 9}>
                               <UserDetail data={expanded} />
                             </td>
                           </tr>
@@ -834,6 +914,50 @@ function GateMsg({ label, sub }) {
       <div className="cost-gate-label">{label}</div>
       {sub && <div className="cost-gate-sub">{sub}</div>}
     </div>
+  );
+}
+
+/**
+ * SortTh — header de colonne triable. Flèche ▲/▼ quand la colonne est
+ * active, clic pour trier / inverser. Le sens initial est décidé par
+ * toggleUserSort (desc pour nombres/dates, asc pour textes).
+ */
+function SortTh({ label, k, sort, onSort, align }) {
+  const active = sort?.key === k;
+  return (
+    <th
+      style={{ textAlign: align || 'left' }}
+      className={`cost-th-sort ${active ? 'cost-th-sort-active' : ''}`}
+      onClick={() => onSort(k)}
+      title="Cliquer pour trier"
+      aria-sort={active ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}
+    >
+      {label}
+      <span className="cost-th-arrow">{active ? (sort.dir === 1 ? '▲' : '▼') : ''}</span>
+    </th>
+  );
+}
+
+/**
+ * PluginChip — pastille "plugin installé" dans la table users.
+ * Icône prise SVG (pas d'emoji) + label MAC / WIN / OUI (plateforme
+ * inconnue). Tooltip natif avec la date de première ouverture.
+ */
+function PluginChip({ install }) {
+  if (!install) return <span className="cost-anon">—</span>;
+  const label = install.platform === 'mac' ? 'MAC' : install.platform === 'windows' ? 'WIN' : 'OUI';
+  const when = install.first_seen_at ? fmtDate(install.first_seen_at, true) : null;
+  return (
+    <span className="cost-plugin-chip" title={when ? `Plugin installé — première ouverture le ${when}` : 'Plugin installé'}>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M12 22v-5" />
+        <path d="M9 8V2" />
+        <path d="M15 8V2" />
+        <path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z" />
+      </svg>
+      {label}
+    </span>
   );
 }
 
@@ -1047,38 +1171,88 @@ function FeedbackDetail({ row }) {
   );
 }
 
+/**
+ * DailyChart — bar chart coût quotidien. Harmonisé 2026-07-10 avec
+ * AcquisitionChart : ticks X hebdomadaires datés + survol interactif
+ * (barre allumée, ligne guide, tooltip HTML avec analyses + coût).
+ */
 function DailyChart({ series }) {
+  const [hover, setHover] = useState(null);
   const maxCost = Math.max(0.01, ...series.map((d) => d.total));
   const W = 1000, H = 200, PAD = 24;
   const barW = (W - PAD * 2) / series.length - 2;
+  const xBar = (i) => PAD + i * (barW + 2);
+  const xCenter = (i) => xBar(i) + Math.max(barW, 2) / 2;
+
+  // Ticks hebdomadaires depuis le dernier jour (même logique que la
+  // courbe acquisition).
+  const ticks = [];
+  for (let i = series.length - 1; i >= 0; i -= 7) ticks.push(i);
+
+  const hovered = hover != null ? series[hover] : null;
+  const tipFlip = hover != null && xCenter(hover) / W > 0.68;
+
   return (
     <div className="cost-chart">
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="cost-chart-svg">
-        {[0.25, 0.5, 0.75, 1].map((p) => (
-          <line key={p} x1={PAD} x2={W - PAD}
-            y1={H - PAD - (H - PAD * 2) * p}
-            y2={H - PAD - (H - PAD * 2) * p}
-            stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-        ))}
-        {series.map((d, i) => {
-          const h = ((d.total / maxCost) || 0) * (H - PAD * 2);
-          const x = PAD + i * (barW + 2);
-          const y = H - PAD - h;
-          return (
-            <rect key={d.day} x={x} y={y} width={Math.max(barW, 2)} height={Math.max(h, 1)} rx="2"
-              fill="rgba(245,166,35,0.55)" stroke="rgba(245,166,35,0.9)" strokeWidth="0.5">
-              <title>{`${d.day} · ${d.count} analyses · ${fmtEur(d.total)}`}</title>
-            </rect>
-          );
-        })}
-        {series.length > 0 && (
-          <>
-            <text x={PAD} y={H - 6} fill="rgba(138,138,144,0.7)" fontSize="9" fontFamily="monospace">{series[0].day.slice(5)}</text>
-            <text x={W / 2} y={H - 6} fill="rgba(138,138,144,0.7)" fontSize="9" fontFamily="monospace" textAnchor="middle">{series[Math.floor(series.length / 2)].day.slice(5)}</text>
-            <text x={W - PAD} y={H - 6} fill="rgba(138,138,144,0.7)" fontSize="9" fontFamily="monospace" textAnchor="end">{series[series.length - 1].day.slice(5)}</text>
-          </>
+      <div className="cost-chart-hoverwrap" onMouseLeave={() => setHover(null)}>
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="cost-chart-svg">
+          {[0.25, 0.5, 0.75, 1].map((p) => (
+            <line key={p} x1={PAD} x2={W - PAD}
+              y1={H - PAD - (H - PAD * 2) * p}
+              y2={H - PAD - (H - PAD * 2) * p}
+              stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+          ))}
+          {/* Ticks X hebdomadaires : trait + date lisible */}
+          {ticks.map((i) => (
+            <g key={`tick-${i}`}>
+              <line x1={xCenter(i)} x2={xCenter(i)} y1={H - PAD} y2={H - PAD + 4}
+                stroke="rgba(138,138,144,0.5)" strokeWidth="1" />
+              <text x={xCenter(i)} y={H - 6} fill="rgba(138,138,144,0.85)"
+                fontSize="9.5" fontFamily="monospace"
+                textAnchor={i === series.length - 1 ? 'end' : i === 0 ? 'start' : 'middle'}>
+                {fmtAxisDay(series[i].day)}
+              </text>
+            </g>
+          ))}
+          {series.map((d, i) => {
+            const h = ((d.total / maxCost) || 0) * (H - PAD * 2);
+            const y = H - PAD - h;
+            const lit = hover === i;
+            return (
+              <rect key={d.day} x={xBar(i)} y={y} width={Math.max(barW, 2)} height={Math.max(h, 1)} rx="2"
+                fill={lit ? 'rgba(245,166,35,0.9)' : 'rgba(245,166,35,0.55)'}
+                stroke="rgba(245,166,35,0.9)" strokeWidth={lit ? 1 : 0.5} />
+            );
+          })}
+          {/* Ligne guide au survol */}
+          {hover != null && (
+            <line x1={xCenter(hover)} x2={xCenter(hover)} y1={PAD - 6} y2={H - PAD}
+              stroke="rgba(255,255,255,0.22)" strokeWidth="1" strokeDasharray="3 3" />
+          )}
+          {/* Zones de capture du survol (pleine hauteur, couvre les barres nulles) */}
+          {series.map((d, i) => (
+            <rect key={`h-${d.day}`} x={xBar(i) - 1} y={PAD - 10}
+              width={Math.max(barW, 2) + 2} height={H - PAD * 2 + 14} fill="transparent"
+              onMouseEnter={() => setHover(i)} />
+          ))}
+        </svg>
+        {hovered && (
+          <div
+            className={`cost-chart-tip ${tipFlip ? 'cost-chart-tip-flip' : ''}`}
+            style={{ left: `${(xCenter(hover) / W) * 100}%` }}
+          >
+            <div className="cost-chart-tip-date">{fmtTipDay(hovered.day)}</div>
+            <div className="cost-chart-tip-row">
+              <span className="cost-legend-dot" style={{ background: '#F5A623' }} />
+              <strong>{hovered.count}</strong>&nbsp;analyse{hovered.count > 1 ? 's' : ''}
+            </div>
+            <div className="cost-chart-tip-row">
+              <span className="cost-legend-dot" style={{ background: 'transparent' }} />
+              <strong>{fmtEur(hovered.total)}</strong>&nbsp;de coûts API
+            </div>
+          </div>
         )}
-      </svg>
+      </div>
     </div>
   );
 }
@@ -1798,6 +1972,68 @@ function AdminStyles() {
       }
       .cost-legend-dot {
         width: 9px; height: 9px; border-radius: 3px; display: inline-block;
+      }
+
+      /* OUTILS TABLE USERS (recherche + compteur) */
+      .cost-table-tools {
+        display: flex; align-items: center; gap: 12px;
+        margin-bottom: 12px;
+      }
+      .cost-search {
+        flex: 0 1 320px;
+        background: ${T.s1};
+        border: 1px solid ${T.border};
+        border-radius: 10px;
+        padding: 9px 14px;
+        font-family: ${T.body}; font-size: 13px; font-weight: 300;
+        color: ${T.text};
+        outline: none;
+        transition: border-color .15s;
+      }
+      .cost-search::placeholder { color: ${T.muted}; }
+      .cost-search:focus { border-color: ${T.amberLine}; }
+      .cost-search-reset {
+        background: none;
+        border: 1px solid ${T.border};
+        border-radius: 8px;
+        padding: 7px 12px;
+        font-family: ${T.mono}; font-size: 10px; font-weight: 500;
+        letter-spacing: 1px; text-transform: uppercase;
+        color: ${T.muted2};
+        cursor: pointer;
+        transition: color .15s, border-color .15s;
+      }
+      .cost-search-reset:hover { color: ${T.text}; border-color: ${T.amberLine}; }
+      .cost-search-count {
+        margin-left: auto;
+        font-family: ${T.mono}; font-size: 10px; font-weight: 500;
+        letter-spacing: 1.2px; text-transform: uppercase;
+        color: ${T.muted};
+      }
+
+      /* HEADERS TRIABLES */
+      .cost-th-sort { cursor: pointer; user-select: none; transition: color .15s; }
+      .cost-th-sort:hover { color: ${T.textSoft}; }
+      .cost-th-sort-active { color: ${T.amber} !important; }
+      .cost-th-arrow {
+        display: inline-block;
+        width: 12px;
+        margin-left: 3px;
+        font-size: 8px;
+      }
+
+      /* CHIP PLUGIN (table users) */
+      .cost-plugin-chip {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-family: ${T.mono}; font-size: 9.5px; font-weight: 600;
+        letter-spacing: 1px;
+        color: ${T.mint};
+        background: rgba(142,224,122,0.08);
+        border: 1px solid rgba(142,224,122,0.3);
+        line-height: 1;
+        cursor: default;
       }
 
       /* TABLES */
