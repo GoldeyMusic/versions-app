@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /analyse
+Disallow: /fiche
+Disallow: /versions
+Disallow: /reglages
+Disallow: /p/
+Disallow: /join/
+Disallow: /update-password
+Disallow: /confirm-delete-account
+
+Sitemap: https://versions.studio/sitemap.xml
