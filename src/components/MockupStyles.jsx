@@ -8149,11 +8149,11 @@ export default function MockupStyles() {
     filter: drop-shadow(0 0 28px rgba(245,166,35,0.20));
   }
   /* Aligné sur .brand (sidebar) pour garder une identité unifiée du wordmark
-     VERSIONS d'un écran à l'autre : Inter 700, tracking négatif, compact. */
+     VERSIONS d'un écran à l'autre : Fredoka 700, tracking léger positif. */
   .auth-brand {
-    font-family: var(--body);
+    font-family: 'Fredoka', var(--body);
     font-size: 27px; font-weight: 700;
-    letter-spacing: -0.5px;
+    letter-spacing: 0.5px;
     color: var(--text); line-height: 1;
   }
   .auth-brand .accent { color: var(--amber); font-style: normal; }
@@ -10388,7 +10388,7 @@ export default function MockupStyles() {
     /* Auth */
     .auth-screen { padding: 30px 20px; min-height: 100dvh; }
     .auth-card { max-width: 100%; gap: 20px; }
-    .auth-brand { font-size: 36px; letter-spacing: -0.8px; }
+    .auth-brand { font-size: 36px; letter-spacing: 0.6px; }
     .auth-tagline { font-size: 9px; letter-spacing: 2px; gap: 8px; }
     .auth-input { padding: 14px 16px; font-size: 14px; border-radius: 12px; }
     .auth-submit { padding: 16px; font-size: 14px; border-radius: 12px; }
