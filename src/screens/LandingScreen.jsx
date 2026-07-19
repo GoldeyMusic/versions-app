@@ -553,8 +553,8 @@ function LandingStyles() {
         filter: drop-shadow(0 0 16px rgba(245,166,35,0.18));
       }
       .lp-topbar-wordmark {
-        font-family: ${T.body}; font-weight: 700;
-        font-size: 27px; letter-spacing: -0.5px;
+        font-family: 'Fredoka', ${T.body}; font-weight: 700;
+        font-size: 27px; letter-spacing: 0.5px;
         color: ${T.text}; line-height: 1;
       }
       .lp-topbar-wordmark .accent, .lp-footer-mark .accent {
@@ -1173,7 +1173,7 @@ function LandingStyles() {
       }
       .lp-cta-footer { margin-top: 4px; }
       /* Marque de signature en pied de page — même grammaire que le hero
-         (logo SVG + wordmark DM Sans 700), mais en plus petit. */
+         (logo SVG + wordmark Fredoka 700), mais en plus petit. */
       .lp-footer-mark {
         margin-top: 28px;
         display: flex; align-items: center; gap: 10px;
@@ -1183,8 +1183,8 @@ function LandingStyles() {
         filter: drop-shadow(0 0 18px rgba(245,166,35,0.18));
       }
       .lp-footer-mark-text {
-        font-family: ${T.body}; font-weight: 700;
-        font-size: 22px; letter-spacing: -0.4px;
+        font-family: 'Fredoka', ${T.body}; font-weight: 700;
+        font-size: 22px; letter-spacing: 0.4px;
         color: ${T.text}; line-height: 1;
       }
       /* Liens pages légales — discret, sous le wordmark */

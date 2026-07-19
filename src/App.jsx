@@ -51,7 +51,7 @@ import { trackPixelPageView, trackPixelAnalysisStarted } from "./lib/pixel";
 
 /* ── Font loader ────────────────────────────────────────── */
 const FontLink = () => (
-  <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap');`}</style>
+  <style>{`@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap');`}</style>
 );
 
 /* ── Welcome Home Screen ─────────────────────────────────
@@ -874,7 +874,7 @@ function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricin
           .fiche-topbar-portal { gap: 8px; flex-wrap: wrap; justify-content: center; }
         }
         .db-topbar-logo { height: 38px; width: auto; filter: drop-shadow(0 0 16px rgba(245,166,35,0.18)); }
-        .db-topbar-wordmark { font-family: var(--body); font-weight: 700; font-size: 27px; letter-spacing: -0.5px; color: var(--text); line-height: 1; }
+        .db-topbar-wordmark { font-family: 'Fredoka', var(--body); font-weight: 700; font-size: 27px; letter-spacing: 0.5px; color: var(--text); line-height: 1; }
         .db-topbar-wordmark .accent { color: var(--amber); font-style: normal; }
         .db-topbar-nav { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
         .db-topbar-link, .db-topbar-current {

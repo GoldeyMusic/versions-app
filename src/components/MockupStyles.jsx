@@ -6,7 +6,7 @@
 export default function MockupStyles() {
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500;1,9..144,600&family=JetBrains+Mono:wght@400;500&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500;1,9..144,600&family=JetBrains+Mono:wght@400;500&display=swap');`}</style>
       <style>{`
   :root {
     /* Fond + surfaces — identité sombre v2 (cool, respirante).
@@ -747,11 +747,11 @@ export default function MockupStyles() {
     display: flex; flex-direction: column; gap: 18px;
     position: sticky; top: 0; height: 100vh; overflow-y: auto;
   }
-  /* Logo VERSiONS — même typo que le slogan "Écoute, compare, décide."
-     (DM Sans 700) pour unifier l'identité. Le "i" est en minuscule :
+  /* Logo VERSiONS — wordmark en Fredoka 700 (rounded chunky, alignée
+     sur les visuels Insta de juillet 2026), le reste de l'UI garde DM Sans. Le "i" est en minuscule :
      son point remonte quasi à cap height, ce qui garde la silhouette
      compacte du mot sans alourdir la lecture. */
-  .brand { display: flex; align-items: center; gap: 8px; font-family: var(--body); font-weight: 700; font-size: 27px; letter-spacing: -0.5px; color: var(--text); line-height: 1; }
+  .brand { display: flex; align-items: center; gap: 8px; font-family: 'Fredoka', var(--body); font-weight: 700; font-size: 27px; letter-spacing: 0.5px; color: var(--text); line-height: 1; }
   .brand .accent { color: var(--amber); font-style: normal; }
   /* Encadré utilisateur — même traitement que les cartes .wh-stat :
      fond var(--card), halo diffus en pseudo ::before et contenu
