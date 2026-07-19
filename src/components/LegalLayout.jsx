@@ -54,8 +54,8 @@ export function LegalStyles() {
         filter: drop-shadow(0 0 16px rgba(245,166,35,0.18));
       }
       .legal-topbar-wordmark {
-        font-family: ${T.body}; font-weight: 700;
-        font-size: 27px; letter-spacing: -0.5px;
+        font-family: 'Fredoka', ${T.body}; font-weight: 700;
+        font-size: 27px; letter-spacing: 0.5px;
         color: ${T.text}; line-height: 1;
       }
       .legal-topbar-wordmark .accent { color: ${T.amber}; }

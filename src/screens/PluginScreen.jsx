@@ -433,8 +433,8 @@ function PluginStyles() {
         filter: drop-shadow(0 0 16px rgba(245,166,35,0.18));
       }
       .plg-topbar-wordmark {
-        font-family: ${T.body}; font-weight: 700;
-        font-size: 27px; letter-spacing: -0.5px;
+        font-family: 'Fredoka', ${T.body}; font-weight: 700;
+        font-size: 27px; letter-spacing: 0.5px;
         color: ${T.text}; line-height: 1;
       }
       .plg-topbar-wordmark .accent { color: ${T.amber}; font-style: normal; }
@@ -461,7 +461,7 @@ function PluginStyles() {
       }
       @media (max-width: 720px) {
         .plg-topbar { padding: 16px 14px; gap: 12px; }
-        .plg-topbar-wordmark { font-size: 22px; letter-spacing: -0.4px; }
+        .plg-topbar-wordmark { font-size: 22px; letter-spacing: 0.4px; }
         .plg-topbar-logo { height: 28px; }
         .plg-topbar-nav { gap: 6px; }
       }

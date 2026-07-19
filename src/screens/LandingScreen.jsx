@@ -587,7 +587,7 @@ function LandingStyles() {
          est sur cette page. */
       @media (max-width: 720px) {
         .lp-topbar { padding: 16px 14px; gap: 12px; }
-        .lp-topbar-wordmark { font-size: 22px; letter-spacing: -0.4px; }
+        .lp-topbar-wordmark { font-size: 22px; letter-spacing: 0.4px; }
         .lp-topbar-logo { height: 28px; }
         .lp-topbar-nav { gap: 6px; }
         .lp-topbar-current { display: none; }

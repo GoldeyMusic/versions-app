@@ -2445,8 +2445,8 @@ function AdminStyles() {
         display: flex; flex-direction: column; align-items: center; gap: 14px;
       }
       .cost-footer-mark {
-        font-family: ${T.body}; font-weight: 700;
-        font-size: 22px; letter-spacing: -0.5px;
+        font-family: 'Fredoka', ${T.body}; font-weight: 700;
+        font-size: 22px; letter-spacing: 0.4px;
         color: ${T.text};
       }
       .cost-footer-mark .accent { color: ${T.amber}; }

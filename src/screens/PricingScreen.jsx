@@ -515,7 +515,7 @@ function PricingStyles() {
       }
       .pr-topbar-brand:hover { opacity: 0.82; }
       .pr-topbar-logo { height: 38px; width: auto; filter: drop-shadow(0 0 16px rgba(245,166,35,0.18)); }
-      .pr-topbar-wordmark { font-family: ${T.body}; font-weight: 700; font-size: 27px; letter-spacing: -0.5px; color: ${T.text}; line-height: 1; }
+      .pr-topbar-wordmark { font-family: 'Fredoka', ${T.body}; font-weight: 700; font-size: 27px; letter-spacing: 0.5px; color: ${T.text}; line-height: 1; }
       .pr-topbar-wordmark .accent { color: ${T.amber}; font-style: normal; }
       .pr-topbar-nav { display: inline-flex; align-items: center; gap: 8px; }
       .pr-topbar-link, .pr-topbar-current {
@@ -1001,7 +1001,7 @@ function PricingStyles() {
         text-align: center;
         display: flex; flex-direction: column; align-items: center; gap: 14px;
       }
-      .pr-footer-mark { font-family: ${T.body}; font-weight: 700; font-size: 22px; letter-spacing: -0.5px; color: ${T.text}; }
+      .pr-footer-mark { font-family: 'Fredoka', ${T.body}; font-weight: 700; font-size: 22px; letter-spacing: 0.4px; color: ${T.text}; }
       .pr-footer-mark .accent { color: ${T.amber}; }
       .pr-footer-line { font-family: ${T.body}; font-size: 13px; font-weight: 300; color: ${T.muted}; }
       .pr-footer-line a { color: ${T.amber}; text-decoration: none; }

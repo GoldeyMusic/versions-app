@@ -9757,9 +9757,9 @@ export default function MockupStyles() {
     filter: drop-shadow(0 0 16px rgba(245,166,35,0.18));
   }
   .ap-brand-wordmark {
-    font-family: var(--body);
+    font-family: 'Fredoka', var(--body);
     font-weight: 700; font-size: 27px;
-    letter-spacing: -0.5px; color: var(--text); line-height: 1;
+    letter-spacing: 0.5px; color: var(--text); line-height: 1;
   }
   .ap-brand-wordmark .accent { color: var(--amber); font-style: normal; }
 
@@ -10625,6 +10625,13 @@ export default function MockupStyles() {
   }
   .public-fiche-topbar .pft-left {
     display: flex; align-items: center; gap: 12px;
+  }
+  /* Wordmark VERSIONS de la fiche partagée — aligné sur la typo brand
+     Fredoka 700 des autres topbars (harmonisation 2026-07-19). On ne
+     touche pas au font-size (hérité) pour ne pas bouger le layout. */
+  .public-fiche-topbar .pft-brand {
+    font-family: 'Fredoka', var(--body); font-weight: 700;
+    letter-spacing: 0.4px;
   }
   /* Typographie nav identique à .lp-topbar-link / .db-topbar-link
      (mono uppercase 11 px, hauteur 32 px, padding 0 16, hover ambre).
