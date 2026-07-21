@@ -12,6 +12,34 @@ import { savePending, updatePending, clearPending } from '../lib/pendingJob';
 // pour que le pipeline tourne exactement comme avant (non-regression garantie).
 const INTENT_ENABLED = import.meta.env.VITE_INTENT_ENABLED === 'true';
 
+// ── Garde anti-double-lancement (2026-07-21) ────────────────────────────
+// BUG CORRIGÉ : l'effet de lancement a `[config]` en dépendance et aucun
+// verrou. Un simple REMONTAGE du composant relançait donc une analyse
+// complète — nouvel upload, nouveau POST /start, et surtout UN CRÉDIT DE
+// PLUS débité à l'utilisateur (plus le coût Fadr + Claude côté nous).
+// Le remontage arrivait systématiquement : à la réception du premier
+// résultat partiel, App.jsx bascule sur l'écran fiche, ce qui change
+// l'enveloppe DOM du contenu et fait démonter/remonter tout l'arbre ;
+// tant que l'analyse n'est pas finie, l'écran fiche réaffiche justement
+// LoadingScreen. Constaté sur 7 analyses/7 chez un abonné (14 crédits
+// pour 7 analyses).
+//
+// Ce registre vit au niveau MODULE : il survit aux remontages, mais pas à
+// un rechargement de page (où repartir de zéro est le comportement voulu).
+// Clé = signature stable du run (titre + version + empreinte du fichier).
+const inFlightRuns = new Set();
+
+function runSignature(config) {
+  if (!config || config.resumeJobId) return null; // le mode resume ne poste pas /start
+  const f = config.file;
+  if (!f) return null;
+  return [
+    (config.title || '').trim().toLowerCase(),
+    (config.version || '').trim().toLowerCase(),
+    f.name || '', f.size ?? '', f.lastModified ?? '',
+  ].join('|');
+}
+
 const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   const { s, lang } = useLang();
   const [phase, setPhase] = useState(0);
@@ -89,6 +117,18 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
   }, [shuffledTips.length]);
 
   useEffect(() => {
+    // Verrou anti-double-lancement : si ce run est déjà piloté par un
+    // montage précédent (cf. inFlightRuns en tête de fichier), on ne
+    // relance RIEN. L'exécution d'origine n'est pas interrompue par le
+    // démontage — elle continue son polling et appellera onDone — donc
+    // sortir ici ne perd aucun résultat, ça évite juste de payer deux fois.
+    const sig = runSignature(config);
+    if (sig && inFlightRuns.has(sig)) {
+      console.warn('[analyze] lancement ignoré : run déjà en cours pour cette version (anti-double-débit)');
+      return;
+    }
+    if (sig) inFlightRuns.add(sig);
+
     const run = async () => {
       try {
         setPhase(0);
@@ -711,6 +751,11 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
       } catch (err) {
         console.error("❌ VERSIONS LoadingScreen error:", err.message);
         setError(err.message);
+      } finally {
+        // Run terminé (succès, erreur ou annulation) : on libère la
+        // signature pour qu'une relance VOLONTAIRE du même fichier reste
+        // possible. Le verrou ne couvre que la durée réelle du run.
+        if (sig) inFlightRuns.delete(sig);
       }
     };
 

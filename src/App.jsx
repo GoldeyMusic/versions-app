@@ -5335,18 +5335,30 @@ function VersionsAppAuthed() {
                 : { flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", width: "100%", minHeight: 0, paddingBottom: 80 }
             }
           >
-            {showWelcomeTopbar ? (
-              /* Wrap centré pour les écrans en layout topbar :
-                 - welcome : 1080px (aligné avec landing/pricing)
-                 - fiche : 920px (un poil plus étroit pour laisser de
-                   la place au chat anchored qui flotte à droite en
-                   position:fixed sans être dans la colonne) */
-              <div style={{ width: "100%", maxWidth: 920, margin: "0 auto", padding: "0 24px", display: "flex", flexDirection: "column" }}>
-                {renderContent()}
-              </div>
-            ) : (
-              renderContent()
-            )}
+            {/* Wrap centré pour les écrans en layout topbar :
+                  - welcome : 1080px (aligné avec landing/pricing)
+                  - fiche : 920px (un poil plus étroit pour laisser de
+                    la place au chat anchored qui flotte à droite en
+                    position:fixed sans être dans la colonne)
+
+                ⚠️ Le wrapper est TOUJOURS monté, et neutralisé via
+                `display: contents` quand il ne sert pas. Avant (2026-07-21),
+                il était monté/démonté selon showWelcomeTopbar : la structure
+                de l'arbre changeait à chaque bascule d'écran, donc React
+                DÉMONTAIT et REMONTAIT tout le contenu. Conséquence coûteuse :
+                au passage analyse → fiche (déclenché par le premier résultat
+                partiel), LoadingScreen se remontait et relançait une analyse
+                complète — un crédit de plus débité à l'utilisateur à chaque
+                analyse. Ne jamais revenir à un wrapper conditionnel ici. */}
+            <div
+              style={
+                showWelcomeTopbar
+                  ? { width: "100%", maxWidth: 920, margin: "0 auto", padding: "0 24px", display: "flex", flexDirection: "column" }
+                  : { display: "contents" }
+              }
+            >
+              {renderContent()}
+            </div>
           </div>
 
           {/* Bottom Player — toujours présent (sticky), y compris sur la home.
