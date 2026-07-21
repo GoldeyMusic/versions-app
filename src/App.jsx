@@ -2898,6 +2898,42 @@ function MobileMenu({ onNavigate, onSignOut, user, userProfile, onAdd, onGoFeedb
 // Cold start sans pathname (`/`) côté connecté → reste sur la landing,
 // le routeInit ci-dessous le routera ensuite si besoin.
 // `/home` est gardé en alias rétro-compat de `/`.
+// Cache localStorage de la liste des projets (rendu instantané au mount,
+// stale-while-revalidate). La clé est VERSIONNÉE : bumper le suffixe invalide
+// d'office tous les caches écrits par les builds antérieurs — c'est le seul
+// moyen de "réparer à distance" un navigateur dont le cache local casse le
+// render (page blanche auto-entretenue, cf. commentaire sur useState projects).
+const PROJECTS_CACHE_KEY = 'versions_projects_cache_v2';
+// Anciennes clés purgées au chargement pour ne pas laisser de données mortes.
+const LEGACY_PROJECTS_CACHE_KEYS = ['versions_projects_cache'];
+
+// Lecture défensive du cache : on n'accepte que des entrées qui ressemblent
+// vraiment à un projet (objet avec id, et tracks/versions en tableaux). Toute
+// entrée douteuse est écartée plutôt que rendue telle quelle.
+function readProjectsCache() {
+  try {
+    for (const k of LEGACY_PROJECTS_CACHE_KEYS) localStorage.removeItem(k);
+    const raw = localStorage.getItem(PROJECTS_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((p) => p && typeof p === 'object' && typeof p.id === 'string')
+      .map((p) => ({
+        ...p,
+        tracks: Array.isArray(p.tracks)
+          ? p.tracks
+              .filter((t) => t && typeof t === 'object' && typeof t.id === 'string')
+              .map((t) => ({ ...t, versions: Array.isArray(t.versions) ? t.versions.filter(Boolean) : [] }))
+          : [],
+      }));
+  } catch {
+    // Cache illisible : on repart d'une liste vide plutôt que de propager.
+    try { localStorage.removeItem(PROJECTS_CACHE_KEY); } catch { /* ignore */ }
+    return [];
+  }
+}
+
 const SCREEN_PATH = {
   welcome: '/dashboard',
   home: '/',
@@ -3197,18 +3233,17 @@ function VersionsAppAuthed() {
   // Cache localStorage pour un rendu instantané : au mount, on lit la
   // dernière liste connue et on l'affiche direct. La requête live met
   // à jour silencieusement derrière (stale-while-revalidate).
-  const [projects, setProjects] = useState(() => {
-    try {
-      const raw = localStorage.getItem('versions_projects_cache');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch { /* ignore */ }
-    return [];
-  });
+  //
+  // Durcissement 2026-07-21 : le cache est rendu AVANT le fetch réseau, donc
+  // un cache de forme invalide (écrit par un build antérieur, ou tronqué) fait
+  // crasher le render → page blanche à CHAQUE chargement, et le crash empêche
+  // le refresh d'écraser le cache : la panne s'auto-entretient et survit aux
+  // déploiements (le poison est dans le navigateur de l'utilisateur).
+  // Deux protections : (1) clé VERSIONNÉE — tout cache d'un ancien format est
+  // ignoré d'office, (2) validation de forme au lieu d'un simple Array.isArray.
+  const [projects, setProjects] = useState(() => readProjectsCache());
   const [projectsLoaded, setProjectsLoaded] = useState(() => {
-    try { return !!localStorage.getItem('versions_projects_cache'); } catch { return false; }
+    try { return !!localStorage.getItem(PROJECTS_CACHE_KEY); } catch { return false; }
   });
   const [projectsRefreshKey, setProjectsRefreshKey] = useState(0);
   const refreshProjects = useCallback(() => setProjectsRefreshKey((k) => k + 1), []);
@@ -3979,7 +4014,7 @@ function VersionsAppAuthed() {
       const next = list || [];
       setProjects(next);
       setProjectsLoaded(true);
-      try { localStorage.setItem('versions_projects_cache', JSON.stringify(next)); } catch { /* ignore */ }
+      try { localStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
       if (next.length === 0) return;
       const firstProject = next[0];
       // NB : on ne précharge plus l'audio du 1ᵉʳ morceau au boot.

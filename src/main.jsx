@@ -41,6 +41,20 @@ class RootErrorBoundary extends React.Component {
   }
   componentDidCatch(error, info) {
     reportClientError(error?.message, (error?.stack || '') + '\n--- component stack ---' + (info?.componentStack || ''), 'react-boundary')
+    // Auto-réparation : un crash de render peut venir d'un cache local de
+    // forme invalide, rendu AVANT le fetch réseau. Comme le crash empêche le
+    // refresh d'écraser ce cache, la panne s'auto-entretient et survit aux
+    // déploiements. On purge donc les caches applicatifs dès le premier crash
+    // pour que le rechargement reparte propre. La session Supabase (clé sb-*)
+    // est PRÉSERVÉE : inutile de déconnecter quelqu'un qui subit déjà un bug.
+    try {
+      const doomed = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i)
+        if (k && k.startsWith('versions_') && k !== 'versions_lang') doomed.push(k)
+      }
+      doomed.forEach((k) => localStorage.removeItem(k))
+    } catch { /* mode privé / quota : on ignore */ }
   }
   render() {
     if (this.state.crashed) {
