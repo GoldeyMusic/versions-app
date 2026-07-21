@@ -207,11 +207,19 @@ export default function AdminScreen() {
   // plugin (first_seen_at) agrégées par jour sur 30 jours. Les
   // téléchargements (plugin_downloads) sont volontairement exclus de la
   // courbe — doublon avec l'installation réelle (décision 2026-07-10).
-  const acqSeries = useMemo(
-    () => computeAcquisitionSeries(userStats, pluginInstalls || [], 30),
-    [userStats, pluginInstalls]
+  // Équipe interne exclue des AGRÉGATS installs (compte + courbe), pour
+  // s'aligner sur le cockpit Archipel. Les puces par-user (pluginByUid)
+  // gardent la liste complète → l'install de l'équipe reste visible dans le
+  // tableau, elle ne compte juste pas dans les totaux.
+  const pluginInstallsExTeam = useMemo(
+    () => (pluginInstalls || []).filter((p) => !TEAM_EMAILS.has((p.email || '').toLowerCase())),
+    [pluginInstalls]
   );
-  const pluginTotals = useMemo(() => computePluginTotals(pluginInstalls || []), [pluginInstalls]);
+  const acqSeries = useMemo(
+    () => computeAcquisitionSeries(userStats, pluginInstallsExTeam, 30),
+    [userStats, pluginInstallsExTeam]
+  );
+  const pluginTotals = useMemo(() => computePluginTotals(pluginInstallsExTeam), [pluginInstallsExTeam]);
   const funnel = useMemo(() => computeFunnel(funnelRows || []), [funnelRows]);
   // Map user_id → install plugin (pour le badge Mac/Win dans la table users).
   const pluginByUid = useMemo(
@@ -1547,6 +1555,10 @@ function computeStats(logs) {
 // computeAcquisitionSeries — série quotidienne { day, signups, installs }
 // sur N jours. Inscriptions depuis signed_up_at (admin_get_user_stats),
 // installations depuis first_seen_at (admin_get_plugin_installs).
+// Emails internes (équipe) exclus des agrégats d'installations plugin —
+// même liste que STATS_EXCLUDE_EMAILS côté versions-api / cockpit.
+const TEAM_EMAILS = new Set(['berdugo.david@gmail.com', 'davidabakan@gmail.com']);
+
 function computeAcquisitionSeries(userStats, installs, days) {
   const map = new Map();
   for (let i = days - 1; i >= 0; i--) {
