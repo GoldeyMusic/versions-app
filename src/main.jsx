@@ -1,4 +1,6 @@
+import React from 'react'
 import { createRoot } from 'react-dom/client'
+import { installCrashReporter, reportClientError } from './lib/crashReporter.js'
 // Polyfill drag-drop HTML5 pour mobile/tactile. Synthetise les events
 // dragstart/dragover/drop à partir des touch events, sans lequel le
 // drag-and-drop natif (ex: réordonner les titres d'un projet) ne marche
@@ -19,8 +21,55 @@ if (seoFooter) {
   seoFooter.style.pointerEvents = 'none'
 }
 
+// Télémétrie d'erreurs (2026-07-21) : capture les erreurs JS globales et
+// les envoie au backend (table client_errors + Railway logs + notif ops).
+// Posée AVANT le render pour attraper aussi un crash au premier paint.
+// Contexte : page blanche non diagnosticable chez un utilisateur Windows.
+installCrashReporter()
+
+// ErrorBoundary racine : si React crashe, on affiche un écran sombre avec
+// un bouton recharger AU LIEU d'une page blanche muette, et on rapporte
+// l'erreur. Class component minimal (les hooks ne peuvent pas attraper les
+// erreurs de rendu).
+class RootErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { crashed: false }
+  }
+  static getDerivedStateFromError() {
+    return { crashed: true }
+  }
+  componentDidCatch(error, info) {
+    reportClientError(error?.message, (error?.stack || '') + '\n--- component stack ---' + (info?.componentStack || ''), 'react-boundary')
+  }
+  render() {
+    if (this.state.crashed) {
+      return (
+        <div style={{ minHeight: '100vh', background: '#0a0b14', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, fontFamily: 'system-ui, sans-serif', padding: 24, textAlign: 'center' }}>
+          <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '0.04em' }}>
+            VER<span style={{ color: '#f5a623' }}>Si</span>ONS
+          </div>
+          <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.75)', maxWidth: 420, lineHeight: 1.5 }}>
+            Une erreur est survenue pendant l'affichage. Recharge la page — si ça se reproduit, écris-nous à contact@versions.studio.
+          </div>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            style={{ background: '#f5a623', color: '#1a1a1a', border: 'none', borderRadius: 8, padding: '12px 28px', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
+          >
+            Recharger la page
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 createRoot(document.getElementById('root')).render(
-  <AuthProvider>
-    <App />
-  </AuthProvider>
+  <RootErrorBoundary>
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  </RootErrorBoundary>
 )

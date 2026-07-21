@@ -46,7 +46,10 @@
       alt="" /></noscript>
     <!-- End Meta Pixel -->
   </head>
-  <body>
+  <!-- Fond sombre inline (2026-07-21) : appliqué AVANT tout CSS/JS pour
+       qu'une panne de bundle ou un crash React ne produise jamais une
+       page blanche (le fond de l'app est injecté par React sinon). -->
+  <body style="background:#0a0b14">
     <!-- Footer statique : présent dans le HTML brut renvoyé par le
          serveur, lu par les crawlers qui n'exécutent pas le JS
          (Googlebot OAuth review notamment, plus basique que le
