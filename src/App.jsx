@@ -4043,6 +4043,18 @@ function VersionsAppAuthed() {
   };
   const [lang, setLangState] = useState(detectInitialLang);
 
+  // Déclare la langue RÉELLE de la page au navigateur (2026-07-22).
+  // Enjeu : quand `<html lang>` ne correspond pas au contenu, les navigateurs
+  // proposent/déclenchent leur traduction automatique. Or celle-ci réécrit les
+  // nœuds de texte gérés par React, qui lève ensuite « removeChild ... not a
+  // child of this node » et démonte tout l'arbre → page blanche (diagnostiqué
+  // chez un utilisateur Edge le 2026-07-22 via la table client_errors).
+  // index.html pose déjà lang="fr" + translate="no" ; ici on garde l'attribut
+  // aligné sur le sélecteur FR/EN pour rester cohérent (SEO + lecteurs d'écran).
+  useEffect(() => {
+    try { document.documentElement.lang = lang; } catch { /* ignore */ }
+  }, [lang]);
+
   // Sync côté Supabase : quand le profil se charge, si une préférence serveur existe
   // et diffère du cache local, on l'adopte (l'utilisateur a pu changer sur un autre appareil).
   useEffect(() => {

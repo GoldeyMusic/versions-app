@@ -1,7 +1,20 @@
 <!doctype html>
-<html lang="en">
+<!-- lang="fr" : l'app est francophone par défaut (le sélecteur FR/EN met
+     ensuite `document.documentElement.lang` à jour, cf. App.jsx). Avant, on
+     déclarait `en` sur du contenu français : les navigateurs détectaient
+     l'incohérence et déclenchaient leur TRADUCTION AUTOMATIQUE.
+
+     translate="no" + meta notranslate : indispensables, pas cosmétiques.
+     La traduction auto d'un navigateur remplace les nœuds de texte dans le
+     DOM que React gère ; React tente ensuite de retirer des nœuds qui ont
+     été échangés et lève `Failed to execute 'removeChild' on 'Node'`, ce qui
+     démonte TOUT l'arbre → page blanche. Diagnostiqué le 2026-07-22 chez un
+     utilisateur Edge/Windows via la télémétrie (table client_errors).
+     Aucune perte pour l'utilisateur : l'app fournit déjà FR et EN nativement. -->
+<html lang="fr" translate="no" class="notranslate">
   <head>
     <meta charset="UTF-8" />
+    <meta name="google" content="notranslate" />
     <!-- Favicon PNG haute déf (960×960) : utilisé partout — onglets navigateur,
          signets, tuiles écran d'accueil iOS/Android. On expose plusieurs sizes
          pour que chaque OS pioche la déclinaison qu'il préfère. -->
