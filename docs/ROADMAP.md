@@ -20,7 +20,7 @@ Hard cap durée audio 12 min · Stripe complet (one-shot + abos, webhook, debit/
 
 ### Bloc 2 — Mise en production publique (CLOS, livré mai 2026)
 
-- [x] Pages légales `/privacy` et `/terms` (éditeur Multicolorz, i18n FR/EN).
+- [x] Pages légales `/privacy` et `/terms` (éditeur Archipel Audio depuis 2026-07-26, ex-Multicolorz, i18n FR/EN).
 - [x] Google OAuth en Production (branding "Versions" + logo, domaine vérifié, app publiée — cap 100 users en mode Test).
 - [x] URLs propres (suppression du `#`) — History API + flow PKCE Supabase + rewrite SPA Vercel + `migrateHashToPath()` filet de sécurité.
 - [x] `MONETIZATION_ENABLED=true` en prod Stripe.

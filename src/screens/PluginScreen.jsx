@@ -34,7 +34,9 @@ import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
  *   cp ~/versions-plugin/dist/Versions-X.Y.Z.dmg public/downloads/Versions.dmg
  * Windows : .exe NON SIGNÉ publié en attendant Azure Artifact Signing
  * (décision David 2026-07-05 — alerte SmartScreen assumée, le binaire
- * sera remplacé par la version signée dès la validation Multicolorz).
+ * sera remplacé par la version signée dès la validation Multicolorz —
+ * NB : la validation Azure est encore au nom de Multicolorz, à migrer
+ * vers Archipel Audio une fois la société immatriculée).
  */
 const PLUGIN_DOWNLOAD_MAC_URL = '/downloads/Versions.dmg';
 const PLUGIN_DOWNLOAD_WIN_URL = '/downloads/Versions-Setup.exe';
