@@ -1822,7 +1822,7 @@ const STRINGS = {
             title: "1. Identité de l'éditeur",
             blocks: [
               { type: 'p', text: "Le service Versions est édité par **Archipel Audio** ({archipel}), société par actions simplifiée (SAS) en cours d'immatriculation en France." },
-              { type: 'p', text: "Contact : {email}" },
+              { type: 'p', text: "Contact : {publisherEmail}" },
             ],
           },
           {
@@ -1930,7 +1930,7 @@ const STRINGS = {
             title: "2. Éditeur",
             blocks: [
               { type: 'p', text: "Le service est édité par **Archipel Audio** ({archipel}), société par actions simplifiée (SAS) en cours d'immatriculation en France." },
-              { type: 'p', text: "Contact : {email}" },
+              { type: 'p', text: "Contact : {publisherEmail}" },
             ],
           },
           {
@@ -3770,7 +3770,7 @@ const STRINGS = {
             title: "1. Publisher identity",
             blocks: [
               { type: 'p', text: "The Versions service is published by **Archipel Audio** ({archipel}), a French simplified joint-stock company (SAS) currently in the process of registration." },
-              { type: 'p', text: "Contact: {email}" },
+              { type: 'p', text: "Contact: {publisherEmail}" },
             ],
           },
           {
@@ -3878,7 +3878,7 @@ const STRINGS = {
             title: "2. Publisher",
             blocks: [
               { type: 'p', text: "The service is published by **Archipel Audio** ({archipel}), a French simplified joint-stock company (SAS) currently in the process of registration." },
-              { type: 'p', text: "Contact: {email}" },
+              { type: 'p', text: "Contact: {publisherEmail}" },
             ],
           },
           {

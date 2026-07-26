@@ -4,18 +4,20 @@ import T from '../constants/theme';
  * Helpers partagés par PrivacyScreen et TermsScreen.
  * - `renderLegalInline(text)` : transforme `**gras**` en <strong>, le
  *   placeholder `{email}` en lien mailto vers l'adresse de contact et le
- *   placeholder `{archipel}` en lien vers le site de l'éditeur.
+ *   placeholder `{archipel}` en lien vers le site de l'éditeur ;
+ *   `{publisherEmail}` → mailto vers l'adresse de contact de l'éditeur.
  * - `<LegalStyles />` : feuille de styles commune aux deux pages
  *   légales (mêmes classes .legal-*, montée une seule fois — un seul
  *   écran rendu à la fois).
  */
 const CONTACT_EMAIL = 'contact@versions.studio';
+const PUBLISHER_EMAIL = 'hello@archipelaudio.com';
 const PUBLISHER_URL = 'https://www.archipelaudio.com';
 const PUBLISHER_URL_LABEL = 'www.archipelaudio.com';
 
 export function renderLegalInline(text) {
   if (text == null) return null;
-  const parts = String(text).split(/(\*\*[^*]+\*\*|\{email\}|\{archipel\})/g);
+  const parts = String(text).split(/(\*\*[^*]+\*\*|\{email\}|\{publisherEmail\}|\{archipel\})/g);
   return parts.map((part, i) => {
     if (!part) return null;
     if (part.startsWith('**') && part.endsWith('**')) {
@@ -25,6 +27,13 @@ export function renderLegalInline(text) {
       return (
         <a key={i} href={`mailto:${CONTACT_EMAIL}`}>
           {CONTACT_EMAIL}
+        </a>
+      );
+    }
+    if (part === '{publisherEmail}') {
+      return (
+        <a key={i} href={`mailto:${PUBLISHER_EMAIL}`}>
+          {PUBLISHER_EMAIL}
         </a>
       );
     }
