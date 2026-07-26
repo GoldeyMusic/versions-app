@@ -476,6 +476,17 @@ export default function LandingScreen({
             )}
           </nav>
         )}
+        <p className="lp-footer-publisher">
+          Versions est édité par{' '}
+          <a
+            href="https://www.archipelaudio.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="lp-footer-publisher-link"
+          >
+            Archipel Audio
+          </a>
+        </p>
       </footer>
     </div>
   );
@@ -1207,6 +1218,19 @@ function LandingStyles() {
         font-size: 12px;
         user-select: none;
       }
+      /* Mention éditeur — sous les liens légaux */
+      .lp-footer-publisher {
+        margin: 12px 0 0;
+        font-family: ${T.mono};
+        font-size: 11px; letter-spacing: 0.4px;
+        color: ${T.muted2};
+      }
+      .lp-footer-publisher-link {
+        color: ${T.muted};
+        text-decoration: none;
+        transition: color .15s;
+      }
+      .lp-footer-publisher-link:hover { color: ${T.amber}; }
 
       /* ── PLUGIN — badge "Nouveau" (CTA hero) + dot notif (topbar) ── */
       /* Badge : posé en absolu sur le coin haut-droit du bouton porteur.
