@@ -32,11 +32,11 @@ import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
  * Les binaires vivent dans public/downloads/ sous un NOM STABLE (sans
  * version) pour ne pas avoir à toucher au code à chaque release :
  *   cp ~/versions-plugin/dist/Versions-X.Y.Z.dmg public/downloads/Versions.dmg
- * Windows : .exe NON SIGNÉ publié en attendant Azure Artifact Signing
- * (décision David 2026-07-05 — alerte SmartScreen assumée, le binaire
- * sera remplacé par la version signée dès la validation Multicolorz —
- * NB : la validation Azure est encore au nom de Multicolorz, à migrer
- * vers Archipel Audio une fois la société immatriculée).
+ * Windows : .exe SIGNÉ via Azure Artifact Signing depuis la 1.0.8
+ * (validation d'identité obtenue 2026-07-26). L'éditeur affiché par
+ * Windows est "Multicolorz" (nom de la validation Azure) — à re-valider
+ * au nom d'Archipel Audio une fois la SAS immatriculée si on veut
+ * aligner la signature sur le nouvel éditeur.
  */
 const PLUGIN_DOWNLOAD_MAC_URL = '/downloads/Versions.dmg';
 const PLUGIN_DOWNLOAD_WIN_URL = '/downloads/Versions-Setup.exe';
