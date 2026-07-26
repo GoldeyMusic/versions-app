@@ -49,6 +49,7 @@ import NoCreditsModal from "./components/NoCreditsModal";
 import FeedbackModal from "./components/FeedbackModal";
 import { confirmDialog } from "./lib/confirm.jsx";
 import { trackPixelPageView, trackPixelAnalysisStarted } from "./lib/pixel";
+import { captureAttribution, logCtaClick } from "./lib/attribution";
 
 /* ── Font loader ────────────────────────────────────────── */
 const FontLink = () => (
@@ -3593,6 +3594,15 @@ function VersionsAppAuthed() {
     return () => window.removeEventListener('popstate', onPopTrack);
   }, []);
 
+  // ── Attribution acquisition (migration 051) : capture les UTM /
+  // fbclid / referrer de l'URL d'arrivée UNE FOIS au mount (avant le
+  // gate auth — ce composant monte que l'utilisateur soit connecté ou
+  // non), mémorise la provenance first-touch en localStorage et logge
+  // la visite anonyme en DB. Cf. src/lib/attribution.js.
+  useEffect(() => {
+    captureAttribution();
+  }, []);
+
   // ── Deep-link fiche : résolution `pendingFiche` → fiche réelle ────────
   // Posé par routeInit ou popstate quand l'URL est `#/fiche/{seg}/...`.
   // On attend `projects` pour matcher les segments (cache localStorage
@@ -4828,6 +4838,10 @@ function VersionsAppAuthed() {
     // routeInit lit `/dashboard` et renvoie sur le bon écran (au lieu de
     // re-rendre la landing parce que l'URL était restée à `/`).
     const goAuth = () => {
+      // Attribution : le visiteur "passe le CTA" (landing, pricing,
+      // footer… tous les chemins vers l'inscription convergent ici).
+      // Une fois par session navigateur, anonyme, fail-safe.
+      logCtaClick();
       setShowAuth(true);
       if (typeof window !== 'undefined') {
         // Retour post-login : si l'inscription part d'une page publique

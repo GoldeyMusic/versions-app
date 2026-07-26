@@ -84,6 +84,12 @@ export default function AdminScreen() {
   // fondatrices par user (première analyse / premier plugin / premier
   // paiement). null = RPC indisponible.
   const [funnelRows, setFunnelRows] = useState(null);
+  // Provenance acquisition — migration 051 : visites/clics CTA anonymes
+  // agrégés par jour × source (admin_get_landing_stats) + attribution
+  // first-touch par compte (admin_get_user_attribution). null = RPC
+  // indisponible (migration pas appliquée).
+  const [landingStats, setLandingStats] = useState(null);
+  const [userAttribution, setUserAttribution] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   // Pour l'expand inline d'un user : null ou { userId, loading, items }
@@ -116,7 +122,7 @@ export default function AdminScreen() {
         // 2 RPC, revenue_logs.
         const since = new Date();
         since.setDate(since.getDate() - 30);
-        const [logsRes, chatLogsRes, globalRes, usersRes, revRes, feedbackRes, installsRes, funnelRes] = await Promise.all([
+        const [logsRes, chatLogsRes, globalRes, usersRes, revRes, feedbackRes, installsRes, funnelRes, landingRes, attribRes] = await Promise.all([
           supabase
             .from('analysis_cost_logs')
             .select('*')
@@ -155,6 +161,10 @@ export default function AdminScreen() {
           supabase.rpc('admin_get_plugin_installs'),
           // Parcours d'entrée : RPC créée par migration 046. Même tolérance.
           supabase.rpc('admin_get_funnel'),
+          // Provenance (pub Meta & co) : RPC créées par migration 051.
+          // Même tolérance tant que la migration n'est pas appliquée.
+          supabase.rpc('admin_get_landing_stats', { p_days: 30 }),
+          supabase.rpc('admin_get_user_attribution'),
         ]);
 
         if (cancelled) return;
@@ -177,6 +187,12 @@ export default function AdminScreen() {
         if (funnelRes.error) {
           console.warn('[admin] admin_get_funnel unavailable (migration 046 not applied?):', funnelRes.error.message);
         }
+        if (landingRes.error) {
+          console.warn('[admin] admin_get_landing_stats unavailable (migration 051 not applied?):', landingRes.error.message);
+        }
+        if (attribRes.error) {
+          console.warn('[admin] admin_get_user_attribution unavailable (migration 051 not applied?):', attribRes.error.message);
+        }
 
         setLogs(logsRes.data || []);
         setChatLogs(chatLogsRes.data || []);
@@ -187,6 +203,8 @@ export default function AdminScreen() {
         setFeedbackRows(feedbackRes.data || []);
         setPluginInstalls(installsRes.error ? null : (installsRes.data || []));
         setFunnelRows(funnelRes.error ? null : (funnelRes.data || []));
+        setLandingStats(landingRes.error ? null : (landingRes.data || []));
+        setUserAttribution(attribRes.error ? null : (attribRes.data || []));
       } catch (e) {
         if (!cancelled) setErr(e.message || 'Erreur de chargement');
       } finally {
@@ -226,6 +244,12 @@ export default function AdminScreen() {
   );
   const pluginTotals = useMemo(() => computePluginTotals(pluginInstallsExTeam), [pluginInstallsExTeam]);
   const funnel = useMemo(() => computeFunnel(funnelRows || []), [funnelRows]);
+  // Provenance : agrégats par source (visites, CTA, inscrits) + funnel
+  // Meta complet (croisé avec funnelRows pour "ont lancé une analyse").
+  const sources = useMemo(
+    () => computeSources(landingStats, userAttribution, funnelRows),
+    [landingStats, userAttribution, funnelRows]
+  );
   // Map user_id → install plugin (pour le badge Mac/Win dans la table users).
   const pluginByUid = useMemo(
     () => new Map((pluginInstalls || []).map((p) => [p.user_id, p])),
@@ -447,6 +471,101 @@ export default function AdminScreen() {
               </div>
             )}
           </section>
+
+          {/* SECTION PROVENANCE — qui vient de la pub Meta (migration 051).
+              Visites + clics CTA = sessions navigateur ANONYMES
+              (landing_events, loggées par la RPC log_landing_event dès
+              l'arrivée sur le site). Inscriptions = comptes rattachés à
+              leur provenance first-touch au premier SIGNED_IN
+              (user_attribution). Détection Meta même sans UTM dans
+              l'URL de l'ad : le fbclid auto-ajouté par FB/IG suffit. */}
+          {(landingStats !== null || userAttribution !== null) && (
+            <section className="cost-section">
+              <div className="cost-section-eyebrow">Provenance — pub Meta &amp; sources · 30 derniers jours</div>
+              <h2 className="cost-section-title">
+                Qui vient de la <em>pub Meta</em>, et jusqu'où ils vont.
+              </h2>
+              <div className="cost-kpi-grid">
+                <KpiCard
+                  label="Visites via Meta"
+                  value={String(sources.meta.visits)}
+                  sub={`sur ${sources.totalVisits} visite${sources.totalVisits > 1 ? 's' : ''} trackée${sources.totalVisits > 1 ? 's' : ''} toutes sources`}
+                  tone="cerulean"
+                />
+                <KpiCard
+                  label="Ont passé le CTA"
+                  value={String(sources.meta.cta)}
+                  sub={`${pctOf(sources.meta.cta, sources.meta.visits)} des visites Meta cliquent un CTA d'inscription`}
+                  tone="mint"
+                />
+                <KpiCard
+                  label="Inscriptions via Meta"
+                  value={String(sources.meta.signups.length)}
+                  sub={`${pctOf(sources.meta.signups.length, sources.meta.visits)} des visites Meta créent un compte`}
+                  tone="violet"
+                />
+                <KpiCard
+                  label="Réactivations Meta"
+                  value={String(sources.meta.returning.length)}
+                  sub="comptes existants revenus via la pub (pas des inscriptions)"
+                  tone="amber"
+                />
+              </div>
+              <div className="cost-funnel-grid">
+                <FunnelBlock
+                  title="Funnel pub Meta"
+                  color="#7a9ee0"
+                  steps={[
+                    { label: 'Arrivés sur le site', count: sources.meta.visits },
+                    { label: 'Ont passé le CTA', count: sources.meta.cta },
+                    { label: 'Ont créé un compte', count: sources.meta.signups.length },
+                    { label: 'Ont lancé une analyse', count: sources.meta.analyzed },
+                  ]}
+                />
+                <div className="cost-table-wrap">
+                  <table className="cost-table">
+                    <thead>
+                      <tr>
+                        <th>Source</th>
+                        <th>Visites</th>
+                        <th>CTA</th>
+                        <th>Inscrits</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sources.rows.map((r) => (
+                        <tr key={r.source}>
+                          <td>{r.source}</td>
+                          <td>{r.visits}</td>
+                          <td>{r.cta}</td>
+                          <td>{r.signups}</td>
+                        </tr>
+                      ))}
+                      {sources.rows.length === 0 && (
+                        <tr><td colSpan={4}>Aucune visite trackée pour l'instant.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              {sources.meta.signups.length > 0 && (
+                <div className="cost-fadr-note">
+                  <strong>Inscrits via Meta :</strong>{' '}
+                  {sources.meta.signups
+                    .map((u) => `${u.email}${u.utm_campaign ? ` (${u.utm_campaign})` : ''}`)
+                    .join(' · ')}
+                </div>
+              )}
+              <div className="cost-fadr-note">
+                Visites et CTA = sessions navigateur anonymes (table <code>landing_events</code>,
+                une visite et un clic CTA max par session). Inscriptions = provenance first-touch
+                rattachée au compte au premier login (<code>user_attribution</code>). Un compte
+                créé AVANT sa première arrivée taguée Meta est compté en « réactivation », pas en
+                inscription. Source « meta » = UTM meta/fb/ig OU présence du <code>fbclid</code> ;
+                « meta-organique » = referrer facebook/instagram sans clic pub tagué.
+              </div>
+            </section>
+          )}
 
           {/* SECTION PARCOURS D'ENTRÉE — le funnel n'est pas linéaire :
               certains entrent par l'analyse web, d'autres par le plugin
@@ -1604,6 +1723,73 @@ function computeFunnel(rows) {
     sitePaid: site.filter((r) => r.first_paid_at).length,
     pluginToSite: plugin.filter((r) => r.first_analysis_at).length,
     pluginPaid: plugin.filter((r) => r.first_paid_at).length,
+  };
+}
+
+// computeSources — agrégats provenance (migration 051).
+//   landingStats   : lignes { day, source, visits, cta_clicks } de
+//                    admin_get_landing_stats (déjà agrégées jour × source).
+//   userAttribution: lignes { user_id, email, source, utm_campaign,
+//                    fbclid, first_seen_at, signed_up_at } de
+//                    admin_get_user_attribution.
+//   funnelRows     : admin_get_funnel — pour savoir si un inscrit Meta a
+//                    ensuite lancé une analyse (first_analysis_at).
+// Distinction inscription vs réactivation : un compte est une VRAIE
+// inscription venue de la source si son signup est postérieur à la
+// première arrivée avec cette provenance (marge 6 h pour absorber les
+// horloges/lenteurs). Un vieux compte qui clique la pub aujourd'hui a
+// first_seen_at >> signed_up_at → réactivation.
+function computeSources(landingStats, userAttribution, funnelRows) {
+  const SLACK_MS = 6 * 3600 * 1000;
+  const bySource = new Map();
+  const slot = (source) => {
+    const key = source || 'autre';
+    if (!bySource.has(key)) bySource.set(key, { source: key, visits: 0, cta: 0, signups: 0 });
+    return bySource.get(key);
+  };
+
+  let totalVisits = 0;
+  for (const r of landingStats || []) {
+    const s = slot(r.source);
+    s.visits += Number(r.visits) || 0;
+    s.cta += Number(r.cta_clicks) || 0;
+    totalVisits += Number(r.visits) || 0;
+  }
+
+  const analysisByUid = new Map();
+  for (const f of funnelRows || []) analysisByUid.set(f.user_id, f.first_analysis_at || null);
+
+  const metaSignups = [];
+  const metaReturning = [];
+  for (const a of userAttribution || []) {
+    const isNewSignup =
+      !a.first_seen_at || !a.signed_up_at
+        ? true // pas de dates comparables → bénéfice du doute
+        : new Date(a.signed_up_at).getTime() >= new Date(a.first_seen_at).getTime() - SLACK_MS;
+    if (isNewSignup) slot(a.source).signups += 1;
+    if (a.source === 'meta') {
+      if (isNewSignup) metaSignups.push(a);
+      else metaReturning.push(a);
+    }
+  }
+
+  const meta = bySource.get('meta') || { source: 'meta', visits: 0, cta: 0, signups: 0 };
+  const analyzed = metaSignups.filter((u) => analysisByUid.get(u.user_id)).length;
+
+  const rows = Array.from(bySource.values()).sort(
+    (x, y) => y.visits - x.visits || y.signups - x.signups
+  );
+
+  return {
+    totalVisits,
+    rows,
+    meta: {
+      visits: meta.visits,
+      cta: meta.cta,
+      signups: metaSignups,
+      returning: metaReturning,
+      analyzed,
+    },
   };
 }
 

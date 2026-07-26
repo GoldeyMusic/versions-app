@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { trackPixelSignup } from '../lib/pixel';
+import { claimAttribution } from '../lib/attribution';
 
 const AuthContext = createContext({ user: null, loading: true });
 
@@ -39,6 +40,11 @@ export function AuthProvider({ children }) {
       // après échange du code dans /auth/callback).
       if (_event === 'SIGNED_IN' && session?.user?.id) {
         trackPixelSignup(session.user.id);
+        // Attribution acquisition (migration 051) : rattache la
+        // provenance mémorisée (UTM/fbclid/referrer, cf. attribution.js)
+        // au compte. First-touch côté serveur (ON CONFLICT DO NOTHING) —
+        // un login d'un user déjà attribué ne réécrit rien.
+        claimAttribution(session.user.id);
       }
     });
 
