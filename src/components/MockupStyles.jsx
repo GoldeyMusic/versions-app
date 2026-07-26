@@ -753,6 +753,22 @@ export default function MockupStyles() {
      compacte du mot sans alourdir la lecture. */
   .brand { display: flex; align-items: center; gap: 8px; font-family: 'Fredoka', var(--body); font-weight: 700; font-size: 27px; letter-spacing: 0.5px; color: var(--text); line-height: 1; }
   .brand .accent { color: var(--amber); font-style: normal; }
+  /* Byline editeur "by Archipel Audio" sous le wordmark — partagee par
+     toutes les topbars/brands (landing, pricing, plugin, legales, db-topbar,
+     sidebar, sample, loading). Une lettre par span, distribuees en
+     space-between sur la largeur exacte du wordmark (cf. BrandByline.jsx). */
+  .brand-col { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+  .brand-byline {
+    font-family: var(--mono);
+    font-size: 9.5px; font-weight: 500;
+    color: var(--muted);
+    line-height: 1;
+    align-self: stretch;
+    display: flex; justify-content: space-between;
+  }
+  @media (max-width: 720px) {
+    .brand-byline { font-size: 8px; }
+  }
   /* Encadré utilisateur — même traitement que les cartes .wh-stat :
      fond var(--card), halo diffus en pseudo ::before et contenu
      remonté en z-index 1 pour passer au-dessus du halo. Overflow

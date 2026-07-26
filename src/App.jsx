@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import BrandByline from './components/BrandByline';
 import { createPortal } from "react-dom";
 import STRINGS, { pick } from "./constants/strings";
 import T from "./constants/theme";
@@ -741,8 +742,11 @@ function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricin
           aria-label={s.sidebar?.aboutLink || 'Accueil'}
         >
           <img src="/Logo-Versions-2.png" alt="" className="db-topbar-logo" />
-          <span className="db-topbar-wordmark">
-            VER<span className="accent">Si</span>ONS
+          <span className="brand-col">
+            <span className="db-topbar-wordmark">
+              VER<span className="accent">Si</span>ONS
+            </span>
+            <BrandByline />
           </span>
         </button>
         {/* Slot réservé pour des contenus contextuels rendus via portail

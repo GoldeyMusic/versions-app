@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import BrandByline from '../components/BrandByline';
 import T from '../constants/theme';
 import { apiFetchJson } from '../lib/apiClient';
 import useLang from '../hooks/useLang';
@@ -174,8 +175,11 @@ export default function PluginScreen({
           aria-label={t.topbarBackAria}
         >
           <img src="/Logo-Versions-2.png" alt="" className="plg-topbar-logo" />
-          <span className="plg-topbar-wordmark">
-            VER<span className="accent">Si</span>ONS
+          <span className="brand-col">
+            <span className="plg-topbar-wordmark">
+              VER<span className="accent">Si</span>ONS
+            </span>
+            <BrandByline />
           </span>
         </button>
         <nav className="plg-topbar-nav" aria-label="Navigation">

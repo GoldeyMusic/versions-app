@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import BrandByline from '../components/BrandByline';
 import T from '../constants/theme';
 import { apiFetch } from '../lib/apiClient';
 import useLang from '../hooks/useLang';
@@ -160,8 +161,11 @@ export default function PricingScreen({
           aria-label={t.topbarBackAria}
         >
           <img src="/Logo-Versions-2.png" alt="" className="pr-topbar-logo" />
-          <span className="pr-topbar-wordmark">
-            VER<span className="accent">Si</span>ONS
+          <span className="brand-col">
+            <span className="pr-topbar-wordmark">
+              VER<span className="accent">Si</span>ONS
+            </span>
+            <BrandByline />
           </span>
         </button>
         <nav className="pr-topbar-nav" aria-label="Navigation">

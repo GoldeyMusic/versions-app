@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import BrandByline from '../components/BrandByline';
 import T from '../constants/theme';
 import useLang from '../hooks/useLang';
 import LangDropdown from '../components/LangDropdown';
@@ -82,18 +83,11 @@ export default function LandingScreen({
       <header className="lp-topbar">
         <div className="lp-topbar-brand">
           <img src="/Logo-Versions-2.png" alt="" className="lp-topbar-logo" />
-          <span className="lp-topbar-brand-col">
+          <span className="brand-col">
             <span className="lp-topbar-wordmark">
               VER<span className="accent">Si</span>ONS
             </span>
-            {/* Lettres distribuees en flex space-between pour que la byline
-                fasse STRICTEMENT la largeur du wordmark (align-self: stretch
-                sur la colonne dont VERSiONS definit la largeur). */}
-            <span className="lp-topbar-byline" aria-label="by Archipel Audio">
-              {'by Archipel Audio'.split('').map((c, i) => (
-                <span key={i} aria-hidden="true">{c === ' ' ? '\u00A0' : c}</span>
-              ))}
-            </span>
+            <BrandByline />
           </span>
         </div>
         <nav className="lp-topbar-nav" aria-label="Navigation">
@@ -581,19 +575,6 @@ function LandingStyles() {
       .lp-topbar-wordmark .accent, .lp-footer-mark .accent {
         color: ${T.amber}; font-style: normal;
       }
-      /* Mention editeur sous le wordmark — discret, mono capitales */
-      .lp-topbar-brand-col {
-        display: inline-flex; flex-direction: column;
-        align-items: flex-start; gap: 3px;
-      }
-      .lp-topbar-byline {
-        font-family: ${T.mono};
-        font-size: 9.5px; font-weight: 500;
-        color: ${T.muted};
-        line-height: 1;
-        align-self: stretch;
-        display: flex; justify-content: space-between;
-      }
       .lp-topbar-nav { display: inline-flex; align-items: center; gap: 8px; }
       .lp-topbar-link, .lp-topbar-current {
         font-family: ${T.mono}; font-size: 11px; font-weight: 500;
@@ -622,7 +603,6 @@ function LandingStyles() {
       @media (max-width: 720px) {
         .lp-topbar { padding: 16px 14px; gap: 12px; }
         .lp-topbar-wordmark { font-size: 22px; letter-spacing: 0.4px; }
-        .lp-topbar-byline { font-size: 8px; }
         .lp-topbar-logo { height: 28px; }
         .lp-topbar-nav { gap: 6px; }
         .lp-topbar-current { display: none; }

@@ -1,4 +1,5 @@
 import useLang from '../hooks/useLang';
+import BrandByline from '../components/BrandByline';
 import { renderLegalInline, LegalStyles } from '../components/LegalLayout';
 
 /**
@@ -23,8 +24,11 @@ export default function PrivacyScreen({ onBackToLanding, onGoTerms }) {
           aria-label={backLabel}
         >
           <img src="/Logo-Versions-2.png" alt="" className="legal-topbar-logo" />
-          <span className="legal-topbar-wordmark">
-            VER<span className="accent">Si</span>ONS
+          <span className="brand-col">
+            <span className="legal-topbar-wordmark">
+              VER<span className="accent">Si</span>ONS
+            </span>
+            <BrandByline />
           </span>
         </button>
       </header>

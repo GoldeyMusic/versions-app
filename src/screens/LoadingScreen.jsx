@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import BrandByline from '../components/BrandByline';
 import { apiFetch } from '../lib/apiClient';
 import { confirmDialog } from '../lib/confirm.jsx';
 import { hashAudioFile, findDuplicateAudio, loadTracks, getInheritedIntentByTitle, loadNoteCompletions } from "../lib/storage";
@@ -1034,8 +1035,11 @@ function ApBrandMark({ onGoHome }) {
       aria-label="Retour au tableau de bord"
     >
       <img src="/Logo-Versions-2.png" alt="" className="ap-brand-logo" />
-      <span className="ap-brand-wordmark">
-        VER<span className="accent">Si</span>ONS
+      <span className="brand-col">
+        <span className="ap-brand-wordmark">
+          VER<span className="accent">Si</span>ONS
+        </span>
+        <BrandByline />
       </span>
     </button>
   );

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import BrandByline from './BrandByline';
 import {
   renameProject,
   deleteProject,
@@ -292,7 +293,10 @@ export default function Sidebar({
     <aside className="sidebar">
       <div className="brand" onClick={onGoLanding} style={{ cursor: 'pointer' }}>
         <img src="/Logo-Versions-2.png" alt="" style={{ height: 38, width: 'auto' }} />
-        <span>{'VER'}<span className="accent">{'Si'}</span>{'ONS'}</span>
+        <span className="brand-col">
+          <span>{'VER'}<span className="accent">{'Si'}</span>{'ONS'}</span>
+          <BrandByline />
+        </span>
       </div>
 
       <div className="user-pill" onClick={onGoReglages} style={{ cursor: 'pointer' }}>

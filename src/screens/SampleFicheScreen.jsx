@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import BrandByline from '../components/BrandByline';
 import GlobalStyles from '../components/GlobalStyles';
 import MockupStyles from '../components/MockupStyles';
 import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
@@ -528,8 +529,11 @@ export default function SampleFicheScreen({
                 landing. */}
             <button type="button" className="sample-brand" onClick={onBackToLanding} aria-label={lang === 'en' ? 'Back to landing' : 'Retour à la landing'}>
               <img src="/Logo-Versions-2.png" alt="" style={{ height: 28, width: 'auto' }} />
-              <span className="sample-brand-text">
-                {'VER'}<span className="sample-brand-accent">{'Si'}</span>{'ONS'}
+              <span className="brand-col">
+                <span className="sample-brand-text">
+                  {'VER'}<span className="sample-brand-accent">{'Si'}</span>{'ONS'}
+                </span>
+                <BrandByline />
               </span>
             </button>
             <span className="sample-eyebrow">
