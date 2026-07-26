@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import T from '../constants/theme';
 import { supabase } from '../lib/supabase';
+import { fetchIsAdmin } from '../hooks/useIsAdmin';
 
 // ── Constantes Fadr (synchro avec versions-api/lib/costTracker.js) ──
 // Abo Fadr Plus = $10/mois ≈ 9,20 € à 0.92, inclut $10 d'API soit
@@ -37,7 +38,7 @@ const INFRA_COSTS = [
 const INFRA_TOTAL_EUR_MONTH = INFRA_COSTS.reduce((sum, c) => sum + c.eurMonth, 0);
 
 /**
- * AdminScreen — dashboard admin (#/admin), gaté par VITE_ADMIN_EMAIL.
+ * AdminScreen — dashboard admin (#/admin), gaté par public.admin_users.
  *
  * Sections :
  *   1. KPIs business (users, titres, recettes 30j, rentabilité 30j)
@@ -56,12 +57,15 @@ const INFRA_TOTAL_EUR_MONTH = INFRA_COSTS.reduce((sum, c) => sum + c.eurMonth, 0
  *   - admin_get_user_stats()    → 1 ligne par user avec stats
  *   - admin_get_user_detail(id) → titres + versions d'un user (pour expand)
  *
- * RLS double : email check côté front (gating UX) + check email dans
- * les fonctions Postgres (gating sécurité réelle).
+ * Double barrière : gating UX côté front via la RPC is_admin(), et
+ * gating sécurité réel côté Postgres (RLS is_admin() + check is_admin()
+ * dans le corps des RPC admin_get_*).
  */
 export default function AdminScreen() {
-  const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
-  const [user, setUser] = useState(null);
+  // Statut admin lu depuis la base : RPC is_admin() → appartenance à
+  // public.admin_users (migration 049). Plus de comparaison d'email
+  // côté front, plus de VITE_ADMIN_EMAIL.
+  const [isAdmin, setIsAdmin] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [logs, setLogs] = useState([]);
   const [chatLogs, setChatLogs] = useState([]);
@@ -99,10 +103,11 @@ export default function AdminScreen() {
       try {
         const { data: { user: u } } = await supabase.auth.getUser();
         if (cancelled) return;
-        setUser(u);
+        const admin = u?.id ? await fetchIsAdmin(u.id) : false;
+        if (cancelled) return;
+        setIsAdmin(admin);
         setAuthChecked(true);
-        const isAdmin = !!ADMIN_EMAIL && u?.email?.toLowerCase() === ADMIN_EMAIL;
-        if (!isAdmin) {
+        if (!admin) {
           setLoading(false);
           return;
         }
@@ -189,7 +194,7 @@ export default function AdminScreen() {
       }
     })();
     return () => { cancelled = true; };
-  }, [ADMIN_EMAIL]);
+  }, []);
 
   // ── Stats agrégées coûts (calculées côté JS depuis logs) ────
   const stats = useMemo(() => computeStats(logs), [logs]);
@@ -272,8 +277,6 @@ export default function AdminScreen() {
     );
   }
 
-  const isAdmin = !!ADMIN_EMAIL && user?.email?.toLowerCase() === ADMIN_EMAIL;
-
   // Tant que Stripe n'est pas branché et qu'aucune vente n'est tombée
   // dans revenue_logs, on cache tout ce qui suppose une activité
   // commerciale (recettes, balance, marge). Réactivé automatiquement
@@ -308,9 +311,7 @@ export default function AdminScreen() {
       {authChecked && !isAdmin && (
         <GateMsg
           label="Accès refusé."
-          sub={ADMIN_EMAIL
-            ? "Cette page est réservée à l'admin."
-            : "VITE_ADMIN_EMAIL n'est pas configuré côté frontend."}
+          sub="Cette page est réservée aux administrateurs."
         />
       )}
       {authChecked && isAdmin && loading && <GateMsg label="Chargement des données…" />}

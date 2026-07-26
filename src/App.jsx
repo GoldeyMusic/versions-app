@@ -27,6 +27,7 @@ import { getPending, clearPending } from "./lib/pendingJob";
 import { assignProjectColors, PROJECT_COLOR_COUNT } from "./lib/projectColors";
 import { resizeImageFile } from "./lib/image";
 import { supabase } from "./lib/supabase";
+import useIsAdmin, { clearIsAdminCache } from "./hooks/useIsAdmin";
 import { useAuth } from "./hooks/useAuth";
 import AuthScreen from "./screens/AuthScreen";
 import LandingScreen from "./screens/LandingScreen";
@@ -616,11 +617,11 @@ function HeroWaveform({ storagePath, isActive, resetKey = 0, onFinish }) {
  */
 function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut, onGoAdmin, onGoFeedback, user }) {
   const { s } = useLang();
-  // Admin gated par VITE_ADMIN_EMAIL — visible uniquement sur le compte
-  // de David. Permet d'atteindre #/admin en un clic depuis n'importe
-  // quel écran qui rend le DashboardRail (home, pricing, dashboard).
-  const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
-  const isAdmin = adminEmail && user?.email?.toLowerCase() === adminEmail;
+  // Admin : gating piloté par la base (table public.admin_users via la
+  // RPC is_admin(), cf. hooks/useIsAdmin). Permet d'atteindre #/admin en
+  // un clic depuis n'importe quel écran qui rend le DashboardRail
+  // (home, pricing, dashboard).
+  const isAdmin = useIsAdmin(user);
   return (
     <div className="db-utility-rail" aria-label="Outils du compte">
       {/* Feedback testeur — phase beta. Pill complète (icône + label
@@ -715,11 +716,10 @@ function DashboardRail({ credits, onGoPricing, onGoReglages, onSignOut, onGoAdmi
  */
 function DashboardTopbar({ currentScreen, onGoLanding, onGoDashboard, onGoPricing, onGoPlugin, onGoReglages, onSignOut, onGoAdmin, onGoFeedback, user, lang, setLang, credits, planLabel = null }) {
   const { s } = useLang();
-  // Admin gated par VITE_ADMIN_EMAIL — visible uniquement sur le compte
-  // de David. Permet d'atteindre #/admin en un clic depuis le menu
-  // hamburger sur tous les écrans en topbar layout.
-  const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
-  const isAdmin = adminEmail && user?.email?.toLowerCase() === adminEmail;
+  // Admin : gating piloté par la base (table public.admin_users via la
+  // RPC is_admin(), cf. hooks/useIsAdmin). Permet d'atteindre #/admin en
+  // un clic depuis le menu hamburger sur tous les écrans en topbar layout.
+  const isAdmin = useIsAdmin(user);
   const utilityItems = [
     ...(isAdmin && onGoAdmin ? [{ key: 'admin', label: 'Admin', icon: NavIcons.admin, onSelect: onGoAdmin }] : []),
     ...(onGoFeedback ? [{ key: 'feedback', label: s.feedback?.triggerLabel || 'Ton avis compte', icon: NavIcons.feedback, onSelect: onGoFeedback }] : []),
@@ -3078,6 +3078,10 @@ function VersionsAppAuthed() {
   const { user, loading: authLoading, signOut } = useAuth();
   const isMobile = useMobile();
   const isDesktop = !isMobile;
+  // Statut admin — lu depuis la base (public.admin_users via la RPC
+  // is_admin()). Passé en prop aux écrans publics (landing / pricing /
+  // plugin) qui affichent l'entrée Admin dans leur nav.
+  const isAdminUser = useIsAdmin(user);
 
   // Wrapper signOut → redirect explicite vers la home publique.
   // L'effet de logout plus bas met déjà le hash à #/ et bascule sur
@@ -3085,6 +3089,7 @@ function VersionsAppAuthed() {
   // mais on force ici en plus pour éviter tout flash transitoire et
   // garantir un comportement homogène depuis n'importe quelle page.
   const handleSignOut = useCallback(async () => {
+    try { clearIsAdminCache(); } catch { /* ignore */ }
     try { await signOut?.(); } catch { /* ignore */ }
     if (typeof window !== 'undefined') {
       try { window.history.replaceState({ screen: 'home' }, '', '/'); } catch { /* ignore */ }
@@ -4927,7 +4932,7 @@ function VersionsAppAuthed() {
           onGoTerms={() => setScreen('terms')}
           isAuthenticated={true}
           credits={userCredits}
-          isAdmin={!!(import.meta.env.VITE_ADMIN_EMAIL && user?.email?.toLowerCase() === import.meta.env.VITE_ADMIN_EMAIL.trim().toLowerCase())}
+          isAdmin={isAdminUser}
           onGoAdmin={() => setScreen('admin')}
           onGoReglages={() => setReglagesOpen(true)}
           onSignOut={handleSignOut}
@@ -4999,7 +5004,7 @@ function VersionsAppAuthed() {
           ctaPrimaryLabel={s.sidebar.dashboardLink}
           isAuthenticated={true}
           credits={userCredits}
-          isAdmin={!!(import.meta.env.VITE_ADMIN_EMAIL && user?.email?.toLowerCase() === import.meta.env.VITE_ADMIN_EMAIL.trim().toLowerCase())}
+          isAdmin={isAdminUser}
           onGoAdmin={() => setScreen('admin')}
           onGoReglages={() => setReglagesOpen(true)}
           onSignOut={handleSignOut}
@@ -5046,7 +5051,7 @@ function VersionsAppAuthed() {
           onViewDashboard={() => setScreen('welcome')}
           isAuthenticated={true}
           credits={userCredits}
-          isAdmin={!!(import.meta.env.VITE_ADMIN_EMAIL && user?.email?.toLowerCase() === import.meta.env.VITE_ADMIN_EMAIL.trim().toLowerCase())}
+          isAdmin={isAdminUser}
           onGoAdmin={() => setScreen('admin')}
           onGoReglages={() => setReglagesOpen(true)}
           onSignOut={handleSignOut}

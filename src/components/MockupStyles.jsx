@@ -290,7 +290,7 @@ export default function MockupStyles() {
     outline-offset: 2px;
   }
   /* Variante Admin — accent ambre pour le distinguer (visible
-     uniquement sur le compte admin via VITE_ADMIN_EMAIL). */
+     uniquement pour les comptes présents dans public.admin_users). */
   .db-utility-btn-admin {
     color: var(--amber, #f5a623);
     border-color: rgba(245,166,35,0.35);

@@ -13,6 +13,7 @@ import RenameModal from './RenameModal';
 import { assignProjectColors, PROJECT_COLOR_COUNT } from '../lib/projectColors';
 import useLang from '../hooks/useLang';
 import { supabase } from '../lib/supabase';
+import useIsAdmin from '../hooks/useIsAdmin';
 
 /**
  * Sidebar — accordéon de projets.
@@ -49,6 +50,8 @@ export default function Sidebar({
   onMutate,
 }) {
   const { s, lang, setLang } = useLang();
+  // Statut admin lu depuis la base (public.admin_users) — cf. hooks/useIsAdmin.
+  const isAdmin = useIsAdmin(user);
   // Modales
   const [renameProjectTarget, setRenameProjectTarget] = useState(null);
   const [renameTrackTarget, setRenameTrackTarget] = useState(null);
@@ -366,16 +369,13 @@ export default function Sidebar({
           </button>
         )}
 
-        {/* Lien Admin — visible UNIQUEMENT si l'email du user matche
-            VITE_ADMIN_EMAIL (config côté frontend). Permet à David
-            d'accéder au dashboard de coûts (#/admin) en un clic depuis
-            une fiche d'analyse (les autres écrans ont l'accès via le
-            DashboardRail). Style aligné sur le bouton dashboard
+        {/* Lien Admin — visible UNIQUEMENT si le user appartient à
+            public.admin_users (RPC is_admin(), cf. hooks/useIsAdmin).
+            Permet d'accéder au dashboard de coûts (#/admin) en un clic
+            depuis une fiche d'analyse (les autres écrans ont l'accès via
+            le DashboardRail). Style aligné sur le bouton dashboard
             ci-dessus, accent ambre pour le distinguer. */}
-        {onGoAdmin && (() => {
-          const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
-          const isAdmin = adminEmail && user?.email?.toLowerCase() === adminEmail;
-          if (!isAdmin) return null;
+        {onGoAdmin && isAdmin && (() => {
           return (
             <button
               type="button"
