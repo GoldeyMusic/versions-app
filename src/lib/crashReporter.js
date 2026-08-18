@@ -14,7 +14,8 @@
  *   - dédup par message (une même erreur répétée ne part qu'une fois) ;
  *   - tout échec du reporter est avalé silencieusement (jamais de crash
  *     causé par le rapporteur de crash) ;
- *   - payload plafonné (message 500 chars, stack 3000).
+ *   - payload plafonné (message 500 chars, stack 3000) ;
+ *   - filtre de bruit tiers (cf. isNoise ci-dessous).
  */
 
 import API_URL from '../constants/api';
@@ -22,6 +23,54 @@ import API_URL from '../constants/api';
 const MAX_REPORTS = 3;
 let sent = 0;
 const seen = new Set();
+
+/* ---------------------------------------------------------------------
+ * Filtre de bruit tiers (2026-08-18)
+ *
+ * Depuis le lancement des pubs Instagram, le gros du trafic landing
+ * arrive via le navigateur in-app Meta (Android WebView, UA `IABMV/1`).
+ * Ce navigateur injecte SES PROPRES scripts dans la page — visibles dans
+ * la stack sous `iabjs://navigation_performance_logger_android`. Quand
+ * l'utilisateur swipe pour fermer la webview, le pont JS↔Java est détruit
+ * avant que le logger Meta ait fini son `postMessage` :
+ *     Uncaught Error: Error invoking postMessage: Java object is gone
+ * C'est du bruit pur : le code vient de Meta, pas de Versions, et zéro
+ * utilisateur n'est impacté (la page se ferme, c'est tout). Sans filtre
+ * ça déclenche une notif ops par heure (throttle backend) sur du vide.
+ *
+ * Même logique pour les extensions navigateur et les erreurs cross-origin
+ * anonymisées ("Script error.") qui n'apportent aucune info exploitable.
+ *
+ * On ne coupe PAS tout le trafic in-app : un vrai crash de notre bundle
+ * dans la webview Instagram a une stack qui pointe nos assets et remonte
+ * normalement.
+ * ------------------------------------------------------------------- */
+const NOISE_MESSAGES = [
+  /java object is gone/i,            // pont JS↔Java WebView détruit
+  /error invoking postmessage/i,     // idem, formulation Meta
+  /^(uncaught )?script error\.?$/i,  // cross-origin, aucune info
+  /resizeobserver loop/i,            // bruit navigateur classique, inoffensif
+  /instantsearchsdkjsbridge/i,       // navigateur in-app Bing / Edge
+  /vue is not defined|ucbrowser/i,   // navigateurs in-app exotiques
+];
+
+const NOISE_STACK = [
+  /iabjs:\/\//i,                     // in-app browser Instagram / Facebook
+  /fbjs:\/\//i,
+  /navigation_performance_logger/i,
+  /chrome-extension:\/\//i,          // extensions navigateur
+  /moz-extension:\/\//i,
+  /safari-(web-)?extension:\/\//i,
+  /anonymous scripts?/i,
+];
+
+function isNoise(message, stack) {
+  const m = String(message || '');
+  const s = String(stack || '');
+  if (NOISE_MESSAGES.some((re) => re.test(m))) return true;
+  if (NOISE_STACK.some((re) => re.test(s))) return true;
+  return false;
+}
 
 // user_id / email best-effort depuis le token Supabase en localStorage
 // (pas d'import du client supabase ici : le reporter doit fonctionner
@@ -42,6 +91,9 @@ function readAuthInfo() {
 
 export function reportClientError(message, stack, source) {
   try {
+    // Bruit tiers filtré AVANT le compteur : un crash in-app Meta ne doit
+    // pas consommer un des 3 slots de rapport de la page.
+    if (isNoise(message, stack)) return;
     const msg = String(message || 'unknown').slice(0, 500);
     if (sent >= MAX_REPORTS || seen.has(msg)) return;
     sent += 1;
