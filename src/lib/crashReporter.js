@@ -61,6 +61,7 @@ const NOISE_STACK = [
   /chrome-extension:\/\//i,          // extensions navigateur
   /moz-extension:\/\//i,
   /safari-(web-)?extension:\/\//i,
+  /webkit-masked-url:/i,             // script injecté (extension Safari / WKUserScript)
   /anonymous scripts?/i,
 ];
 
