@@ -2081,7 +2081,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           project={membersTarget}
           s={s}
           initialScope={membersInitialTrack || 'project'}
-          onClose={() => { setMembersTarget(null); setMembersInitialTrack(null); refreshProjects(); }}
+          onClose={() => { setMembersTarget(null); setMembersInitialTrack(null); if (onMutate) onMutate(); }}
         />
       )}
       {newProjectOpen && (
@@ -3136,6 +3136,14 @@ function VersionsAppAuthed() {
   const [newProjectValueApp, setNewProjectValueApp] = useState('');
   const newProjectInputRefApp = useRef(null);
   const pendingNewTrackRefApp = useRef(false);
+  // Modale membres ouverte DEPUIS LA FICHE (clic sur les avatars du side
+  // panel, via onManageMembers). WelcomeHome garde sa propre instance :
+  // ces states sont la copie app-level, comme newProjectOpenApp.
+  // Crash prod 2026-09-04 (Safari, "Can't find variable:
+  // setMembersInitialTrack") : onManageMembers appelait les setters de
+  // WelcomeHome, hors de portée ici → ReferenceError au clic.
+  const [membersTargetApp, setMembersTargetApp] = useState(null);
+  const [membersInitialTrackApp, setMembersInitialTrackApp] = useState(null);
   const isHashSyncRef = useRef(false);
   const routeInitRef = useRef(false);
   const prevScreenRef = useRef(null);
@@ -4741,11 +4749,18 @@ function VersionsAppAuthed() {
             refreshKey={projectsRefreshKey}
             onAddVersion={handleAddVersionFromPicker}
             onManageMembers={(projectId, trackId) => {
-              const proj = projects.find((p) => p.id === projectId)
-                || sharedProjects.find((p) => p.id === projectId);
-              if (!proj) return;
-              setMembersInitialTrack(trackId || null);
-              setMembersTarget(proj);
+              const open = (proj) => {
+                if (!proj) return;
+                setMembersInitialTrackApp(trackId || null);
+                setMembersTargetApp(proj);
+              };
+              const own = projects.find((p) => p.id === projectId);
+              if (own) { open(own); return; }
+              // Projet partagé AVEC moi : pas dans `projects` (loadProjects
+              // ne renvoie que les projets possédés) → lookup à la demande.
+              loadSharedProjectsWithTracks()
+                .then((list) => open((list || []).find((p) => p.id === projectId)))
+                .catch(() => {});
             }}
           />
         );
@@ -5325,6 +5340,14 @@ function VersionsAppAuthed() {
               onCancel={() => setNewProjectOpenApp(false)}
               onSubmit={submitNewProjectApp}
               confirmLabel={s.home.confirmCreate}
+            />
+          )}
+          {membersTargetApp && (
+            <ProjectMembersModal
+              project={membersTargetApp}
+              s={s}
+              initialScope={membersInitialTrackApp || 'project'}
+              onClose={() => { setMembersTargetApp(null); setMembersInitialTrackApp(null); refreshProjects(); }}
             />
           )}
           {screen !== "welcome" && homeAddOpen && (

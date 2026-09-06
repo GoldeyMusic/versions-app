@@ -241,3 +241,24 @@ Snapshot des chantiers fermés sur la sprint en cours — pour comprendre vite c
 
 - **Pricing — crédits cumulables (pas reset)** — modèle Splice acté 2026-04-29 : 2 buckets dans `user_credits` (`subscription_balance` purgeable à résiliation, `pack_balance` à vie), mirror dans `balance_remaining`. Débit ordonné via RPC `debit_credits_ordered` (sub d'abord, puis pack). Abo mensuel cumule (pas de reset au renouvellement) tant qu'actif ; purge uniquement sur `customer.subscription.deleted`.
 
+
+## Livré 2026-09-06 — crash "Can't find variable: setMembersInitialTrack" (fiche, Safari)
+
+- **Cause** : `App.jsx` contient DEUX composants à state (`WelcomeHome` ≈ l.1218
+  et `VersionsAppAuthed` ≈ l.3082). Le callback `onManageMembers` passé à
+  `FicheScreen` (dans VersionsAppAuthed) appelait `setMembersInitialTrack` /
+  `setMembersTarget` / `sharedProjects`, qui n'existent que dans WelcomeHome →
+  ReferenceError au clic sur les avatars membres de la fiche (1 user touché,
+  `client_errors` 2026-09-04). Même bug en miroir sur la Home : le `onClose`
+  de `ProjectMembersModal` appelait `refreshProjects()` (prop `onMutate` dans
+  WelcomeHome).
+- **Fix** : states app-level `membersTargetApp` / `membersInitialTrackApp` +
+  instance `ProjectMembersModal` au niveau app (pattern `newProjectOpenApp`) ;
+  projet partagé résolu à la demande via `loadSharedProjectsWithTracks()`.
+- **RÈGLE** : tout state/handler utilisé depuis `renderContent()` doit vivre
+  dans VersionsAppAuthed (copie suffixée `App` si la Home a déjà le sien).
+  `npm run lint` DÉTECTE ces cas (`no-undef`) mais ils sont noyés dans ~60
+  `no-unused-vars` → après toute modif d'App.jsx :
+  `npx eslint src/App.jsx | grep no-undef` (doit être vide).
+- Note sandbox Cowork : `vite build` ne tourne pas depuis la sandbox (binding
+  natif rolldown darwin-only) — Vercel build au push.
