@@ -52,6 +52,15 @@ const NOISE_MESSAGES = [
   /resizeobserver loop/i,            // bruit navigateur classique, inoffensif
   /instantsearchsdkjsbridge/i,       // navigateur in-app Bing / Edge
   /vue is not defined|ucbrowser/i,   // navigateurs in-app exotiques
+  // supabase-js (auth-js) : verrou navigator.locks récupéré de force
+  // ({ steal: true }) après timeout — mécanisme de RÉCUPÉRATION interne de
+  // la lib (onglet en veille, plusieurs onglets ouverts). L'appel volé
+  // rejette en AbortError hors de notre code ; la session continue. (2026-10-15)
+  /lock broken by another request with the 'steal' option/i,
+  /was released because another request stole it/i,
+  // Scanners de liens (Outlook SafeLinks / crawlers CefSharp) qui appellent
+  // un pont .NET inexistant sur la page — aucun humain derrière.
+  /object not found matching id:\d+, methodname:update/i,
 ];
 
 const NOISE_STACK = [
