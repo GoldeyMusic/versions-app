@@ -8210,6 +8210,54 @@ export default function MockupStyles() {
     padding: 8px 12px; background: rgba(142,224,122,0.06);
     border: 1px solid rgba(142,224,122,0.22); border-radius: 10px;
   }
+  /* Mention Archipel Audio + case de refus (migration 052). Checkbox
+     custom sur le modele de .add-mini-copyright (la native est invisible
+     sur fond noir). Pas de backtick ici : on est dans un template literal. */
+  .auth-archipel {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 2px 2px 0;
+  }
+  .auth-archipel-notice {
+    margin: 0;
+    font-family: var(--body); font-size: 12px; line-height: 1.5;
+    color: var(--muted);
+  }
+  .auth-archipel-notice a {
+    color: var(--soft, #c5c5c7);
+    text-decoration: underline; text-underline-offset: 2px;
+  }
+  .auth-archipel-notice a:hover { color: var(--amber); }
+  .auth-archipel-refuse {
+    display: flex; align-items: flex-start; gap: 10px;
+    cursor: pointer; user-select: none;
+  }
+  .auth-archipel-refuse input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none;
+    flex-shrink: 0;
+    width: 16px; height: 16px; margin: 1px 0 0 0;
+    border: 1.5px solid rgba(245,176,86,0.55);
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer; position: relative;
+    transition: border-color .15s, background .15s;
+  }
+  .auth-archipel-refuse input[type="checkbox"]:hover { border-color: var(--amber); }
+  .auth-archipel-refuse input[type="checkbox"]:checked {
+    background: var(--amber); border-color: var(--amber);
+  }
+  .auth-archipel-refuse input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px; top: 0px;
+    width: 4px; height: 9px;
+    border-right: 2px solid #1a1a1a;
+    border-bottom: 2px solid #1a1a1a;
+    transform: rotate(45deg);
+  }
+  .auth-archipel-refuse span {
+    font-family: var(--body); font-size: 12px; line-height: 1.5;
+    color: var(--soft, #c5c5c7);
+  }
   /* Submit = pill mono uppercase, outline amber (grammaire add-mini-btn.is-primary) */
   .auth-submit {
     width: 100%; padding: 14px 24px;

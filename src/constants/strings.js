@@ -118,6 +118,12 @@ const STRINGS = {
       cgu2: "Conditions d'utilisation",
       cgu3: "et la",
       cgu4: "Politique de confidentialité",
+      // Mention Archipel Audio (migration 052). Texte versionné : toute
+      // modification = nouvelle version dans src/lib/archipelConsent.js
+      // + nouvelle ligne dans public.archipel_text_versions.
+      archipelNotice: "Versions est un outil Archipel Audio. On t'enverra de temps en temps nos outils pour musiciens (AudioKit, AudioPass, Poll the Band). Désinscription en un clic dans chaque email.",
+      archipelPrivacy: "Politique de confidentialité",
+      archipelRefuse: "Je ne souhaite pas les recevoir",
       // Flow réinitialisation mot de passe
       resetTitle: "Mot de passe oublié",
       resetSubtitle: "Entre ton email, on t'envoie un lien pour choisir un nouveau mot de passe.",
@@ -1112,6 +1118,13 @@ const STRINGS = {
       replayOnboardingLabel: "Guide d'utilisation",
       replayOnboardingHint: "Reprendre le guide étape par étape",
       replayOnboardingBtn: "Revoir",
+      // Nouvelles d'Archipel Audio (migration 052) — texte versionné
+      // (acct-fr-2026-10-A), cf. src/lib/archipelConsent.js.
+      archipelLabel: "Nouvelles d'Archipel Audio",
+      archipelHint: "Reçois de temps en temps nos outils pour musiciens (AudioKit, AudioPass, Poll the Band). Désinscription en un clic dans chaque email.",
+      archipelYes: "Oui",
+      archipelNo: "Non",
+      archipelError: "Impossible d'enregistrer ce choix. Réessaie.",
       // Résiliation d'abonnement (visible uniquement si abonné).
       // Branchement Stripe direct (livré 2026-05-31) : confirm modal →
       // POST /api/billing/cancel-subscription → modale de succès.
@@ -1815,7 +1828,7 @@ const STRINGS = {
         eyebrow: "CONFIDENTIALITÉ",
         title: "Politique de",
         titleEm: "confidentialité",
-        updated: "Dernière mise à jour : 26 juillet 2026",
+        updated: "Dernière mise à jour : 20 octobre 2026",
         lede: "La présente politique décrit comment Versions collecte, utilise et protège vos données personnelles lorsque vous utilisez le service accessible à l'adresse www.versions.studio.",
         sections: [
           {
@@ -1836,6 +1849,7 @@ const STRINGS = {
                 "**Empreinte technique des fichiers audio** — conservée pour des besoins opérationnels (cohérence d'analyse, optimisation des ressources). Supprimée à la suppression de votre compte.",
                 "**Préférences utilisateur** — DAW utilisé, langue d'interface, intentions artistiques, paramètres de votre profil.",
                 "**Données de paiement** — gérées intégralement par Stripe ; nous ne stockons aucune donnée bancaire sur nos serveurs. Stripe nous communique uniquement le statut des transactions (réussite, échec, abonnement actif).",
+                "**Nouvelles d'Archipel Audio** — Archipel Audio, éditeur de Versions, peut utiliser votre adresse e-mail pour vous présenter de temps en temps ses autres outils pour musiciens (AudioKit, AudioPass, Poll the Band). Vous pouvez refuser dès l'inscription, à tout moment depuis vos Réglages, ou en un clic dans chaque email. Nous conservons la preuve de votre choix (version du texte affiché, date, éventuelle opposition).",
               ]},
             ],
           },
@@ -1846,6 +1860,7 @@ const STRINGS = {
               { type: 'ul', items: [
                 "**L'exécution du contrat** qui vous lie à Versions lorsque vous créez un compte et utilisez le service (article 6.1.b du RGPD) — c'est la base légale principale pour la gestion du compte, le stockage des fichiers audio et la génération des analyses.",
                 "**Votre consentement** (article 6.1.a du RGPD) pour l'authentification via Google, recueilli au moment de la connexion OAuth.",
+                "**L'intérêt légitime** d'Archipel Audio à vous présenter des produits analogues à Versions (article 6.1.f du RGPD et article L34-5 du Code des postes et des communications électroniques) pour les nouvelles d'Archipel Audio, sauf refus de votre part — ou **votre consentement** si vous les avez activées vous-même depuis vos Réglages.",
                 "**Les obligations légales** applicables à l'éditeur (article 6.1.c), notamment en matière comptable et fiscale pour les transactions Stripe.",
               ]},
             ],
@@ -1863,6 +1878,7 @@ const STRINGS = {
                 "**Compte utilisateur, fichiers audio et analyses** — conservés tant que votre compte est actif, puis 30 jours après la suppression du compte. Vous pouvez supprimer chaque titre individuellement depuis votre tableau de bord à tout moment.",
                 "**Données de facturation** — conservées 10 ans conformément aux obligations comptables françaises.",
                 "**Logs techniques** — conservés au maximum 12 mois à des fins de sécurité et de débogage.",
+                "**Nouvelles d'Archipel Audio** — votre adresse est utilisée tant que votre compte existe et que vous ne vous y êtes pas opposé. La suppression du compte y met fin.",
               ]},
             ],
           },
@@ -1875,7 +1891,7 @@ const STRINGS = {
                 "**Droit de rectification** — corriger toute donnée inexacte ou incomplète.",
                 "**Droit à l'effacement** — demander la suppression de vos données.",
                 "**Droit à la portabilité** — récupérer vos données dans un format structuré et lisible par machine.",
-                "**Droit d'opposition** — vous opposer à un traitement spécifique.",
+                "**Droit d'opposition** — vous opposer à un traitement spécifique, et à tout moment, sans avoir à vous justifier, à l'envoi des nouvelles d'Archipel Audio (Réglages ou lien de désinscription présent dans chaque email).",
                 "**Droit de retirer votre consentement** à tout moment, sans que cela compromette la licéité des traitements antérieurs.",
               ]},
               { type: 'p', text: "Pour exercer ces droits, écrivez-nous à {email}. Vous disposez également du droit d'introduire une réclamation auprès de la CNIL (www.cnil.fr)." },
@@ -2128,6 +2144,12 @@ const STRINGS = {
       cgu2: "Terms of Service",
       cgu3: "and",
       cgu4: "Privacy Policy",
+      // Archipel Audio notice (migration 052). Versioned text: any change =
+      // new version in src/lib/archipelConsent.js + new row in
+      // public.archipel_text_versions.
+      archipelNotice: "Versions is an Archipel Audio tool. Now and then, we'll email you our tools for musicians (AudioKit, AudioPass, Poll the Band). One-click unsubscribe in every email.",
+      archipelPrivacy: "Privacy",
+      archipelRefuse: "I don't want to receive them",
       // Password reset flow
       resetTitle: "Forgot password",
       resetSubtitle: "Enter your email and we'll send you a link to choose a new password.",
@@ -3101,6 +3123,13 @@ const STRINGS = {
       replayOnboardingLabel: "Onboarding guide",
       replayOnboardingHint: "Restart the step-by-step guide",
       replayOnboardingBtn: "Replay",
+      // Archipel Audio news (migration 052) — versioned text
+      // (acct-en-2026-10-A), see src/lib/archipelConsent.js.
+      archipelLabel: "Archipel Audio news",
+      archipelHint: "Now and then, get our tools for musicians (AudioKit, AudioPass, Poll the Band). One-click unsubscribe in every email.",
+      archipelYes: "Yes",
+      archipelNo: "No",
+      archipelError: "Couldn't save this choice. Please try again.",
       // Subscription cancellation (visible only when subscribed).
       // Direct Stripe cancellation (shipped 2026-05-31). Falls back to
       // mailto if API fails or stripe_subscription_id is missing.
@@ -3763,7 +3792,7 @@ const STRINGS = {
         eyebrow: "PRIVACY",
         title: "Privacy",
         titleEm: "policy",
-        updated: "Last updated: July 26, 2026",
+        updated: "Last updated: October 20, 2026",
         lede: "This policy describes how Versions collects, uses and protects your personal data when you use the service available at www.versions.studio.",
         sections: [
           {
@@ -3784,6 +3813,7 @@ const STRINGS = {
                 "**Technical fingerprint of audio files** — kept for operational purposes (analysis consistency, resource optimization). Deleted when you delete your account.",
                 "**User preferences** — DAW used, interface language, artistic intents, profile settings.",
                 "**Payment data** — handled entirely by Stripe; we do not store any banking data on our servers. Stripe only communicates the status of transactions (success, failure, active subscription) to us.",
+                "**Archipel Audio news** — Archipel Audio, the publisher of Versions, may use your email address to occasionally present its other tools for musicians (AudioKit, AudioPass, Poll the Band). You can decline at sign-up, at any time from your Settings, or in one click in every email. We keep proof of your choice (version of the text shown, date, any objection).",
               ]},
             ],
           },
@@ -3794,6 +3824,7 @@ const STRINGS = {
               { type: 'ul', items: [
                 "**Performance of the contract** between you and Versions when you create an account and use the service (article 6.1.b of the GDPR) — this is the primary legal basis for account management, audio file storage and analysis generation.",
                 "**Your consent** (article 6.1.a of the GDPR) for authentication via Google, collected at the time of OAuth login.",
+                "**The legitimate interest** of Archipel Audio in presenting products similar to Versions (article 6.1.f of the GDPR and article L34-5 of the French Postal and Electronic Communications Code) for Archipel Audio news, unless you decline — or **your consent** if you turned them on yourself from your Settings.",
                 "**Legal obligations** applicable to the publisher (article 6.1.c), notably accounting and tax obligations for Stripe transactions.",
               ]},
             ],
@@ -3811,6 +3842,7 @@ const STRINGS = {
                 "**User account, audio files and analyses** — kept as long as your account is active, then 30 days after account deletion. You can delete each track individually from your dashboard at any time.",
                 "**Billing data** — kept for 10 years in accordance with French accounting obligations.",
                 "**Technical logs** — kept for a maximum of 12 months for security and debugging purposes.",
+                "**Archipel Audio news** — your address is used as long as your account exists and you have not objected. Deleting your account ends it.",
               ]},
             ],
           },
@@ -3823,7 +3855,7 @@ const STRINGS = {
                 "**Right of rectification** — correct any inaccurate or incomplete data.",
                 "**Right to erasure** — request the deletion of your data.",
                 "**Right to portability** — recover your data in a structured, machine-readable format.",
-                "**Right to object** — object to a specific processing activity.",
+                "**Right to object** — object to a specific processing activity, and at any time, without giving a reason, to receiving Archipel Audio news (Settings or the unsubscribe link in every email).",
                 "**Right to withdraw your consent** at any time, without affecting the lawfulness of prior processing.",
               ]},
               { type: 'p', text: "To exercise these rights, write to us at {email}. You also have the right to lodge a complaint with the CNIL (www.cnil.fr)." },

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { trackPixelSignup } from '../lib/pixel';
 import { claimAttribution } from '../lib/attribution';
+import { flushArchipelPending } from '../lib/archipelConsent';
 
 const AuthContext = createContext({ user: null, loading: true });
 
@@ -45,6 +46,9 @@ export function AuthProvider({ children }) {
         // au compte. First-touch côté serveur (ON CONFLICT DO NOTHING) —
         // un login d'un user déjà attribué ne réécrit rien.
         claimAttribution(session.user.id);
+        // Choix Archipel fait avant une redirection Google (migration 052).
+        // La RPC ne crée une base que pour un compte créé il y a < 1 h.
+        flushArchipelPending();
       }
     });
 
@@ -56,7 +60,7 @@ export function AuthProvider({ children }) {
     return { data, error };
   };
 
-  const signUpWithEmail = async (email, password) => {
+  const signUpWithEmail = async (email, password, extraData = {}) => {
     // `options.data.locale` est persisté dans auth.users.raw_user_meta_data
     // et exposé aux email templates Supabase via `{{ .Data.locale }}`.
     // Permet de servir les emails (confirmation, reset password, etc.) en FR ou EN
@@ -64,7 +68,9 @@ export function AuthProvider({ children }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { locale: readLocale() } },
+      // extraData porte archipel_text / archipel_refused, lus par le
+      // trigger auth.users de la migration 052.
+      options: { data: { locale: readLocale(), ...extraData } },
     });
     return { data, error };
   };

@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import useLang from '../hooks/useLang';
 import { translateAuthError } from '../lib/authErrors';
+import { archipelSignupText, saveArchipelPending } from '../lib/archipelConsent';
 
 export default function AuthScreen() {
   const { signInWithEmail, signUpWithEmail, signInWithOAuth, resetPasswordForEmail } = useAuth();
-  const { s } = useLang();
+  const { s, lang } = useLang();
   // mode : 'signin' | 'signup' | 'reset' (mot de passe oublié)
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
@@ -13,6 +14,9 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  // Case de refus Archipel Audio — DÉCOCHÉE par défaut (soft opt-in,
+  // migration 052). Cochée = opposition enregistrée dès l'inscription.
+  const [archipelRefused, setArchipelRefused] = useState(false);
 
   const switchMode = (next) => {
     setMode(next);
@@ -30,7 +34,10 @@ export default function AuthScreen() {
         const { error } = await signInWithEmail(email, password);
         if (error) setError(translateAuthError(error, s));
       } else if (mode === 'signup') {
-        const { data, error } = await signUpWithEmail(email, password);
+        const { data, error } = await signUpWithEmail(email, password, {
+          archipel_text: archipelSignupText(lang),
+          archipel_refused: archipelRefused,
+        });
         if (error) setError(translateAuthError(error, s));
         else if (data?.user && !data.session) {
           setInfo(s.auth.confirmEmail);
@@ -48,6 +55,10 @@ export default function AuthScreen() {
   const handleOAuth = async (provider) => {
     setError('');
     setLoading(true);
+    // Le choix Archipel doit survivre à la redirection OAuth : enregistré
+    // au SIGNED_IN (useAuth → flushArchipelPending), no-op si le compte
+    // existait déjà.
+    saveArchipelPending(archipelSignupText(lang), archipelRefused);
     const { error } = await signInWithOAuth(provider);
     if (error) setError(translateAuthError(error, s));
     setLoading(false);
@@ -122,6 +133,26 @@ export default function AuthScreen() {
               >
                 {s.auth.forgotPassword}
               </button>
+            </div>
+          )}
+
+          {/* Mention Archipel Audio (migration 052) — affichée en connexion
+              ET en inscription : un nouveau compte Google peut être créé
+              depuis l'un ou l'autre. Sans effet sur un compte existant. */}
+          {mode !== 'reset' && (
+            <div className="auth-archipel">
+              <p className="auth-archipel-notice">
+                {s.auth.archipelNotice}{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer">{s.auth.archipelPrivacy}</a>
+              </p>
+              <label className="auth-archipel-refuse">
+                <input
+                  type="checkbox"
+                  checked={archipelRefused}
+                  onChange={(e) => setArchipelRefused(e.target.checked)}
+                />
+                <span>{s.auth.archipelRefuse}</span>
+              </label>
             </div>
           )}
 

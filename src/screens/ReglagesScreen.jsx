@@ -5,6 +5,7 @@ import useLang from '../hooks/useLang';
 import { supabase } from '../lib/supabase';
 import { confirmDialog } from '../lib/confirm.jsx';
 import API from '../constants/api';
+import { loadArchipelSubscribed, setArchipelSubscribed } from '../lib/archipelConsent';
 
 // Adresse de contact unique (cf. pages légales). Centralisée ici pour
 // pouvoir construire les mailto de résiliation et suppression de compte
@@ -77,6 +78,39 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
     })();
     return () => { cancelled = true; };
   }, [user?.id]);
+
+  // ── Nouvelles d'Archipel Audio (migration 052) ──
+  // null = pas encore chargé (ou table absente) → la rangée n'est pas
+  // affichée. Sans choix antérieur (comptes créés avant la mention),
+  // c'est « Non » : passer à « Oui » est un opt-in explicite.
+  const [archipelOn, setArchipelOn] = useState(null);
+  const [archipelBusy, setArchipelBusy] = useState(false);
+  const [archipelErr, setArchipelErr] = useState(false);
+  useEffect(() => {
+    if (!user?.id) { setArchipelOn(null); return; }
+    let cancelled = false;
+    loadArchipelSubscribed(user.id)
+      .then((on) => { if (!cancelled) setArchipelOn(on); })
+      .catch((e) => console.warn('[reglages] archipel consent load failed:', e && e.message));
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  const handleArchipel = async (want) => {
+    if (archipelBusy || archipelOn === null || archipelOn === want) return;
+    const prev = archipelOn;
+    setArchipelOn(want);
+    setArchipelErr(false);
+    setArchipelBusy(true);
+    try {
+      await setArchipelSubscribed(want, lang);
+    } catch (e) {
+      console.warn('[reglages] archipel consent save failed:', e && e.message);
+      setArchipelOn(prev);
+      setArchipelErr(true);
+    } finally {
+      setArchipelBusy(false);
+    }
+  };
 
   // ── Load profile on mount ──
   useEffect(() => {
@@ -501,6 +535,40 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
               </>
             );
           })()}
+
+          {/* ── Nouvelles d'Archipel Audio ── enregistré immédiatement
+              (comme la langue), pas via le bouton Enregistrer. */}
+          {archipelOn !== null && (
+            <div className="rg-row">
+              <div>
+                <div className="rg-label">{s.reglages.archipelLabel}</div>
+                <div className="rg-hint">{s.reglages.archipelHint}</div>
+                {archipelErr && (
+                  <div className="rg-hint" style={{ color: 'var(--red)' }}>{s.reglages.archipelError}</div>
+                )}
+              </div>
+              <div className="rg-toggle" role="group" aria-label={s.reglages.archipelLabel}>
+                <button
+                  type="button"
+                  className={archipelOn ? 'on' : ''}
+                  aria-pressed={archipelOn}
+                  disabled={archipelBusy}
+                  onClick={() => handleArchipel(true)}
+                >
+                  {s.reglages.archipelYes}
+                </button>
+                <button
+                  type="button"
+                  className={!archipelOn ? 'on' : ''}
+                  aria-pressed={!archipelOn}
+                  disabled={archipelBusy}
+                  onClick={() => handleArchipel(false)}
+                >
+                  {s.reglages.archipelNo}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ── Revoir le guide d'utilisation ──
               Efface les flags localStorage des DEUX guides (home + fiche)
