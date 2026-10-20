@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { trackPixelSignup } from '../lib/pixel';
 import { claimAttribution } from '../lib/attribution';
 import { flushArchipelPending } from '../lib/archipelConsent';
+import { sendWelcomeOnce } from '../lib/welcomeEmail';
 
 const AuthContext = createContext({ user: null, loading: true });
 
@@ -49,6 +50,9 @@ export function AuthProvider({ children }) {
         // Choix Archipel fait avant une redirection Google (migration 052).
         // La RPC ne crée une base que pour un compte créé il y a < 1 h.
         flushArchipelPending();
+        // Mail de bienvenue (une fois, nouveaux comptes uniquement — le
+        // backend vérifie tout, cf. src/lib/welcomeEmail.js).
+        sendWelcomeOnce(session);
       }
     });
 
