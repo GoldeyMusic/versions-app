@@ -8210,6 +8210,55 @@ export default function MockupStyles() {
     padding: 8px 12px; background: rgba(142,224,122,0.06);
     border: 1px solid rgba(142,224,122,0.22); border-radius: 10px;
   }
+  /* Carte Nouvelles d'Archipel Audio (tableau de bord, comptes sans choix).
+     Deux boutons de meme taille et meme graisse : refuser doit etre aussi
+     simple et visible qu'accepter. Pas de backtick ici (template literal). */
+  .arch-toast {
+    position: fixed; right: 24px; bottom: 24px; z-index: 900;
+    width: min(420px, calc(100vw - 32px));
+    padding: 20px 20px 18px;
+    background: var(--s1); border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 18px 48px rgba(0,0,0,0.45);
+    animation: fadeup .35s ease;
+  }
+  .arch-toast-close {
+    position: absolute; top: 12px; right: 12px;
+    width: 28px; height: 28px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; border: none; color: var(--muted);
+    cursor: pointer; transition: color .15s, background .15s;
+  }
+  .arch-toast-close:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .arch-toast-text {
+    margin: 0 28px 8px 0;
+    font-family: var(--body); font-size: 14px; line-height: 1.55;
+    color: var(--text);
+  }
+  .arch-toast-sub {
+    margin: 0 0 16px;
+    font-family: var(--body); font-size: 12px; line-height: 1.5;
+    color: var(--muted);
+  }
+  .arch-toast-sub a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+  .arch-toast-sub a:hover { color: var(--amber); }
+  .arch-toast-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .arch-toast-btn {
+    padding: 11px 14px;
+    background: transparent; color: var(--text);
+    border: 1px solid var(--border); border-radius: 999px;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    cursor: pointer; transition: border-color .15s, background .15s, color .15s;
+  }
+  .arch-toast-btn:hover:not(:disabled) { border-color: rgba(255,255,255,0.22); background: rgba(255,255,255,0.03); }
+  .arch-toast-btn.is-yes { color: var(--amber); border-color: rgba(245,166,35,0.45); }
+  .arch-toast-btn.is-yes:hover:not(:disabled) { border-color: var(--amber); background: rgba(245,166,35,0.06); }
+  .arch-toast-btn:disabled { opacity: 0.6; cursor: default; }
+  @media (max-width: 720px) {
+    .arch-toast { right: 16px; left: 16px; bottom: 16px; width: auto; }
+  }
+
   /* Mention Archipel Audio + case de refus (migration 052). Checkbox
      custom sur le modele de .add-mini-copyright (la native est invisible
      sur fond noir). Pas de backtick ici : on est dans un template literal. */

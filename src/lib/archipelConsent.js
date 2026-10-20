@@ -9,9 +9,12 @@ import { supabase } from './supabase';
 
 export const ARCHIPEL_SIGNUP_TEXT = { fr: 'fr-2026-10-A', en: 'en-2026-10-A' };
 export const ARCHIPEL_ACCOUNT_TEXT = { fr: 'acct-fr-2026-10-A', en: 'acct-en-2026-10-A' };
+// Carte de sollicitation sur le tableau de bord (comptes sans choix).
+export const ARCHIPEL_TOAST_TEXT = { fr: 'toast-fr-2026-10-A', en: 'toast-en-2026-10-A' };
 
 export const archipelSignupText = (lang) => ARCHIPEL_SIGNUP_TEXT[lang === 'en' ? 'en' : 'fr'];
 export const archipelAccountText = (lang) => ARCHIPEL_ACCOUNT_TEXT[lang === 'en' ? 'en' : 'fr'];
+export const archipelToastText = (lang) => ARCHIPEL_TOAST_TEXT[lang === 'en' ? 'en' : 'fr'];
 
 // Inscription Google : le choix est fait AVANT la redirection OAuth, on
 // le garde le temps de l'aller-retour puis on l'enregistre au SIGNED_IN.
@@ -44,6 +47,18 @@ export async function flushArchipelPending() {
   }
 }
 
+// Ligne de consentement brute (null = aucun choix jamais fait).
+export async function loadArchipelConsentRow(userId) {
+  if (!userId) return null;
+  const { data, error } = await supabase
+    .from('archipel_consent')
+    .select('archipel_basis, archipel_optout_at')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
 // Réglages : abonné = une base existe ET aucune opposition.
 export async function loadArchipelSubscribed(userId) {
   if (!userId) return false;
@@ -56,10 +71,12 @@ export async function loadArchipelSubscribed(userId) {
   return !!(data && data.archipel_basis && !data.archipel_optout_at);
 }
 
-export async function setArchipelSubscribed(subscribe, lang) {
+// textVersion : version du texte réellement affiché (Réglages par défaut,
+// carte du tableau de bord sinon).
+export async function setArchipelSubscribed(subscribe, lang, textVersion) {
   const { data, error } = await supabase.rpc('archipel_set_preference', {
     p_subscribe: !!subscribe,
-    p_text_version: subscribe ? archipelAccountText(lang) : null,
+    p_text_version: subscribe ? (textVersion || archipelAccountText(lang)) : null,
   });
   if (error) throw error;
   if (data !== 'ok') throw new Error(`archipel_set_preference: ${data}`);

@@ -1043,6 +1043,18 @@ const STRINGS = {
     },
 
     /* ─────────────── RÉGLAGES (propres au composant) ─────── */
+    // Carte « Nouvelles d'Archipel Audio » du tableau de bord (comptes sans
+    // choix). Texte versionné toast-fr-2026-10-A (cf. archipelConsent.js +
+    // public.archipel_text_versions) : toute modification = nouvelle version.
+    archipelToast: {
+      aria: "Nouvelles d'Archipel Audio",
+      text: "Versions fait partie de la famille Archipel Audio. Tu veux recevoir de temps en temps nos autres outils pour musiciens ?",
+      sub: "Par email · désinscription en un clic",
+      privacy: "Confidentialité",
+      no: "Non merci",
+      yes: "Oui, volontiers",
+      later: "Plus tard",
+    },
     reglages: {
       title: "RÉGLAGES",
       subtitle: "Gérer ton profil et tes préférences",
@@ -3048,6 +3060,17 @@ const STRINGS = {
     },
 
     /* ─────────────── SETTINGS ─────────────── */
+    // Dashboard "Archipel Audio news" card (accounts with no choice yet).
+    // Versioned text toast-en-2026-10-A: any change = new version.
+    archipelToast: {
+      aria: "Archipel Audio news",
+      text: "Versions is part of the Archipel Audio family. Would you like to receive our other tools for musicians now and then?",
+      sub: "By email · one-click unsubscribe",
+      privacy: "Privacy",
+      no: "No thanks",
+      yes: "Yes, please",
+      later: "Later",
+    },
     reglages: {
       title: "SETTINGS",
       subtitle: "Manage your profile and preferences",

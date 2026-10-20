@@ -47,6 +47,7 @@ import ReglagesModal from "./components/ReglagesModal";
 import RenameModal from "./components/RenameModal";
 import AddModal from "./components/AddModal";
 import NoCreditsModal from "./components/NoCreditsModal";
+import ArchipelConsentToast from "./components/ArchipelConsentToast";
 import FeedbackModal from "./components/FeedbackModal";
 import { confirmDialog } from "./lib/confirm.jsx";
 import { trackPixelPageView, trackPixelAnalysisStarted } from "./lib/pixel";
@@ -5304,6 +5305,10 @@ function VersionsAppAuthed() {
               }
             }}
           />
+
+          {/* Nouvelles d'Archipel Audio — carte de sollicitation pour les
+              comptes sans choix (migration 052), tableau de bord seulement. */}
+          <ArchipelConsentToast user={user} active={screen === 'welcome'} />
 
           {/* Réglages — modale globale, ouvrable depuis sidebar desktop
               ou menu avatar mobile */}
