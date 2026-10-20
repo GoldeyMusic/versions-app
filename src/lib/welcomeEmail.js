@@ -28,6 +28,10 @@ export async function sendWelcomeOnce(session) {
   try { if (localStorage.getItem(key)) return; } catch {}
   if (inFlight.has(user.id)) return;
   inFlight.add(user.id);
+  // Réserve tout de suite (localStorage est partagé entre onglets) : un
+  // 2e onglet qui détecte la même connexion ne relance pas la requête.
+  // Retiré si la requête échoue, pour retenter à la prochaine connexion.
+  try { localStorage.setItem(key, 'pending'); } catch {}
   try {
     const res = await fetch(`${API}/api/account/welcome`, {
       method: 'POST',
@@ -36,9 +40,12 @@ export async function sendWelcomeOnce(session) {
     });
     if (res.ok) {
       try { localStorage.setItem(key, '1'); } catch {}
+    } else {
+      try { localStorage.removeItem(key); } catch {}
     }
   } catch (e) {
     console.warn('[welcome] request failed:', e && e.message);
+    try { localStorage.removeItem(key); } catch {}
   } finally {
     inFlight.delete(user.id);
   }
