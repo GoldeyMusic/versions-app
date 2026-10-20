@@ -1834,7 +1834,7 @@ const STRINGS = {
           {
             title: "1. Identité de l'éditeur",
             blocks: [
-              { type: 'p', text: "Le service Versions est édité par **Archipel Audio** ({archipel}), société par actions simplifiée (SAS) en cours d'immatriculation en France." },
+              { type: 'p', text: "Le service Versions est édité par **Archipel Audio** ({archipel}), société par actions simplifiée (SAS) immatriculée en France sous le numéro SIRET 108 042 102 00013." },
               { type: 'p', text: "Contact : {publisherEmail}" },
             ],
           },
@@ -1932,7 +1932,7 @@ const STRINGS = {
         eyebrow: "CGU",
         title: "Conditions générales",
         titleEm: "d'utilisation",
-        updated: "Dernière mise à jour : 26 juillet 2026",
+        updated: "Dernière mise à jour : 20 octobre 2026",
         lede: "Les présentes conditions générales d'utilisation (« CGU ») régissent l'accès et l'utilisation du service Versions, accessible à l'adresse www.versions.studio. En créant un compte ou en utilisant le service, vous acceptez sans réserve les présentes CGU.",
         sections: [
           {
@@ -1945,7 +1945,7 @@ const STRINGS = {
           {
             title: "2. Éditeur",
             blocks: [
-              { type: 'p', text: "Le service est édité par **Archipel Audio** ({archipel}), société par actions simplifiée (SAS) en cours d'immatriculation en France." },
+              { type: 'p', text: "Le service est édité par **Archipel Audio** ({archipel}), société par actions simplifiée (SAS) immatriculée en France sous le numéro SIRET 108 042 102 00013." },
               { type: 'p', text: "Contact : {publisherEmail}" },
             ],
           },
@@ -3798,7 +3798,7 @@ const STRINGS = {
           {
             title: "1. Publisher identity",
             blocks: [
-              { type: 'p', text: "The Versions service is published by **Archipel Audio** ({archipel}), a French simplified joint-stock company (SAS) currently in the process of registration." },
+              { type: 'p', text: "The Versions service is published by **Archipel Audio** ({archipel}), a French simplified joint-stock company (SAS) registered under SIRET number 108 042 102 00013." },
               { type: 'p', text: "Contact: {publisherEmail}" },
             ],
           },
@@ -3896,7 +3896,7 @@ const STRINGS = {
         eyebrow: "TERMS",
         title: "Terms of",
         titleEm: "service",
-        updated: "Last updated: July 26, 2026",
+        updated: "Last updated: October 20, 2026",
         lede: "These terms of service (\"Terms\") govern the access to and use of the Versions service, available at www.versions.studio. By creating an account or using the service, you accept these Terms without reservation.",
         sections: [
           {
@@ -3909,7 +3909,7 @@ const STRINGS = {
           {
             title: "2. Publisher",
             blocks: [
-              { type: 'p', text: "The service is published by **Archipel Audio** ({archipel}), a French simplified joint-stock company (SAS) currently in the process of registration." },
+              { type: 'p', text: "The service is published by **Archipel Audio** ({archipel}), a French simplified joint-stock company (SAS) registered under SIRET number 108 042 102 00013." },
               { type: 'p', text: "Contact: {publisherEmail}" },
             ],
           },
