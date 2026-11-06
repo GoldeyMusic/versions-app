@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import useLang from '../hooks/useLang';
 import DAWS from '../constants/daws';
 import { confirmDialog } from '../lib/confirm.jsx';
+import { logProductEvent } from '../lib/productEvents';
 
 // Cap audio (sync avec backend versions-api/api/analyze.js).
 // 720s = 12 min : limite anti-DJ-set qui protège l'API Fadr/Gemini.
@@ -183,6 +184,20 @@ export default function AddModal({
   const [moreOpen, setMoreOpen] = useState(false);
   const [launching, setLaunching] = useState(false);
 
+  // Instrumentation (migration 058) : ouverture, fichier accepté, lancement,
+  // fermeture sans lancement (= abandon). Fire-and-forget.
+  const launchedRef = useRef(false);
+  const fileLoggedRef = useRef(false);
+  useEffect(() => {
+    logProductEvent('add_modal_open', { mode: initialContext?.mode || 'free' });
+    return () => {
+      if (!launchedRef.current) {
+        logProductEvent('add_modal_close', { had_file: fileLoggedRef.current });
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Le DAW n'est demandé en clair que si le profil n'en a pas. Sinon il
   // est pré-rempli et modifiable dans « Plus d'options ».
   const dawInMain = !defaultDaw;
@@ -268,6 +283,10 @@ export default function AddModal({
       return;
     }
     setFile(f);
+    if (!fileLoggedRef.current) {
+      fileLoggedRef.current = true;
+      logProductEvent('add_modal_file', { duration_sec: Math.round(dur), ext: (f.name.split('.').pop() || '').toLowerCase() });
+    }
 
     // Titre : on ne touche qu'à un titre vide ou encore égal au précédent
     // titre auto-déduit (l'utilisateur n'a rien écrit lui-même).
@@ -323,6 +342,14 @@ export default function AddModal({
 
     const trimmedGenre = declaredGenre.trim();
     const trimmedIntent = artisticIntent.trim();
+    launchedRef.current = true;
+    logProductEvent('add_modal_launch', {
+      kind,
+      has_intent: !!trimmedIntent,
+      has_genre: !!trimmedGenre,
+      mastered: masteredAnswer === 'yes',
+      project_created: !effectiveProjectId,
+    });
     onAnalyze?.({
       file,
       title: effectiveTitle.trim(),

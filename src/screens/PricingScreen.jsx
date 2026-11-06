@@ -4,6 +4,7 @@ import T from '../constants/theme';
 import { apiFetch } from '../lib/apiClient';
 import useLang from '../hooks/useLang';
 import { supabase } from '../lib/supabase';
+import { logProductEvent } from '../lib/productEvents';
 import { PACKS, SUBSCRIPTIONS, SCHOOL_CONTACT_EMAIL, getPriceIdForPlan } from '../constants/plans';
 import LangDropdown from '../components/LangDropdown';
 import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
@@ -73,6 +74,8 @@ export default function PricingScreen({
   const [user, setUser] = useState(null);
   const [pendingKey, setPendingKey] = useState(null);
   const [errMsg, setErrMsg] = useState(null);
+  // Instrumentation : vue de la page tarifs (ignorée par la RPC si visiteur).
+  useEffect(() => { logProductEvent('pricing_view'); }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,6 +113,7 @@ export default function PricingScreen({
   // connecté, on bascule sur le flow signup (onStart), Stripe attendra.
   async function goToCheckout(plan) {
     setErrMsg(null);
+    logProductEvent('checkout_click', { plan: plan.key, signed_in: !!user });
     if (!user) {
       // Stocke le plan visé pour reprendre le flow après login (cf. App.jsx).
       try {

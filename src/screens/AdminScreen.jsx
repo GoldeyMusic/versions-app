@@ -90,6 +90,8 @@ export default function AdminScreen() {
   // indisponible (migration pas appliquée).
   const [landingStats, setLandingStats] = useState(null);
   const [userAttribution, setUserAttribution] = useState(null);
+  // Activation (migration 058) : funnel site, express → site, plugin, timings.
+  const [activation, setActivation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   // Pour l'expand inline d'un user : null ou { userId, loading, items }
@@ -122,7 +124,7 @@ export default function AdminScreen() {
         // 2 RPC, revenue_logs.
         const since = new Date();
         since.setDate(since.getDate() - 30);
-        const [logsRes, chatLogsRes, globalRes, usersRes, revRes, feedbackRes, installsRes, funnelRes, landingRes, attribRes] = await Promise.all([
+        const [logsRes, chatLogsRes, globalRes, usersRes, revRes, feedbackRes, installsRes, funnelRes, landingRes, attribRes, activationRes] = await Promise.all([
           supabase
             .from('analysis_cost_logs')
             .select('*')
@@ -165,6 +167,8 @@ export default function AdminScreen() {
           // Même tolérance tant que la migration n'est pas appliquée.
           supabase.rpc('admin_get_landing_stats', { p_days: 30 }),
           supabase.rpc('admin_get_user_attribution'),
+          // Activation : RPC créée par migration 058. Même tolérance.
+          supabase.rpc('admin_get_activation_stats', { p_days: 30 }),
         ]);
 
         if (cancelled) return;
@@ -193,6 +197,9 @@ export default function AdminScreen() {
         if (attribRes.error) {
           console.warn('[admin] admin_get_user_attribution unavailable (migration 051 not applied?):', attribRes.error.message);
         }
+        if (activationRes.error) {
+          console.warn('[admin] admin_get_activation_stats unavailable (migration 058 not applied?):', activationRes.error.message);
+        }
 
         setLogs(logsRes.data || []);
         setChatLogs(chatLogsRes.data || []);
@@ -205,6 +212,7 @@ export default function AdminScreen() {
         setFunnelRows(funnelRes.error ? null : (funnelRes.data || []));
         setLandingStats(landingRes.error ? null : (landingRes.data || []));
         setUserAttribution(attribRes.error ? null : (attribRes.data || []));
+        setActivation(activationRes.error ? null : (activationRes.data || null));
       } catch (e) {
         if (!cancelled) setErr(e.message || 'Erreur de chargement');
       } finally {
@@ -565,6 +573,14 @@ export default function AdminScreen() {
                 « meta-organique » = referrer facebook/instagram sans clic pub tagué.
               </div>
             </section>
+          )}
+
+          {/* SECTION ACTIVATION (migration 058) — ce que font vraiment les
+              inscrits : modale d'ajout ouverte → fichier → analyse → V2,
+              pont express plugin → analyse site à 7 j, dernière ouverture
+              du plugin, et durée du pipeline par étape. */}
+          {activation && (
+            <ActivationSection a={activation} />
           )}
 
           {/* SECTION PARCOURS D'ENTRÉE — le funnel n'est pas linéaire :
@@ -1170,6 +1186,103 @@ function PluginChip({ install }) {
  * proportionnelle à la 1re étape, compte + taux de passage vs l'étape
  * précédente à droite.
  */
+function fmtSec(ms) {
+  const n = Number(ms);
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)} s`;
+}
+
+function ActivationSection({ a }) {
+  const f = a.funnel || {};
+  const ex = a.express || {};
+  const pl = a.plugin || {};
+  const tm = a.timings || {};
+  const days = a.days || 30;
+  const timingRows = [
+    { label: 'Total (upload → fiche)', p50: tm.total_p50, p90: tm.total_p90 },
+    { label: 'Écoute', p50: tm.listening_p50, p90: tm.listening_p90 },
+    { label: 'Rédaction de la fiche', p50: tm.fiche_p50, p90: tm.fiche_p90 },
+    { label: 'Mesures (BPM, tonalité, stems)', p50: tm.fadr_p50, p90: null },
+    { label: 'Contexte documentaire', p50: tm.rag_p50, p90: null },
+    { label: 'Évolution V1 → V2', p50: tm.evolution_p50, p90: null },
+  ];
+  return (
+    <section className="cost-section">
+      <div className="cost-section-eyebrow">Activation · {days} derniers jours</div>
+      <h2 className="cost-section-title">
+        De l'inscription à la <em>V2</em>, et ce que fait le <em>plugin</em>.
+      </h2>
+      <div className="cost-kpi-grid">
+        <KpiCard
+          label="Abandon de la modale"
+          value={f.modal_open ? pctOf(Math.max(0, (f.modal_open || 0) - (f.modal_launch || 0)), f.modal_open) : '—'}
+          sub={`${f.modal_open || 0} ont ouvert la modale d'ajout, ${f.modal_launch || 0} ont lancé`}
+          tone="amber"
+        />
+        <KpiCard
+          label="Inscrits → analyse"
+          value={pctOf(f.analysts || 0, f.signups || 0)}
+          sub={`${f.analysts || 0} comptes ont analysé sur ${f.signups || 0} inscrits de la période`}
+          tone="mint"
+        />
+        <KpiCard
+          label="Express → analyse 7 j"
+          value={pctOf(ex.express_to_site_7d || 0, ex.express_users || 0)}
+          sub={`${ex.express_to_site_7d || 0} sur ${ex.express_users || 0} utilisateurs express (${ex.express_count || 0} écoutes)`}
+          tone="violet"
+        />
+        <KpiCard
+          label="Plugin ouvert < 7 j"
+          value={String(pl.seen_7d ?? '—')}
+          sub={`${pl.seen_30d || 0} sous 30 j · ${pl.dormant_30d || 0} dormants · ${pl.installed || 0} installés`}
+          tone="cerulean"
+        />
+      </div>
+      <div className="cost-funnel-grid">
+        <FunnelBlock
+          title="Funnel site"
+          color="#f5a623"
+          steps={[
+            { label: 'Inscrits', count: f.signups || 0 },
+            { label: 'Modale ouverte', count: f.modal_open || 0 },
+            { label: 'Fichier déposé', count: f.modal_file || 0 },
+            { label: 'Analyse lancée', count: f.modal_launch || 0 },
+            { label: 'Ont une V2', count: f.v2_users || 0 },
+          ]}
+        />
+        <div className="cost-table-wrap">
+          <table className="cost-table">
+            <thead>
+              <tr>
+                <th>Étape du pipeline</th>
+                <th>Médiane</th>
+                <th>p90</th>
+              </tr>
+            </thead>
+            <tbody>
+              {timingRows.map((r) => (
+                <tr key={r.label}>
+                  <td>{r.label}</td>
+                  <td>{fmtSec(r.p50)}</td>
+                  <td>{r.p90 == null ? '—' : fmtSec(r.p90)}</td>
+                </tr>
+              ))}
+              <tr><td colSpan={3} style={{ opacity: .7 }}>{tm.n || 0} analyse{(tm.n || 0) > 1 ? 's' : ''} avec timings sur la période.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="cost-fadr-note">
+        Modale = événements <code>product_events</code> (un utilisateur compté une fois par étape,
+        comptes équipe exclus). « Ont une V2 » = comptes dont un titre analysé sur la période a au
+        moins deux versions. Express → analyse = utilisateurs ayant lancé une analyse sur le site
+        dans les 7 jours suivant une écoute express. Timings = <code>analysis_cost_logs.timings</code>,
+        analyses depuis la mise en place (6 nov. 2026).
+      </div>
+    </section>
+  );
+}
+
 function FunnelBlock({ title, color, steps }) {
   const base = Math.max(1, steps[0]?.count || 0);
   return (

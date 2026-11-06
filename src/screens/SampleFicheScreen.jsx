@@ -26,6 +26,7 @@ import useLang from '../hooks/useLang';
 import T from '../constants/theme';
 import LangDropdown from '../components/LangDropdown';
 import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
+import { logProductEvent } from '../lib/productEvents';
 
 // FontLink dupliqué — comme PublicFicheScreen, on évite l'import circulaire
 // d'App pour rester rendu en pré-auth sans dépendance lourde.
@@ -453,6 +454,7 @@ export default function SampleFicheScreen({
   bottomCtaLabel,
 }) {
   const { s, lang, setLang } = useLang();
+  useEffect(() => { logProductEvent('sample_view'); }, []);
   // CTA labels par défaut — pris dans i18n strings.js si non fournis par
   // App.jsx (cas connecté). Si lang switche, ça suit automatiquement.
   const resolvedTopbarCta = topbarCtaLabel || (lang === 'en' ? 'Create my account' : 'Créer mon compte');

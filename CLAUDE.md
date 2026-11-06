@@ -210,6 +210,16 @@ Les paliers 1-3 sont devenus des filets de sécurité redondants une fois le pal
   verbatims NPS 10 (`proofQuote1..2`, chaîne vide = carte masquée) ;
   tarifs résumés (`PriceTile`, montants lus dans `plans.js`). Les 6 cartes
   « Nos atouts » sont retirées du JSX (strings `diffCard*` conservées).
+- **Instrumentation (migration 058)** : table `product_events` + RPC
+  `log_product_event` (helper `lib/productEvents.js`, fire-and-forget) —
+  événements `add_modal_open/file/launch/close` (AddModal), `pricing_view`,
+  `checkout_click` (PricingScreen), `sample_view` (SampleFicheScreen).
+  `plugin_first_seen.last_seen_at/open_count` (via `plugin_touch_first_seen`),
+  `plugin_express_events` (via `plugin_express_consume`),
+  `analysis_cost_logs.timings` (écrit par versions-api). RPC
+  `admin_get_activation_stats(p_days)` → section « Activation » de /admin
+  (`ActivationSection` : funnel inscrits → modale → fichier → analyse → V2,
+  express → analyse 7 j, plugin ouvert < 7 j / dormants, timings médiane/p90).
 
 ## Livré récemment (mai 2026)
 
