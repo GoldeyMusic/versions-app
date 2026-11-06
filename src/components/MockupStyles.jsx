@@ -9391,6 +9391,117 @@ export default function MockupStyles() {
   .add-mini-intent-toggle:hover {
     color: var(--amber);
   }
+
+  /* ── Modale d'ajout « fichier d'abord » (audit 2026-11-06) ──────────
+     Step 1 = un seul geste (déposer le mix), step 2 = précisions.
+     Le step fichier est volontairement plus étroit et plus aéré que le
+     formulaire. */
+  .add-mini-card.is-upload.is-file-step {
+    width: 520px;
+  }
+  .add-mini-hero-drop {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; text-align: center; gap: 6px;
+    min-height: 220px; padding: 28px 24px;
+    border-radius: 14px;
+    background: rgba(0,0,0,0.30);
+    border: 1.5px dashed rgba(255,255,255,0.22);
+    color: var(--muted);
+    cursor: pointer; outline: none;
+    transition: background .15s, border-color .15s, color .15s, transform .15s;
+  }
+  .add-mini-hero-drop:hover,
+  .add-mini-hero-drop:focus-visible {
+    border-color: rgba(245,176,86,0.6);
+    color: var(--text);
+    background: rgba(245,176,86,0.04);
+  }
+  .add-mini-hero-drop.is-active {
+    border-color: var(--amber);
+    color: var(--amber);
+    background: rgba(245,176,86,0.08);
+    transform: scale(1.01);
+  }
+  .add-mini-hero-drop.is-error {
+    border-color: rgba(255,93,93,0.6);
+  }
+  .add-mini-hero-drop.is-busy {
+    cursor: progress;
+    color: var(--amber);
+  }
+  .add-mini-hero-drop svg { margin-bottom: 6px; }
+  .add-mini-hero-text {
+    font-family: var(--body);
+    font-size: 17px; font-weight: 500;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .add-mini-hero-sub {
+    font-family: var(--body);
+    font-size: 13.5px; font-weight: 300;
+    color: var(--muted);
+  }
+  .add-mini-hero-formats {
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 9.5px; letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  /* Step 2 : rappel du fichier retenu + lien Changer */
+  .add-mini-file-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border-radius: 10px;
+    background: rgba(123,216,143,0.04);
+    border: 1px solid rgba(123,216,143,0.33);
+    margin-bottom: 18px;
+  }
+  .add-mini-file-row .add-mini-drop-text { flex: 1; min-width: 0; }
+  /* Lien texte discret (Créer un projet, Changer) */
+  .add-mini-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: transparent; border: none; padding: 4px 0;
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--muted); cursor: pointer;
+    transition: color .15s;
+  }
+  .add-mini-link:hover { color: var(--amber); }
+  .add-mini-link:disabled { opacity: .5; cursor: default; }
+  .add-mini-foot.is-between { justify-content: space-between; }
+  /* Repli « Plus d'options » */
+  .add-mini-more {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    background: transparent; border: none; padding: 6px 0;
+    margin: -4px 0 12px;
+    font-family: var(--body); font-size: 13.5px; font-weight: 400;
+    color: var(--muted); cursor: pointer; text-align: left;
+    transition: color .15s;
+  }
+  .add-mini-more:hover { color: var(--text); }
+  .add-mini-more-chevron {
+    display: inline-flex; width: 18px; height: 18px;
+    align-items: center; justify-content: center;
+    border-radius: 50%; border: 1px solid rgba(255,255,255,0.18);
+    transition: transform .18s;
+  }
+  .add-mini-more-chevron.is-open { transform: rotate(180deg); }
+  .add-mini-more-hint {
+    margin-left: auto;
+    font-family: var(--mono); font-size: 9.5px;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--muted); opacity: .8;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 55%;
+  }
+  .add-mini-more-body {
+    padding: 14px 14px 4px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.18);
+    border: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 18px;
+  }
+  .add-mini-more-body .add-mini-grid-2col { margin-bottom: 14px; }
   /* Label avec un bouton × à droite (replier le textarea intention) */
   .add-mini-field-label-row {
     display: flex; align-items: center; justify-content: space-between;
@@ -10075,6 +10186,48 @@ export default function MockupStyles() {
     margin-bottom: 10px;
   }
   .ap-tip-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--amber); }
+  /* Aperçu de l'écoute (fiche progressive, audit 2026-11-06) : même carte
+     que le tip, contenu réel. Liste serrée, ligne d'attente mono. */
+  .ap-heard { text-align: left; }
+  .ap-heard-mood {
+    margin-left: auto;
+    padding: 2px 8px; border-radius: 999px;
+    background: rgba(245,166,35,0.10);
+    color: var(--amber);
+    font-family: var(--mono); font-size: 9px; letter-spacing: 1.2px;
+    text-transform: uppercase;
+  }
+  .ap-heard .ap-tip-kicker { display: flex; width: 100%; }
+  .ap-heard-impression { margin-top: 10px; }
+  .ap-heard-list {
+    margin: 12px 0 0; padding: 0; list-style: none;
+    display: flex; flex-direction: column; gap: 7px;
+  }
+  .ap-heard-list li {
+    position: relative; padding-left: 16px;
+    font-family: var(--body); font-size: 13.5px; font-weight: 300;
+    line-height: 1.45; color: var(--text);
+  }
+  .ap-heard-list li::before {
+    content: ''; position: absolute; left: 2px; top: 9px;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--mint);
+  }
+  .ap-heard-wait {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 14px; padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 1.4px;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .ap-heard-pulse {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--amber);
+    animation: apHeardPulse 1.4s ease-in-out infinite;
+  }
+  @keyframes apHeardPulse {
+    0%, 100% { opacity: .35; transform: scale(.8); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
   .ap-tip-body {
     font-family: var(--body);
     font-size: 14px; color: var(--soft); line-height: 1.55;

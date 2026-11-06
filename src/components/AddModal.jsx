@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import useLang from '../hooks/useLang';
 import DAWS from '../constants/daws';
@@ -49,10 +49,6 @@ function formatDuration(sec) {
 /**
  * Met en amber (via <em>) le dernier mot d'un titre de modale, en conservant
  * une éventuelle ponctuation finale (« ? », « ! », etc.) collée au mot.
- * Exemples :
- *   "Dans quel projet ?" → "Dans quel " + <em>projet ?</em>
- *   "Nom du projet"      → "Nom du " + <em>projet</em>
- *   "À quel titre ?"     → "À quel " + <em>titre ?</em>
  */
 function amberLastWord(str) {
   if (typeof str !== 'string') return str;
@@ -65,18 +61,52 @@ function amberLastWord(str) {
   );
 }
 
+// Titre « propre » déduit du nom de fichier (sans extension, tirets → espaces).
+// Renvoie '' si le nom ne ressemble pas à un titre (ex: "song 20260412_0931").
+// Suffixe de version courant en fin de nom de fichier : "v2", "V3b",
+// "final", "master", "pre-master", "rough mix", "mix 4", "take 2"…
+const VERSION_SUFFIX_RE = /\s+(v\s?\d+[a-z]?|final|master|pre[\s-]?master|rough(?:\s+mix)?|mix(?:\s?\d+)?|take\s?\d+)$/i;
+
+// Titre « propre » déduit du nom de fichier (sans extension, tirets → espaces)
+// + suffixe de version détaché s'il y en a un ("Tout s'efface v2.wav" →
+// { title: "Tout s'efface", version: "v2" }). title = '' si le nom ne
+// ressemble pas à un titre (ex: "6.mp3", "song 20260412_0931").
+function parseFilename(name) {
+  let cleaned = String(name || '').replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  let version = '';
+  const m = cleaned.match(VERSION_SUFFIX_RE);
+  if (m && cleaned.slice(0, m.index).trim()) {
+    version = m[1].replace(/\s+/g, ' ').toLowerCase();
+    cleaned = cleaned.slice(0, m.index).trim();
+  }
+  const letters = (cleaned.match(/[a-zA-ZÀ-ÿ]/g) || []).length;
+  const digits = (cleaned.match(/\d/g) || []).length;
+  const meaningful = letters >= 3 && letters >= digits && !/^song\s+\d{6,}/i.test(cleaned);
+  return { title: meaningful ? cleaned : '', version };
+}
+
+// Normalisation pour comparer un titre déduit à un titre existant :
+// minuscules, ponctuation/apostrophes → espace ("Tout s'efface" ≈ "tout s efface").
+const norm = (v) => String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+
 /**
  * AddModal — modale unifiée d'ajout depuis la home.
- * Style mini-modal (aligné Réglages) : card sombre #0a0b10, rows
- * surélevées #111216, boutons mono uppercase pill outline. Titre
- * « Ajouter quoi ? » avec un mot amber (pas d'italique).
  *
- * Steps :
- *   - 'root'             : 3 choix (Nouveau projet, Nouveau titre, Nouvelle version)
- *   - 'new-project-name' : input inline pour créer un projet
- *   - 'pick-project'     : choix du projet cible pour Nouveau titre
- *   - 'pick-track'       : choix du titre cible pour Nouvelle version
- *   - 'upload'           : formulaire upload du mix
+ * Refonte « fichier d'abord » (audit 2026-11-06). Avant : 3 choix
+ * (projet / titre / version) → choix du projet → formulaire de 9 champs.
+ * Maintenant :
+ *   - 'file'             : une seule chose à faire, déposer le mix.
+ *   - 'details'          : titre (pré-rempli depuis le nom de fichier),
+ *                          version (pré-remplie), nouveau titre / nouvelle
+ *                          version (auto-détecté si le titre existe déjà),
+ *                          masterisé ?, intention, droits, puis « Lancer ».
+ *                          DAW (pré-rempli depuis le profil), genre et BPM
+ *                          sont repliés dans « Plus d'options ».
+ *   - 'new-project-name' : création inline d'un projet (depuis un lien
+ *                          du step file ou l'option « + Nouveau projet »).
+ * S'il n'existe aucun projet, un projet « Mes titres » est créé en
+ * silence au lancement : l'utilisateur ne gère pas de dossiers avant
+ * d'avoir vu sa première fiche.
  *
  * Props :
  *   - onClose            : ferme la modale
@@ -85,9 +115,10 @@ function amberLastWord(str) {
  *   - projects           : [{ id, name, tracks }]
  *   - allTracks          : [...] titres à plat (avec projectId)
  *   - initialContext     : optionnel, ouvre directement dans un flow précis
- *                          - { mode: 'new-track' }
+ *                          - { mode: 'new-track', projectId? }
  *                          - { mode: 'add-version', trackId }
  *   - defaultDaw         : optionnel, DAW par défaut issu du profil
+ *   - defaultProjectId   : optionnel, projet courant sur la home
  */
 export default function AddModal({
   onClose,
@@ -97,100 +128,70 @@ export default function AddModal({
   allTracks = [],
   initialContext = null,
   defaultDaw = '',
+  defaultProjectId = null,
 }) {
   const { s, lang } = useLang();
+  const a = s.addModal;
+
+  // ── Contexte initial ───────────────────────────────────────
+  const initialTrack = initialContext?.mode === 'add-version' && initialContext.trackId
+    ? allTracks.find((t) => t.id === initialContext.trackId) || null
+    : null;
+  const lockedKind = initialTrack ? 'add-version' : null;
 
   // ── Navigation ─────────────────────────────────────────────
-  const [step, setStep] = useState('root');
+  const [step, setStep] = useState('file');
+  // Step d'où on vient quand on ouvre 'new-project-name' (pour y revenir).
+  const [returnStep, setReturnStep] = useState('file');
 
   // Nouveau projet inline
   const [newProjectName, setNewProjectName] = useState('');
   const [creatingProject, setCreatingProject] = useState(false);
-  const [chainToUploadAfterCreate, setChainToUploadAfterCreate] = useState(false);
 
-  // Contexte d'upload
-  const [uploadCtx, setUploadCtx] = useState(null);
-
-  // ── Upload form state ──────────────────────────────────────
+  // ── Fichier ────────────────────────────────────────────────
   const [file, setFile] = useState(null);
-  const [title, setTitle] = useState('');
+  const [fileChecking, setFileChecking] = useState(false);
+  const [fileError, setFileError] = useState(null);
+  const [drag, setDrag] = useState(false);
+  const fileInputRef = useRef(null);
+  // Titre auto-déduit du dernier fichier : si l'utilisateur n'a pas touché
+  // au titre, un changement de fichier peut le re-déduire.
+  const autoTitleRef = useRef('');
+
+  // ── Détails ────────────────────────────────────────────────
+  const [kind, setKind] = useState(lockedKind || 'new-track'); // 'new-track' | 'add-version'
+  const [kindAuto, setKindAuto] = useState(false); // bascule auto vers add-version
+  const [targetTrackId, setTargetTrackId] = useState(initialTrack?.id || null);
+  const [projectId, setProjectId] = useState(() => {
+    if (initialTrack) return initialTrack.projectId || null;
+    if (initialContext?.projectId && projects.some((p) => p.id === initialContext.projectId)) return initialContext.projectId;
+    if (defaultProjectId && projects.some((p) => p.id === defaultProjectId)) return defaultProjectId;
+    return projects[0]?.id || null;
+  });
+  const [title, setTitle] = useState(initialTrack?.title || '');
   const [version, setVersion] = useState('');
   const [daw, setDaw] = useState(defaultDaw || '');
   const [vocalKind, setVocalKind] = useState('vocal');
   const [finalInstru, setFinalInstru] = useState(null);
-  // Question "Ce mix a-t-il été masterisé ?" (refonte 2026-05-20 C.2 roadmap,
-  // simplifiée 2026-05-21 Oui/Non — l'option Auto-detect retirée car elle
-  // promettait une détection LUFS qui n'existait pas).
-  // 2 valeurs UI :
-  //   - 'yes' : oui, fichier masterisé, prêt-à-publier
-  //   - 'no'  : non, mix en cours (default — même avec un limiteur posé pour
-  //             l'écoute, on reste en 'no' tant qu'on fignole)
-  //
-  // Rétro-compat backend : versions.upload_type ne connaît que 'mix'/'master'.
-  // Mapping au submit (cf. handleLaunchAnalyze) :
-  //   - 'yes' → 'master'
-  //   - 'no'  → 'mix' (pondération master & loudness à 0.5 côté lib/claude.js,
-  //             ne plombe pas le score d'un titre qui n'est pas finalisé)
-  //
-  // Conditionne côté backend :
-  //   - pondération master & loudness dans le score (mix : 0.5 vs master : 2)
-  //     — cf. lib/claude.js
-  //   - verdict de sortie ("Prêt pour le mastering" vs "Prêt pour la sortie")
-  // Default 'no' (refonte 2026-05-21) — l'option Auto-detect a été retirée car
-  // elle promettait une détection LUFS/dynamique qui n'était pas implémentée
-  // (Auto mappait silencieusement sur mix). La plupart des uploads sont des
-  // mix en cours, donc default 'no' est statistiquement correct ET honnête.
+  // "Ce mix a-t-il été masterisé ?" — 'yes' → upload_type 'master',
+  // 'no' (défaut) → 'mix'. Cf. lib/claude.js côté backend pour la pondération.
   const [masteredAnswer, setMasteredAnswer] = useState('no');
-  // Genre musical déclaré par l'artiste à l'upload. Texte libre court.
-  // Refonte 2026-04-29 : si vide au lancement, le pipeline détecte
-  // automatiquement (équivalent ancien "Choisir automatiquement"). Le
-  // bouton dédié a été retiré pour alléger la modale — moins de
-  // décisions, plus fluide.
   const [declaredGenre, setDeclaredGenre] = useState('');
-  // Intention artistique (facultative). Toujours affichée dans la
-  // modale pour ne pas être ratée par l'artiste. Ce qu'on saisissait
-  // avant dans l'IntentionScreen post-Phase-A : maintenant tout en
-  // amont, plus d'interruption mid-analyse.
   const [artisticIntent, setArtisticIntent] = useState('');
-  // Acceptation copyright (migration 029). L'utilisateur doit explicitement
-  // cocher qu'il détient les droits sur le fichier ou est autorisé à
-  // l'analyser. Trace horodatée persistée dans versions.copyright_acknowledged_at
-  // pour défense légale (DMCA / safe harbor) en cas de litige.
   const [copyrightAck, setCopyrightAck] = useState(false);
-  // BPM optionnel saisi par l'artiste. Override la détection auto Fadr.
-  // Solution au piège half-time/double-time (75 vs 150) : Fadr et tous les
-  // détecteurs BPM se trompent régulièrement d'un facteur 2. L'artiste
-  // connaît son tempo (réglé dans la DAW), donc on lui laisse la primauté
-  // quand il veut bien le renseigner. Champ optionnel — vide = auto.
   const [userBpm, setUserBpm] = useState('');
-  const [drag, setDrag] = useState(false);
-  // États du check durée audio (lecture/erreur). file ne devient non-null
-  // que si la durée a été lue ET qu'elle est ≤ MAX_AUDIO_DURATION_SEC.
-  const [fileChecking, setFileChecking] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [launching, setLaunching] = useState(false);
 
-  // Placeholders rotatifs — donne du mouvement à la modale et suggère
-  // discrètement la diversité des entrées possibles (genres, versions, etc.).
-  // Cycle toutes les 3.5 s, ne tourne PAS quand le champ est rempli.
-  const TITLE_EXAMPLES = ['Lâcher prise', 'Comme un rêve', 'Living my dreams', 'Tout s’efface', 'Your song'];
+  // Le DAW n'est demandé en clair que si le profil n'en a pas. Sinon il
+  // est pré-rempli et modifiable dans « Plus d'options ».
+  const dawInMain = !defaultDaw;
+
+  // Placeholders rotatifs (cf. version précédente de la modale).
   const VERSION_EXAMPLES = ['v1', 'rough', 'rough mix', 'pre-master', 'master', 'v2 — voix témoins'];
   const GENRE_EXAMPLES = lang === 'en'
     ? ['indie pop', 'neo-soul', 'dub-techno', 'lo-fi hip-hop', 'french folk', 'electronic', 'r&b', 'ambient']
     : ['indie pop', 'néo-soul', 'dub-techno', 'lo-fi hip-hop', 'folk français', 'électro', 'r&b', 'ambient'];
-  const [phRotIdx, setPhRotIdx] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setPhRotIdx((i) => i + 1), 3500);
-    return () => clearInterval(id);
-  }, []);
-  // L'opérateur modulo permet à chaque liste de tourner indépendamment
-  // selon sa propre longueur. On préfixe les version/genre avec leur
-  // amorce ("Ex : ..." pour le genre, etc.) pour rester cohérent.
-  const titlePh = TITLE_EXAMPLES[phRotIdx % TITLE_EXAMPLES.length];
-  const versionPh = VERSION_EXAMPLES[phRotIdx % VERSION_EXAMPLES.length];
-  const genrePh = (lang === 'en' ? 'e.g. ' : 'Ex : ') + GENRE_EXAMPLES[phRotIdx % GENRE_EXAMPLES.length];
-  // Intention artistique — placeholders narratifs qui inspirent l'artiste
-  // sur ce qu'il peut écrire (référence sonore, ambiance, contre-exemple,
-  // direction émotionnelle…). Chaque exemple commence par "Ex : " pour
-  // rester reconnaissable.
   const INTENT_EXAMPLES = lang === 'en' ? [
     'e.g. I’m aiming for a Frank Ocean — Blonde sound, not Channel Orange.',
     'e.g. Warm and intimate, like a folk song recorded at home.',
@@ -204,26 +205,52 @@ export default function AddModal({
     'Ex : Je veux que ce soit cinématique — minimal, large, build lent.',
     'Ex : Vibe lo-fi, crackle vinyle, voix légèrement enfouie.',
   ];
+  const [phRotIdx, setPhRotIdx] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setPhRotIdx((i) => i + 1), 3500);
+    return () => clearInterval(id);
+  }, []);
+  const versionPh = VERSION_EXAMPLES[phRotIdx % VERSION_EXAMPLES.length];
+  const genrePh = (lang === 'en' ? 'e.g. ' : 'Ex : ') + GENRE_EXAMPLES[phRotIdx % GENRE_EXAMPLES.length];
   const intentPh = INTENT_EXAMPLES[phRotIdx % INTENT_EXAMPLES.length];
-  const [fileError, setFileError] = useState(null);
-  const fileInputRef = useRef(null);
 
-  const hasProjects = projects.length > 0;
+  // ── Dérivés ────────────────────────────────────────────────
   const hasTracks = allTracks.length > 0;
+  const targetTrack = useMemo(
+    () => (kind === 'add-version' && targetTrackId ? allTracks.find((t) => t.id === targetTrackId) || null : null),
+    [kind, targetTrackId, allTracks],
+  );
+  const effectiveProjectId = kind === 'add-version' ? (targetTrack?.projectId || null) : projectId;
+  const effectiveProject = projects.find((p) => p.id === effectiveProjectId) || null;
+  const effectiveTitle = kind === 'add-version' ? (targetTrack?.title || '') : title;
 
-  const askVocal = uploadCtx?.mode === 'new-track';
+  const askVocal = kind === 'new-track';
   const vocalType = vocalKind === 'vocal'
     ? 'vocal'
     : (finalInstru === true ? 'instrumental_final'
       : finalInstru === false ? 'instrumental_pending'
         : null);
   const vocalOk = !askVocal || vocalType !== null;
+  // Projet requis seulement s'il en existe (sinon créé en silence au lancement).
+  const projectOk = kind === 'add-version' ? !!targetTrack : (projects.length === 0 || !!effectiveProject);
 
-  const uploadOk = !!file && !!daw && !!title.trim() && !!version.trim() && !!uploadCtx?.projectId && vocalOk && copyrightAck;
+  const uploadOk = !!file && !!daw && !!effectiveTitle.trim() && !!version.trim()
+    && projectOk && vocalOk && copyrightAck && !launching;
 
+  // Version par défaut : v1 pour un nouveau titre, v{n+1} pour une version.
+  const defaultVersionFor = (k, track) => {
+    if (k === 'add-version' && track) return `v${(track.versions?.length || 0) + 1}`;
+    return 'v1';
+  };
+  const versionTouchedRef = useRef(false);
+  useEffect(() => {
+    if (versionTouchedRef.current) return;
+    setVersion(defaultVersionFor(kind, targetTrack));
+  }, [kind, targetTrack]);
+
+  // ── Fichier : lecture durée + pré-remplissage ─────────────
   const handlePickFile = async (f) => {
     if (!f) return;
-    // Reset les états du précédent essai et lance la lecture de durée.
     setFileError(null);
     setFile(null);
     setFileChecking(true);
@@ -240,59 +267,76 @@ export default function AddModal({
       setFileError({ kind: 'too_long', durationSec: dur });
       return;
     }
-    // OK : on accepte le fichier.
     setFile(f);
-    if (!title.trim()) {
-      const cleaned = f.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').trim();
-      const letters = (cleaned.match(/[a-zA-ZÀ-ÿ]/g) || []).length;
-      const digits = (cleaned.match(/\d/g) || []).length;
-      const meaningful = letters >= 3 && letters >= digits && !/^song\s+\d{6,}/i.test(cleaned);
-      if (meaningful) setTitle(cleaned);
+
+    // Titre : on ne touche qu'à un titre vide ou encore égal au précédent
+    // titre auto-déduit (l'utilisateur n'a rien écrit lui-même).
+    const parsed = parseFilename(f.name);
+    const auto = parsed.title;
+    if (!lockedKind && (!title.trim() || title === autoTitleRef.current) && auto) {
+      setTitle(auto);
     }
+    autoTitleRef.current = auto;
+
+    // Suffixe de version lu dans le nom de fichier ("… v2.wav") : on le
+    // propose comme nom de version, sauf si l'utilisateur a déjà écrit le sien.
+    if (parsed.version && !versionTouchedRef.current) {
+      setVersion(parsed.version);
+      versionTouchedRef.current = true;
+    }
+
+    // Auto-détection « nouvelle version » : le titre déduit correspond à un
+    // titre existant → on bascule, l'utilisateur peut revenir en arrière.
+    if (!lockedKind && auto) {
+      const match = allTracks.find((t) => norm(t.title) === norm(auto));
+      if (match) {
+        setKind('add-version');
+        setTargetTrackId(match.id);
+        setKindAuto(true);
+      } else if (kindAuto) {
+        setKind('new-track');
+        setTargetTrackId(null);
+        setKindAuto(false);
+      }
+    }
+    setStep('details');
   };
 
-  const handleLaunchAnalyze = () => {
+  // Changement de fichier depuis le step details (lien « Changer »).
+  const openFilePicker = () => { if (!fileChecking) fileInputRef.current?.click(); };
+
+  // ── Lancement ──────────────────────────────────────────────
+  const handleLaunchAnalyze = async () => {
     if (!uploadOk) return;
+    setLaunching(true);
+    let pid = effectiveProjectId;
+    try {
+      if (!pid) {
+        // Aucun projet : on en crée un par défaut, sans rien demander.
+        const created = await onCreateProject?.(a.defaultProjectName);
+        pid = created?.id || null;
+      }
+    } catch (err) {
+      console.warn('default project creation failed', err);
+    }
+    if (!pid) { setLaunching(false); return; }
+
     const trimmedGenre = declaredGenre.trim();
     const trimmedIntent = artisticIntent.trim();
     onAnalyze?.({
       file,
-      title: title.trim(),
+      title: effectiveTitle.trim(),
       version: version.trim(),
       daw,
-      projectId: uploadCtx.projectId,
+      projectId: pid,
       vocalType,
-      // Persisté en colonne versions.upload_type. Le backend (lib/claude.js)
-      // bascule la pondération master & loudness selon cette valeur.
-      // Mapping rétro-compat depuis masteredAnswer (UI) → uploadType (DB) :
-      //   - 'yes' → 'master'
-      //   - 'no'  → 'mix'
       uploadType: masteredAnswer === 'yes' ? 'master' : 'mix',
       refFile: null,
-      // Genre : si l'utilisateur a tapé quelque chose on le passe, sinon
-      // on bascule en auto-détection (équivalent ancien "Choisir
-      // automatiquement" — supprimé de l'UI). Le pipeline infère depuis
-      // l'écoute Gemini déjà faite, zéro coût supplémentaire.
       declaredGenre: trimmedGenre || null,
       genreUnknown: !trimmedGenre,
-      // Intention artistique saisie en amont (champ toujours visible
-      // dans la modale). On utilise le champ `inlineIntent` existant
-      // que LoadingScreen passe directement dans /api/analyze/start →
-      // le backend reçoit l'intention dès le départ et ne pause plus
-      // sur `awaiting_intent` post-Phase-A. Plus d'IntentionScreen à
-      // afficher mid-analyse, plus de double round-trip.
       inlineIntent: trimmedIntent || null,
-      // Scope par défaut 'track' (cas le plus courant : V1, ou V2+
-      // qui re-déclare l'intention pour tout le titre).
       _pendingIntentScope: 'track',
-      // Timestamp d'acceptation copyright — persisté en colonne
-      // versions.copyright_acknowledged_at (migration 029). Renseigné dès
-      // que l'utilisateur a coché la case (uploadOk garantit que copyrightAck
-      // est true ici, sinon le bouton serait disabled).
       copyrightAcknowledgedAt: new Date().toISOString(),
-      // BPM optionnel saisi par l'artiste. Override Fadr backend si présent.
-      // Parsing tolérant : "120" / "120.5" / " 120 " acceptés. Hors borne
-      // (< 30 ou > 300) ou non numérique → ignoré (Fadr reprend la main).
       userBpm: (() => {
         const n = parseFloat((userBpm || '').trim().replace(',', '.'));
         if (!Number.isFinite(n) || n < 30 || n > 300) return null;
@@ -302,159 +346,67 @@ export default function AddModal({
     onClose();
   };
 
-  // Reset upload form quand on sort du step upload (DAW reprend defaultDaw)
-  useEffect(() => {
-    if (step !== 'upload') {
-      setFile(null);
-      setTitle('');
-      setVersion('');
-      setDaw(defaultDaw || '');
-      setVocalKind('vocal');
-      setFinalInstru(null);
-      setMasteredAnswer('no');
-      setDeclaredGenre('');
-      setArtisticIntent('');
-      setCopyrightAck(false);
-      setUserBpm('');
-      setDrag(false);
-      setFileError(null);
-      setFileChecking(false);
-    }
-  }, [step, defaultDaw]);
-
-  // initialContext : ouvrir la modale directement dans un flow précis (mount only)
-  const initRanRef = useRef(false);
-  useEffect(() => {
-    if (initRanRef.current) return;
-    if (!initialContext) return;
-    initRanRef.current = true;
-    if (initialContext.mode === 'new-track') {
-      if (!projects.length) {
-        setNewProjectName('');
-        setChainToUploadAfterCreate(true);
-        setStep('new-project-name');
-        return;
-      }
-      if (initialContext.projectId) {
-        const p = projects.find((x) => x.id === initialContext.projectId);
-        if (p) {
-          setUploadCtx({ mode: 'new-track', projectId: p.id, projectName: p.name, prefillTitle: '', lockTitle: false });
-          setTitle('');
-          setStep('upload');
-          return;
-        }
-      }
-      if (projects.length === 1) {
-        const p = projects[0];
-        setUploadCtx({ mode: 'new-track', projectId: p.id, projectName: p.name, prefillTitle: '', lockTitle: false });
-        setTitle('');
-        setStep('upload');
-        return;
-      }
-      setStep('pick-project');
-      return;
-    }
-    if (initialContext.mode === 'add-version' && initialContext.trackId) {
-      const t = allTracks.find((x) => x.id === initialContext.trackId);
-      if (t) {
-        const pName = t._projectName || projects.find((p) => p.id === t.projectId)?.name || '';
-        setUploadCtx({
-          mode: 'add-version',
-          projectId: t.projectId,
-          projectName: pName,
-          prefillTitle: t.title,
-          lockTitle: true,
-        });
-        setTitle(t.title);
-        setStep('upload');
-        return;
-      }
-      if (allTracks.length) setStep('pick-track');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Handlers de navigation depuis le root ──────────────────
-  const goUpload = (ctx) => {
-    setUploadCtx(ctx);
-    setTitle(ctx.prefillTitle || '');
-    setStep('upload');
-  };
-
-  const handleNewProjectClick = () => {
+  // ── Projet inline ──────────────────────────────────────────
+  const goNewProject = (from) => {
+    setReturnStep(from);
     setNewProjectName('');
-    setChainToUploadAfterCreate(false);
     setStep('new-project-name');
   };
-
-  const handleNewTrackClick = () => {
-    if (!hasProjects) {
-      setNewProjectName('');
-      setChainToUploadAfterCreate(true);
-      setStep('new-project-name');
-      return;
-    }
-    if (projects.length === 1) {
-      const p = projects[0];
-      goUpload({ mode: 'new-track', projectId: p.id, projectName: p.name, prefillTitle: '', lockTitle: false });
-      return;
-    }
-    setStep('pick-project');
-  };
-
-  const handleAddVersionClick = () => {
-    if (!hasTracks) return;
-    if (allTracks.length === 1) {
-      const t = allTracks[0];
-      goUpload({
-        mode: 'add-version',
-        projectId: t.projectId,
-        projectName: t._projectName || projects.find((p) => p.id === t.projectId)?.name || '',
-        prefillTitle: t.title,
-        lockTitle: true,
-      });
-      return;
-    }
-    setStep('pick-track');
-  };
-
   const handleCreateProjectSubmit = async () => {
     const n = newProjectName.trim();
     if (!n || creatingProject) return;
     setCreatingProject(true);
     try {
       const created = await onCreateProject?.(n);
-      setNewProjectName('');
       setCreatingProject(false);
-      if (chainToUploadAfterCreate && created?.id) {
-        setChainToUploadAfterCreate(false);
-        goUpload({ mode: 'new-track', projectId: created.id, projectName: n, prefillTitle: '', lockTitle: false });
-      } else {
-        onClose();
+      if (created?.id) {
+        setKind('new-track');
+        setTargetTrackId(null);
+        setKindAuto(false);
+        setProjectId(created.id);
       }
+      setStep(file ? 'details' : returnStep);
     } catch (err) {
       console.warn('create project from AddModal failed', err);
       setCreatingProject(false);
     }
   };
 
-  // Retour intelligent depuis l'étape upload selon le flow
   const handleBack = () => {
-    if (step === 'upload') {
-      if (uploadCtx?.mode === 'add-version') {
-        setStep(allTracks.length > 1 ? 'pick-track' : 'root');
-      } else if (uploadCtx?.mode === 'new-track') {
-        setStep(projects.length > 1 ? 'pick-project' : 'root');
-      } else {
-        setStep('root');
-      }
-      return;
-    }
-    setStep('root');
+    if (step === 'new-project-name') { setStep(file ? 'details' : returnStep); return; }
+    if (step === 'details') { setStep('file'); return; }
+    setStep('file');
   };
 
   // ── Render ─────────────────────────────────────────────────
-  const cardClass = `add-mini-card${step === 'upload' ? ' is-upload' : ''}`;
+  const cardClass = `add-mini-card is-upload${step === 'file' ? ' is-file-step' : ''}`;
+
+  const contextBanner = () => {
+    if (kind === 'add-version' && targetTrack) {
+      const pName = targetTrack._projectName || effectiveProject?.name || '';
+      return (
+        <div className="add-mini-upload-banner">
+          <span className="add-mini-upload-banner-dot" aria-hidden="true">●</span>
+          <div className="add-mini-upload-banner-body">
+            <div className="add-mini-upload-banner-kicker">{a.uploadAddVersionTo}</div>
+            <div className="add-mini-upload-banner-name">{targetTrack.title}{pName ? ` · ${pName}` : ''}</div>
+          </div>
+        </div>
+      );
+    }
+    if (effectiveProject) {
+      return (
+        <div className="add-mini-upload-banner">
+          <span className="add-mini-upload-banner-dot" aria-hidden="true">●</span>
+          <div className="add-mini-upload-banner-body">
+            <div className="add-mini-upload-banner-kicker">{a.uploadInProject}</div>
+            <div className="add-mini-upload-banner-name">{effectiveProject.name}</div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return createPortal((
     <div className="add-mini-backdrop" onClick={onClose} role="presentation">
@@ -463,92 +415,86 @@ export default function AddModal({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label={s.addModal.title}
+        aria-label={a.title}
       >
-        {step !== 'root' && (
+        {/* Input fichier unique, partagé par le hero (step file) et le
+            lien « Changer » (step details). */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="audio/wav,audio/mpeg,audio/flac,.wav,.mp3,.flac"
+          style={{ display: 'none' }}
+          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handlePickFile(f); }}
+        />
+
+        {step !== 'file' && (
           <button type="button" className="add-mini-back" onClick={handleBack}>
-            {s.addModal.back}
+            {a.back}
           </button>
         )}
 
-        {step === 'root' && (
+        {/* ── STEP 1 : le fichier ─────────────────────────────── */}
+        {step === 'file' && (
           <>
-            <div className="add-mini-title">
-              {s.addModal.rootTitleBefore} <em>{s.addModal.rootTitleEm}</em>
-            </div>
+            <div className="add-mini-title">{amberLastWord(a.fileStepTitle)}</div>
+            {(lockedKind || initialContext?.projectId) && contextBanner()}
 
-            <div className="add-mini-choices">
-              <button
-                type="button"
-                className="add-mini-choice"
-                onClick={handleNewProjectClick}
-              >
-                <span className="add-mini-choice-icon is-amber" aria-hidden="true">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 5v14" />
-                    <path d="M5 12h14" />
-                  </svg>
-                </span>
-                <span className="add-mini-choice-body">
-                  <div className="add-mini-choice-label">{s.addModal.choiceNewProjectLabel}</div>
-                  <div className="add-mini-choice-desc">{s.addModal.choiceNewProjectDesc}</div>
-                </span>
-              </button>
-              <button
-                type="button"
-                className="add-mini-choice"
-                disabled={!hasProjects}
-                onClick={handleNewTrackClick}
-              >
-                <span className="add-mini-choice-icon is-cerulean" aria-hidden="true">
-                  {/* Croche (eighth note) : tête pleine tiltée + hampe verticale + crochet qui
-                      retombe à droite — silhouette ♪ classique. */}
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10 18.3V3.5" />
-                    <path d="M10 3.5c3.3 .4 5.7 2.6 5.7 5.8" fill="none" />
-                    <ellipse cx="6.6" cy="18.1" rx="3.4" ry="2.4" fill="currentColor" stroke="currentColor" transform="rotate(-22 6.6 18.1)" />
-                  </svg>
-                </span>
-                <span className="add-mini-choice-body">
-                  <div className="add-mini-choice-label">{s.addModal.choiceNewTrackLabel}</div>
-                  <div className="add-mini-choice-desc">
-                    {hasProjects ? s.addModal.choiceNewTrackDesc : s.addModal.choiceNewTrackDescDisabled}
-                  </div>
-                </span>
-              </button>
-              <button
-                type="button"
-                className="add-mini-choice"
-                disabled={!hasTracks}
-                onClick={handleAddVersionClick}
-              >
-                <span className="add-mini-choice-icon is-mint" aria-hidden="true">
-                  {/* Feather RotateCw — arc clockwise quasi-complet + arrowhead en haut-droite */}
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="22 4 22 10 16 10" />
-                    <path d="M19.49 15a9 9 0 1 1-2.12-9.36L22 10" />
-                  </svg>
-                </span>
-                <span className="add-mini-choice-body">
-                  <div className="add-mini-choice-label">{s.addModal.choiceAddVersionLabel}</div>
-                  <div className="add-mini-choice-desc">
-                    {hasTracks ? s.addModal.choiceAddVersionDesc : s.addModal.choiceAddVersionDescDisabled}
-                  </div>
-                </span>
-              </button>
+            <div
+              className={`add-mini-hero-drop${fileError ? ' is-error' : drag ? ' is-active' : ''}${fileChecking ? ' is-busy' : ''}`}
+              onClick={openFilePicker}
+              onDragOver={(e) => { e.preventDefault(); if (!fileChecking) setDrag(true); }}
+              onDragLeave={() => setDrag(false)}
+              onDrop={(e) => {
+                e.preventDefault(); setDrag(false);
+                if (fileChecking) return;
+                const f = e.dataTransfer.files?.[0];
+                if (f) handlePickFile(f);
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFilePicker(); } }}
+            >
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+                <path d="M8 8l4-4 4 4" />
+                <path d="M12 4v12" />
+              </svg>
+              <div className="add-mini-hero-text">
+                {fileChecking ? a.fileHeroChecking : a.fileHeroText}
+              </div>
+              {!fileChecking && <div className="add-mini-hero-sub">{a.fileHeroSub}</div>}
+              <div className="add-mini-hero-formats">{a.fileHeroFormats}</div>
             </div>
+            {fileError && (
+              <div className="add-mini-file-error">
+                <strong>
+                  {fileError.kind === 'too_long'
+                    ? a.uploadDurationTooLongTitle
+                    : a.uploadDurationUnreadable.split('.')[0]}
+                </strong>
+                {fileError.kind === 'too_long' && (
+                  <> {a.uploadDurationTooLongDetail.replace('{dur}', formatDuration(fileError.durationSec))}</>
+                )}
+              </div>
+            )}
 
-            <div className="add-mini-foot">
+            <div className="add-mini-foot is-between">
+              {!lockedKind ? (
+                <button type="button" className="add-mini-link" onClick={() => goNewProject('file')}>
+                  <span aria-hidden="true">+</span> {a.createProjectLink}
+                </button>
+              ) : <span />}
               <button type="button" className="add-mini-btn" onClick={onClose}>
-                {s.addModal.cancel}
+                {a.cancel}
               </button>
             </div>
           </>
         )}
 
+        {/* ── Création de projet inline ───────────────────────── */}
         {step === 'new-project-name' && (
           <>
-            <div className="add-mini-title">{amberLastWord(s.addModal.newProjectStepTitle)}</div>
+            <div className="add-mini-title">{amberLastWord(a.newProjectStepTitle)}</div>
             <input
               autoFocus
               className="add-mini-input"
@@ -556,13 +502,13 @@ export default function AddModal({
               onChange={(e) => setNewProjectName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && newProjectName.trim() && !creatingProject) handleCreateProjectSubmit();
-                if (e.key === 'Escape') setStep('root');
+                if (e.key === 'Escape') handleBack();
               }}
-              placeholder={s.addModal.newProjectPlaceholder}
+              placeholder={a.newProjectPlaceholder}
             />
             <div className="add-mini-foot">
-              <button type="button" className="add-mini-btn" onClick={onClose}>
-                {s.addModal.cancel}
+              <button type="button" className="add-mini-btn" onClick={handleBack}>
+                {a.cancel}
               </button>
               <button
                 type="button"
@@ -570,228 +516,167 @@ export default function AddModal({
                 onClick={handleCreateProjectSubmit}
                 disabled={!newProjectName.trim() || creatingProject}
               >
-                {s.addModal.newProjectConfirm}
+                {a.newProjectConfirm}
               </button>
             </div>
           </>
         )}
 
-        {step === 'pick-project' && (
+        {/* ── STEP 2 : les précisions ─────────────────────────── */}
+        {step === 'details' && file && (
           <>
-            <div className="add-mini-title">{amberLastWord(s.addModal.pickProjectTitle)}</div>
-            {projects.map((p) => {
-              const n = p.tracks?.length || 0;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  className="add-mini-pick"
-                  onClick={() => goUpload({ mode: 'new-track', projectId: p.id, projectName: p.name, prefillTitle: '', lockTitle: false })}
-                >
-                  <span>{p.name}</span>
-                  <span className="add-mini-pick-count">
-                    {n} {n > 1 ? s.addModal.trackPlural : s.addModal.trackSingular}
-                  </span>
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              className="add-mini-create-new"
-              onClick={() => { setNewProjectName(''); setChainToUploadAfterCreate(true); setStep('new-project-name'); }}
-            >
-              <span aria-hidden="true">+</span>
-              <span>{s.addModal.createNewProject}</span>
-            </button>
-            <div className="add-mini-foot">
-              <button type="button" className="add-mini-btn" onClick={onClose}>
-                {s.addModal.cancel}
+            <div className="add-mini-title">{amberLastWord(a.detailsStepTitle)}</div>
+
+            {/* Fichier retenu + lien Changer */}
+            <div className="add-mini-file-row">
+              <span className="add-mini-drop-icon is-mint" aria-hidden="true">✓</span>
+              <div className="add-mini-drop-text is-truncate">{file.name}</div>
+              <button type="button" className="add-mini-link" onClick={openFilePicker} disabled={fileChecking}>
+                {fileChecking ? a.fileHeroChecking : a.changeFile}
               </button>
             </div>
-          </>
-        )}
-
-        {step === 'pick-track' && (
-          <>
-            <div className="add-mini-title">{amberLastWord(s.addModal.pickTrackTitle)}</div>
-            {allTracks.map((t) => {
-              const n = t.versions?.length || 0;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  className="add-mini-pick"
-                  onClick={() => goUpload({
-                    mode: 'add-version',
-                    projectId: t.projectId,
-                    projectName: t._projectName || projects.find((p) => p.id === t.projectId)?.name || '',
-                    prefillTitle: t.title,
-                    lockTitle: true,
-                  })}
-                >
-                  <span>{t.title}</span>
-                  <span className="add-mini-pick-count">
-                    {n} {n > 1 ? s.addModal.versionPlural : s.addModal.versionSingular}
-                  </span>
-                </button>
-              );
-            })}
-            <div className="add-mini-foot">
-              <button type="button" className="add-mini-btn" onClick={onClose}>
-                {s.addModal.cancel}
-              </button>
-            </div>
-          </>
-        )}
-
-        {step === 'upload' && uploadCtx && (
-          <>
-            <div className="add-mini-title">
-              {(() => {
-                // Réutilise les libellés des choix root pour rester raccord
-                // avec ce que l'utilisateur vient de cliquer.
-                const label = uploadCtx.mode === 'add-version'
-                  ? s.addModal.choiceAddVersionLabel
-                  : s.addModal.choiceNewTrackLabel;
-                // Colorie le dernier mot en amber (via <em>), comme le titre
-                // « Ajouter quoi ? » du step root.
-                const idx = label.lastIndexOf(' ');
-                if (idx < 0) return label;
-                return <>{label.slice(0, idx)} <em>{label.slice(idx + 1)}</em></>;
-              })()}
-            </div>
-            {/* Bandeau projet verrouillé */}
-            <div className="add-mini-upload-banner">
-              <span className="add-mini-upload-banner-dot" aria-hidden="true">●</span>
-              <div className="add-mini-upload-banner-body">
-                <div className="add-mini-upload-banner-kicker">
-                  {uploadCtx.mode === 'add-version' ? s.addModal.uploadAddVersionTo : s.addModal.uploadInProject}
-                </div>
-                <div className="add-mini-upload-banner-name">
-                  {uploadCtx.mode === 'add-version'
-                    ? `${uploadCtx.prefillTitle} · ${uploadCtx.projectName}`
-                    : uploadCtx.projectName}
-                </div>
-              </div>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                <rect x="3" y="5.5" width="6" height="4.5" rx="1" stroke="var(--muted)" strokeWidth="1.2" fill="none" />
-                <path d="M4.2 5.5 V 4 a 1.8 1.8 0 0 1 3.6 0 V 5.5" stroke="var(--muted)" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-              </svg>
-            </div>
-
-            {/* Zone drop */}
-            <div className="add-mini-field">
-              <div className="add-mini-field-label">{s.addModal.uploadMixLabel}</div>
-              <div
-                className={`add-mini-drop${file ? ' is-filled' : fileError ? ' is-error' : drag ? ' is-active' : ''}`}
-                onClick={() => !fileChecking && fileInputRef.current?.click()}
-                onDragOver={(e) => { e.preventDefault(); if (!fileChecking) setDrag(true); }}
-                onDragLeave={() => setDrag(false)}
-                onDrop={(e) => {
-                  e.preventDefault(); setDrag(false);
-                  if (fileChecking) return;
-                  const f = e.dataTransfer.files?.[0];
-                  if (f) handlePickFile(f);
-                }}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="audio/wav,audio/mpeg,audio/flac,.wav,.mp3,.flac"
-                  style={{ display: 'none' }}
-                  onChange={(e) => e.target.files?.[0] && handlePickFile(e.target.files[0])}
-                />
-                {fileChecking ? (
-                  <>
-                    <span className="add-mini-drop-icon is-amber" aria-hidden="true">⏳</span>
-                    <div className="add-mini-drop-text">
-                      {s.addModal.uploadDurationReading}
-                    </div>
-                  </>
-                ) : file ? (
-                  <>
-                    <span className="add-mini-drop-icon is-mint" aria-hidden="true">✓</span>
-                    <div className="add-mini-drop-text is-truncate">{file.name}</div>
-                  </>
-                ) : (
-                  <>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={drag ? 'var(--amber)' : fileError ? 'var(--red, #ff5d5d)' : 'var(--muted)'} strokeWidth="1.6" aria-hidden="true">
-                      <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
-                      <path d="M8 8l4-4 4 4" />
-                      <path d="M12 4v12" />
-                    </svg>
-                    <div className="add-mini-drop-text-block">
-                      <div className="add-mini-drop-text">{s.addModal.uploadDropText}</div>
-                      <div className="add-mini-drop-formats">{s.addModal.uploadDropFormats}</div>
-                    </div>
-                  </>
+            {fileError && (
+              <div className="add-mini-file-error">
+                <strong>
+                  {fileError.kind === 'too_long'
+                    ? a.uploadDurationTooLongTitle
+                    : a.uploadDurationUnreadable.split('.')[0]}
+                </strong>
+                {fileError.kind === 'too_long' && (
+                  <> {a.uploadDurationTooLongDetail.replace('{dur}', formatDuration(fileError.durationSec))}</>
                 )}
               </div>
-              {fileError && (
-                <div className="add-mini-file-error">
-                  <strong>
-                    {fileError.kind === 'too_long'
-                      ? s.addModal.uploadDurationTooLongTitle
-                      : s.addModal.uploadDurationUnreadable.split('.')[0]}
-                  </strong>
-                  {fileError.kind === 'too_long' && (
-                    <> {s.addModal.uploadDurationTooLongDetail.replace('{dur}', formatDuration(fileError.durationSec))}</>
-                  )}
+            )}
+
+            {/* Nouveau titre / nouvelle version — seulement s'il y a déjà
+                des titres et que le contexte ne l'impose pas. */}
+            {!lockedKind && hasTracks && (
+              <div className="add-mini-field">
+                <div className="add-mini-field-label">{a.kindLabel}</div>
+                <div className="add-mini-pill-row">
+                  <button
+                    type="button"
+                    className={`add-mini-pill${kind === 'new-track' ? ' on' : ''}`}
+                    onClick={() => { setKind('new-track'); setKindAuto(false); versionTouchedRef.current = false; }}
+                  >{a.kindNewTrack}</button>
+                  <button
+                    type="button"
+                    className={`add-mini-pill${kind === 'add-version' ? ' on' : ''}`}
+                    onClick={() => {
+                      setKind('add-version');
+                      setKindAuto(false);
+                      versionTouchedRef.current = false;
+                      if (!targetTrackId && allTracks.length === 1) setTargetTrackId(allTracks[0].id);
+                    }}
+                  >{a.kindNewVersion}</button>
                 </div>
-              )}
-            </div>
+                {kind === 'add-version' && kindAuto && (
+                  <div className="add-mini-field-hint">{a.kindVersionAutoHint}</div>
+                )}
+              </div>
+            )}
+
+            {/* Cible : titre existant (version) ou projet (nouveau titre) */}
+            {kind === 'add-version' && !lockedKind && (
+              <div className="add-mini-field">
+                <div className="add-mini-field-label">
+                  {a.pickTrackLabel}
+                  <span className="add-mini-required" aria-hidden="true">*</span>
+                </div>
+                <div className="add-mini-select-wrap">
+                  <select
+                    className="add-mini-select"
+                    value={targetTrackId || ''}
+                    onChange={(e) => { setTargetTrackId(e.target.value || null); versionTouchedRef.current = false; }}
+                  >
+                    <option value="">{a.pickTrackPlaceholder}</option>
+                    {allTracks.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title}{t._projectName ? ` · ${t._projectName}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="add-mini-select-arrow" aria-hidden="true">
+                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 4 L6 8 L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            )}
+            {lockedKind && contextBanner()}
 
             {/* Titre + Version */}
-            {file && (
-              <div className="add-mini-grid-2col">
-                <div>
-                  <div className="add-mini-field-label">
-                    {s.addModal.uploadTitleLabel}
-                    <span className="add-mini-required" aria-hidden="true">*</span>
-                  </div>
-                  <input
-                    className="add-mini-input"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder={titlePh}
-                    disabled={!!uploadCtx.lockTitle}
-                  />
+            <div className="add-mini-grid-2col">
+              <div>
+                <div className="add-mini-field-label">
+                  {a.uploadTitleLabel}
+                  <span className="add-mini-required" aria-hidden="true">*</span>
                 </div>
-                <div>
-                  <div className="add-mini-field-label">
-                    {s.addModal.uploadVersionLabel}
-                    <span className="add-mini-required" aria-hidden="true">*</span>
+                <input
+                  className="add-mini-input"
+                  value={effectiveTitle}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={a.uploadTitlePlaceholder}
+                  disabled={kind === 'add-version'}
+                />
+              </div>
+              <div>
+                <div className="add-mini-field-label">
+                  {a.uploadVersionLabel}
+                  <span className="add-mini-required" aria-hidden="true">*</span>
+                </div>
+                <input
+                  className="add-mini-input"
+                  value={version}
+                  onChange={(e) => { versionTouchedRef.current = true; setVersion(e.target.value); }}
+                  placeholder={versionPh}
+                />
+              </div>
+            </div>
+
+            {/* Projet (nouveau titre, plusieurs projets) */}
+            {kind === 'new-track' && projects.length > 1 && (
+              <div className="add-mini-field">
+                <div className="add-mini-field-label">{a.projectLabel}</div>
+                <div className="add-mini-select-wrap">
+                  <select
+                    className="add-mini-select"
+                    value={projectId || ''}
+                    onChange={(e) => {
+                      if (e.target.value === '__new__') { goNewProject('details'); return; }
+                      setProjectId(e.target.value || null);
+                    }}
+                  >
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                    <option value="__new__">{a.projectNewOption}</option>
+                  </select>
+                  <div className="add-mini-select-arrow" aria-hidden="true">
+                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 4 L6 8 L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </div>
-                  <input
-                    className="add-mini-input"
-                    value={version}
-                    onChange={(e) => setVersion(e.target.value)}
-                    placeholder={versionPh}
-                  />
                 </div>
               </div>
             )}
 
-            {/* Type vocal (nouveau titre uniquement). Visible dès l'ouverture
-                de la modale (refonte 2026-05-21) pour rester cohérent avec
-                DAW/Genre/Intention/Masterisé qui sont toujours visibles. */}
+            {/* Type vocal (nouveau titre uniquement) */}
             {askVocal && (
               <div className="add-mini-field">
-                <div className="add-mini-field-label">
-                  {s.addModal.uploadVocalLabel}
-                  <span className="add-mini-required" aria-hidden="true">*</span>
-                </div>
+                <div className="add-mini-field-label">{a.uploadVocalLabel}</div>
                 <div className="add-mini-pill-row">
                   <button
                     type="button"
                     className={`add-mini-pill${vocalKind === 'vocal' ? ' on' : ''}`}
                     onClick={() => { setVocalKind('vocal'); setFinalInstru(null); }}
-                  >{s.addModal.uploadVocalSung}</button>
+                  >{a.uploadVocalSung}</button>
                   <button
                     type="button"
                     className={`add-mini-pill${vocalKind === 'instrumental' ? ' on' : ''}`}
                     onClick={() => setVocalKind('instrumental')}
-                  >{s.addModal.uploadVocalInstrumental}</button>
+                  >{a.uploadVocalInstrumental}</button>
                 </div>
                 {vocalKind === 'instrumental' && (
                   <div className="add-mini-pill-row add-mini-pill-row-sub">
@@ -799,165 +684,154 @@ export default function AddModal({
                       type="button"
                       className={`add-mini-pill${finalInstru === false ? ' on' : ''}`}
                       onClick={() => setFinalInstru(false)}
-                    >{s.addModal.uploadVocalComing}</button>
+                    >{a.uploadVocalComing}</button>
                     <button
                       type="button"
                       className={`add-mini-pill${finalInstru === true ? ' on' : ''}`}
                       onClick={() => setFinalInstru(true)}
-                    >{s.addModal.uploadVocalFinal}</button>
+                    >{a.uploadVocalFinal}</button>
                   </div>
                 )}
               </div>
             )}
 
-            {/* "Ce mix a-t-il été masterisé ?" — refonte 2026-05-20 (C.2 roadmap),
-                simplifiée 2026-05-21 : Oui/Non binaires, default 'no'. L'option
-                Auto-detect a été retirée car elle promettait une détection
-                LUFS/dynamique qui n'existait pas (mappait silencieusement sur
-                mix). Toujours visible (pas de gate sur `file`) pour rester
-                cohérent avec DAW/Genre qui s'affichent dès l'ouverture. */}
+            {/* Masterisé ? */}
             <div className="add-mini-field">
-              <div className="add-mini-field-label">
-                {s.addModal.uploadTypeLabel}
-                <span className="add-mini-required" aria-hidden="true">*</span>
-              </div>
+              <div className="add-mini-field-label">{a.uploadTypeLabel}</div>
               <div className="add-mini-pill-row">
                 <button
                   type="button"
                   className={`add-mini-pill${masteredAnswer === 'yes' ? ' on' : ''}`}
                   onClick={async () => {
-                    // Confirmation modale à CHAQUE clic sur "Oui" :
-                    // beaucoup d'utilisateurs mettent un limiteur ou un plugin
-                    // de mastering sur leur bus master pendant le mix (pour
-                    // l'écoute) et risquent de répondre "Oui" par réflexe alors
-                    // qu'ils fignolent encore. La modale les recadre. On ne
-                    // mémorise pas le choix : la protection doit jouer pour
-                    // chaque upload (un même user peut alterner entre titres
-                    // en mix et titres masterisés). Si l'utilisateur annule, on
-                    // bascule en 'no' (default de la modale).
+                    // Confirmation à chaque clic sur « Oui » : un limiteur posé
+                    // sur le master pour l'écoute n'est pas un master.
                     const choice = await confirmDialog({
-                      title: s.addModal.uploadTypeMasterConfirmTitle,
-                      message: s.addModal.uploadTypeMasterConfirmMessage,
-                      confirmLabel: s.addModal.uploadTypeMasterConfirmYes,
-                      cancelLabel: s.addModal.uploadTypeMasterConfirmNo,
+                      title: a.uploadTypeMasterConfirmTitle,
+                      message: a.uploadTypeMasterConfirmMessage,
+                      confirmLabel: a.uploadTypeMasterConfirmYes,
+                      cancelLabel: a.uploadTypeMasterConfirmNo,
                       stackedButtons: true,
                     });
-                    if (choice === 'confirm') {
-                      setMasteredAnswer('yes');
-                    } else {
-                      setMasteredAnswer('no');
-                    }
+                    setMasteredAnswer(choice === 'confirm' ? 'yes' : 'no');
                   }}
-                >{s.addModal.uploadTypeYes}</button>
+                >{a.uploadTypeYes}</button>
                 <button
                   type="button"
                   className={`add-mini-pill${masteredAnswer === 'no' ? ' on' : ''}`}
                   onClick={() => setMasteredAnswer('no')}
-                >{s.addModal.uploadTypeNo}</button>
+                >{a.uploadTypeNo}</button>
               </div>
               <div className="add-mini-field-hint">
-                {masteredAnswer === 'yes'
-                  ? s.addModal.uploadTypeYesHint
-                  : s.addModal.uploadTypeNoHint}
+                {masteredAnswer === 'yes' ? a.uploadTypeYesHint : a.uploadTypeNoHint}
               </div>
             </div>
 
-            {/* DAW */}
-            <div className="add-mini-field">
-              <div className="add-mini-field-label">
-                {s.addModal.uploadDawLabel}
-                <span className="add-mini-required" aria-hidden="true">*</span>
-              </div>
-              <div className="add-mini-select-wrap">
-                <select
-                  className="add-mini-select"
-                  value={daw}
-                  onChange={(e) => setDaw(e.target.value)}
-                >
-                  <option value="">{s.addModal.uploadDawPlaceholder}</option>
-                  {DAWS.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-                <div className="add-mini-select-arrow" aria-hidden="true">
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 4 L6 8 L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* BPM — optionnel, override la détection auto Fadr. Fadr et
-                tous les détecteurs BPM se trompent régulièrement entre
-                half-time et double-time (75 vs 150, etc.). L'artiste
-                connaît son tempo réel (réglé dans la DAW), donc on lui
-                laisse la primauté quand il veut le renseigner. Vide =
-                détection auto. */}
-            {file && (
+            {/* DAW en clair uniquement si le profil n'en a pas */}
+            {dawInMain && (
               <div className="add-mini-field">
-                <div className="add-mini-field-label">{s.addModal.uploadBpmLabel}</div>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className="add-mini-input"
-                  value={userBpm}
-                  placeholder={s.addModal.uploadBpmPlaceholder}
-                  maxLength={5}
-                  onChange={(e) => setUserBpm(e.target.value)}
-                />
-                <div className="add-mini-field-hint">{s.addModal.uploadBpmHint}</div>
+                <div className="add-mini-field-label">
+                  {a.uploadDawLabel}
+                  <span className="add-mini-required" aria-hidden="true">*</span>
+                </div>
+                <div className="add-mini-select-wrap">
+                  <select className="add-mini-select" value={daw} onChange={(e) => setDaw(e.target.value)}>
+                    <option value="">{a.uploadDawPlaceholder}</option>
+                    {DAWS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <div className="add-mini-select-arrow" aria-hidden="true">
+                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 4 L6 8 L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Genre musical — texte libre. Si vide au moment du
-                lancement, le pipeline détecte automatiquement (cf.
-                handleLaunchAnalyze : genreUnknown = !trimmedGenre).
-                Plus de bouton "Choisir automatiquement" : moins de
-                décisions, le défaut intelligent suffit. */}
+            {/* Intention artistique — optionnelle */}
             <div className="add-mini-field">
-              <div className="add-mini-field-label">{s.addModal.uploadGenreLabel}</div>
-              <input
-                type="text"
-                className="add-mini-input"
-                value={declaredGenre}
-                placeholder={genrePh}
-                maxLength={60}
-                onChange={(e) => setDeclaredGenre(e.target.value)}
-              />
-            </div>
-
-            {/* Intention artistique — toujours visible (au même titre
-                que Genre musical), facultative. Si saisie, le pipeline
-                saute l'IntentionScreen post-Phase-A (tout est en
-                amont, pas d'interruption mid-analyse). Pas
-                d'astérisque rouge : champ optionnel. */}
-            <div className="add-mini-field">
-              <div className="add-mini-field-label">
-                {lang === 'en' ? 'Artistic intent' : 'Intention artistique'}
-              </div>
+              <div className="add-mini-field-label">{a.intentLabel}</div>
               <textarea
                 className="add-mini-input add-mini-textarea"
                 value={artisticIntent}
                 onChange={(e) => setArtisticIntent(e.target.value)}
                 placeholder={intentPh}
-                rows={3}
+                rows={2}
                 maxLength={600}
               />
+              <div className="add-mini-field-hint">{a.intentHint}</div>
             </div>
 
-            {/* Acceptation copyright — obligatoire avant analyse.
-                Trace persistée en versions.copyright_acknowledged_at pour
-                la défense légale (DMCA / safe harbor). */}
-            {file && (
-              <label className="add-mini-copyright">
-                <input
-                  type="checkbox"
-                  checked={copyrightAck}
-                  onChange={(e) => setCopyrightAck(e.target.checked)}
-                />
-                <span>{s.addModal.copyrightAck}</span>
-              </label>
+            {/* Plus d'options : DAW (si déjà pré-rempli), genre, BPM */}
+            <button
+              type="button"
+              className="add-mini-more"
+              onClick={() => setMoreOpen((v) => !v)}
+              aria-expanded={moreOpen}
+            >
+              <span className={`add-mini-more-chevron${moreOpen ? ' is-open' : ''}`} aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 4 L6 8 L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              {moreOpen ? a.lessOptions : a.moreOptions}
+              {!moreOpen && <span className="add-mini-more-hint">{a.moreOptionsHint}{daw ? ` · ${daw}` : ''}</span>}
+            </button>
+            {moreOpen && (
+              <div className="add-mini-more-body">
+                {!dawInMain && (
+                  <div className="add-mini-field">
+                    <div className="add-mini-field-label">{a.uploadDawLabel}</div>
+                    <div className="add-mini-select-wrap">
+                      <select className="add-mini-select" value={daw} onChange={(e) => setDaw(e.target.value)}>
+                        <option value="">{a.uploadDawPlaceholder}</option>
+                        {DAWS.map((d) => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                      <div className="add-mini-select-arrow" aria-hidden="true">
+                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                          <path d="M2 4 L6 8 L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className="add-mini-grid-2col">
+                  <div>
+                    <div className="add-mini-field-label">{a.uploadGenreLabel}</div>
+                    <input
+                      type="text"
+                      className="add-mini-input"
+                      value={declaredGenre}
+                      placeholder={genrePh}
+                      maxLength={60}
+                      onChange={(e) => setDeclaredGenre(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <div className="add-mini-field-label">{a.uploadBpmLabel}</div>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      className="add-mini-input"
+                      value={userBpm}
+                      placeholder={a.uploadBpmPlaceholder}
+                      maxLength={5}
+                      onChange={(e) => setUserBpm(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="add-mini-field-hint" style={{ marginTop: -6 }}>{a.uploadBpmHint}</div>
+              </div>
             )}
+
+            {/* Droits */}
+            <label className="add-mini-copyright">
+              <input
+                type="checkbox"
+                checked={copyrightAck}
+                onChange={(e) => setCopyrightAck(e.target.checked)}
+              />
+              <span>{a.copyrightAck}</span>
+            </label>
 
             {/* CTA */}
             <button
@@ -966,7 +840,7 @@ export default function AddModal({
               onClick={handleLaunchAnalyze}
               disabled={!uploadOk}
             >
-              {uploadOk ? s.addModal.uploadCta : s.addModal.uploadCtaIncomplete}
+              {uploadOk || launching ? a.uploadCta : a.uploadCtaIncomplete}
             </button>
           </>
         )}

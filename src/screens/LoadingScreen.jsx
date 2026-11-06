@@ -41,10 +41,18 @@ function runSignature(config) {
   ].join('|');
 }
 
-const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
+const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput, partialListening = null }) => {
   const { s, lang } = useLang();
   const [phase, setPhase] = useState(0);
   const [error, setError] = useState(null);
+  // Fiche progressive (audit 2026-11-06) : dès que le backend a fini
+  // l'écoute (stage listening_done, ~55 % du temps), on montre un aperçu
+  // de ce qui a été entendu pendant que le diagnostic s'écrit. Source :
+  // le poll local (job.listening) ou, en relais / resume, la prop venue
+  // d'App.jsx (analysisResult.listening).
+  const [listeningLocal, setListeningLocal] = useState(null);
+  const listeningSeenRef = useRef(false);
+  const listeningPreview = listeningLocal || partialListening || null;
   // Durée du fichier audio (sec). Utilisée pour CALIBRER la rampe pct
   // sur la durée typique d'analyse. Heuristique observée : analyse ≈
   // 0.65 × durée audio. Calibrer la rampe sur ce ratio fait que l'anneau
@@ -200,6 +208,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
               setBackendPct((p) => Math.max(p, job.pct));
             }
             if (canceledRef.current) return;
+            if (job.listening && !listeningSeenRef.current) { listeningSeenRef.current = true; setListeningLocal(job.listening); }
             // Trace les IDs persistés backend (palier 4) dès qu'ils arrivent,
             // pour que le recovery flow d'App.jsx puisse y router direct
             // même si le polling meurt avant le terminal.
@@ -624,6 +633,7 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
           }
 
           if (canceledRef.current) return;
+          if (job.listening && !listeningSeenRef.current) { listeningSeenRef.current = true; setListeningLocal(job.listening); }
           // Idem path resume — on plumbe les IDs persist backend dans
           // l'entrée pending dès qu'on les voit.
           if (job.persistedTrackId || job.persistedVersionId) {
@@ -985,7 +995,9 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
         {/* Carte "Le saviez-vous ?" — eyebrow pill + corps DM Sans,
             même grammaire que les cards info de la fiche (.notes-eyebrow
             / .diag-eyebrow). */}
-        {shuffledTips.length > 0 && (
+        {listeningPreview ? (
+          <ListeningPreview listening={listeningPreview} s={s} />
+        ) : shuffledTips.length > 0 && (
           <div className="ap-tip" role="region" aria-label={s.loading.didYouKnow}>
             <div className="ap-tip-kicker">
               <span className="ap-tip-dot" aria-hidden="true" />
@@ -1017,6 +1029,40 @@ const LoadingScreen = ({ config, onDone, onAwaitingIntent, onBackToInput }) => {
     </div>
   );
 };
+
+/**
+ * ListeningPreview — aperçu de l'écoute pendant que le diagnostic s'écrit.
+ * Reprend la grammaire visuelle de la carte « Le saviez-vous ? » (.ap-tip)
+ * pour ne pas changer la silhouette de l'écran : juste le contenu qui
+ * devient réel. Impression + 3 points forts max + ligne d'attente.
+ */
+function ListeningPreview({ listening, s }) {
+  const impression = String(listening?.impression || '').trim();
+  const strengths = Array.isArray(listening?.points_forts)
+    ? listening.points_forts.filter((x) => typeof x === 'string' && x.trim()).slice(0, 3)
+    : [];
+  const mood = String(listening?.mood || '').trim();
+  if (!impression && !strengths.length) return null;
+  return (
+    <div className="ap-tip ap-heard" role="region" aria-label={s.loading.heardKicker}>
+      <div className="ap-tip-kicker">
+        <span className="ap-tip-dot" aria-hidden="true" />
+        {s.loading.heardKicker}
+        {mood && <span className="ap-heard-mood">{mood}</span>}
+      </div>
+      {impression && <div className="ap-tip-body ap-heard-impression">{impression}</div>}
+      {strengths.length > 0 && (
+        <ul className="ap-heard-list">
+          {strengths.map((x, i) => <li key={i}>{x}</li>)}
+        </ul>
+      )}
+      <div className="ap-heard-wait">
+        <span className="ap-heard-pulse" aria-hidden="true" />
+        {s.loading.heardWriting}
+      </div>
+    </div>
+  );
+}
 
 /**
  * ApBrandMark — logo VERSIONS top-left de l'écran d'analyse.

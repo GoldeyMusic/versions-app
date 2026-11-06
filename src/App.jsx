@@ -2105,6 +2105,7 @@ function WelcomeHome({ userProfile, currentProjectId, onSetCurrentProject, onNew
           allTracks={allTracks}
           initialContext={addModalCtx}
           defaultDaw={userProfile?.default_daw || ''}
+          defaultProjectId={currentProjectId}
           onCreateProject={async (name) => {
             // Création inline depuis l'étape 'new-project-name'.
             // On retourne le projet créé pour que la modale puisse enchaîner sur l'upload si besoin.
@@ -4706,6 +4707,7 @@ function VersionsAppAuthed() {
             onDone={handleLoaded}
             onAwaitingIntent={handleAwaitingIntent}
             onBackToInput={handleCancelAnalysis}
+            partialListening={analysisResult?.listening || null}
           />
         );
       case "intention": {
@@ -4744,6 +4746,7 @@ function VersionsAppAuthed() {
               onDone={handleLoaded}
               onAwaitingIntent={handleAwaitingIntent}
               onBackToInput={handleCancelAnalysis}
+              partialListening={analysisResult?.listening || null}
             />
           );
         }
@@ -5369,6 +5372,7 @@ function VersionsAppAuthed() {
               allTracks={projects.flatMap((p) => (p.tracks || []).map((t) => ({ ...t, _projectName: p.name, projectId: p.id })))}
               initialContext={addModalCtx}
               defaultDaw={userProfile?.default_daw || ''}
+              defaultProjectId={currentProjectId}
               onCreateProject={async (name) => {
                 try {
                   const created = await createProject(name);

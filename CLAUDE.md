@@ -189,6 +189,20 @@ Les paliers 1-3 sont devenus des filets de sécurité redondants une fois le pal
   `GET /api/billing/subscription`), message de résiliation « grâce 90 j ».
   Migration 057 (grâce) côté `supabase/migrations/`. Env Vercel à ajouter :
   `VITE_STRIPE_PRICE_PACK_6`, `VITE_STRIPE_PRICE_SUB_SOLO`.
+- **AddModal « fichier d'abord »** : steps `file` → `details` (→
+  `new-project-name`). Titre pré-rempli depuis le nom de fichier, version
+  pré-remplie (`v1` / `v{n+1}`), bascule auto « nouvelle version » si le
+  titre existe déjà, projet par défaut = `defaultProjectId` (prop App.jsx,
+  = `currentProjectId`) ou créé en silence (« Mes titres ») au lancement.
+  DAW pré-rempli depuis le profil (demandé en clair seulement s'il manque) ;
+  DAW/genre/BPM dans « Plus d'options ». CSS `.add-mini-hero-drop`,
+  `.add-mini-file-row`, `.add-mini-more*` (MockupStyles).
+- **Fiche progressive** : LoadingScreen affiche `ListeningPreview`
+  (impression + 3 points forts + mood) dès que `job.listening` arrive
+  (stage `listening_done`), à la place du « Le saviez-vous ? ». Source :
+  poll local ou prop `partialListening` (= `analysisResult.listening`).
+  Pas de bascule d'écran avant `all_done` (règle inchangée, cf. bug
+  verdoljose2).
 
 ## Livré récemment (mai 2026)
 
