@@ -401,6 +401,7 @@ const STRINGS = {
       // front les traduit en strings i18n. Ne plus afficher d'err.message brut.
       errorAnalysisTimeout: "L'analyse a pris trop de temps. Réessaie.",
       errorAnalysisService: "Un service externe est temporairement indisponible. Réessaie dans quelques minutes.",
+      errorAnalysisListening: "L'écoute de ton titre n'a pas pu aboutir. Ton crédit a été remboursé, aucune fiche n'a été créée. Réessaie dans quelques minutes — nous sommes prévenus.",
       errorAnalysisStorage: "Problème lors de la lecture de ton fichier audio. Réessaie.",
       errorAnalysisParse: "L'analyse a échoué à la rédaction de la fiche. Réessaie.",
       errorJobNotFound: "Cette analyse n'existe plus. Relance-la depuis ton dashboard.",
@@ -2439,6 +2440,7 @@ const STRINGS = {
       // Backend error codes (versions-api lib/jobErrors.js) → translated strings
       errorAnalysisTimeout: "Analysis took too long. Please try again.",
       errorAnalysisService: "An external service is temporarily unavailable. Please try again in a few minutes.",
+      errorAnalysisListening: "We couldn't listen to your track. Your credit has been refunded and no report was created. Try again in a few minutes — we've been notified.",
       errorAnalysisStorage: "Could not read your audio file. Please try again.",
       errorAnalysisParse: "Analysis failed while writing the report. Please try again.",
       errorJobNotFound: "This analysis no longer exists. Start a new one from your dashboard.",

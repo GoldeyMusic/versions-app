@@ -37,6 +37,8 @@ export function translateBackendError(code, s) {
       return s.loading.errorAnalysisTimeout;
     case 'analysis_service_unavailable':
       return s.loading.errorAnalysisService;
+    case 'analysis_listening_unavailable':
+      return s.loading.errorAnalysisListening;
     case 'analysis_storage_failed':
       return s.loading.errorAnalysisStorage;
     case 'analysis_parse_failed':
