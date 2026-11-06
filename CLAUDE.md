@@ -203,6 +203,13 @@ Les paliers 1-3 sont devenus des filets de sécurité redondants une fois le pal
   poll local ou prop `partialListening` (= `analysisResult.listening`).
   Pas de bascule d'écran avant `all_done` (règle inchangée, cf. bug
   verdoljose2).
+- **Landing refondue** (ordre et message, pas le style) : hero 2 colonnes
+  avec `HeroFiche` (données de /exemple, strings `fc*`), CTA unique
+  « Déposer mon mix » + lien « Voir un exemple » ; « Comment ça marche »
+  (`HowStep`, strings `how*`) ; plugin repositionné en compagnon ;
+  verbatims NPS 10 (`proofQuote1..2`, chaîne vide = carte masquée) ;
+  tarifs résumés (`PriceTile`, montants lus dans `plans.js`). Les 6 cartes
+  « Nos atouts » sont retirées du JSX (strings `diffCard*` conservées).
 
 ## Livré récemment (mai 2026)
 

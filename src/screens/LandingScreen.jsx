@@ -4,6 +4,9 @@ import T from '../constants/theme';
 import useLang from '../hooks/useLang';
 import LangDropdown from '../components/LangDropdown';
 import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
+import { PACKS, SUBSCRIPTIONS } from '../constants/plans';
+
+const fmtEur = (n) => (Number.isFinite(Number(n)) ? `${Number(n).toFixed(2).replace('.', ',')} €` : '');
 
 /**
  * LandingScreen — page de présentation accessible aux visiteurs ET aux
@@ -42,6 +45,8 @@ export default function LandingScreen({
   const lp = s.landing;
   const ctaPrimary = ctaPrimaryLabel || lp.ctaPrimary;
   const ctaFooter = ctaFooterLabel || lp.ctaFooter;
+  const packProjet = PACKS.find((p) => p.key === 'pack_6') || null;
+  const subSolo = SUBSCRIPTIONS.find((p) => p.key === 'sub_solo') || null;
   // Vidéo de démo du plugin — /plugin-demo.mp4 (public/). Tant que le
   // fichier n'est pas déployé, le onError bascule sur un placeholder
   // stylé (cadre + glyphe play) pour ne jamais montrer un player cassé.
@@ -153,66 +158,75 @@ export default function LandingScreen({
         </nav>
       </header>
 
-      {/* HERO */}
+      {/* HERO — refonte 2026-11-06 (audit) : deux colonnes, le message à
+          gauche et une vraie fiche (extraite de /exemple) à droite. Un seul
+          CTA primaire ; le lien vers la fiche complète reste discret. */}
       <header className="lp-hero">
-        <div className="lp-hero-inner">
-          {/* Mockup produit v3 — Constellation de chips.
-              Petits éléments décoratifs qui évoquent le langage produit
-              (score, action, plugin pick, évolution, intention) sans
-              simuler d'UI. Aérien, abstrait, reconnaissable. Pas de
-              container fiche, pas de bulles de chat — juste des fragments
-              flottants disposés en cluster organique. */}
-          <div className="lp-hero-mock" aria-hidden="true">
-            <span className="lp-chip lp-chip-score">{lp.chip1}</span>
-            <span className="lp-chip lp-chip-tag">{lp.chip2}</span>
-            <span className="lp-chip lp-chip-diag">{lp.chip3}</span>
-            <span className="lp-chip lp-chip-plugin">{lp.chip4}</span>
-            <span className="lp-chip lp-chip-evo">{lp.chip5}</span>
-            <span className="lp-chip lp-chip-intent">{lp.chip6}</span>
-            <span className="lp-chip lp-chip-bass">{lp.chip7}</span>
-          </div>
+        <div className="lp-hero-inner lp-hero-split">
+          <div className="lp-hero-copy">
+            <h1 className="lp-slogan">
+              <span className="lp-slogan-line">{lp.sloganPart1} <em>{lp.sloganEm}</em></span><br />{lp.sloganPart2}
+            </h1>
+            <div className="lp-tagline-trio">
+              {lp.taglineBefore} <em>{lp.taglineEm}</em>{lp.taglineAfter}
+            </div>
+            <p className="lp-hero-sub">{lp.heroSub}</p>
 
-          <h1 className="lp-slogan">
-            <span className="lp-slogan-line">{lp.sloganPart1} <em>{lp.sloganEm}</em></span><br />{lp.sloganPart2}
-          </h1>
-          <div className="lp-tagline-trio">
-            {lp.taglineBefore} <em>{lp.taglineEm}</em>{lp.taglineAfter}
-          </div>
-          <p className="lp-hero-sub">{lp.heroSub}</p>
-
-          <div className="lp-cta-row">
-            {/* Badge "Offerte" sur le CTA primaire — même mécanique que le
-                badge "Nouveau" du CTA plugin. Visiteurs uniquement (l'offre
-                première analyse ne concerne pas les comptes existants). */}
-            <button
-              type="button"
-              onClick={onStart}
-              className="lp-cta-primary lp-cta-first"
-              aria-label={!isAuthenticated ? `${ctaPrimary} — ${lp.freeFirstBadge}` : undefined}
-            >
-              {ctaPrimary}
-              {!isAuthenticated && (
-                <span className="lp-new-badge" aria-hidden="true">{lp.freeFirstBadgeShort}</span>
+            <div className="lp-cta-row lp-cta-row-hero">
+              <button
+                type="button"
+                onClick={onStart}
+                className="lp-cta-primary lp-cta-first"
+                aria-label={!isAuthenticated ? `${ctaPrimary} — ${lp.freeFirstBadge}` : undefined}
+              >
+                {ctaPrimary}
+                {!isAuthenticated && (
+                  <span className="lp-new-badge" aria-hidden="true">{lp.freeFirstBadgeShort}</span>
+                )}
+              </button>
+              {onViewSample && (
+                <button type="button" onClick={onViewSample} className="lp-hero-link">
+                  {lp.ctaSample}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                </button>
               )}
-            </button>
-            {onViewSample && (
-              <button type="button" onClick={onViewSample} className="lp-cta-secondary">
-                {lp.ctaSample}
-              </button>
-            )}
-            {/* CTA plugin + badge "Nouveau" — 3e porte d'entrée du hero,
-                pour que l'écosystème (analyse en ligne + plugin DAW) soit
-                lisible dès l'arrivée sans toucher au reste du hero. */}
-            {onViewPlugin && (
-              <button type="button" onClick={onViewPlugin} className="lp-cta-secondary lp-cta-plugin">
-                {lp.ctaPlugin}
-                <span className="lp-new-badge" aria-hidden="true">{lp.pluginNewBadge}</span>
-              </button>
-            )}
+            </div>
+            {!isAuthenticated && <p className="lp-hero-note">{lp.heroNote}</p>}
           </div>
 
+          <HeroFiche lp={lp} onOpen={onViewSample} />
         </div>
       </header>
+
+      <div className="lp-divider" />
+
+      {/* COMMENT ÇA MARCHE — 3 étapes (audit 2026-11-06) : la boucle
+          dépose → note → V2 est le cœur de la promesse ; les 2 analyses
+          offertes couvrent exactement cette boucle. */}
+      <section className="lp-section lp-section-how">
+        <div className="lp-section-eyebrow lp-anim">{lp.howEyebrow}</div>
+        <h2 className="lp-section-title lp-anim" style={{ '--anim-d': '60ms' }}>
+          {lp.howTitleStart} <em>{lp.howTitleEm}</em>
+        </h2>
+
+        <div className="lp-how-grid">
+          <HowStep num="01" tone="amber" title={lp.howStep1Title} body={lp.howStep1Body} delay="160ms" visual={<HowVisualDrop />} icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" /><path d="M8 8l4-4 4 4" /><path d="M12 4v12" /></svg>
+          } />
+          <HowStep num="02" tone="mint" title={lp.howStep2Title} body={lp.howStep2Body} delay="260ms" visual={<HowVisualScore lp={lp} />} icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M9 12l2 2 4-4" /></svg>
+          } />
+          <HowStep num="03" tone="cerulean" title={lp.howStep3Title} body={lp.howStep3Body} delay="360ms" visual={<HowVisualEvo lp={lp} />} icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 4 22 10 16 10" /><path d="M19.49 15a9 9 0 1 1-2.12-9.36L22 10" /></svg>
+          } />
+        </div>
+
+        <div className="lp-cta-row lp-how-cta-row lp-anim" style={{ '--anim-d': '420ms' }}>
+          <button type="button" onClick={onStart} className="lp-cta-primary">
+            {ctaPrimary}
+          </button>
+        </div>
+      </section>
 
       <div className="lp-divider" />
 
@@ -317,90 +331,53 @@ export default function LandingScreen({
         </>
       )}
 
-      {/* CE QUI NOUS REND DIFFÉRENTS — cards "stickers" :
-          - rotation subtile (-1° / +1° / -1.5° / +1.5°) pour casser le grid Excel
-          - numérotation 01-04 via CSS counter (mono amber dimmé)
-          - halo color déjà en place, intensifié au hover
-          - icônes conservées (David : "j'aime bien")
-          - stagger d'entrée via .lp-anim + --anim-d */}
-      <section className="lp-section">
-        <div className="lp-section-eyebrow lp-anim">{lp.diffEyebrow}</div>
+      {/* ILS L'ONT TESTÉ — verbatims issus des retours in-app (NPS 10).
+          Une à deux citations, jamais plus : la preuve sociale doit rester
+          vraie. Les noms sont des prénoms, avec accord des intéressés. */}
+      <section className="lp-section lp-section-proof">
+        <div className="lp-section-eyebrow lp-anim">{lp.proofEyebrow}</div>
         <h2 className="lp-section-title lp-anim" style={{ '--anim-d': '60ms' }}>
-          {lp.diffTitleStart} <em>{lp.diffTitleEm}</em>
+          {lp.proofTitleStart} <em>{lp.proofTitleEm}</em>
         </h2>
-
-        <div className="lp-diff-grid">
-          <article className="lp-diff-card lp-diff-amber lp-anim" style={{ '--anim-d': '160ms' }}>
-            <div className="lp-diff-icon" aria-hidden="true">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
-              </svg>
-            </div>
-            <h3 className="lp-diff-title">{lp.diffCard1Title}</h3>
-            <p className="lp-diff-body">{lp.diffCard1Body}</p>
-          </article>
-
-          <article className="lp-diff-card lp-diff-cerulean lp-anim" style={{ '--anim-d': '240ms' }}>
-            <div className="lp-diff-icon" aria-hidden="true">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-            </div>
-            <h3 className="lp-diff-title">{lp.diffCard2Title}</h3>
-            <p className="lp-diff-body">
-              {lp.diffCard2BodyBefore}<em>{lp.diffCard2BodyEm}</em>{lp.diffCard2BodyAfter}
-            </p>
-          </article>
-
-          <article className="lp-diff-card lp-diff-violet lp-anim" style={{ '--anim-d': '320ms' }}>
-            <div className="lp-diff-icon" aria-hidden="true">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-              </svg>
-            </div>
-            <h3 className="lp-diff-title">{lp.diffCard3Title}</h3>
-            <p className="lp-diff-body">{lp.diffCard3Body}</p>
-          </article>
-
-          <article className="lp-diff-card lp-diff-mint lp-anim" style={{ '--anim-d': '400ms' }}>
-            <div className="lp-diff-icon" aria-hidden="true">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12h4l3-9 4 18 3-9h4"/>
-              </svg>
-            </div>
-            <h3 className="lp-diff-title">{lp.diffCard4Title}</h3>
-            <p className="lp-diff-body">{lp.diffCard4Body}</p>
-          </article>
-
-          {/* Carte 5 — Collaboration (partage de fiches, rôles, commentaires).
-              Carte 6 — Écosystème site + plugin DAW. Ajoutées 2026-07-05 ;
-              le cycle de couleurs reprend amber/cerulean (rangée 3 = écho
-              de la rangée 1). */}
-          <article className="lp-diff-card lp-diff-cerulean lp-anim" style={{ '--anim-d': '480ms' }}>
-            <div className="lp-diff-icon" aria-hidden="true">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-            </div>
-            <h3 className="lp-diff-title">{lp.diffCard5Title}</h3>
-            <p className="lp-diff-body">{lp.diffCard5Body}</p>
-          </article>
-
-          <article className="lp-diff-card lp-diff-amber lp-anim" style={{ '--anim-d': '560ms' }}>
-            <div className="lp-diff-icon" aria-hidden="true">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                <path d="M6 4v16M12 4v16M18 4v16"/>
-                <path d="M3.8 14h4.4M9.8 8h4.4M15.8 16h4.4" strokeWidth="2.2"/>
-              </svg>
-            </div>
-            <h3 className="lp-diff-title">{lp.diffCard6Title}</h3>
-            <p className="lp-diff-body">{lp.diffCard6Body}</p>
-          </article>
+        <div className="lp-proof-grid">
+          {[1, 2].map((i) => {
+            const quote = lp[`proofQuote${i}`];
+            if (!quote) return null;
+            return (
+              <figure key={i} className="lp-proof-card lp-anim" style={{ '--anim-d': `${120 + i * 100}ms` }}>
+                <span className="lp-proof-mark" aria-hidden="true">“</span>
+                <blockquote className="lp-proof-quote">{quote}</blockquote>
+                <figcaption className="lp-proof-who">
+                  <span className="lp-proof-name">{lp[`proofWho${i}`]}</span>
+                  <span className="lp-proof-nps">{lp[`proofNps${i}`]}</span>
+                </figcaption>
+              </figure>
+            );
+          })}
         </div>
+      </section>
+
+      <div className="lp-divider" />
+
+      {/* TARIFS RÉSUMÉS — trois repères, les détails sur /pricing. Les
+          montants viennent de plans.js (source de vérité). */}
+      <section className="lp-section lp-section-prices">
+        <div className="lp-section-eyebrow lp-anim">{lp.priceEyebrow}</div>
+        <h2 className="lp-section-title lp-anim" style={{ '--anim-d': '60ms' }}>
+          {lp.priceTitleStart} <em>{lp.priceTitleEm}</em>
+        </h2>
+        <div className="lp-price-grid">
+          <PriceTile tone="amber" label={lp.price1Label} value={lp.price1Value} sub={lp.price1Sub} delay="160ms" />
+          <PriceTile tone="mint" label={packProjet?.label || lp.price2Label} value={fmtEur(packProjet?.price_eur)} sub={lp.price2Sub.replace('{n}', String(packProjet?.credits || 6))} delay="240ms" />
+          <PriceTile tone="cerulean" label={subSolo?.label || lp.price3Label} value={`${fmtEur(subSolo?.price_eur)} ${lp.perMonth}`} sub={lp.price3Sub.replace('{n}', String(subSolo?.monthly_credits || subSolo?.credits || 4))} delay="320ms" />
+        </div>
+        {onViewPricing && (
+          <div className="lp-cta-row lp-price-cta-row lp-anim" style={{ '--anim-d': '400ms' }}>
+            <button type="button" onClick={onViewPricing} className="lp-cta-secondary">
+              {lp.priceCta}
+            </button>
+          </div>
+        )}
       </section>
 
       <div className="lp-divider" />
@@ -492,6 +469,136 @@ export default function LandingScreen({
           </a>
         </p>
       </footer>
+    </div>
+  );
+}
+
+/**
+ * HeroFiche — la fiche en objet visuel (refonte 2026-11-06 bis) : anneau
+ * de score, pastille de verdict de sortie, six barres par élément. Pas de
+ * phrase : ça doit se lire en deux secondes. Données de /exemple
+ * (« Brûle » V2, 78/100). Cliquable → /exemple.
+ */
+function HeroFiche({ lp, onOpen }) {
+  const score = Number(lp.fcScore) || 0;
+  const r = 34;
+  const c = 2 * Math.PI * r;
+  const bars = [1, 2, 3, 4, 5, 6].map((i) => ({
+    label: lp[`fcBar${i}Label`],
+    value: Number(lp[`fcBar${i}Value`]) || 0,
+  }));
+  const Tag = onOpen ? 'button' : 'div';
+  return (
+    <Tag
+      type={onOpen ? 'button' : undefined}
+      className="lp-fiche"
+      onClick={onOpen || undefined}
+      aria-label={onOpen ? lp.ctaSample : undefined}
+    >
+      <div className="lp-fiche-head">
+        <div>
+          <div className="lp-fiche-eyebrow">{lp.fcEyebrow}</div>
+          <div className="lp-fiche-track">{lp.fcTrack} <span className="lp-fiche-version">{lp.fcVersion}</span></div>
+          <div className="lp-fiche-ready">
+            <span className="lp-fiche-ready-dot" aria-hidden="true" />
+            <span className="lp-fiche-ready-label">{lp.fcReadiness}</span>
+            <span className="lp-fiche-ready-sub">{lp.fcReadinessSub}</span>
+          </div>
+        </div>
+        <div className="lp-fiche-ring" aria-label={`${score} / 100`}>
+          <svg viewBox="0 0 84 84" width="92" height="92" aria-hidden="true">
+            <circle cx="42" cy="42" r={r} className="lp-fiche-ring-track" />
+            <circle
+              cx="42" cy="42" r={r}
+              className="lp-fiche-ring-bar"
+              style={{ strokeDasharray: c, strokeDashoffset: c * (1 - score / 100) }}
+            />
+          </svg>
+          <div className="lp-fiche-ring-inner">
+            <span className="lp-fiche-score-num">{score}</span>
+            <span className="lp-fiche-score-den">/100</span>
+          </div>
+        </div>
+      </div>
+
+      <ul className="lp-fiche-bars">
+        {bars.map((b, i) => (
+          <li key={i} className={`lp-fiche-bar${b.value < 72 ? ' is-low' : ''}`}>
+            <span className="lp-fiche-bar-label">{b.label}</span>
+            <span className="lp-fiche-bar-track"><span className="lp-fiche-bar-fill" style={{ width: `${b.value}%` }} /></span>
+            <span className="lp-fiche-bar-value">{b.value}</span>
+          </li>
+        ))}
+      </ul>
+    </Tag>
+  );
+}
+
+function HowStep({ num, tone, icon, title, body, delay, visual }) {
+  return (
+    <div className={`lp-how-step lp-how-${tone} lp-anim`} style={{ '--anim-d': delay }}>
+      <div className="lp-how-top">
+        <span className="lp-how-ico" aria-hidden="true">{icon}</span>
+        <span className="lp-how-num">{num}</span>
+      </div>
+      <h3 className="lp-how-title">{title}</h3>
+      <p className="lp-how-body">{body}</p>
+      {visual && <div className="lp-how-visual" aria-hidden="true">{visual}</div>}
+    </div>
+  );
+}
+
+/* Vignettes des 3 étapes — petits objets produit, pas de texte à lire. */
+function HowVisualDrop() {
+  const bars = [6, 12, 20, 14, 26, 18, 30, 22, 12, 16, 24, 10, 18, 8];
+  return (
+    <div className="lp-hv-drop">
+      <div className="lp-hv-wave">
+        {bars.map((h, i) => <span key={i} style={{ height: `${h}px` }} />)}
+      </div>
+      <span className="lp-hv-chip">mix.wav</span>
+    </div>
+  );
+}
+function HowVisualScore({ lp }) {
+  const rows = [
+    { label: lp.fcBar1Label, v: Number(lp.fcBar1Value) || 0 },
+    { label: lp.fcBar2Label, v: Number(lp.fcBar2Value) || 0 },
+    { label: lp.fcBar3Label, v: Number(lp.fcBar3Value) || 0 },
+  ];
+  return (
+    <div className="lp-hv-score">
+      <div className="lp-hv-score-num">{lp.fcScore}<span>/100</span></div>
+      <div className="lp-hv-score-bars">
+        {rows.map((r, i) => (
+          <div key={i} className={`lp-hv-row${r.v < 72 ? ' is-low' : ''}`}>
+            <span className="lp-hv-row-label">{r.label}</span>
+            <span className="lp-hv-row-track"><span style={{ width: `${r.v}%` }} /></span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+function HowVisualEvo({ lp }) {
+  return (
+    <div className="lp-hv-evo">
+      <span className="lp-hv-ver">V1 <b>71</b></span>
+      <span className="lp-hv-arrow">
+        <svg width="26" height="12" viewBox="0 0 26 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M1 6h22M18 1l5 5-5 5" /></svg>
+      </span>
+      <span className="lp-hv-ver is-now">V2 <b>{lp.fcScore}</b></span>
+      <span className="lp-hv-delta">+7</span>
+    </div>
+  );
+}
+
+function PriceTile({ tone, label, value, sub, delay }) {
+  return (
+    <div className={`lp-price-tile lp-price-${tone} lp-anim`} style={{ '--anim-d': delay }}>
+      <div className="lp-price-label">{label}</div>
+      <div className="lp-price-value">{value}</div>
+      <div className="lp-price-sub">{sub}</div>
     </div>
   );
 }
@@ -821,6 +928,269 @@ function LandingStyles() {
         border-color: var(--btn-border-hover, rgba(255,255,255,0.45));
         background: rgba(255,255,255,0.04);
       }
+
+      /* ── HERO SPLIT (refonte 2026-11-06) ──────────────────────
+         Deux colonnes : message à gauche (aligné à gauche), fiche
+         miniature à droite. En dessous de 900px la fiche passe sous
+         le message et tout revient centré. */
+      .lp-hero-inner.lp-hero-split {
+        max-width: 1080px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+        align-items: center;
+        gap: clamp(32px, 5vw, 64px);
+        text-align: left;
+      }
+      .lp-hero-split .lp-hero-copy {
+        display: flex; flex-direction: column; align-items: flex-start;
+        gap: 22px; min-width: 0;
+      }
+      .lp-hero-split .lp-slogan {
+        font-size: clamp(44px, 5.6vw, 76px);
+        letter-spacing: -2.4px;
+      }
+      .lp-hero-split .lp-hero-sub { max-width: 480px; }
+      .lp-cta-row-hero { justify-content: flex-start; margin-top: 4px; }
+      .lp-hero-link {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: transparent; border: none; padding: 10px 6px;
+        font-family: ${T.mono}; font-size: 11px; font-weight: 500;
+        letter-spacing: 1.6px; text-transform: uppercase;
+        color: ${T.textSoft}; cursor: pointer; transition: color .15s;
+      }
+      .lp-hero-link:hover { color: ${T.amber}; }
+      .lp-hero-note {
+        margin: -6px 0 0; font-family: ${T.body};
+        font-size: 12.5px; font-weight: 300; color: ${T.muted};
+      }
+
+      /* ── FICHE MINIATURE ──────────────────────────────────────
+         Vraie grammaire de la fiche : eyebrow mono, titre DM Sans,
+         score tabulaire ambre, verdict serif italique (seul usage
+         autorisé de l'italique), actions avec point de priorité
+         (haute = ambre, moyenne = cerulean). */
+      .lp-fiche {
+        position: relative; width: 100%; max-width: 480px;
+        justify-self: end;
+        text-align: left; cursor: pointer;
+        background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015)), ${T.s1};
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 18px;
+        padding: 22px 24px 18px;
+        box-shadow: 0 30px 70px -40px rgba(0,0,0,0.8);
+        transform: rotate(-0.6deg);
+        transition: transform .3s cubic-bezier(.2,.7,.3,1), border-color .25s, box-shadow .25s;
+        animation: fadeup .6s ease .1s both;
+        font-family: ${T.body}; color: ${T.text};
+      }
+      .lp-fiche:hover {
+        transform: rotate(0deg) translateY(-3px);
+        border-color: rgba(245,166,35,0.35);
+        box-shadow: 0 36px 80px -40px rgba(0,0,0,0.85);
+      }
+      .lp-fiche::before {
+        content: ''; position: absolute; pointer-events: none;
+        top: -40px; right: -30px; width: 200px; height: 200px; border-radius: 50%;
+        background: ${T.amber}; filter: blur(90px); opacity: 0.14;
+      }
+      .lp-fiche > * { position: relative; }
+      .lp-fiche-head {
+        display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;
+      }
+      .lp-fiche-eyebrow {
+        font-family: ${T.mono}; font-size: 9.5px; letter-spacing: 2px;
+        text-transform: uppercase; color: ${T.amber}; margin-bottom: 6px;
+      }
+      .lp-fiche-track { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+      .lp-fiche-version {
+        display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px;
+        font-family: ${T.mono}; font-size: 9.5px; letter-spacing: 1.4px; font-weight: 500;
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+        color: ${T.textSoft}; vertical-align: middle;
+      }
+      .lp-fiche-ready {
+        display: inline-flex; align-items: center; flex-wrap: wrap; gap: 8px;
+        margin-top: 14px; padding: 8px 12px; border-radius: 999px;
+        background: rgba(245,166,35,0.08); border: 1px solid rgba(245,166,35,0.24);
+      }
+      .lp-fiche-ready-dot { width: 7px; height: 7px; border-radius: 50%; background: ${T.amber}; }
+      .lp-fiche-ready-label { font-family: ${T.mono}; font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: ${T.amber}; font-weight: 500; }
+      .lp-fiche-ready-sub { font-size: 12px; font-weight: 300; color: ${T.textSoft}; }
+      /* Anneau de score — même recette que l'anneau de l'écran d'analyse */
+      .lp-fiche-ring { position: relative; width: 92px; height: 92px; flex-shrink: 0; }
+      .lp-fiche-ring svg { transform: rotate(-90deg); display: block; }
+      .lp-fiche-ring-track { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 6; }
+      .lp-fiche-ring-bar {
+        fill: none; stroke: ${T.amber}; stroke-width: 6; stroke-linecap: round;
+        transition: stroke-dashoffset 1.2s cubic-bezier(.2,.7,.3,1);
+      }
+      .lp-fiche-ring-inner {
+        position: absolute; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 0;
+        font-variant-numeric: tabular-nums;
+      }
+      .lp-fiche-score-num { font-size: 28px; font-weight: 700; letter-spacing: -1px; color: ${T.text}; line-height: 1; }
+      .lp-fiche-score-den { font-family: ${T.mono}; font-size: 8.5px; color: ${T.muted}; letter-spacing: 1px; margin-top: 3px; }
+      /* Six barres par élément — ambre = à travailler (< 72), mint = sain */
+      .lp-fiche-bars { list-style: none; margin: 22px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+      .lp-fiche-bar { display: grid; grid-template-columns: 92px 1fr 28px; align-items: center; gap: 12px; }
+      .lp-fiche-bar-label { font-family: ${T.mono}; font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase; color: ${T.textSoft}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .lp-fiche-bar-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.07); overflow: hidden; }
+      .lp-fiche-bar-fill { display: block; height: 100%; border-radius: 999px; background: ${T.mint}; }
+      .lp-fiche-bar.is-low .lp-fiche-bar-fill { background: ${T.amber}; }
+      .lp-fiche-bar-value { font-family: ${T.mono}; font-size: 10.5px; color: ${T.textSoft}; text-align: right; font-variant-numeric: tabular-nums; }
+      .lp-fiche-bar.is-low .lp-fiche-bar-value { color: ${T.amber}; }
+      @media (max-width: 900px) {
+        .lp-hero-inner.lp-hero-split {
+          grid-template-columns: 1fr; text-align: center; gap: 36px;
+        }
+        .lp-hero-split .lp-hero-copy { align-items: center; }
+        .lp-hero-split .lp-slogan { font-size: clamp(44px, 9vw, 72px); }
+        .lp-cta-row-hero { justify-content: center; }
+        .lp-fiche { justify-self: center; transform: none; }
+        .lp-fiche:hover { transform: translateY(-3px); }
+      }
+      @media (max-width: 480px) {
+        .lp-fiche { padding: 18px 16px 16px; }
+        .lp-fiche-bar { grid-template-columns: 78px 1fr 26px; gap: 10px; }
+      }
+
+      /* ── COMMENT ÇA MARCHE ────────────────────────────────── */
+      .lp-how-grid {
+        margin-top: clamp(40px, 6vw, 60px);
+        display: grid; gap: 20px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .lp-how-step {
+        position: relative; overflow: hidden;
+        padding: 26px 24px;
+        background: ${T.s1}; border: 1px solid ${T.border}; border-radius: 16px;
+        display: flex; flex-direction: column; gap: 12px;
+      }
+      .lp-how-step::before {
+        content: ''; position: absolute; pointer-events: none;
+        top: -40px; right: -40px; width: 160px; height: 160px; border-radius: 50%;
+        filter: blur(60px); opacity: .18;
+      }
+      .lp-how-amber::before    { background: ${T.amber}; }
+      .lp-how-mint::before     { background: ${T.mint}; }
+      .lp-how-cerulean::before { background: ${T.cerulean}; }
+      .lp-how-step > * { position: relative; }
+      .lp-how-top { display: flex; align-items: center; justify-content: space-between; }
+      .lp-how-ico {
+        display: inline-flex; width: 40px; height: 40px; border-radius: 12px;
+        align-items: center; justify-content: center;
+      }
+      .lp-how-amber    .lp-how-ico { background: rgba(245,166,35,0.10); border: 1px solid rgba(245,166,35,0.30); color: ${T.amber}; }
+      .lp-how-mint     .lp-how-ico { background: rgba(142,224,122,0.10); border: 1px solid rgba(142,224,122,0.30); color: ${T.mint}; }
+      .lp-how-cerulean .lp-how-ico { background: rgba(92,184,204,0.10); border: 1px solid rgba(92,184,204,0.30); color: ${T.cerulean}; }
+      .lp-how-num { font-family: ${T.mono}; font-size: 11px; letter-spacing: 2px; color: ${T.muted}; }
+      .lp-how-title { margin: 4px 0 0; font-family: ${T.body}; font-size: 17px; font-weight: 600; letter-spacing: -0.2px; color: ${T.text}; }
+      .lp-how-body { margin: 0; font-family: ${T.body}; font-size: 14px; font-weight: 300; line-height: 1.6; color: ${T.textSoft}; }
+      .lp-how-cta-row { margin-top: 32px; }
+      /* Vignettes — calées en bas de carte, même hauteur partout */
+      .lp-how-visual {
+        margin-top: auto; padding-top: 16px;
+        display: flex; align-items: center; min-height: 86px;
+      }
+      .lp-hv-drop {
+        width: 100%; display: flex; align-items: center; gap: 12px;
+        padding: 12px 14px; border-radius: 12px;
+        border: 1.5px dashed rgba(245,166,35,0.45);
+        background: rgba(245,166,35,0.05);
+      }
+      .lp-hv-wave { flex: 1; display: flex; align-items: center; gap: 3px; height: 32px; }
+      .lp-hv-wave span { flex: 1; border-radius: 2px; background: ${T.amber}; opacity: .8; }
+      .lp-hv-chip {
+        font-family: ${T.mono}; font-size: 9.5px; letter-spacing: 1.2px; text-transform: uppercase;
+        padding: 4px 9px; border-radius: 999px;
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: ${T.textSoft};
+      }
+      .lp-hv-score {
+        width: 100%; display: flex; align-items: center; gap: 16px;
+        padding: 12px 14px; border-radius: 12px;
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      }
+      .lp-hv-score-num {
+        font-family: ${T.body}; font-size: 30px; font-weight: 700; letter-spacing: -1px;
+        color: ${T.amber}; line-height: 1; font-variant-numeric: tabular-nums;
+      }
+      .lp-hv-score-num span { font-family: ${T.mono}; font-size: 9px; letter-spacing: 1px; color: ${T.muted}; margin-left: 3px; }
+      .lp-hv-score-bars { flex: 1; display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+      .lp-hv-row { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 8px; }
+      .lp-hv-row-label { font-family: ${T.mono}; font-size: 8.5px; letter-spacing: 1.1px; text-transform: uppercase; color: ${T.textSoft}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .lp-hv-row-track { height: 5px; border-radius: 999px; background: rgba(255,255,255,0.07); overflow: hidden; }
+      .lp-hv-row-track span { display: block; height: 100%; border-radius: 999px; background: ${T.mint}; }
+      .lp-hv-row.is-low .lp-hv-row-track span { background: ${T.amber}; }
+      .lp-hv-evo {
+        width: 100%; display: flex; align-items: center; justify-content: center; gap: 12px;
+        padding: 14px; border-radius: 12px;
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      }
+      .lp-hv-ver {
+        font-family: ${T.mono}; font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase;
+        color: ${T.muted}; padding: 7px 11px; border-radius: 999px;
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10);
+        display: inline-flex; align-items: baseline; gap: 6px;
+      }
+      .lp-hv-ver b { font-family: ${T.body}; font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: ${T.textSoft}; }
+      .lp-hv-ver.is-now { border-color: rgba(92,184,204,0.45); background: rgba(92,184,204,0.10); color: ${T.cerulean}; }
+      .lp-hv-ver.is-now b { color: ${T.text}; }
+      .lp-hv-arrow { color: ${T.muted}; display: inline-flex; }
+      .lp-hv-delta {
+        font-family: ${T.mono}; font-size: 10.5px; font-weight: 600; letter-spacing: 1px;
+        color: ${T.mint}; padding: 5px 9px; border-radius: 999px;
+        background: rgba(142,224,122,0.10); border: 1px solid rgba(142,224,122,0.30);
+      }
+
+      /* ── PREUVE (verbatims) ───────────────────────────────── */
+      .lp-proof-grid {
+        margin-top: clamp(36px, 5vw, 52px);
+        display: grid; gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        max-width: 880px; margin-left: auto; margin-right: auto;
+      }
+      .lp-proof-card {
+        position: relative; margin: 0;
+        padding: 28px 28px 22px;
+        background: ${T.s1}; border: 1px solid ${T.border}; border-radius: 16px;
+      }
+      .lp-proof-mark {
+        position: absolute; top: 10px; left: 18px;
+        font-family: ${T.serif}; font-size: 64px; line-height: 1;
+        color: ${T.amber}; opacity: .35;
+      }
+      .lp-proof-quote {
+        margin: 12px 0 0; font-family: ${T.body};
+        font-size: 16px; font-weight: 400; line-height: 1.55; color: ${T.text};
+      }
+      .lp-proof-who { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }
+      .lp-proof-name { font-family: ${T.body}; font-size: 13px; font-weight: 500; color: ${T.textSoft}; }
+      .lp-proof-nps {
+        font-family: ${T.mono}; font-size: 9.5px; letter-spacing: 1.4px; text-transform: uppercase;
+        padding: 4px 9px; border-radius: 999px;
+        background: rgba(142,224,122,0.10); border: 1px solid rgba(142,224,122,0.30); color: ${T.mint};
+      }
+
+      /* ── TARIFS RÉSUMÉS ───────────────────────────────────── */
+      .lp-price-grid {
+        margin-top: clamp(36px, 5vw, 52px);
+        display: grid; gap: 18px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        max-width: 920px; margin-left: auto; margin-right: auto;
+      }
+      .lp-price-tile {
+        padding: 22px 22px 20px; text-align: center;
+        background: ${T.s1}; border: 1px solid ${T.border}; border-radius: 16px;
+        display: flex; flex-direction: column; gap: 8px;
+      }
+      .lp-price-label { font-family: ${T.mono}; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+      .lp-price-amber    .lp-price-label { color: ${T.amber}; }
+      .lp-price-mint     .lp-price-label { color: ${T.mint}; }
+      .lp-price-cerulean .lp-price-label { color: ${T.cerulean}; }
+      .lp-price-value { font-family: ${T.body}; font-size: 26px; font-weight: 700; letter-spacing: -0.6px; color: ${T.text}; font-variant-numeric: tabular-nums; }
+      .lp-price-sub { font-family: ${T.body}; font-size: 13px; font-weight: 300; line-height: 1.5; color: ${T.textSoft}; }
+      .lp-price-cta-row { margin-top: 28px; }
 
       /* ── DIVIDERS ─────────────────────────────────── */
       .lp-divider {
@@ -1344,6 +1714,8 @@ function LandingStyles() {
       /* ── RESPONSIVE ───────────────────────────────── */
       @media (max-width: 768px) {
         .lp-diff-grid { grid-template-columns: 1fr; }
+        .lp-how-grid { grid-template-columns: 1fr; }
+        .lp-price-grid { grid-template-columns: 1fr; max-width: 420px; }
         .lp-axes-grid { grid-template-columns: 1fr; }
         .lp-nope-grid { grid-template-columns: 1fr; }
         .lp-plug-grid { grid-template-columns: 1fr; gap: 28px; }
