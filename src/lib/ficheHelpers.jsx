@@ -55,18 +55,27 @@ export function computeReleaseReadiness(fiche, completedItems = new Set()) {
 
   const uncompletedHigh = itemBlockers.length;
 
+  // Seuils (recalibrés 2026-11-06, audit) — alignés sur l'échelle des paliers
+  // du score band (65+ = « Niveau pro ») pour ne plus afficher « Pas encore »
+  // sur un mix à 75-79 sans bloquant :
+  //   - not-yet : score < 65, OU au moins 3 priorités hautes non traitées
+  //               (bloquants mesurés par le diagnostic).
+  //   - almost  : zone neutre 65-79 avec ≤ 2 hautes, ou ≥ 80 avec 1-2 hautes.
+  //   - ready   : ≥ 80 et aucune haute non traitée.
+  // Avant : not-yet dès que score < 70 → 78/100 « Niveau pro » sortait en
+  // « Pas encore », deux échelles qui se contredisaient au premier regard.
   const blockers = [];
-  if (score != null && score < 70) {
+  if (score != null && score < 65) {
     blockers.push({
       kind: 'score',
-      text: `Score global ${score}/100 — viser ≥ 80 pour une sortie sereine.`,
+      text: `Score global ${score}/100 — viser ≥ 65 pour passer en « presque prêt », ≥ 80 pour une sortie sereine.`,
     });
   }
   blockers.push(...itemBlockers);
 
   let tier;
   if (score != null && score >= 80 && uncompletedHigh === 0) tier = 'ready';
-  else if (score != null && score >= 70 && uncompletedHigh <= 2) tier = 'almost';
+  else if (score != null && score >= 65 && uncompletedHigh <= 2) tier = 'almost';
   else tier = 'not-yet';
 
   return { tier, score, blockers, totalHigh, uncompletedHigh };
