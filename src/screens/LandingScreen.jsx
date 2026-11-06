@@ -349,7 +349,7 @@ export default function LandingScreen({
                 <blockquote className="lp-proof-quote">{quote}</blockquote>
                 <figcaption className="lp-proof-who">
                   <span className="lp-proof-name">{lp[`proofWho${i}`]}</span>
-                  <span className="lp-proof-nps">{lp[`proofNps${i}`]}</span>
+                  {lp[`proofNps${i}`] ? <span className="lp-proof-nps">{lp[`proofNps${i}`]}</span> : null}
                 </figcaption>
               </figure>
             );
