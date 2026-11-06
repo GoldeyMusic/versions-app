@@ -1090,9 +1090,10 @@ function LandingStyles() {
       .lp-how-cta-row { margin-top: 32px; }
       /* Vignettes — calées en bas de carte, même hauteur partout */
       .lp-how-visual {
-        margin-top: auto; padding-top: 16px;
-        display: flex; align-items: center; min-height: 86px;
+        margin-top: auto; padding-top: 18px;
+        display: flex; align-items: center;
       }
+      .lp-how-visual > * { min-height: 66px; box-sizing: border-box; }
       .lp-hv-drop {
         width: 100%; display: flex; align-items: center; gap: 12px;
         padding: 12px 14px; border-radius: 12px;
