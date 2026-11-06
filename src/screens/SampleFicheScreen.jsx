@@ -244,7 +244,7 @@ const SAMPLE_DATA = {
             {
               id: 'lufs-1',
               section: 'MASTER & LOUDNESS',
-              priority: 'high',
+              priority: 'med',
               score: 70,
               title: 'Refrain pas assez libéré',
               why: "Le refrain reste presque au même niveau perceptif que les couplets. À l'oreille, il ne s'élève pas — il reste en intériorité, ce qui dessert le contraste émotionnel.",
@@ -254,7 +254,7 @@ const SAMPLE_DATA = {
             {
               id: 'lufs-2',
               section: 'MASTER & LOUDNESS',
-              priority: 'high',
+              priority: 'med',
               score: 70,
               title: 'Loudness en dessous des plateformes',
               why: 'Le master est un peu en dessous de la cible streaming. Sur Spotify et Apple Music le titre paraîtra moins présent que les morceaux avoisinants en playlist.',
@@ -401,8 +401,8 @@ const SAMPLE_DATA_EN = {
         {
           id: 'lufs', cat: 'MASTER & LOUDNESS', icon: 'lufs',
           items: [
-            { id: 'lufs-1', section: 'MASTER & LOUDNESS', priority: 'high', score: 70, title: 'Chorus not lifted enough', why: "The chorus stays at almost the same perceived level as the verses. To the ear, it does not lift — staying introspective, which undermines the emotional contrast.", how: 'Reduce master bus compression during choruses: ratio 1.5:1 max, GR ≤ 1 dB. Boost the drums bus by +1.5 dB on the chorus via automation.', plugin_pick: 'API 2500 (Waves)' },
-            { id: 'lufs-2', section: 'MASTER & LOUDNESS', priority: 'high', score: 70, title: 'Loudness below platform targets', why: 'The master is a bit below streaming target. On Spotify and Apple Music, the track will feel less present than neighboring tracks in playlists.', how: 'Raise the master bus by +2 dB. Verify peaks do not cross the anti-saturation limit (ceiling -1 dBTP at the end of the master chain).', plugin_pick: 'FabFilter Pro-L 2' },
+            { id: 'lufs-1', section: 'MASTER & LOUDNESS', priority: 'med', score: 70, title: 'Chorus not lifted enough', why: "The chorus stays at almost the same perceived level as the verses. To the ear, it does not lift — staying introspective, which undermines the emotional contrast.", how: 'Reduce master bus compression during choruses: ratio 1.5:1 max, GR ≤ 1 dB. Boost the drums bus by +1.5 dB on the chorus via automation.', plugin_pick: 'API 2500 (Waves)' },
+            { id: 'lufs-2', section: 'MASTER & LOUDNESS', priority: 'med', score: 70, title: 'Loudness below platform targets', why: 'The master is a bit below streaming target. On Spotify and Apple Music, the track will feel less present than neighboring tracks in playlists.', how: 'Raise the master bus by +2 dB. Verify peaks do not cross the anti-saturation limit (ceiling -1 dBTP at the end of the master chain).', plugin_pick: 'FabFilter Pro-L 2' },
             { id: 'lufs-3', section: 'MASTER & LOUDNESS', priority: 'low', score: 78, title: 'Dynamics preserved', why: 'The track still breathes — master compression has not crushed the nuances. We stay in the "musical" zone rather than "squashed".', how: 'RAS — monitor at mastering not to over-compress the master bus.', plugin_pick: 'iZotope Insight 2 (monitoring)' },
           ],
         },
