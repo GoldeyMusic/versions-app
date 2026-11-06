@@ -33,12 +33,13 @@ import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
 // Les anciens variants amber/violet/rose restent dans le CSS — au cas où on
 // réintroduirait des packs plus tard, et parce qu'ils ne coûtent rien.
 const PACK_ACCENT = {
+  pack_6: 'mint',       // Pack Projet (featured)
   pack_1: 'cerulean',
-  pack_5: 'mint',
 };
 const SUB_ACCENT = {
-  sub_indie: 'cerulean',
-  sub_pro: 'amber',     // featured
+  sub_solo: 'mint',
+  sub_indie: 'amber',   // featured (recommandé) depuis la grille 2026-11-06
+  sub_pro: 'cerulean',
 };
 
 export default function PricingScreen({
@@ -254,7 +255,7 @@ export default function PricingScreen({
         <div className="pr-subs-grid">
           {SUBSCRIPTIONS.map((sub, i) => {
             const accent = SUB_ACCENT[sub.key] || 'cerulean';
-            const isFeatured = sub.key === 'sub_pro';
+            const isFeatured = sub.key === 'sub_indie';
             const isPending = pendingKey === sub.key;
             // Description traduite si dispo, sinon fallback sur la copy
             // FR de plans.js (sécurité : aucun écran cassé si une clé manque).
@@ -812,17 +813,18 @@ function PricingStyles() {
          Pro au centre est featured (scale 1.06, halo amber plus fort),
          Indie + École légèrement décalées et inclinées (-1° / +1°)
          pour casser l'alignement parfait Excel-style. */
+      /* Grille 2026-11-06 : Solo · Indie (recommandé) · Pro · École = 4 cartes. */
       .pr-subs-grid {
         margin-top: clamp(40px, 5vw, 64px);
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 28px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 22px;
         align-items: center;
-        max-width: 880px;
+        max-width: 1120px;
         margin-left: auto;
         margin-right: auto;
       }
-      @media (max-width: 880px) { .pr-subs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 22px; max-width: 600px; } }
+      @media (max-width: 1080px) { .pr-subs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 22px; max-width: 600px; } }
       @media (max-width: 560px) { .pr-subs-grid { grid-template-columns: 1fr; gap: 18px; max-width: 360px; } }
 
       .pr-sub {
@@ -878,6 +880,7 @@ function PricingStyles() {
       }
       .pr-sub > * { position: relative; z-index: 1; }
       .pr-sub-cerulean::before { background: radial-gradient(circle, rgba(92,184,204,0.55), transparent 70%); }
+      .pr-sub-mint::before     { background: radial-gradient(circle, rgba(142,224,122,0.55), transparent 70%); }
       .pr-sub-amber::before    { background: radial-gradient(circle, rgba(245,166,35,0.65), transparent 70%); }
       .pr-sub-violet::before   { background: radial-gradient(circle, rgba(166,126,245,0.55), transparent 70%); }
       /* Pro card glow plus marqué — déjà casté via box-shadow dans .pr-sub-featured */

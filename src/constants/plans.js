@@ -2,8 +2,10 @@
  * plans.js — catalogue des offres Versions.
  *
  * Source de vérité pour la page /pricing et le mapping vers Stripe :
- *   - 5 packs one-shot (sans expiration)
- *   - 2 abonnements mensuels (crédits cumulables tant que l'abo est actif)
+ *   - 2 packs one-shot à vie (Pack Projet 6, Pack 1)
+ *   - 3 abonnements mensuels Solo / Indie / Pro (crédits cumulables tant que
+ *     l'abo est actif ; à la résiliation, solde converti en crédits de grâce
+ *     valables 90 jours ; pause possible)
  *   - 1 formule École "sur devis" (pas de Stripe, mailto)
  *
  * Les Price IDs Stripe ne sont PAS hardcodés ici : ils arrivent via les
@@ -25,6 +27,19 @@
 // Positionnement : Pack 1 = essai. Pack 5 = occasionnel sans engagement.
 // Au-delà → l'abo est la formule. Cf. project_versions_stripe.md.
 export const PACKS = [
+  // Grille 2026-11-06 (audit) : le Pack Projet remplace le Pack 5 (19,99 €).
+  // 6 analyses = un EP ou un titre poussé jusqu'au master, sans abonnement.
+  // Crédits à vie, cumulables avec un abo (débit abo → grâce → pack).
+  {
+    key: 'pack_6',
+    label: 'Pack Projet',
+    price_eur: 14.99,
+    credits: 6,
+    perUnit: 2.5,
+    priceIdEnv: 'VITE_STRIPE_PRICE_PACK_6',
+    highlightKey: 'mostChosen',
+  },
+  // Pack 1 : « une analyse de plus », pas une offre principale.
   {
     key: 'pack_1',
     label: '1 analyse',
@@ -32,20 +47,23 @@ export const PACKS = [
     credits: 1,
     perUnit: 4.99,
     priceIdEnv: 'VITE_STRIPE_PRICE_PACK_1',
-    highlight: null,
-  },
-  {
-    key: 'pack_5',
-    label: '5 analyses',
-    price_eur: 19.99,
-    credits: 5,
-    perUnit: 3.99,
-    priceIdEnv: 'VITE_STRIPE_PRICE_PACK_5',
-    highlight: null,
+    highlightKey: null,
   },
 ];
 
 export const SUBSCRIPTIONS = [
+  // Solo (2026-11-06) : palier d'entrée sous 10 €, pour le producteur qui
+  // sort un titre par mois. Plugin express + chat illimités inclus comme
+  // pour Indie/Pro (monthly_grant > 0).
+  {
+    key: 'sub_solo',
+    label: 'Solo',
+    price_eur: 6.99,
+    credits: 4,         // monthly_grant
+    perUnit: 1.75,
+    priceIdEnv: 'VITE_STRIPE_PRICE_SUB_SOLO',
+    description: '4 analyses par mois, cumulables tant que ton abonnement est actif. Pour sortir un titre par mois.',
+  },
   {
     key: 'sub_indie',
     label: 'Indie',
@@ -53,7 +71,7 @@ export const SUBSCRIPTIONS = [
     credits: 12,        // monthly_grant
     perUnit: 1.24,
     priceIdEnv: 'VITE_STRIPE_PRICE_SUB_INDIE',
-    description: '12 analyses par mois, cumulables tant que ton abonnement est actif.',
+    description: '12 analyses par mois, cumulables tant que ton abonnement est actif. Pause possible entre deux projets.',
   },
   {
     key: 'sub_pro',
@@ -62,7 +80,7 @@ export const SUBSCRIPTIONS = [
     credits: 30,
     perUnit: 0.99,
     priceIdEnv: 'VITE_STRIPE_PRICE_SUB_PRO',
-    description: '30 analyses par mois, cumulables tant que ton abonnement est actif. Pour artistes en cycle de production.',
+    description: '30 analyses par mois, cumulables. Pour ceux qui mixent pour d\'autres : fiches partagées, commentaires, liens publics.',
   },
 ];
 

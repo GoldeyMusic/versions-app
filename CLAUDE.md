@@ -173,6 +173,23 @@ Les paliers 1-3 sont devenus des filets de sécurité redondants une fois le pal
 - Strings `scoreBand*` (FR + EN). Aria-label dédié + `aria-current="true"` sur le palier actif pour les lecteurs d'écran.
 - Bénéficie aux 3 écrans qui montent le banner : `FicheScreen`, `SampleFicheScreen`, `PublicFicheScreen` — pas de modif côté caller.
 
+## Livré 2026-11-06 — semaine 1 de l'audit + grille tarifaire
+
+- Routes publiques `/pricing` `/tarifs` `/plugin` (App.jsx `isPublicRoute`).
+- Seed signup 2 crédits (migration 055) + bandeau `NextVersionNudge` en fin
+  de fiche V1 (FicheScreen, prop `creditsBalance` depuis App.jsx).
+- Verdict : seuils dans `ficheHelpers.jsx::computeReleaseReadiness` (not-yet
+  < 65 ou ≥ 3 hautes ; almost 65-79 ; ready ≥ 80 sans haute) ; démo
+  `/exemple` à 2 hautes.
+- Emails d'activation (backend `lifecycle`, table migration 056).
+- **Grille tarifaire** : `plans.js` = Solo 6,99/4 · Indie 14,99/12
+  (featured) · Pro 29,99/30 ; Pack Projet 6/14,99 (featured) + Pack 1.
+  PricingScreen : grille abos 4 colonnes (Solo/Indie/Pro/École), accents
+  `SUB_ACCENT`/`PACK_ACCENT`. Réglages : ligne Pause/Reprendre (statut via
+  `GET /api/billing/subscription`), message de résiliation « grâce 90 j ».
+  Migration 057 (grâce) côté `supabase/migrations/`. Env Vercel à ajouter :
+  `VITE_STRIPE_PRICE_PACK_6`, `VITE_STRIPE_PRICE_SUB_SOLO`.
+
 ## Livré récemment (mai 2026)
 
 Snapshot des chantiers fermés sur la sprint en cours — pour comprendre vite ce qui a bougé sans relire les commits.

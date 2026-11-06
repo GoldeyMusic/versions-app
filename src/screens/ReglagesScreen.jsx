@@ -59,6 +59,27 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
   //   monthly_grant       : taille du grant mensuel (>0 = abonné)
   //   monthly_renews_at   : date du prochain renew
   const [creditsRow, setCreditsRow] = useState(null);
+  // Statut Stripe de l'abonnement (tarifs 2026-11-06) : pause / reprise.
+  // GET /api/billing/subscription (Bearer). null = inconnu (pas d'abo ou
+  // réseau KO) → on n'affiche que la résiliation historique.
+  const [subStatus, setSubStatus] = useState(null);
+  const refreshSubStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return;
+      const res = await fetch(`${API}/api/billing/subscription`, { headers: { Authorization: `Bearer ${token}` } });
+      const payload = await res.json().catch(() => null);
+      setSubStatus(res.ok && payload?.ok ? payload : null);
+    } catch (e) {
+      console.warn('[reglages] subscription status failed:', e?.message || e);
+    }
+  };
+  useEffect(() => {
+    if (!user?.id) { setSubStatus(null); return; }
+    refreshSubStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
   useEffect(() => {
     if (!user?.id) { setCreditsRow(null); return; }
     let cancelled = false;
@@ -211,7 +232,7 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
   const handleCancelSubscription = async () => {
     const ok = await confirmDialog({
       title: s.reglages.cancelSubModalTitle,
-      message: s.reglages.cancelSubModalMessage,
+      message: s.reglages.cancelSubModalMessageGrace || s.reglages.cancelSubModalMessage,
       confirmLabel: s.reglages.cancelSubModalConfirm,
       cancelLabel: s.common.cancel,
     });
@@ -282,6 +303,76 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
     } catch (e) {
       console.warn('[reglages] cancel-subscription threw:', e?.message || e);
       fallbackToMailto();
+    }
+  };
+
+  // ── Pause / reprise d'abonnement (tarifs 2026-11-06) ──────────
+  // POST /api/billing/pause-subscription → Stripe pause_collection 'void'
+  // (plus de prélèvement ni de crédits mensuels, crédits existants conservés).
+  // POST /api/billing/resume-subscription → lève la pause, facturation au
+  // prochain cycle. Aucune écriture DB côté front.
+  const callBilling = async (path) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error('no_session');
+    const res = await fetch(`${API}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+    });
+    const payload = await res.json().catch(() => ({}));
+    return { res, payload };
+  };
+
+  const handlePauseSubscription = async () => {
+    const ok = await confirmDialog({
+      title: s.reglages.pauseSubModalTitle,
+      message: s.reglages.pauseSubModalMessage,
+      confirmLabel: s.reglages.pauseSubModalConfirm,
+      cancelLabel: s.common.cancel,
+    });
+    if (ok !== 'confirm') return;
+    try {
+      const { res, payload } = await callBilling('/api/billing/pause-subscription');
+      if (res.ok && payload?.ok && payload.paused) {
+        setSubStatus(payload);
+        await confirmDialog({
+          title: s.reglages.pauseSubSuccessTitle,
+          message: s.reglages.pauseSubSuccessMessage,
+          confirmLabel: s.common.ok,
+          cancelLabel: '',
+        });
+        return;
+      }
+      console.warn('[reglages] pause-subscription returned non-ok:', payload);
+    } catch (e) {
+      console.warn('[reglages] pause-subscription threw:', e?.message || e);
+    }
+  };
+
+  const handleResumeSubscription = async () => {
+    const ok = await confirmDialog({
+      title: s.reglages.resumeSubModalTitle,
+      message: s.reglages.resumeSubModalMessage,
+      confirmLabel: s.reglages.resumeSubModalConfirm,
+      cancelLabel: s.common.cancel,
+    });
+    if (ok !== 'confirm') return;
+    try {
+      const { res, payload } = await callBilling('/api/billing/resume-subscription');
+      if (res.ok && payload?.ok && !payload.paused) {
+        setSubStatus(payload);
+        await confirmDialog({
+          title: s.reglages.resumeSubSuccessTitle,
+          message: s.reglages.resumeSubSuccessMessage,
+          confirmLabel: s.common.ok,
+          cancelLabel: '',
+        });
+        return;
+      }
+      console.warn('[reglages] resume-subscription returned non-ok:', payload);
+    } catch (e) {
+      console.warn('[reglages] resume-subscription threw:', e?.message || e);
     }
   };
 
@@ -514,6 +605,25 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
                     <span>{s.reglages.buyCreditsCta || (isSubscribed ? 'Gérer mon abonnement' : 'Acheter des crédits')}</span>
                   </button>
                 </div>
+
+                {/* Pause / reprise (tarifs 2026-11-06) — seulement si le
+                    statut Stripe est connu et l'abo n'est pas déjà en
+                    cours de résiliation. */}
+                {isSubscribed && subStatus?.active && !subStatus.cancelAtPeriodEnd && (
+                  <div className="rg-row">
+                    <div>
+                      <div className="rg-label">{s.reglages.pauseSubLabel}</div>
+                      <div className="rg-hint">{subStatus.paused ? s.reglages.resumeSubHint : s.reglages.pauseSubHint}</div>
+                    </div>
+                    <button
+                      type="button"
+                      className="rg-btn"
+                      onClick={subStatus.paused ? handleResumeSubscription : handlePauseSubscription}
+                    >
+                      {subStatus.paused ? s.reglages.resumeSubBtn : s.reglages.pauseSubBtn}
+                    </button>
+                  </div>
+                )}
 
                 {/* Résilier l'abonnement — visible seulement si l'user est
                     abonné. Modale d'explication + mailto contact pré-rempli. */}
