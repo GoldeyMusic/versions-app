@@ -3384,7 +3384,11 @@ function VersionsAppAuthed() {
       const p = window.location.pathname;
       // Routes publiques accessibles aux visiteurs : on les laisse intactes
       // pour ne pas casser un deep-link landing/sample/privacy/terms.
-      const isPublicRoute = p === '/home' || p === '/exemple' || p === '/sample-report' || p === '/privacy' || p === '/terms';
+      // /pricing, /tarifs et /plugin sont des pages publiques "retournables"
+      // (cf. goAuth → vs_return_to) : sans elles ici, un visiteur arrivant par
+      // lien direct (pub, bio, newsletter) était renvoyé sur `/` (audit 2026-11-05).
+      const isPublicRoute = p === '/home' || p === '/exemple' || p === '/sample-report' || p === '/privacy' || p === '/terms'
+        || p === '/pricing' || p === '/tarifs' || p === '/plugin';
       // /auth/callback : on laisse Supabase finir d'échanger le code, le
       // useEffect ci-dessous redirigera dès que `user` sera hydraté.
       const isAuthCallback = p === '/auth/callback';
@@ -3408,6 +3412,8 @@ function VersionsAppAuthed() {
       if (p === '/exemple' || p === '/sample-report') targetScreen = 'sample';
       else if (p === '/privacy') targetScreen = 'privacy';
       else if (p === '/terms') targetScreen = 'terms';
+      else if (p === '/pricing' || p === '/tarifs') targetScreen = 'pricing';
+      else if (p === '/plugin') targetScreen = 'plugin';
       if (screen !== targetScreen) {
         isHashSyncRef.current = true;
         setScreen(targetScreen);
@@ -4749,6 +4755,7 @@ function VersionsAppAuthed() {
             onGoHome={goHome}
             refreshKey={projectsRefreshKey}
             onAddVersion={handleAddVersionFromPicker}
+            creditsBalance={userCredits}
             onManageMembers={(projectId, trackId) => {
               const open = (proj) => {
                 if (!proj) return;

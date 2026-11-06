@@ -530,6 +530,13 @@ const STRINGS = {
       stageOther: "Analyse en cours",
       versionsLabel: "Versions",
       newVersionTitle: "Nouvelle version",
+      // Bandeau fin de V1 (NextVersionNudge, audit 2026-11-05)
+      nextVersionEyebrow: "Prochaine étape",
+      nextVersionTitle: "Applique 2 recos, puis importe ta V2.",
+      nextVersionSub: "Versions la compare à cette V1 et te montre ce qui a bougé, élément par élément.",
+      nextVersionRemainingOne: "Ta 2e analyse est offerte.",
+      nextVersionRemainingMany: "Il te reste {n} analyses.",
+      nextVersionCta: "Importer ma V2",
       ariaPrev: "Précédent",
       ariaNext: "Suivant",
       ariaClose: "Fermer",
@@ -1629,9 +1636,9 @@ const STRINGS = {
       // Badge incitatif au-dessus du CTA hero — visible UNIQUEMENT pour les
       // visiteurs non connectés (cf. isAuthenticated dans LandingScreen).
       // Vise à lever la friction "ça coûte combien ?" avant le clic CTA.
-      freeFirstBadge: "Première analyse offerte",
+      freeFirstBadge: "Deux analyses offertes : ta V1, puis ta V2",
       // Version courte pour le badge coin de bouton (grammaire .lp-new-badge)
-      freeFirstBadgeShort: "1 analyse offerte",
+      freeFirstBadgeShort: "2 analyses offertes",
 
       // Mockup carte 1 — Score global
       mockScoreEyebrow: "SCORE GLOBAL",
@@ -1752,7 +1759,7 @@ const STRINGS = {
       plugPoint3Title: "Une instance par piste, une vue d'ensemble",
       plugPoint3Body: "Le plugin voit toute votre session : détection de masquage, équilibres entre pistes, et des conseils qui tiennent compte de tout ce qui joue.",
       plugPoint4Title: "L'écoute express",
-      plugPoint4Body: "30 secondes d'écoute, un verdict direct dans le chat — sur votre mix ou sur une seule piste. 5 offertes chaque mois, illimitées avec l'abonnement.",
+      plugPoint4Body: "30 secondes d'écoute, un verdict direct dans le chat — sur votre mix ou sur une seule piste. 15 offertes chaque mois, illimitées avec l'abonnement.",
       plugCtaDownload: "Télécharger gratuitement",
     },
 
@@ -1804,7 +1811,7 @@ const STRINGS = {
       feat3Tag: "15 messages/jour offerts",
       feat3Title: "Chat en contexte",
       feat3Body: "Vous demandez, il répond — en s'appuyant sur vos mesures en direct et sur ce qui joue dans votre session. En français ou en anglais.",
-      feat4Tag: "5/mois offertes",
+      feat4Tag: "15/mois offertes",
       feat4Title: "Écoute express",
       feat4Body: "Le plugin écoute 30 secondes de votre mix — ou d'une seule piste — et vous rend un verdict clair dans le chat. Illimitée avec les abonnements Indie et Pro.",
       feat5Tag: "Inclus",
@@ -2562,6 +2569,13 @@ const STRINGS = {
       stageOther: "Analysis in progress",
       versionsLabel: "Versions",
       newVersionTitle: "New version",
+      // End-of-V1 banner (NextVersionNudge, audit 2026-11-05)
+      nextVersionEyebrow: "Next step",
+      nextVersionTitle: "Apply 2 recommendations, then upload your V2.",
+      nextVersionSub: "Versions compares it with this V1 and shows you what moved, element by element.",
+      nextVersionRemainingOne: "Your 2nd analysis is on us.",
+      nextVersionRemainingMany: "You have {n} analyses left.",
+      nextVersionCta: "Upload my V2",
       ariaPrev: "Previous",
       ariaNext: "Next",
       ariaClose: "Close",
@@ -3626,8 +3640,8 @@ const STRINGS = {
       ctaPrimary: "Analyze my first track",
       ctaSample: "See an example",
       // Free-first badge shown above hero CTA for disconnected visitors only.
-      freeFirstBadge: "First analysis on us",
-      freeFirstBadgeShort: "1 free analysis",
+      freeFirstBadge: "Two analyses on us: your V1, then your V2",
+      freeFirstBadgeShort: "2 free analyses",
       ctaFooter: "Analyze my first track",
 
       mockScoreEyebrow: "OVERALL SCORE",
@@ -3737,7 +3751,7 @@ const STRINGS = {
       plugPoint3Title: "One instance per track, one overview",
       plugPoint3Body: "The plugin sees your whole session: masking detection, balance between tracks, and advice that takes everything playing into account.",
       plugPoint4Title: "The express listen",
-      plugPoint4Body: "30 seconds of listening, a verdict right in the chat — on your mix or a single track. 5 free every month, unlimited with a subscription.",
+      plugPoint4Body: "30 seconds of listening, a verdict right in the chat — on your mix or a single track. 15 free every month, unlimited with a subscription.",
       plugCtaDownload: "Download for free",
     },
 
@@ -3786,7 +3800,7 @@ const STRINGS = {
       feat3Tag: "15 messages/day free",
       feat3Title: "Chat in context",
       feat3Body: "You ask, it answers — drawing on your live measurements and what's playing in your session. In French or English.",
-      feat4Tag: "5/month free",
+      feat4Tag: "15/month free",
       feat4Title: "Express listen",
       feat4Body: "The plugin listens to 30 seconds of your mix — or a single track — and gives you a clear verdict in the chat. Unlimited with the Indie and Pro subscriptions.",
       feat5Tag: "Included",

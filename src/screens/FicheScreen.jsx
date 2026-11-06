@@ -10,6 +10,7 @@ import VocalTypeSuggestionBanner from '../components/VocalTypeSuggestionBanner';
 import EvolutionBanner from '../components/EvolutionBanner';
 import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
 import PlateauBanner from '../components/PlateauBanner';
+import NextVersionNudge from '../components/NextVersionNudge';
 import FicheComments from '../components/FicheComments';
 import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion, updateVersionDspMetrics, updateVersionGenre, updateTrackIntent, updateVersionIntent, getMyProjectRole, listTrackMembers } from '../lib/storage';
 import { supabase } from '../lib/supabase';
@@ -4096,7 +4097,7 @@ export function IntentPanel({ analysisResult, currentTrack, versionInDb, onRefre
 
 // ── FicheScreen (principal) ────────────────────────────────
 
-export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onGoHome, refreshKey, onManageMembers }) {
+export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onGoHome, refreshKey, onManageMembers, creditsBalance = null }) {
   const { s, lang } = useLang();
   const [tracks, setTracks] = useState([]);
   // Fiche traduite (lazy) — null tant qu'on n'a pas fetché, sinon l'objet
@@ -5677,6 +5678,23 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
                     </section>
                   );
                 })()}
+            </div>
+          )}
+
+          {/* Fin de V1 — invitation à importer la V2 (audit 2026-11-05).
+              Conditions : fiche complète + persistée, titre à UNE seule
+              version, édition autorisée, callback onAddVersion fourni
+              (donc jamais sur fiche publique / page exemple). Le solde
+              vient de App.jsx (userCredits) ; null = inconnu, on affiche. */}
+          {stage === 'all_done' && rawFiche && versionInDb?.id
+            && canEditFiche && onAddVersion && allVersions.length === 1 && (
+            <div className="wh-anim" style={{ '--anim-d': '320ms' }}>
+              <NextVersionNudge
+                track={currentTrack}
+                credits={creditsBalance}
+                onAddVersion={onAddVersion}
+                s={s}
+              />
             </div>
           )}
 
