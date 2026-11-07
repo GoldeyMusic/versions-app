@@ -8115,13 +8115,22 @@ export default function MockupStyles() {
     }
     .wh-drag-handle { display: none; }
     .wh-track-play { width: 36px; height: 36px; }
+    /* Passage mobile 2026-11-06 : la pilule « VOIR FICHE » mangeait la
+       place du titre (« Tout … », « Living… »). La rangée est cliquable,
+       la pilule devient un simple chevron rond ; le titre respire. */
     .wh-track-fiche {
-      padding: 4px 8px;
-      font-size: 9.5px;
-      letter-spacing: 1px;
+      padding: 0;
+      width: 28px; height: 28px; justify-content: center;
+      font-size: 0; letter-spacing: 0; gap: 0;
     }
+    .wh-track-fiche > span { display: none; }
+    .wh-track-fiche .wh-track-fiche-chev { width: 12px; height: 12px; }
     .wh-track-title { font-size: 13.5px; }
-    .wh-track-meta { font-size: 11px; }
+    .wh-track-meta { font-size: 11px; white-space: nowrap; }
+    /* En-tête de projet : la ligne « 6 TITRES · 12 VERSIONS » peut passer
+       sur deux lignes plutôt que d'être tronquée ; score collé à droite. */
+    .wh-acc-meta { white-space: normal; line-height: 1.35; }
+    .wh-acc-score-block { margin-right: 8px; }
   }
 
   .wh-empty {
@@ -9502,6 +9511,14 @@ export default function MockupStyles() {
     margin-bottom: 18px;
   }
   .add-mini-more-body .add-mini-grid-2col { margin-bottom: 14px; }
+  /* Mobile (passage 2026-11-06) : titre/version en colonne, card moins
+     rembourrée, hero de dépôt un peu plus bas. */
+  @media (max-width: 480px) {
+    .add-mini-card.is-upload { padding: 22px 18px 18px; max-width: 94vw; }
+    .add-mini-grid-2col { grid-template-columns: 1fr; gap: 14px; }
+    .add-mini-hero-drop { min-height: 180px; padding: 22px 16px; }
+    .add-mini-more-hint { display: none; }
+  }
   /* Label avec un bouton × à droite (replier le textarea intention) */
   .add-mini-field-label-row {
     display: flex; align-items: center; justify-content: space-between;

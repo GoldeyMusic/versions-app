@@ -1646,6 +1646,7 @@ function SampleStyles() {
         .sample-eyebrow { font-size: 9px; letter-spacing: 1.8px; padding: 3px 8px; }
         .sample-cta-banner { margin: 40px 0 0; border-radius: 14px; }
         .sample-cta-btn { padding: 14px 26px; font-size: 11px; letter-spacing: 1.5px; }
+        .public-fiche-shell { padding-bottom: 140px; }
       }
 
       /* ── Player simulé en bas ───────────────────────────

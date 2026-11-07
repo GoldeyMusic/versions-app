@@ -201,6 +201,10 @@ export default function AddModal({
   // Le DAW n'est demandé en clair que si le profil n'en a pas. Sinon il
   // est pré-rempli et modifiable dans « Plus d'options ».
   const dawInMain = !defaultDaw;
+  // Écran tactile (téléphone/tablette) : on ne « dépose » pas un fichier,
+  // on le choisit. Le texte du hero s'adapte (passage mobile 2026-11-06).
+  const isTouch = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    && window.matchMedia('(pointer: coarse)').matches;
 
   // Placeholders rotatifs (cf. version précédente de la modale).
   const VERSION_EXAMPLES = ['v1', 'rough', 'rough mix', 'pre-master', 'master', 'v2 — voix témoins'];
@@ -487,9 +491,9 @@ export default function AddModal({
                 <path d="M12 4v12" />
               </svg>
               <div className="add-mini-hero-text">
-                {fileChecking ? a.fileHeroChecking : a.fileHeroText}
+                {fileChecking ? a.fileHeroChecking : (isTouch ? a.fileHeroTextTouch : a.fileHeroText)}
               </div>
-              {!fileChecking && <div className="add-mini-hero-sub">{a.fileHeroSub}</div>}
+              {!fileChecking && <div className="add-mini-hero-sub">{isTouch ? a.fileHeroSubTouch : a.fileHeroSub}</div>}
               <div className="add-mini-hero-formats">{a.fileHeroFormats}</div>
             </div>
             {fileError && (

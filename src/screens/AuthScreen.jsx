@@ -4,11 +4,11 @@ import useLang from '../hooks/useLang';
 import { translateAuthError } from '../lib/authErrors';
 import { archipelSignupText, saveArchipelPending } from '../lib/archipelConsent';
 
-export default function AuthScreen() {
+export default function AuthScreen({ initialMode = 'signin' }) {
   const { signInWithEmail, signUpWithEmail, signInWithOAuth, resetPasswordForEmail } = useAuth();
   const { s, lang } = useLang();
   // mode : 'signin' | 'signup' | 'reset' (mot de passe oublié)
-  const [mode, setMode] = useState('signin');
+  const [mode, setMode] = useState(initialMode === 'signup' ? 'signup' : 'signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);

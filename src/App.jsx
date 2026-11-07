@@ -3126,6 +3126,8 @@ function VersionsAppAuthed() {
   });
   // Visiteurs non connectés : landing page par défaut, AuthScreen sur clic CTA.
   const [showAuth, setShowAuth] = useState(false);
+  // 'signin' | 'signup' — mode d'ouverture de l'écran auth (cf. goAuth).
+  const [authMode, setAuthMode] = useState('signin');
   const [homeAddOpen, setHomeAddOpen] = useState(false);
   // Contexte transmis à AddModal pour ouvrir directement dans un flow
   // précis (ex. "Nouveau titre" depuis la hero, "Ajouter version" depuis
@@ -4867,11 +4869,17 @@ function VersionsAppAuthed() {
     // connecter, on aligne l'URL sur le dashboard. Comme ça, après login,
     // routeInit lit `/dashboard` et renvoie sur le bon écran (au lieu de
     // re-rendre la landing parce que l'URL était restée à `/`).
-    const goAuth = () => {
+    const goAuth = (mode) => {
       // Attribution : le visiteur "passe le CTA" (landing, pricing,
       // footer… tous les chemins vers l'inscription convergent ici).
       // Une fois par session navigateur, anonyme, fail-safe.
       logCtaClick();
+      // Mode d'ouverture de l'écran auth (passage mobile 2026-11-06) : les
+      // CTA « Déposer mon mix » / « S'inscrire » ouvrent directement le
+      // formulaire d'INSCRIPTION ; « Tableau de bord / Connexion » la
+      // connexion. Avant, tout tombait sur « Se connecter » avec un petit
+      // lien « Pas de compte ? » en bas — friction pour un nouveau visiteur.
+      setAuthMode(mode === 'signup' ? 'signup' : 'signin');
       setShowAuth(true);
       if (typeof window !== 'undefined') {
         // Retour post-login : si l'inscription part d'une page publique
@@ -4935,13 +4943,15 @@ function VersionsAppAuthed() {
       }
     };
     let view;
-    if (showAuth) view = <AuthScreen />;
-    else if (screen === 'sample') view = <SampleFicheScreen onSignup={goAuth} onBackToLanding={goLanding} />;
-    else if (screen === 'pricing') view = <PricingScreen onStart={goAuth} onBackToLanding={goLanding} onViewDashboard={goAuth} onViewPlugin={goPlugin} isAuthenticated={false} />;
-    else if (screen === 'plugin') view = <PluginScreen onBackToLanding={goLanding} onViewPricing={goPricing} onViewDashboard={goAuth} isAuthenticated={false} />;
+    const goSignup = () => goAuth('signup');
+    const goSignin = () => goAuth('signin');
+    if (showAuth) view = <AuthScreen initialMode={authMode} />;
+    else if (screen === 'sample') view = <SampleFicheScreen onSignup={goSignup} onBackToLanding={goLanding} />;
+    else if (screen === 'pricing') view = <PricingScreen onStart={goSignup} onBackToLanding={goLanding} onViewDashboard={goSignin} onViewPlugin={goPlugin} isAuthenticated={false} />;
+    else if (screen === 'plugin') view = <PluginScreen onBackToLanding={goLanding} onViewPricing={goPricing} onViewDashboard={goSignin} isAuthenticated={false} />;
     else if (screen === 'privacy') view = <PrivacyScreen onBackToLanding={goLanding} onGoTerms={goTerms} />;
     else if (screen === 'terms') view = <TermsScreen onBackToLanding={goLanding} onGoPrivacy={goPrivacy} />;
-    else view = <LandingScreen onStart={goAuth} onViewSample={goSample} onViewPricing={goPricing} onViewPlugin={goPlugin} onViewDashboard={goAuth} onGoPrivacy={goPrivacy} onGoTerms={goTerms} isAuthenticated={false} />;
+    else view = <LandingScreen onStart={goSignup} onViewSample={goSample} onViewPricing={goPricing} onViewPlugin={goPlugin} onViewDashboard={goSignin} onGoPrivacy={goPrivacy} onGoTerms={goTerms} isAuthenticated={false} />;
     return (
       <LangContext.Provider value={{ lang, s, setLang, t }}>
         <FontLink />

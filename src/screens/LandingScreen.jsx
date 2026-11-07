@@ -1052,7 +1052,8 @@ function LandingStyles() {
       }
       @media (max-width: 480px) {
         .lp-fiche { padding: 18px 16px 16px; }
-        .lp-fiche-bar { grid-template-columns: 78px 1fr 26px; gap: 10px; }
+        .lp-fiche-bar { grid-template-columns: 96px 1fr 24px; gap: 8px; }
+        .lp-fiche-bar-label { font-size: 8.5px; letter-spacing: 1.1px; }
       }
 
       /* ── COMMENT ÇA MARCHE ────────────────────────────────── */
