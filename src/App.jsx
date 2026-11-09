@@ -3625,6 +3625,21 @@ function VersionsAppAuthed() {
     captureAttribution();
   }, []);
 
+  // ── Deep-link « ajouter » (plugin → site) : /dashboard?add=1 ouvre la
+  // modale d'ajout (fichier d'abord) dès que le compte et les projets sont
+  // chargés, puis retire le paramètre de l'URL. Le bouton « Analyse
+  // complète » du plugin DAW pointe ici (niveau B, 2026-11-09).
+  useEffect(() => {
+    if (!user || !projectsLoaded) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('add') !== '1') return;
+    params.delete('add');
+    const qs = params.toString();
+    window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash);
+    setAddModalCtx(null);
+    setHomeAddOpen(true);
+  }, [user, projectsLoaded]);
+
   // ── Deep-link fiche : résolution `pendingFiche` → fiche réelle ────────
   // Posé par routeInit ou popstate quand l'URL est `#/fiche/{seg}/...`.
   // On attend `projects` pour matcher les segments (cache localStorage
