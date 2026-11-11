@@ -3,9 +3,14 @@
  *
  * Source de vérité pour la page /pricing et le mapping vers Stripe :
  *   - 2 packs one-shot à vie (Pack Projet 6, Pack 1)
- *   - 3 abonnements mensuels Solo / Indie / Pro (crédits cumulables tant que
- *     l'abo est actif ; à la résiliation, solde converti en crédits de grâce
- *     valables 90 jours ; pause possible)
+ *   - 3 abonnements Solo / Indie / Pro, au mois ou à l'année (crédits
+ *     cumulables tant que l'abo est actif ; à la résiliation, solde converti
+ *     en crédits de grâce valables 90 jours ; pause possible en mensuel).
+ *     Annuel (2026-11-11) : 2 mois offerts, un paiement par an, mais les
+ *     analyses restent livrées CHAQUE MOIS (webhook pour le 1er mois, tâche
+ *     pg_cron grant_annual_monthly_credits pour les 11 suivants, migration 059).
+ *     Le plan_key envoyé à Stripe est le même qu'en mensuel ; seul le Price ID
+ *     change (champ `annual`).
  *   - 1 formule École "sur devis" (pas de Stripe, mailto)
  *
  * Les Price IDs Stripe ne sont PAS hardcodés ici : ils arrivent via les
@@ -62,6 +67,7 @@ export const SUBSCRIPTIONS = [
     credits: 4,         // monthly_grant
     perUnit: 1.75,
     priceIdEnv: 'VITE_STRIPE_PRICE_SUB_SOLO',
+    annual: { price_eur: 69, priceIdEnv: 'VITE_STRIPE_PRICE_SUB_SOLO_YEAR' },
     description: '4 analyses par mois, cumulables tant que ton abonnement est actif. Pour sortir un titre par mois.',
   },
   {
@@ -71,6 +77,7 @@ export const SUBSCRIPTIONS = [
     credits: 12,        // monthly_grant
     perUnit: 1.24,
     priceIdEnv: 'VITE_STRIPE_PRICE_SUB_INDIE',
+    annual: { price_eur: 149, priceIdEnv: 'VITE_STRIPE_PRICE_SUB_INDIE_YEAR' },
     description: '12 analyses par mois, cumulables tant que ton abonnement est actif. Pause possible entre deux projets.',
   },
   {
@@ -80,6 +87,7 @@ export const SUBSCRIPTIONS = [
     credits: 30,
     perUnit: 0.99,
     priceIdEnv: 'VITE_STRIPE_PRICE_SUB_PRO',
+    annual: { price_eur: 299, priceIdEnv: 'VITE_STRIPE_PRICE_SUB_PRO_YEAR' },
     description: '30 analyses par mois, cumulables. Pour ceux qui mixent pour d\'autres : fiches partagées, commentaires, liens publics.',
   },
 ];
@@ -100,4 +108,19 @@ export function getPriceIdForPlan(plan) {
   if (!plan?.priceIdEnv) return null;
   const id = import.meta.env[plan.priceIdEnv];
   return id && typeof id === 'string' && id.trim() ? id.trim() : null;
+}
+
+// Price ID Stripe ANNUEL d'un abonnement (null si non configuré).
+export function getAnnualPriceIdForPlan(plan) {
+  const envName = plan?.annual?.priceIdEnv;
+  if (!envName) return null;
+  const id = import.meta.env[envName];
+  return id && typeof id === 'string' && id.trim() ? id.trim() : null;
+}
+
+// L'offre annuelle n'est proposée que si les TROIS prix annuels sont
+// configurés : tant que les variables d'env manquent, la page tarifs reste
+// strictement mensuelle (pas de sélecteur).
+export function isAnnualBillingAvailable() {
+  return SUBSCRIPTIONS.every((sub) => !!getAnnualPriceIdForPlan(sub));
 }

@@ -564,6 +564,10 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
             const renewText = (isSubscribed && Number.isFinite(renewMs))
               ? new Date(renewMs).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })
               : null;
+            // Abonnement annuel (2026-11-11) : monthly_renews_at est la date
+            // de la prochaine enveloppe mensuelle d'analyses, pas celle de la
+            // prochaine facture → libellé dédié, et pas de pause.
+            const isAnnualSub = subStatus?.interval === 'year';
             const goToPricing = () => {
               // Navigation via History API + dispatch d'un popstate pour que
               // le routeur d'App.jsx se réaligne sur la nouvelle URL.
@@ -591,7 +595,9 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
                       </span>
                       {renewText && (
                         <span className="rg-account-renew">
-                          {(s.reglages.renewsOn || 'Renouvelle le {date}').replace('{date}', renewText)}
+                          {(isAnnualSub
+                            ? (s.reglages.nextGrantOn || 'Analyses le {date}')
+                            : (s.reglages.renewsOn || 'Renouvelle le {date}')).replace('{date}', renewText)}
                         </span>
                       )}
                     </div>
@@ -609,7 +615,7 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
                 {/* Pause / reprise (tarifs 2026-11-06) — seulement si le
                     statut Stripe est connu et l'abo n'est pas déjà en
                     cours de résiliation. */}
-                {isSubscribed && subStatus?.active && !subStatus.cancelAtPeriodEnd && (
+                {isSubscribed && subStatus?.active && !subStatus.cancelAtPeriodEnd && !isAnnualSub && (
                   <div className="rg-row">
                     <div>
                       <div className="rg-label">{s.reglages.pauseSubLabel}</div>

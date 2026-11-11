@@ -1122,6 +1122,7 @@ const STRINGS = {
       creditSingular: "crédit",
       creditsPlural: "crédits",
       renewsOn: "Renouv. {date}",
+      nextGrantOn: "Analyses le {date}",
       buyCreditsCta: "Acheter des crédits",
       manageSubscriptionCta: "Gérer mon abonnement",
       miniAvatarLabel: "Photo de profil",
@@ -1633,6 +1634,17 @@ const STRINGS = {
       subPerMonth: "/mois",
       subUnitLine: "soit {price} €/analyse",
       subChoose: "Choisir",
+      // Sélecteur Mensuel / Annuel (2026-11-11)
+      billingAria: "Rythme de paiement",
+      billingMonthly: "Mensuel",
+      billingAnnual: "Annuel",
+      billingAnnualBadge: "2 mois offerts",
+      subPerYear: "/an",
+      subAnnualLine: "soit {price} €/mois",
+      subsAnnualNote: "Un paiement par an. Tes analyses arrivent chaque mois. Pause réservée au mensuel.",
+      subDescriptionsAnnual: {
+        sub_indie: "12 analyses par mois, cumulables. Livrées chaque mois, toute l'année.",
+      },
       // Descriptions des abonnements indexées par plan.key
       subDescriptions: {
         sub_solo: "4 analyses par mois, cumulables. Pour sortir un titre par mois.",
@@ -3259,6 +3271,7 @@ const STRINGS = {
       creditSingular: "credit",
       creditsPlural: "credits",
       renewsOn: "Renews {date}",
+      nextGrantOn: "Analyses on {date}",
       buyCreditsCta: "Buy credits",
       manageSubscriptionCta: "Manage subscription",
       miniAvatarLabel: "Profile photo",
@@ -3754,6 +3767,17 @@ const STRINGS = {
       subPerMonth: "/month",
       subUnitLine: "i.e. {price} €/analysis",
       subChoose: "Choose",
+      // Monthly / Yearly switch (2026-11-11)
+      billingAria: "Billing period",
+      billingMonthly: "Monthly",
+      billingAnnual: "Yearly",
+      billingAnnualBadge: "2 months free",
+      subPerYear: "/year",
+      subAnnualLine: "i.e. {price} €/month",
+      subsAnnualNote: "One payment a year. Your analyses arrive every month. Pause is monthly-only.",
+      subDescriptionsAnnual: {
+        sub_indie: "12 analyses per month, rolling over. Delivered every month, all year.",
+      },
       // Subscription descriptions indexed by plan.key
       subDescriptions: {
         sub_solo: "4 analyses per month, rolling over. For releasing one track a month.",

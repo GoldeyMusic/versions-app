@@ -308,3 +308,12 @@ Snapshot des chantiers fermés sur la sprint en cours — pour comprendre vite c
   `npx eslint src/App.jsx | grep no-undef` (doit être vide).
 - Note sandbox Cowork : `vite build` ne tourne pas depuis la sandbox (binding
   natif rolldown darwin-only) — Vercel build au push.
+
+## Abonnements annuels (2026-11-11)
+
+Solo 69 €/an, Indie 149 €/an, Pro 299 €/an (2 mois offerts). Un paiement par an, mais les analyses restent livrées CHAQUE MOIS.
+- `src/constants/plans.js` : champ `annual: { price_eur, priceIdEnv }` sur chaque abonnement, `getAnnualPriceIdForPlan()`, `isAnnualBillingAvailable()`. Variables Vercel : `VITE_STRIPE_PRICE_SUB_SOLO_YEAR`, `VITE_STRIPE_PRICE_SUB_INDIE_YEAR`, `VITE_STRIPE_PRICE_SUB_PRO_YEAR`. Tant que les TROIS ne sont pas définies, la page tarifs reste mensuelle (pas de sélecteur).
+- `PricingScreen.jsx` : sélecteur Mensuel / Annuel (`.pr-bill`), prix `/an` + ligne « soit X €/mois », note `.pr-subs-note`. Le `planKey` envoyé au checkout est le même qu'en mensuel (sub_solo / sub_indie / sub_pro) ; seul le `priceId` change. École = bandeau `.pr-school` sous la grille (3 cartes seulement).
+- `ReglagesScreen.jsx` : si `subStatus.interval === 'year'`, le libellé de date devient « Analyses le {date} » (prochaine enveloppe mensuelle) et le bouton Pause est masqué.
+- Migration `059_annual_subscriptions.sql` : `user_credits.sub_interval / sub_period_start / sub_period_end`, fonction `grant_annual_monthly_credits()` lancée toutes les heures par pg_cron (`grant-annual-monthly-credits`), `plugin_is_subscriber` s'appuie aussi sur `sub_period_end`. Idempotence par `credit_events.stripe_event_id = 'annual_grant:<sub>:<début période>:<k>'`.
+- Non traité : changement de formule d'un abonné existant (mensuel → annuel, Indie → Pro). Le checkout crée un 2e abonnement Stripe sans résilier le premier.

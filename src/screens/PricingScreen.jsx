@@ -5,7 +5,7 @@ import { apiFetch } from '../lib/apiClient';
 import useLang from '../hooks/useLang';
 import { supabase } from '../lib/supabase';
 import { logProductEvent } from '../lib/productEvents';
-import { PACKS, SUBSCRIPTIONS, SCHOOL_CONTACT_EMAIL, getPriceIdForPlan } from '../constants/plans';
+import { PACKS, SUBSCRIPTIONS, SCHOOL_CONTACT_EMAIL, getPriceIdForPlan, getAnnualPriceIdForPlan, isAnnualBillingAvailable } from '../constants/plans';
 import LangDropdown from '../components/LangDropdown';
 import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
 
@@ -74,6 +74,11 @@ export default function PricingScreen({
   const [user, setUser] = useState(null);
   const [pendingKey, setPendingKey] = useState(null);
   const [errMsg, setErrMsg] = useState(null);
+  // Rythme de paiement des abonnements (2026-11-11). Le sélecteur n'existe
+  // que si les trois prix annuels sont configurés (cf. plans.js).
+  const annualAvailable = isAnnualBillingAvailable();
+  const [billing, setBilling] = useState('month');
+  const isAnnual = annualAvailable && billing === 'year';
   // Instrumentation : vue de la page tarifs (ignorée par la RPC si visiteur).
   useEffect(() => { logProductEvent('pricing_view'); }, []);
 
@@ -111,9 +116,9 @@ export default function PricingScreen({
 
   // Lance Stripe Checkout pour un plan donné. Si l'utilisateur n'est pas
   // connecté, on bascule sur le flow signup (onStart), Stripe attendra.
-  async function goToCheckout(plan) {
+  async function goToCheckout(plan, { annual = false } = {}) {
     setErrMsg(null);
-    logProductEvent('checkout_click', { plan: plan.key, signed_in: !!user });
+    logProductEvent('checkout_click', { plan: plan.key, signed_in: !!user, interval: annual ? 'year' : 'month' });
     if (!user) {
       // Stocke le plan visé pour reprendre le flow après login (cf. App.jsx).
       try {
@@ -122,7 +127,7 @@ export default function PricingScreen({
       onStart?.();
       return;
     }
-    const priceId = getPriceIdForPlan(plan);
+    const priceId = annual ? getAnnualPriceIdForPlan(plan) : getPriceIdForPlan(plan);
     if (!priceId) {
       setErrMsg(t.errCheckoutNotConfigured);
       return;
@@ -256,6 +261,30 @@ export default function PricingScreen({
         {/* Avantage plugin inclus dans les abos — callout ambre (.pr-subs-perk) */}
         <p className="pr-subs-perk pr-anim" style={{ '--anim-d': '150ms' }}>{t.subsPluginPerk}</p>
 
+        {/* Sélecteur Mensuel / Annuel — masqué tant que les prix annuels
+            ne sont pas configurés. */}
+        {annualAvailable && (
+          <div className="pr-bill pr-anim" role="group" aria-label={t.billingAria} style={{ '--anim-d': '170ms' }}>
+            <button
+              type="button"
+              className={`pr-bill-opt${!isAnnual ? ' is-on' : ''}`}
+              aria-pressed={!isAnnual}
+              onClick={() => setBilling('month')}
+            >
+              {t.billingMonthly}
+            </button>
+            <button
+              type="button"
+              className={`pr-bill-opt${isAnnual ? ' is-on' : ''}`}
+              aria-pressed={isAnnual}
+              onClick={() => setBilling('year')}
+            >
+              {t.billingAnnual}
+              <span className="pr-bill-badge">{t.billingAnnualBadge}</span>
+            </button>
+          </div>
+        )}
+
         <div className="pr-subs-grid">
           {SUBSCRIPTIONS.map((sub, i) => {
             const accent = SUB_ACCENT[sub.key] || 'cerulean';
@@ -263,9 +292,14 @@ export default function PricingScreen({
             const isPending = pendingKey === sub.key;
             // Description traduite si dispo, sinon fallback sur la copy
             // FR de plans.js (sécurité : aucun écran cassé si une clé manque).
-            const subDesc = t.subDescriptions?.[sub.key] || sub.description;
-            const subUnitLine = (t.subUnitLine || 'soit {price} €/analyse')
-              .replace('{price}', formatPrice(sub.perUnit));
+            const subDesc = (isAnnual && t.subDescriptionsAnnual?.[sub.key])
+              || t.subDescriptions?.[sub.key] || sub.description;
+            // Mensuel : prix par analyse. Annuel : équivalent par mois.
+            const subUnitLine = isAnnual
+              ? (t.subAnnualLine || 'soit {price} €/mois')
+                  .replace('{price}', formatPrice(Math.round((sub.annual.price_eur / 12) * 100) / 100))
+              : (t.subUnitLine || 'soit {price} €/analyse')
+                  .replace('{price}', formatPrice(sub.perUnit));
             return (
               <article
                 key={sub.key}
@@ -283,15 +317,15 @@ export default function PricingScreen({
                 </div>
                 <div className="pr-sub-price">
                   <span className={`pr-price-pill pr-price-pill-${accent}`}>
-                    <span className="pr-price-amount">{formatPrice(sub.price_eur)}</span>
-                    <span className="pr-price-suffix">€<span>{t.subPerMonth}</span></span>
+                    <span className="pr-price-amount">{formatPrice(isAnnual ? sub.annual.price_eur : sub.price_eur)}</span>
+                    <span className="pr-price-suffix">€<span>{isAnnual ? t.subPerYear : t.subPerMonth}</span></span>
                   </span>
                   <span className="pr-sub-unit-line">{subUnitLine}</span>
                 </div>
                 <button
                   type="button"
                   className={isFeatured ? 'pr-cta-primary' : 'pr-cta-secondary'}
-                  onClick={() => goToCheckout(sub)}
+                  onClick={() => goToCheckout(sub, { annual: isAnnual })}
                   disabled={isPending}
                 >
                   {/* Toutes les cards plan affichent "Choisir" pour
@@ -306,6 +340,7 @@ export default function PricingScreen({
           })}
 
         </div>
+        {isAnnual && <p className="pr-subs-note">{t.subsAnnualNote}</p>}
 
         {/* Grappe "tout est inclus" — chips colorées qui rappellent les
             chips du hero (cerulean / mint / violet / amber / rose).
@@ -676,6 +711,41 @@ function PricingStyles() {
         box-shadow: 0 0 24px rgba(245,166,35,0.12);
       }
       @media (max-width: 640px) { .pr-subs-perk { font-size: 13px; padding: 6px 14px; } }
+
+      /* Sélecteur Mensuel / Annuel (2026-11-11) : pastille segmentée sobre,
+         l'option active est un fond clair, le gain annuel un badge menthe. */
+      .pr-bill {
+        width: fit-content; margin: 22px auto 0;
+        display: flex; gap: 4px; padding: 4px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid ${T.border};
+      }
+      .pr-bill-opt {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-family: ${T.body}; font-size: 13.5px; font-weight: 500;
+        color: ${T.textSoft};
+        background: transparent; border: 0; border-radius: 999px;
+        padding: 8px 18px; cursor: pointer;
+        transition: background .15s, color .15s;
+      }
+      .pr-bill-opt:hover { color: ${T.text}; }
+      .pr-bill-opt.is-on { background: rgba(255,255,255,0.10); color: ${T.text}; font-weight: 600; }
+      .pr-bill-badge {
+        font-family: ${T.mono}; font-size: 9.5px; letter-spacing: 1.2px; text-transform: uppercase;
+        color: ${T.mint};
+        background: rgba(142,224,122,0.10);
+        border: 1px solid rgba(142,224,122,0.30);
+        border-radius: 999px; padding: 2px 8px; white-space: nowrap;
+      }
+      @media (max-width: 480px) {
+        .pr-bill-opt { padding: 8px 12px; font-size: 13px; gap: 6px; }
+        .pr-bill-badge { font-size: 8.5px; letter-spacing: 0.8px; padding: 2px 6px; }
+      }
+      .pr-subs-note {
+        margin: 20px auto 0; text-align: center;
+        font-family: ${T.body}; font-size: 13px; font-weight: 400; color: ${T.muted};
+      }
 
       /* PACKS GRID — 2 cartes (Pack 1 + Pack 5) côte à côte sur desktop/tablet,
          empilées en mobile. Centrées avec une largeur max pour ne pas avoir
