@@ -12,7 +12,7 @@ import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
 /**
  * PricingScreen — page tarifs publique (#/pricing).
  *
- * Source de vérité : src/constants/plans.js (5 packs + 2 abos + École).
+ * Source de vérité : src/constants/plans.js (5 packs + 3 abos) ; École = bandeau sur devis.
  * Les Price IDs Stripe arrivent par variables d'env Vite (cf. plans.js) ;
  * sans elles, le bouton est désactivé avec mention "configuration en cours".
  *
@@ -243,10 +243,10 @@ export default function PricingScreen({
         <div className="pr-errbar" role="alert">{errMsg}</div>
       )}
 
-      {/* ── ABONNEMENTS — 3 cards (Indie + Pro + École) ──────────────
-          Indie + Pro viennent de SUBSCRIPTIONS, École est un cas
-          spécial (sans Stripe — mailto + tarif "sur devis"). Les 3
-          tiennent dans la même grille pour une lecture côte-à-côte. */}
+      {/* ── ABONNEMENTS — 3 cards (Solo · Indie · Pro) ───────────────
+          Toutes viennent de SUBSCRIPTIONS. L'offre École (sans Stripe,
+          sur devis) vit dans son propre bandeau sous la section : elle
+          ne faisait pas raccord visuellement en 4e carte (2026-11-11). */}
       <section className="pr-section">
         <div className="pr-section-eyebrow pr-anim">{t.subsEyebrow}</div>
         <h2 className="pr-section-title pr-anim" style={{ '--anim-d': '60ms' }}>
@@ -305,28 +305,6 @@ export default function PricingScreen({
             );
           })}
 
-          {/* École — card "sur devis", CTA mailto */}
-          <article
-            className="pr-sub pr-sub-violet pr-sub-school pr-anim"
-            style={{ '--anim-d': `${180 + SUBSCRIPTIONS.length * 100}ms` }}
-          >
-            <div className="pr-sub-meta">
-              <div className="pr-sub-name">{t.schoolCardLabel}</div>
-              <div className="pr-sub-tag">{t.schoolLede}</div>
-            </div>
-            <div className="pr-sub-allowance pr-sub-allowance-school">
-              <span className="pr-sub-quote">{t.schoolCardPrice}</span>
-            </div>
-            <div className="pr-sub-price">
-              <span className="pr-sub-unit-line">{t.schoolCardHint}</span>
-            </div>
-            <a
-              href={`mailto:${SCHOOL_CONTACT_EMAIL}?subject=${encodeURIComponent(t.schoolMailSubject)}`}
-              className="pr-cta-secondary pr-sub-school-cta"
-            >
-              {t.schoolCta}
-            </a>
-          </article>
         </div>
 
         {/* Grappe "tout est inclus" — chips colorées qui rappellent les
@@ -343,6 +321,27 @@ export default function PricingScreen({
             <span className="pr-chip pr-chip-amber-soft pr-chip-rot-d">{t.included4}</span>
             <span className="pr-chip pr-chip-neutral pr-chip-rot-e">{t.included5}</span>
           </div>
+        </div>
+      </section>
+
+      {/* ── ÉCOLES & CENTRES DE FORMATION — bandeau sur devis ──────────
+          Hors grille abonnements : un bloc horizontal violet, texte à
+          gauche, CTA mailto à droite (.pr-school). */}
+      <section className="pr-section pr-section-school">
+        <div className="pr-school pr-anim">
+          <div>
+            <div className="pr-school-eyebrow">{t.schoolEyebrow}</div>
+            <h3 className="pr-school-title">
+              {t.schoolTitleStart}<em>{t.schoolTitleEm}</em>{t.schoolTitleEnd}
+            </h3>
+            <p className="pr-school-lede">{t.schoolLede}</p>
+          </div>
+          <a
+            href={`mailto:${SCHOOL_CONTACT_EMAIL}?subject=${encodeURIComponent(t.schoolMailSubject)}`}
+            className="pr-school-cta"
+          >
+            {t.schoolCta}
+          </a>
         </div>
       </section>
 
@@ -813,23 +812,23 @@ function PricingStyles() {
       }
       /* On reset les rotations en mobile (cf. .pr-chip media query existante) */
 
-      /* SUBS — grille 3 cards (Indie + Pro + École) avec effet podium :
-         Pro au centre est featured (scale 1.06, halo amber plus fort),
-         Indie + École légèrement décalées et inclinées (-1° / +1°)
+      /* SUBS — grille 3 cards (Solo + Indie + Pro) avec effet podium :
+         Indie au centre est featured (scale 1.06, halo amber plus fort),
+         Solo + Pro légèrement décalées et inclinées (-1° / +1°)
          pour casser l'alignement parfait Excel-style. */
-      /* Grille 2026-11-06 : Solo · Indie (recommandé) · Pro · École = 4 cartes. */
+      /* Grille 2026-11-11 : Solo · Indie (recommandé) · Pro = 3 cartes,
+         École sortie en bandeau (.pr-school) sous la section. */
       .pr-subs-grid {
         margin-top: clamp(40px, 5vw, 64px);
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 22px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 26px;
         align-items: center;
-        max-width: 1120px;
+        max-width: 920px;
         margin-left: auto;
         margin-right: auto;
       }
-      @media (max-width: 1080px) { .pr-subs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 22px; max-width: 600px; } }
-      @media (max-width: 560px) { .pr-subs-grid { grid-template-columns: 1fr; gap: 18px; max-width: 360px; } }
+      @media (max-width: 880px) { .pr-subs-grid { grid-template-columns: 1fr; align-items: stretch; gap: 18px; max-width: 380px; } }
 
       .pr-sub {
         position: relative; overflow: hidden;
@@ -843,9 +842,9 @@ function PricingStyles() {
       /* Indie (1ère card) — légère inclinaison à gauche */
       .pr-subs-grid > .pr-sub:nth-child(1) { transform: rotate(-1deg); }
       .pr-subs-grid > .pr-sub:nth-child(1):hover { transform: rotate(-1deg) translateY(-3px); border-color: rgba(255,255,255,0.16); }
-      /* École (3ème card) — inclinaison miroir à droite */
+      /* Pro (3ème card) — inclinaison miroir à droite */
       .pr-subs-grid > .pr-sub:nth-child(3) { transform: rotate(1deg); }
-      .pr-subs-grid > .pr-sub:nth-child(3):hover { transform: rotate(1deg) translateY(-3px); border-color: rgba(166,126,245,0.40); }
+      .pr-subs-grid > .pr-sub:nth-child(3):hover { transform: rotate(1deg) translateY(-3px); border-color: rgba(255,255,255,0.16); }
       /* Pro (featured, 2ème card) — scale up, glow fort, no rotation */
       .pr-sub-featured {
         transform: scale(1.06);
@@ -927,8 +926,9 @@ function PricingStyles() {
 
       /* SCHOOL */
       .pr-school {
-        margin-top: 16px;
-        padding: clamp(24px, 4vw, 40px);
+        margin: 0 auto;
+        max-width: 920px;
+        padding: clamp(22px, 3.5vw, 32px) clamp(24px, 4vw, 40px);
         background: linear-gradient(180deg, rgba(166,126,245,0.06), rgba(255,255,255,0.015));
         border: 1px solid rgba(166,126,245,0.22);
         border-radius: 18px;
