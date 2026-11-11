@@ -4150,6 +4150,20 @@ export function IntentPanel({ analysisResult, currentTrack, versionInDb, onRefre
 
 // ── FicheScreen (principal) ────────────────────────────────
 
+// Retrouve le titre affiché parmi les titres chargés. On passe d'abord par
+// l'id (config.trackId) : deux titres peuvent porter le même nom dans deux
+// projets, et la recherche par nom seule ouvrait alors l'historique, les
+// versions et le chat de l'autre. Le nom reste le repli tant que le titre
+// n'est pas encore enregistré (analyse en cours).
+function findConfigTrack(tracks, config) {
+  const list = Array.isArray(tracks) ? tracks : [];
+  if (config?.trackId) {
+    const byId = list.find((t) => t.id === config.trackId);
+    if (byId && (!config?.title || byId.title === config.title)) return byId;
+  }
+  return list.find((t) => t.title === config?.title) || null;
+}
+
 export default function FicheScreen({ config, analysisResult, onSelectVersion, onAddVersion, onGoHome, refreshKey, onManageMembers, creditsBalance = null }) {
   const { s, lang } = useLang();
   const [tracks, setTracks] = useState([]);
@@ -4276,9 +4290,9 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   // de l'egress Supabase pour des morceaux que l'utilisateur n'allait pas écouter.
   useEffect(() => {
     if (!config?.title) return;
-    const t = tracks.find((x) => x.title === config.title);
+    const t = findConfigTrack(tracks, config);
     if (t?.versions?.length) preloadTrackVersions(t.versions);
-  }, [tracks, config?.title]);
+  }, [tracks, config?.title, config?.trackId]);
 
   // body class pour le chat (maquette utilise body.chat-open)
   useEffect(() => {
@@ -4303,7 +4317,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
   // versionInDb?.id n'est pas dispo tant que la version n'est pas persistée
   // (cas pending) ; loadNoteCompletions retourne alors un Set vide silencieux.
   const completionsVersionId = (() => {
-    const dbTrack2 = tracks.find((t) => t.title === config?.title) || null;
+    const dbTrack2 = findConfigTrack(tracks, config);
     const v = dbTrack2?.versions?.find((vv) => vv.name === config?.version);
     return v?.id || null;
   })();
@@ -4329,7 +4343,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
     setNoteCompletion(completionsVersionId, itemKey, !wasCompleted);
   };
 
-  const dbTrack = tracks.find((t) => t.title === config?.title) || null;
+  const dbTrack = findConfigTrack(tracks, config);
   // Si le track DB existe mais ne contient pas encore la version courante (save en cours),
   // utiliser un fallback avec la version en mémoire pour afficher les VChips immédiatement
   const versionInDb = dbTrack?.versions?.find(v => v.name === config?.version);

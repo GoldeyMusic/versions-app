@@ -3657,9 +3657,17 @@ function VersionsAppAuthed() {
       // 2) Fallback : match par slug du titre. Premier match gagne (les
       //    titres sont uniques par utilisateur dans un projet, et en cas
       //    de collision inter-projet on préfère le déterminisme).
+      //    Deux titres du même nom (projets différents) : on garde celui
+      //    qui possède la version demandée dans l'URL.
       if (!track && trackSeg) {
         const target = slugify(trackSeg);
-        if (target) track = allTracks.find(t => slugify(t.title) === target);
+        if (target) {
+          const sameName = allTracks.filter(t => slugify(t.title) === target);
+          const vTarget = versionSeg ? slugify(versionSeg) : '';
+          track = (vTarget && sameName.find(t => (t.versions || []).some(
+            ver => ver.id === versionSeg || slugify(ver.name) === vTarget
+          ))) || sameName[0];
+        }
       }
       if (!track) {
         if (!alive) return;
