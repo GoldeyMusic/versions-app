@@ -1,5 +1,6 @@
 {
-  "latest": "1.0.11",
+  "latest": "1.0.12",
   "url": "https://versions.studio",
-  "notes": "Le chat du plugin et celui de la fiche partagent la même conversation"
+  "notes": "L'interface peut passer en anglais (Settings > Langue), et + Nouveau titre ici crée un titre sans quitter ton DAW.",
+  "notes_en": "The interface is now available in English (Settings > Language), and + New track here creates a track without leaving your DAW."
 }
