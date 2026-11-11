@@ -1593,6 +1593,7 @@ const STRINGS = {
       // Erreurs checkout
       errCheckoutNotConfigured: "Cette offre n'est pas encore configurée. Réessaie dans un instant.",
       errCheckoutPrefix: "Erreur de paiement : ",
+      errAlreadySubscribed: "Tu as déjà un abonnement actif. Pour changer de formule, résilie-le dans Réglages (il reste actif jusqu'à son échéance), ou écris-nous à contact@versions.studio.",
       errUnknown: "inconnue",
 
       // À la carte (packs)
@@ -3726,6 +3727,7 @@ const STRINGS = {
       // Checkout errors
       errCheckoutNotConfigured: "This offer isn't configured yet. Try again in a moment.",
       errCheckoutPrefix: "Payment error: ",
+      errAlreadySubscribed: "You already have an active subscription. To switch plans, cancel it in Settings (it stays active until its end date), or write to us at contact@versions.studio.",
       errUnknown: "unknown",
 
       // À la carte (packs)

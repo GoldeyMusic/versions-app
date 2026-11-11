@@ -143,6 +143,16 @@ export default function PricingScreen({
           mode: plan.priceIdEnv?.startsWith('VITE_STRIPE_PRICE_SUB_') ? 'subscription' : 'payment',
         }),
       });
+      if (res.status === 409) {
+        // Déjà abonné : le backend refuse un 2e abonnement (double
+        // prélèvement). Message dédié, ramené à l'écran.
+        setErrMsg(t.errAlreadySubscribed);
+        setPendingKey(null);
+        setTimeout(() => {
+          document.querySelector('.pr-errbar')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 60);
+        return;
+      }
       if (!res.ok) {
         let msg = `HTTP ${res.status}`;
         try { const err = await res.json(); msg = err?.message || err?.error || msg; } catch {}
