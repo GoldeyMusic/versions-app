@@ -315,6 +315,67 @@ export default function PluginScreen({
 
       <div className="plg-divider" />
 
+      {/* LIER UN TITRE — 3 étapes illustrées : chaque carte montre le
+          morceau de l'en-tête du plugin où ça se passe. */}
+      <section className="plg-section">
+        <div className="plg-eyebrow plg-anim">{t.linkEyebrow}</div>
+        <h2 className="plg-section-title plg-anim" style={{ '--anim-d': '60ms' }}>
+          {t.linkTitleStart}<em>{t.linkTitleEm}</em>
+        </h2>
+        <div className="plg-steps plg-link-steps">
+          <div className="plg-step plg-anim" style={{ '--anim-d': '160ms' }}>
+            <div className="plg-link-shot" aria-hidden="true">
+              <div className="plg-link-bar">
+                <span className="plg-link-pill plg-link-pill-on">{t.linkMockMaster}<i className="plg-link-caret" /></span>
+                <span className="plg-link-pill plg-link-pill-dim">{t.linkMockGenre}<i className="plg-link-caret" /></span>
+              </div>
+              <div className="plg-link-menu">
+                <span className="plg-link-menu-row plg-link-menu-pick">{t.linkMockMaster}</span>
+                <span className="plg-link-menu-row">{t.linkMockMixBus}</span>
+              </div>
+            </div>
+            <div className="plg-step-num">01</div>
+            <div className="plg-step-title">{t.linkStep1Title}</div>
+            <div className="plg-step-body">{t.linkStep1Body}</div>
+          </div>
+          <div className="plg-step plg-anim" style={{ '--anim-d': '240ms' }}>
+            <div className="plg-link-shot" aria-hidden="true">
+              <div className="plg-link-bar">
+                <span className="plg-link-pill plg-link-pill-on">{t.linkMockButton}</span>
+              </div>
+              <div className="plg-link-menu">
+                <span className="plg-link-menu-row plg-link-menu-head">{t.linkMockProject}</span>
+                <span className="plg-link-menu-row plg-link-menu-pick">{t.linkMockTrack}</span>
+                <span className="plg-link-menu-row plg-link-menu-new">{t.linkMockNew}</span>
+              </div>
+            </div>
+            <div className="plg-step-num">02</div>
+            <div className="plg-step-title">{t.linkStep2Title}</div>
+            <div className="plg-step-body">{t.linkStep2Body}</div>
+          </div>
+          <div className="plg-step plg-anim" style={{ '--anim-d': '320ms' }}>
+            <div className="plg-link-shot" aria-hidden="true">
+              <div className="plg-link-bar">
+                <span className="plg-link-pill plg-link-pill-done"><i className="plg-link-dot" />{t.linkMockLinked}</span>
+              </div>
+              <div className="plg-link-sync">
+                <span className="plg-link-bubble">{t.linkMockPlugin}</span>
+                <svg className="plg-link-sync-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M7 7h11l-3-3" /><path d="M17 17H6l3 3" />
+                </svg>
+                <span className="plg-link-bubble">{t.linkMockSite}</span>
+              </div>
+            </div>
+            <div className="plg-step-num">03</div>
+            <div className="plg-step-title">{t.linkStep3Title}</div>
+            <div className="plg-step-body">{t.linkStep3Body}</div>
+          </div>
+        </div>
+        <p className="plg-link-note plg-anim" style={{ '--anim-d': '420ms' }}>{t.linkNote}</p>
+      </section>
+
+      <div className="plg-divider" />
+
       {/* CE QU'IL SAIT FAIRE — 4 features + note abonnés */}
       <section className="plg-section">
         <div className="plg-eyebrow plg-anim">{t.featEyebrow}</div>
@@ -734,6 +795,80 @@ function PluginStyles() {
       .plg-step-body {
         font-family: ${T.body}; font-size: 13.5px; font-weight: 300;
         line-height: 1.65; color: ${T.muted};
+      }
+
+      /* ── LIER UN TITRE : mini-captures dessinées de l'en-tête du plugin ── */
+      .plg-link-shot {
+        height: 142px; margin: -6px -4px 20px; padding: 14px 12px;
+        border-radius: 12px; overflow: hidden;
+        background: linear-gradient(180deg, #17151f 0%, #100f16 100%);
+        border: 1px solid rgba(255,255,255,0.07);
+        display: flex; flex-direction: column; gap: 8px;
+      }
+      .plg-link-bar { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
+      .plg-link-pill {
+        display: inline-flex; align-items: center; gap: 7px;
+        font-family: ${T.body}; font-size: 12px; font-weight: 500;
+        color: ${T.text}; white-space: nowrap;
+        padding: 7px 12px; border-radius: 8px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.12);
+      }
+      .plg-link-pill-dim { opacity: 0.38; }
+      .plg-link-pill-on {
+        border-color: ${T.amber}; color: ${T.amber};
+        background: rgba(245,166,35,0.10);
+        animation: plg-link-pulse 2.4s ease-in-out infinite;
+      }
+      .plg-link-pill-done {
+        border-color: rgba(142,224,122,0.45); color: ${T.text};
+        background: rgba(142,224,122,0.08);
+      }
+      .plg-link-caret {
+        width: 0; height: 0; display: inline-block;
+        border-left: 4px solid transparent; border-right: 4px solid transparent;
+        border-top: 5px solid currentColor; opacity: 0.8;
+      }
+      .plg-link-dot {
+        width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+        background: ${T.mint};
+      }
+      .plg-link-menu {
+        align-self: flex-start; min-width: 168px;
+        display: flex; flex-direction: column;
+        background: #1d1b27; border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px; padding: 4px; margin-left: 6px;
+      }
+      .plg-link-menu-row {
+        font-family: ${T.body}; font-size: 11.5px; color: ${T.muted};
+        padding: 4px 9px; border-radius: 5px; white-space: nowrap;
+      }
+      .plg-link-menu-head {
+        font-family: ${T.mono}; font-size: 9.5px; letter-spacing: 1.2px;
+        text-transform: uppercase; color: ${T.muted}; opacity: 0.75;
+      }
+      .plg-link-menu-pick { background: rgba(245,166,35,0.16); color: ${T.text}; font-weight: 500; }
+      .plg-link-menu-new { color: ${T.amber}; }
+      .plg-link-sync {
+        display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-left: 2px;
+      }
+      .plg-link-bubble {
+        font-family: ${T.mono}; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
+        color: ${T.textSoft}; padding: 7px 12px;
+        border-radius: 12px 12px 12px 3px;
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
+      }
+      .plg-link-sync-ico { color: ${T.mint}; flex: none; }
+      .plg-link-note {
+        font-family: ${T.body}; font-size: 13.5px; font-weight: 300; line-height: 1.6;
+        color: ${T.muted}; text-align: center; max-width: 620px; margin: 30px auto 0;
+      }
+      @keyframes plg-link-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(245,166,35,0.00); }
+        50%      { box-shadow: 0 0 14px 0 rgba(245,166,35,0.35); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .plg-link-pill-on { animation: none; }
       }
 
       /* ── FEATURES ─────────────────────────────────── */
