@@ -551,7 +551,7 @@ const STRINGS = {
       focusMarkResolved: "Marquer comme résolu",
       chatTitle: "Discussion",
       chatAiName: "Versions",
-      chatEmpty: "Pose une question sur cette version — je regarde l'analyse et je te réponds.",
+      chatEmpty: "Pose une question sur ce titre — je regarde l'analyse et je te réponds.",
       chatPlaceholder: "Écris ta question…",
       chatSend: "Envoyer",
       chatError: "Erreur de connexion.",
@@ -744,7 +744,8 @@ const STRINGS = {
       /* VersionChat clear + placeholder */
       chatClearTitle: "Effacer la conversation",
       chatClearConfirmTitle: "Effacer la conversation ?",
-      chatClearConfirmBody: "La conversation de cette version sera supprimée définitivement.",
+      chatClearConfirmBody: "La conversation de ce titre sera supprimée définitivement, y compris les échanges faits dans le plugin.",
+      chatFromPlugin: "Plugin",
       chatClearConfirmLabel: "Effacer",
       chatPlaceholderAnalysis: "…",
       chatFabTitle: "Discussion",
@@ -1654,15 +1655,15 @@ const STRINGS = {
       },
 
       // École / centres de formation
-      schoolEyebrow: "Écoles & centres de formation",
+      schoolEyebrow: "Écoles, labels, studios",
       schoolTitleStart: "Pour les ",
       schoolTitleEm: "structures",
       schoolTitleEnd: ", on ajuste sur devis.",
-      schoolLede: "Comptes équipe, accompagnement pédagogique, tarifs ajustés selon le volume.",
+      schoolLede: "Comptes équipe, accompagnement, tarifs ajustés selon le volume.",
       schoolCardLabel: "École",
       schoolCardPrice: "Sur devis",
       schoolCardHint: "Tarifs sur volume",
-      schoolMailSubject: "Versions — partenariat école / centre de formation",
+      schoolMailSubject: "Versions — offre pour une structure (école, label, studio…)",
       schoolCta: "Nous contacter",
 
       // FAQ
@@ -2717,7 +2718,7 @@ const STRINGS = {
       focusMarkResolved: "Mark as resolved",
       chatTitle: "Discussion",
       chatAiName: "Versions",
-      chatEmpty: "Ask a question about this version — I'll look at the analysis and reply.",
+      chatEmpty: "Ask a question about this track — I'll look at the analysis and reply.",
       chatPlaceholder: "Type your question…",
       chatSend: "Send",
       chatError: "Connection error.",
@@ -2899,7 +2900,8 @@ const STRINGS = {
       /* VersionChat clear + placeholder */
       chatClearTitle: "Clear conversation",
       chatClearConfirmTitle: "Clear the conversation?",
-      chatClearConfirmBody: "The conversation for this version will be permanently deleted.",
+      chatClearConfirmBody: "The conversation for this track will be permanently deleted, including exchanges made in the plugin.",
+      chatFromPlugin: "Plugin",
       chatClearConfirmLabel: "Clear",
       chatPlaceholderAnalysis: "…",
       chatFabTitle: "Discussion",
@@ -3788,15 +3790,15 @@ const STRINGS = {
       },
 
       // Schools / training centers
-      schoolEyebrow: "Schools & training centers",
+      schoolEyebrow: "Schools, labels, studios",
       schoolTitleStart: "For ",
       schoolTitleEm: "organizations",
       schoolTitleEnd: ", we tailor a quote.",
-      schoolLede: "Team accounts, pedagogical support, pricing tailored to volume.",
+      schoolLede: "Team accounts, onboarding support, pricing tailored to volume.",
       schoolCardLabel: "School",
       schoolCardPrice: "Custom quote",
       schoolCardHint: "Volume-based pricing",
-      schoolMailSubject: "Versions — school / training center partnership",
+      schoolMailSubject: "Versions — plan for an organization (school, label, studio…)",
       schoolCta: "Contact us",
 
       // FAQ

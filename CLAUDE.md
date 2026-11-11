@@ -317,3 +317,12 @@ Solo 69 €/an, Indie 149 €/an, Pro 299 €/an (2 mois offerts). Un paiement p
 - `ReglagesScreen.jsx` : si `subStatus.interval === 'year'`, le libellé de date devient « Analyses le {date} » (prochaine enveloppe mensuelle) et le bouton Pause est masqué.
 - Migration `059_annual_subscriptions.sql` : `user_credits.sub_interval / sub_period_start / sub_period_end`, fonction `grant_annual_monthly_credits()` lancée toutes les heures par pg_cron (`grant-annual-monthly-credits`), `plugin_is_subscriber` s'appuie aussi sur `sub_period_end`. Idempotence par `credit_events.stripe_event_id = 'annual_grant:<sub>:<début période>:<k>'`.
 - Changement de formule d'un abonné existant (mensuel → annuel, Indie → Pro) : refusé par le backend (`409 already_subscribed`), la page tarifs affiche `errAlreadySubscribed` (résilier d'abord ou nous écrire). Pas de bascule en un clic.
+
+## Chat unifié, étape 1 : mémoire commune site + plugin (2026-11-11)
+
+Le chat de la fiche et celui du plugin partagent UN fil par (personne, titre), table `track_chat_messages` (migration `060_track_chat.sql`). Privé par personne, même sur un titre partagé.
+- `src/lib/storage.js` : `loadTrackChat(trackId)`, `insertTrackChatSeed(...)`, `clearTrackChat(trackId)`, `isPersistedId(id)`. `loadChatHistory` / `saveChatHistory` (versions.chat_history) ne servent plus que pour un titre pas encore en base.
+- `FicheScreen.jsx` → `VersionChat` reçoit `trackId={dbTrack?.id}`. Mode fil (`threadTrackId`) : le fil est chargé une fois par TITRE (changer de version ne recharge rien), le navigateur n'écrit PLUS les échanges (c'est `/api/chat` qui les enregistre, réponse `{ reply, persisted }`), il n'écrit que la charte mastering (seed) et l'effacement. Les messages portent `_source` ('site' | 'plugin') et `_versionId` ; étiquette « Plugin » (`.msg-origin`, `chatFromPlugin`). La charte mastering s'AJOUTE au fil (une par version), elle n'exige plus un chat vide. Défilement automatique vers le dernier message (début du message s'il est plus haut que le panneau).
+- Le site envoie au plus les 40 derniers messages, avec `source` ; le serveur les nettoie avant le modèle.
+- ORDRE DE DÉPLOIEMENT : migration 060 → versions-api → versions-app. Un front récent sur une API ancienne casserait le chat (champ `source` transmis tel quel au modèle).
+- Reste (étapes 2 et 3) : contexte croisé (mesures du plugin dans le chat du site, points prioritaires de la fiche dans le plugin, verdict express dans le fil), routeur de modèle unique, affichage des messages du site dans le plugin.

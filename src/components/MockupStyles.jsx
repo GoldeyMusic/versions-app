@@ -5491,6 +5491,12 @@ export default function MockupStyles() {
     color: var(--amber); text-transform: uppercase;
     margin-bottom: 4px; display: block;
   }
+  /* Chat unifie : petite etiquette sur une question posee depuis le plugin DAW. */
+  .msg .msg-origin {
+    font-family: var(--mono); font-size: 8px; letter-spacing: 1.5px;
+    text-transform: uppercase; opacity: 0.6;
+    margin-bottom: 4px; display: block;
+  }
   .chat-input {
     padding: 12px 14px 14px;
     border-top: 1px solid var(--border);

@@ -12,7 +12,7 @@ import ReleaseReadinessBanner from '../components/ReleaseReadinessBanner';
 import PlateauBanner from '../components/PlateauBanner';
 import NextVersionNudge from '../components/NextVersionNudge';
 import FicheComments from '../components/FicheComments';
-import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion, updateVersionDspMetrics, updateVersionGenre, updateTrackIntent, updateVersionIntent, getMyProjectRole, listTrackMembers } from '../lib/storage';
+import { loadTracks, saveVersionNotes, loadChatHistory, saveChatHistory, loadTrackChat, insertTrackChatSeed, clearTrackChat, isPersistedId, updateTrackVocalType, loadVersionLocalized, loadNoteCompletions, setNoteCompletion, setVersionFinal, renameVersion, deleteVersion, updateVersionDspMetrics, updateVersionGenre, updateTrackIntent, updateVersionIntent, getMyProjectRole, listTrackMembers } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 import { preloadTrackVersions } from '../components/BottomPlayer';
 import { confirmDialog } from '../lib/confirm.jsx';
@@ -3122,6 +3122,12 @@ function renderMessageContent(text) {
 
 function VersionChat({
   versionId,
+  /* Chat unifié (2026-11-11) : id du TITRE. Quand le titre est en base, la
+     conversation est le fil du titre, partagé avec le plugin DAW et commun
+     à toutes ses versions (table track_chat_messages, écrite par le
+     serveur). Sinon (titre pas encore enregistré) : ancien historique par
+     version, écrit par le navigateur. */
+  trackId = null,
   config,
   analysisResult,
   open,
@@ -3145,8 +3151,25 @@ function VersionChat({
   const [loading, setLoading] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  // Fil du titre si le titre est en base, sinon mode historique par version.
+  const threadTrackId = isPersistedId(trackId) ? trackId : null;
+  const legacyVersionKey = threadTrackId ? null : versionId;
   const controllerRef = useRef(null);
   const textareaRef = useRef(null);
+  // Le fil d'un titre peut être long (toutes ses versions + le plugin) : on
+  // amène toujours le dernier message à l'écran. Si ce message est plus haut
+  // que le panneau (charte mastering), on cale sur son DÉBUT, pas sur sa fin.
+  const bodyRef = useRef(null);
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const items = el.querySelectorAll('.msg');
+    const last = items[items.length - 1];
+    const bottom = el.scrollHeight - el.clientHeight;
+    if (!last) { el.scrollTop = bottom; return; }
+    const top = last.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop - 12;
+    el.scrollTop = Math.max(0, Math.min(top, bottom));
+  }, [messages.length, loading, seeding, historyLoaded]);
   // Refs pour seedFetcher + staticSeedFallback : ces props bougent à
   // chaque rebuild de useCallback côté FicheScreen (versionInDb,
   // displayAR qui change quand la traduction arrive, etc.). Si on les
@@ -3168,21 +3191,23 @@ function VersionChat({
   // chat (qui n'incrémente pas seedRequest).
   const seedProcessedRef = useRef(0);
 
-  // Charge l'historique persisté quand la version change — chat scopé par versionId.
-  // Si versionId n'est pas encore en DB (__pending_v__) le helper retourne []
-  // et on démarre avec une conversation vierge (sauvegardée plus tard quand l'ID existera).
+  // Charge la conversation. Mode fil : une fois par TITRE (changer de
+  // version ne recharge rien, c'est le même fil). Mode historique : par
+  // version ; si versionId n'est pas encore en DB (__pending_v__) le helper
+  // retourne [] et on démarre avec une conversation vierge.
   useEffect(() => {
     let alive = true;
     setHistoryLoaded(false);
-    if (!versionId) { setMessages([]); setHistoryLoaded(true); return; }
-    loadChatHistory(versionId).then((hist) => {
+    if (!threadTrackId && !legacyVersionKey) { setMessages([]); setHistoryLoaded(true); return; }
+    const loader = threadTrackId ? loadTrackChat(threadTrackId) : loadChatHistory(legacyVersionKey);
+    loader.then((hist) => {
       if (alive) {
         setMessages(hist);
         setHistoryLoaded(true);
       }
     });
     return () => { alive = false; };
-  }, [versionId]);
+  }, [threadTrackId, legacyVersionKey]);
 
   // Seed mastering — injecte une charte mastering comme premier message
   // assistant si l'historique est vide. Le fetcher appelle l'API
@@ -3204,7 +3229,12 @@ function VersionChat({
     // seedProcessedRef >= seedRequest : on a déjà traité cette demande.
     if (!seedRequest) return;
     if (seedProcessedRef.current >= seedRequest) return;
-    if (messages.length > 0) return;
+    // Mode historique : seed seulement dans un chat vide. Mode fil : le fil
+    // du titre est rarement vide, donc on ajoute la charte à la suite, sauf
+    // si cette version en a déjà reçu une.
+    if (threadTrackId
+      ? messages.some((m) => m._seed === seedKey && m._versionId === versionId)
+      : messages.length > 0) return;
     const fetcher = seedFetcherRef.current;
     const fallback = staticSeedFallbackRef.current;
     if (!fetcher && !fallback) return;
@@ -3222,7 +3252,12 @@ function VersionChat({
     let unmounted = false;
     const inject = (content) => {
       if (!content) return;
-      const seed = { role: 'assistant', content, _seed: seedKey };
+      const seed = { role: 'assistant', content, _seed: seedKey, _source: 'site', _versionId: versionId };
+      if (threadTrackId) {
+        setMessages((prev) => [...prev, seed]);
+        insertTrackChatSeed(threadTrackId, versionId, content, seedKey);
+        return;
+      }
       setMessages([seed]);
       saveChatHistory(versionId, [seed]);
     };
@@ -3258,11 +3293,11 @@ function VersionChat({
       unmounted = true;
       clearTimeout(safetyTimeout);
     };
-  }, [historyLoaded, seedKey, messages.length, versionId, seedRequest]);
+  }, [historyLoaded, seedKey, messages.length, versionId, seedRequest, threadTrackId]);
 
   const send = async () => {
     if (!input.trim() || loading) return;
-    const userMsg = { role: 'user', content: input.trim() };
+    const userMsg = { role: 'user', content: input.trim(), _source: 'site', _versionId: versionId };
     const withUser = [...messages, userMsg];
     setMessages(withUser);
     setInput('');
@@ -3284,7 +3319,12 @@ function VersionChat({
           locale: lang,
           // On strippe les champs internes (_seed) avant d'envoyer à
           // l'API Claude — l'endpoint Anthropic n'accepte que role/content.
-          messages: withUser.map(({ role, content }) => ({ role, content })),
+          // Mode fil : 40 derniers messages, avec leur provenance (le
+          // serveur signale au modèle les questions venues du plugin).
+          messages: threadTrackId
+            ? withUser.slice(-40).map(({ role, content, _source }) => ({ role, content, source: _source || 'site' }))
+            : withUser.map(({ role, content }) => ({ role, content })),
+          trackId: threadTrackId,
           title: config?.title || '',
           version: config?.version || '',
           daw: config?.daw || 'Logic Pro',
@@ -3295,15 +3335,20 @@ function VersionChat({
       });
       clearTimeout(timeout);
       const json = await res.json();
-      const next = [...withUser, { role: 'assistant', content: json.reply || '…' }];
+      const next = [...withUser, { role: 'assistant', content: json.reply || '…', _source: 'site', _versionId: versionId }];
       setMessages(next);
-      // Fire-and-forget : on ne bloque pas l'UI, les erreurs sont logguées côté helper.
-      saveChatHistory(versionId, next);
+      if (threadTrackId) {
+        // Mode fil : le serveur a enregistré l'échange (json.persisted).
+        if (json && json.persisted === false) console.warn('[chat] échange non enregistré dans le fil du titre');
+      } else {
+        // Fire-and-forget : on ne bloque pas l'UI, les erreurs sont logguées côté helper.
+        saveChatHistory(versionId, next);
+      }
     } catch (e) {
       if (e.name !== 'AbortError') {
         const next = [...withUser, { role: 'assistant', content: s.fiche.chatError }];
         setMessages(next);
-        saveChatHistory(versionId, next);
+        if (!threadTrackId) saveChatHistory(versionId, next);
       }
     } finally { setLoading(false); controllerRef.current = null; }
   };
@@ -3321,7 +3366,8 @@ function VersionChat({
     });
     if (res !== 'confirm') return;
     setMessages([]);
-    saveChatHistory(versionId, []);
+    if (threadTrackId) clearTrackChat(threadTrackId);
+    else saveChatHistory(versionId, []);
     // Le seed ne se redéclenche PAS automatiquement après clear : il
     // faut que l'utilisateur reclique le CTA "Conseils mastering ?" pour
     // recevoir une nouvelle charte personnalisée. S'il veut juste un
@@ -3365,7 +3411,7 @@ function VersionChat({
             )}
           </div>
         </div>
-        <div className="chat-body">
+        <div className="chat-body" ref={bodyRef}>
           {messages.length === 0 && !seeding && (
             <div className="msg ai">
               <span className="ai-label">{s.fiche.chatAiName}</span>
@@ -3374,7 +3420,14 @@ function VersionChat({
           )}
           {messages.map((m, i) => (
             <div key={i} className={`msg ${m.role === 'assistant' ? 'ai' : m.role}${m._seed ? ' msg-seed' : ''}`}>
-              {m.role === 'assistant' && <span className="ai-label">{s.fiche.chatAiName}</span>}
+              {m.role === 'assistant' && (
+                <span className="ai-label">
+                  {s.fiche.chatAiName}{m._source === 'plugin' ? ` · ${s.fiche.chatFromPlugin || 'Plugin'}` : ''}
+                </span>
+              )}
+              {m.role !== 'assistant' && m._source === 'plugin' && (
+                <span className="msg-origin">{s.fiche.chatFromPlugin || 'Plugin'}</span>
+              )}
               {renderMessageContent(m.content)}
             </div>
           ))}
@@ -5770,6 +5823,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           <aside className="fiche-chat-side">
             <VersionChat
               versionId={versionInDb?.id || null}
+              trackId={dbTrack?.id || null}
               config={config}
               analysisResult={displayAR}
               open={true}
@@ -5907,6 +5961,7 @@ export default function FicheScreen({ config, analysisResult, onSelectVersion, o
           </div>
           <VersionChat
             versionId={versionInDb?.id || null}
+            trackId={dbTrack?.id || null}
             config={config}
             analysisResult={displayAR}
             open={chatOpen}

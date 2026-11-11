@@ -473,6 +473,90 @@ export async function saveChatHistory(versionId, messages) {
   if (error) console.warn('[storage] saveChatHistory error:', error.message);
 }
 
+// ── Fil de discussion par TITRE (chat unifié, migration 060) ──
+// Depuis 2026-11-11 le chat de la fiche et celui du plugin DAW partagent un
+// fil par (personne, titre) dans `track_chat_messages`. Les échanges
+// question / réponse y sont écrits par le serveur (/api/chat et
+// /api/plugin/feedback) ; le navigateur se contente de LIRE le fil, d'y
+// ajouter la charte mastering (seed) et de l'effacer. Les helpers
+// loadChatHistory / saveChatHistory ci-dessus ne servent plus que pour un
+// titre pas encore enregistré en base.
+
+const TRACK_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export function isPersistedId(id) {
+  return typeof id === 'string' && TRACK_UUID_RE.test(id);
+}
+
+/**
+ * Lit le fil d'un titre, du plus ancien au plus récent.
+ * Chaque message : { role, content, _source: 'site'|'plugin', _versionId, _seed? }.
+ * Renvoie [] si le titre n'est pas en base, si le fil est vide ou en cas d'erreur.
+ */
+export async function loadTrackChat(trackId) {
+  if (!isPersistedId(trackId)) return [];
+  const { data, error } = await supabase
+    .from('track_chat_messages')
+    .select('id, role, content, source, version_id, meta, created_at')
+    .eq('track_id', trackId)
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true })
+    .limit(1000);
+  if (error) {
+    console.warn('[storage] loadTrackChat error:', error.message);
+    return [];
+  }
+  return (data || []).map((m) => ({
+    role: m.role,
+    content: m.content,
+    _source: m.source || 'site',
+    _versionId: m.version_id || null,
+    ...(m.meta?.seed ? { _seed: m.meta.seed } : {}),
+  }));
+}
+
+/**
+ * Ajoute au fil la charte mastering générée par le site (message assistant
+ * « seed »). Fire-and-forget côté appelant.
+ */
+export async function insertTrackChatSeed(trackId, versionId, content, seedKey) {
+  if (!isPersistedId(trackId) || !content) return false;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { error } = await supabase.from('track_chat_messages').insert({
+    user_id: user.id,
+    track_id: trackId,
+    version_id: isPersistedId(versionId) ? versionId : null,
+    role: 'assistant',
+    content,
+    source: 'site',
+    meta: seedKey ? { seed: seedKey } : null,
+  });
+  if (error) {
+    console.warn('[storage] insertTrackChatSeed error:', error.message);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Efface tout le fil d'un titre pour l'utilisateur connecté (site + plugin).
+ */
+export async function clearTrackChat(trackId) {
+  if (!isPersistedId(trackId)) return false;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { error } = await supabase
+    .from('track_chat_messages')
+    .delete()
+    .eq('track_id', trackId)
+    .eq('user_id', user.id);
+  if (error) {
+    console.warn('[storage] clearTrackChat error:', error.message);
+    return false;
+  }
+  return true;
+}
+
 // ── Checklist diagnostique (Ticket 2.1) ────────────────────
 // Stocke par (user_id, version_id, item_id) si la reco a été
 // implémentée par l'utilisateur dans son DAW.
