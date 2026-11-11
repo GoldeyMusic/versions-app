@@ -1,5 +1,5 @@
 {
-  "latest": "1.0.9",
+  "latest": "1.0.11",
   "url": "https://versions.studio",
-  "notes": "Bouton Analyse complète et solde d'analyses dans l'en-tête"
+  "notes": "Le chat du plugin et celui de la fiche partagent la même conversation"
 }
