@@ -5,7 +5,7 @@ import { apiFetchJson } from '../lib/apiClient';
 import useLang from '../hooks/useLang';
 import LangDropdown from '../components/LangDropdown';
 import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
-import ArchipelPortCard from '../components/ArchipelPortCard';
+import { getArchipelPortLinks } from '../lib/archipelPort';
 
 /**
  * PluginScreen — page dédiée au plugin DAW (/plugin).
@@ -132,12 +132,12 @@ export default function PluginScreen({
   //  - visiteur → même look, mais clic = écran d'inscription/login
   //    (onViewDashboard vaut goAuth dans le rendu public, cf. App.jsx) ;
   //  - connecté → <a download> + logDownload au clic.
-  const DownloadCta = ({ url, label, icon, platform }) => {
+  const DownloadCta = ({ url, label, icon, platform, className = 'lp-cta-primary plg-dl' }) => {
     if (!url) {
       return (
         <button
           type="button"
-          className="lp-cta-primary plg-dl"
+          className={className}
           disabled
           title={t.ctaComingSoon}
           aria-label={`${label} — ${t.ctaComingSoon}`}
@@ -150,7 +150,7 @@ export default function PluginScreen({
       return (
         <button
           type="button"
-          className="lp-cta-primary plg-dl"
+          className={className}
           onClick={onViewDashboard}
           title={t.ctaAuthNote}
         >
@@ -159,11 +159,33 @@ export default function PluginScreen({
       );
     }
     return (
-      <a className="lp-cta-primary plg-dl" href={url} download onClick={() => logDownload(platform)}>
+      <a className={className} href={url} download onClick={() => logDownload(platform)}>
         {icon}{label}
       </a>
     );
   };
+
+  // Le plugin s'installe et se met à jour depuis Archipel Port (l'app gratuite
+  // d'Archipel Audio, même compte) : bouton principal. Le téléchargement direct
+  // reste possible, en lien discret (même règle de connexion qu'avant).
+  const portLinks = getArchipelPortLinks(lang);
+  const portCta = () => (
+    <a className="lp-cta-primary plg-dl plg-port-cta" href={portLinks.landing} target="_blank" rel="noopener noreferrer">
+      {t.ctaPort} <span aria-hidden="true">→</span>
+    </a>
+  );
+  const portNote = () => (
+    <div className="plg-port-note">
+      <p>{t.ctaPortNote}</p>
+      <p className="plg-direct">
+        {t.ctaDirect}{' '}
+        <DownloadCta url={PLUGIN_DOWNLOAD_MAC_URL} label={t.directMac} icon={null} platform="mac" className="plg-direct-link" />
+        {' · '}
+        <DownloadCta url={PLUGIN_DOWNLOAD_WIN_URL} label={t.directWin} icon={null} platform="windows" className="plg-direct-link" />
+        {!isAuthenticated && <span className="plg-direct-auth"> — {t.ctaAuthShort}</span>}
+      </p>
+    </div>
+  );
 
   return (
     <div className="plg-screen">
@@ -251,16 +273,10 @@ export default function PluginScreen({
             <span className="plg-compat-chip">VST3</span>
           </div>
           <div className="plg-cta-row">
-            <DownloadCta url={PLUGIN_DOWNLOAD_MAC_URL} label={t.ctaMac} icon={AppleIcon} platform="mac" />
-            <DownloadCta
-              url={PLUGIN_DOWNLOAD_WIN_URL}
-              label={PLUGIN_DOWNLOAD_WIN_URL ? t.ctaWin : t.ctaWinSoon}
-              icon={WindowsIcon}
-              platform="windows"
-            />
+            {portCta()}
           </div>
+          {portNote()}
           <p className="plg-version-note">Version {pluginVersion}</p>
-          {!isAuthenticated && <p className="plg-dl-note">{t.ctaAuthNote}</p>}
         </div>
       </header>
 
@@ -431,21 +447,10 @@ export default function PluginScreen({
           {t.footerQuoteEnd}
         </h2>
         <div className="plg-cta-row plg-anim" style={{ '--anim-d': '80ms' }}>
-          <DownloadCta url={PLUGIN_DOWNLOAD_MAC_URL} label={t.ctaMac} icon={AppleIcon} platform="mac" />
-          <DownloadCta
-            url={PLUGIN_DOWNLOAD_WIN_URL}
-            label={PLUGIN_DOWNLOAD_WIN_URL ? t.ctaWin : t.ctaWinSoon}
-            icon={WindowsIcon}
-            platform="windows"
-          />
+          {portCta()}
         </div>
+        {portNote()}
         <p className="plg-version-note plg-anim" style={{ '--anim-d': '100ms' }}>Version {pluginVersion}</p>
-        {!isAuthenticated && <p className="plg-dl-note plg-anim" style={{ '--anim-d': '120ms' }}>{t.ctaAuthNote}</p>}
-        {/* Archipel Port — app de bureau gratuite d'Archipel Audio (même
-            compte que VERSiONS). Posée APRÈS le téléchargement du plugin
-            pour ne pas lui voler la vedette. Port n'installe PAS le plugin
-            VERSiONS : ne pas le laisser entendre. */}
-        <ArchipelPortCard variant="plugin" className="plg-footer-port" />
         <button type="button" className="plg-back-link" onClick={onBackToLanding}>
           {t.backToHome}
         </button>
@@ -643,6 +648,14 @@ function PluginStyles() {
         color: ${T.amber};
       }
 
+      .plg-screen .plg-port-cta { background: ${T.amber}; color: #14100a; border-color: ${T.amber}; font-weight: 700; }
+      .plg-screen .plg-port-cta:hover { filter: brightness(1.08); }
+      .plg-port-note { margin: 14px auto 0; max-width: 520px; text-align: center; font-size: 13px; line-height: 1.55; color: rgba(255,255,255,0.62); }
+      .plg-port-note p { margin: 0; }
+      .plg-direct { margin-top: 8px !important; font-family: ${T.mono}; font-size: 11px; letter-spacing: .6px; }
+      .plg-direct-link { background: none; border: 0; padding: 0; font: inherit; color: ${T.amber}; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+      .plg-direct-link:disabled { opacity: .5; cursor: default; text-decoration: none; }
+      .plg-direct-auth { opacity: .8; }
       .plg-cta-row {
         margin-top: 0;
         display: flex; flex-wrap: wrap; gap: 12px;
