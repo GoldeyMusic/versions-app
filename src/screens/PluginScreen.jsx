@@ -648,8 +648,8 @@ function PluginStyles() {
         color: ${T.amber};
       }
 
-      .plg-screen .plg-port-cta { background: ${T.amber}; color: #14100a; border-color: ${T.amber}; font-weight: 700; }
-      .plg-screen .plg-port-cta:hover { filter: brightness(1.08); }
+      .plg-screen .lp-cta-primary.plg-port-cta { background: ${T.amber}; color: #14100a; border-color: ${T.amber}; font-weight: 700; gap: 8px; }
+      .plg-screen .lp-cta-primary.plg-port-cta:hover { filter: brightness(1.08); background: ${T.amber}; color: #14100a; }
       .plg-port-note { margin: 14px auto 0; max-width: 520px; text-align: center; font-size: 13px; line-height: 1.55; color: rgba(255,255,255,0.62); }
       .plg-port-note p { margin: 0; }
       .plg-direct { margin-top: 8px !important; font-family: ${T.mono}; font-size: 11px; letter-spacing: .6px; }
