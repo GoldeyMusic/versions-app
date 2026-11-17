@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { confirmDialog } from '../lib/confirm.jsx';
 import API from '../constants/api';
 import { loadArchipelSubscribed, setArchipelSubscribed } from '../lib/archipelConsent';
+import { getArchipelPortLinks, PortAppleIcon, PortWindowsIcon } from '../lib/archipelPort';
 
 // Adresse de contact unique (cf. pages légales). Centralisée ici pour
 // pouvoir construire les mailto de résiliation et suppression de compte
@@ -649,6 +650,35 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
                   </div>
                 )}
               </>
+            );
+          })()}
+
+          {/* ── Archipel Port ── app de bureau gratuite d'Archipel Audio,
+              même compte que VERSiONS (abonnement et crédits visibles dans
+              Port) → posée juste sous le bloc Compte. Liens vers la page de
+              présentation (cf. ArchipelPortCard pour le pourquoi). */}
+          {s.archipelPort && (() => {
+            const p = s.archipelPort;
+            const links = getArchipelPortLinks(lang);
+            const ext = { target: '_blank', rel: 'noopener noreferrer' };
+            return (
+              <div className="rg-row is-stack rg-port">
+                <div>
+                  <div className="rg-label">{p.title}</div>
+                  <div className="rg-hint rg-port-hint">{p.pitch}</div>
+                </div>
+                <div className="rg-port-actions">
+                  <a className="rg-btn" href={links.mac} {...ext} aria-label={p.osAria.replace('{os}', p.mac)}>
+                    {PortAppleIcon}{p.mac}
+                  </a>
+                  <a className="rg-btn" href={links.windows} {...ext} aria-label={p.osAria.replace('{os}', p.windows)}>
+                    {PortWindowsIcon}{p.windows}
+                  </a>
+                  <a className="rg-port-link" href={links.landing} {...ext} aria-label={`${p.discover} ${p.newTab}`}>
+                    {p.discover} <span aria-hidden="true">→</span>
+                  </a>
+                </div>
+              </div>
             );
           })()}
 

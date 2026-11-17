@@ -1066,6 +1066,21 @@ const STRINGS = {
       yes: "Oui, volontiers",
       later: "Plus tard",
     },
+    // Archipel Port — app de bureau gratuite d'Archipel Audio (Mac + Windows).
+    // Carte partagée : landing, page /plugin, Réglages. Ne JAMAIS y parler
+    // des plugins Archipel (pas encore publics) ni laisser entendre que Port
+    // installe le plugin VERSiONS.
+    archipelPort: {
+      title: "Archipel Port",
+      eyebrow: "Gratuit · Mac et Windows",
+      pitch: "Toutes nos apps et nos outils au même endroit, installés et tenus à jour. Avec le même compte que VERSiONS : ton abonnement et tes crédits y sont aussi.",
+      pitchPlugin: "L'app gratuite d'Archipel Audio : toutes nos apps et nos outils au même endroit, avec le même compte que VERSiONS.",
+      mac: "Mac",
+      windows: "Windows",
+      discover: "Découvrir Archipel Port",
+      osAria: "Archipel Port pour {os} (nouvel onglet)",
+      newTab: "(nouvel onglet)",
+    },
     reglages: {
       title: "RÉGLAGES",
       subtitle: "Gérer ton profil et tes préférences",
@@ -3236,6 +3251,17 @@ const STRINGS = {
       no: "No thanks",
       yes: "Yes, please",
       later: "Later",
+    },
+    archipelPort: {
+      title: "Archipel Port",
+      eyebrow: "Free · Mac and Windows",
+      pitch: "All our apps and tools in one place, installed and kept up to date. Same account as VERSiONS: your subscription and credits are there too.",
+      pitchPlugin: "Archipel Audio's free app: all our apps and tools in one place, with the same account as VERSiONS.",
+      mac: "Mac",
+      windows: "Windows",
+      discover: "Discover Archipel Port",
+      osAria: "Archipel Port for {os} (opens in a new tab)",
+      newTab: "(opens in a new tab)",
     },
     reglages: {
       title: "SETTINGS",

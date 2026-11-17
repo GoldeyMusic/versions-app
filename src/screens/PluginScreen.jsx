@@ -5,6 +5,7 @@ import { apiFetchJson } from '../lib/apiClient';
 import useLang from '../hooks/useLang';
 import LangDropdown from '../components/LangDropdown';
 import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
+import ArchipelPortCard from '../components/ArchipelPortCard';
 
 /**
  * PluginScreen — page dédiée au plugin DAW (/plugin).
@@ -440,6 +441,11 @@ export default function PluginScreen({
         </div>
         <p className="plg-version-note plg-anim" style={{ '--anim-d': '100ms' }}>Version {pluginVersion}</p>
         {!isAuthenticated && <p className="plg-dl-note plg-anim" style={{ '--anim-d': '120ms' }}>{t.ctaAuthNote}</p>}
+        {/* Archipel Port — app de bureau gratuite d'Archipel Audio (même
+            compte que VERSiONS). Posée APRÈS le téléchargement du plugin
+            pour ne pas lui voler la vedette. Port n'installe PAS le plugin
+            VERSiONS : ne pas le laisser entendre. */}
+        <ArchipelPortCard variant="plugin" className="plg-footer-port" />
         <button type="button" className="plg-back-link" onClick={onBackToLanding}>
           {t.backToHome}
         </button>
@@ -936,6 +942,7 @@ function PluginStyles() {
         font-family: inherit; font-style: normal; font-weight: 600;
         letter-spacing: inherit; color: ${T.amber};
       }
+      .plg-footer-port { margin-top: 20px; }
       .plg-back-link {
         font-family: ${T.mono}; font-size: 11px; font-weight: 500;
         letter-spacing: 1.6px; text-transform: uppercase;

@@ -5,6 +5,7 @@ import useLang from '../hooks/useLang';
 import LangDropdown from '../components/LangDropdown';
 import HamburgerMenu, { NavIcons } from '../components/HamburgerMenu';
 import { PACKS, SUBSCRIPTIONS } from '../constants/plans';
+import ArchipelPortCard from '../components/ArchipelPortCard';
 
 const fmtEur = (n) => (Number.isFinite(Number(n)) ? `${Number(n).toFixed(2).replace('.', ',')} €` : '');
 
@@ -436,6 +437,10 @@ export default function LandingScreen({
         <button type="button" onClick={onStart} className="lp-cta-primary lp-cta-footer">
           {ctaFooter}
         </button>
+        {/* Archipel Port — app de bureau gratuite d'Archipel Audio, même
+            compte que VERSiONS. Carte compacte en pied de page : visible
+            sans concurrencer le CTA principal (cf. ArchipelPortCard). */}
+        <ArchipelPortCard className="lp-footer-port" />
         <div className="lp-footer-mark">
           <img src="/Logo-Versions-2.png" alt="" className="lp-footer-mark-img" />
           <span className="lp-footer-mark-text">
@@ -1559,6 +1564,7 @@ function LandingStyles() {
         letter-spacing: inherit; color: ${T.amber};
       }
       .lp-cta-footer { margin-top: 4px; }
+      .lp-footer-port { margin-top: 36px; }
       /* Marque de signature en pied de page — même grammaire que le hero
          (logo SVG + wordmark Fredoka 700), mais en plus petit. */
       .lp-footer-mark {

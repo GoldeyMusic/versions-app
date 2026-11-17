@@ -8946,6 +8946,26 @@ export default function MockupStyles() {
   }
   .rg-mini .rg-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
+  /* Archipel Port — rangée Réglages (sous le bloc Compte). Boutons
+     .rg-btn en <a> (lien externe) + lien texte « Découvrir ». */
+  .rg-mini .rg-port .rg-port-hint { max-width: none; }
+  .rg-mini .rg-port-actions {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  }
+  .rg-mini .rg-port-actions .rg-btn { text-decoration: none; padding: 8px 16px; }
+  .rg-mini .rg-port-link {
+    margin-left: 4px;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 0.6px;
+    color: var(--muted); text-decoration: none;
+    transition: color .15s;
+  }
+  .rg-mini .rg-port-link:hover { color: var(--amber); }
+  @media (max-width: 480px) {
+    .rg-mini .rg-port-actions .rg-btn { flex: 1 1 0; }
+    .rg-mini .rg-port-link { flex-basis: 100%; margin: 2px 0 0; }
+  }
+
   /* Loader interne */
   .rg-mini .rg-loading {
     padding: 28px 10px;
