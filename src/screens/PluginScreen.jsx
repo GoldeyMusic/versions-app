@@ -170,8 +170,9 @@ export default function PluginScreen({
   // reste possible, en lien discret (même règle de connexion qu'avant).
   const portLinks = getArchipelPortLinks(lang);
   const portCta = () => (
-    <a className="lp-cta-primary plg-dl plg-port-cta" href={portLinks.landing} target="_blank" rel="noopener noreferrer">
-      {t.ctaPort} <span aria-hidden="true">→</span>
+    <a className="lp-cta-primary plg-dl plg-port-cta" href={`${portLinks.landing}?pour=versions`} target="_blank" rel="noopener noreferrer">
+      <span className="plg-port-main">{t.ctaPort} <span aria-hidden="true">→</span></span>
+      <span className="plg-port-sub">{t.ctaPortSub}</span>
     </a>
   );
   const portNote = () => (
@@ -648,7 +649,9 @@ function PluginStyles() {
         color: ${T.amber};
       }
 
-      .plg-screen .lp-cta-primary.plg-port-cta { background: ${T.amber}; color: #14100a; border-color: ${T.amber}; font-weight: 700; gap: 8px; }
+      .plg-screen .lp-cta-primary.plg-port-cta { background: ${T.amber}; color: #14100a; border-color: ${T.amber}; font-weight: 700; flex-direction: column; gap: 4px; padding: 14px 36px; }
+      .plg-port-main { font-size: 14px; letter-spacing: 1.8px; }
+      .plg-port-sub { font-family: ${T.body}; font-size: 12px; font-weight: 600; letter-spacing: .2px; text-transform: none; opacity: .78; }
       .plg-screen .lp-cta-primary.plg-port-cta:hover { filter: brightness(1.08); background: ${T.amber}; color: #14100a; }
       .plg-port-note { margin: 14px auto 0; max-width: 520px; text-align: center; font-size: 13px; line-height: 1.55; color: rgba(255,255,255,0.62); }
       .plg-port-note p { margin: 0; }
