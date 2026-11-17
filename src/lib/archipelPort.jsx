@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 // Liens et glyphes partagés d'Archipel Port (carte ArchipelPortCard +
 // rangée de la modale Réglages). Fichier séparé du composant pour que le
 // fast refresh de Vite reste actif (react-refresh/only-export-components).
@@ -13,7 +14,7 @@
  * RÈGLES DE CONTENU : ne jamais parler des plugins Archipel (pas encore
  * publics) et ne pas laisser entendre que Port installe le plugin VERSiONS.
  *
- * Liens : les boutons Mac / Windows mènent à la page de présentation
+ * Liens (avant le 17/11/2026) : les boutons Mac / Windows menaient à la page de présentation
  * (archipelaudio.com/port/, /en/port/) et non directement aux
  * installateurs. Les noms de fichiers changent à chaque version et se lisent
  * dans https://archipelaudio.com/port/latest.json (Mac) et
@@ -28,6 +29,38 @@ const PORT_LANDING = {
   fr: 'https://archipelaudio.com/port/',
   en: 'https://archipelaudio.com/en/port/',
 };
+
+/* Liens directs (17/11/2026) : vercel.json relaie les deux fichiers de version
+ * d'archipelaudio.com sous /archipel-port/… (même origine : ni CORS ni CSP à
+ * changer). useArchipelPortLinks() les lit une fois et pointe les boutons Mac /
+ * Windows sur le dernier installateur ; en cas d'échec (dev local, réseau),
+ * repli sur la page de présentation. */
+let directPromise = null;
+const DIRECT_RE = /^https:\/\/archipelaudio\.com\/port\/ArchipelPort-[\w.-]+\.(dmg|exe)$/;
+
+function fetchDirectLinks() {
+  if (!directPromise) {
+    const read = (u) => fetch(u, { headers: { Accept: 'application/json' } })
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    directPromise = Promise.all([read('/archipel-port/latest-mac.json'), read('/archipel-port/latest-windows.json')])
+      .then(([m, w]) => ({
+        mac: DIRECT_RE.test(m?.url || '') ? m.url : null,
+        windows: DIRECT_RE.test(w?.url || '') ? w.url : null,
+      }));
+  }
+  return directPromise;
+}
+
+export function useArchipelPortLinks(lang) {
+  const base = getArchipelPortLinks(lang);
+  const [direct, setDirect] = useState({ mac: null, windows: null });
+  useEffect(() => {
+    let alive = true;
+    fetchDirectLinks().then((d) => { if (alive) setDirect(d); });
+    return () => { alive = false; };
+  }, []);
+  return { ...base, mac: direct.mac || base.mac, windows: direct.windows || base.windows };
+}
 
 export function getArchipelPortLinks(lang) {
   const landing = lang === 'en' ? PORT_LANDING.en : PORT_LANDING.fr;

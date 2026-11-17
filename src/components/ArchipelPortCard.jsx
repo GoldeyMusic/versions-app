@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import useLang from '../hooks/useLang';
 import T from '../constants/theme';
-import { getArchipelPortLinks, PortAppleIcon, PortWindowsIcon } from '../lib/archipelPort';
+import { useArchipelPortLinks, PortAppleIcon, PortWindowsIcon } from '../lib/archipelPort';
 
 /**
  * Archipel Port — carte compacte (landing, pied de page ; /plugin, pied de
@@ -13,9 +13,9 @@ import { getArchipelPortLinks, PortAppleIcon, PortWindowsIcon } from '../lib/arc
 export default function ArchipelPortCard({ variant = 'default', className = '' }) {
   const { s, lang } = useLang();
   const titleId = useId();
+  const links = useArchipelPortLinks(lang);
   const p = s.archipelPort;
   if (!p) return null;
-  const links = getArchipelPortLinks(lang);
   const pitch = variant === 'plugin' ? p.pitchPlugin : p.pitch;
   const ext = { target: '_blank', rel: 'noopener noreferrer' };
 

@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 import { confirmDialog } from '../lib/confirm.jsx';
 import API from '../constants/api';
 import { loadArchipelSubscribed, setArchipelSubscribed } from '../lib/archipelConsent';
-import { getArchipelPortLinks, PortAppleIcon, PortWindowsIcon } from '../lib/archipelPort';
+import { useArchipelPortLinks, PortAppleIcon, PortWindowsIcon } from '../lib/archipelPort';
 
 // Adresse de contact unique (cf. pages légales). Centralisée ici pour
 // pouvoir construire les mailto de résiliation et suppression de compte
@@ -36,6 +36,8 @@ function buildMailto(subject, body) {
 export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, onClose }) {
   const { user } = useAuth();
   const { s, lang, setLang } = useLang();
+  // Archipel Port : liens directs vers le dernier installateur (repli : page Port).
+  const portLinks = useArchipelPortLinks(lang);
   const fileRef = useRef(null);
 
   // ── Profile state ──
@@ -659,7 +661,7 @@ export default function ReglagesScreen({ onSignOut, onGoHome, onProfileUpdate, o
               présentation (cf. ArchipelPortCard pour le pourquoi). */}
           {s.archipelPort && (() => {
             const p = s.archipelPort;
-            const links = getArchipelPortLinks(lang);
+            const links = portLinks;
             const ext = { target: '_blank', rel: 'noopener noreferrer' };
             return (
               <div className="rg-row is-stack rg-port">
